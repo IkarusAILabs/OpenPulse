@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.3.0 — pydantic models (source of truth)."""
+"""OpenPulse Intelligence Schema v0.4.0 — pydantic models (source of truth)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from .enums import Confidence, EventType, Impact
 
-SCHEMA_VERSION = "0.3.0"
+SCHEMA_VERSION = "0.4.0"
 
 
 class Source(BaseModel):
@@ -83,6 +83,22 @@ class Attribution(BaseModel):
     affected_version: str | None = None
 
 
+class Scope(BaseModel):
+    """Event applicability scope — additive, all fields optional.
+
+    Absent scope means project-wide (legacy behavior). Populated scope
+    narrows matching: version lists, explicit artifacts/packages, or
+    registries. A dependency outside a populated scope is NOT_AFFECTED,
+    not UNKNOWN.
+    """
+
+    kind: Literal["project", "package", "artifact", "version", "registry"] = "project"
+    versions: list[str] = Field(default_factory=list)
+    artifacts: list[str] = Field(default_factory=list)
+    packages: list[str] = Field(default_factory=list)
+    registries: list[str] = Field(default_factory=list)
+
+
 class OSSEvent(BaseModel):
     id: str
     schema_version: str = SCHEMA_VERSION
@@ -97,6 +113,7 @@ class OSSEvent(BaseModel):
     evidences: list[Evidence] = Field(min_length=1)
     claims: list[Claim] = Field(default_factory=list)
     attribution: Attribution | None = None
+    scope: Scope | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def requires_action(self) -> bool:

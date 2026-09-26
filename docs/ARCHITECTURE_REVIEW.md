@@ -125,6 +125,20 @@ Deferred: impact split, knowledge graph, SQLite, CPE catalog.
 5. **Supply-chain hygiene** — CI least privilege, CodeQL, pip-audit,
    Dependabot.
 
+## Addendum — Early Warning integrity hardening (schema 0.4.0)
+
+- Explicit `DependencyVerdict` (dependency/affected/relationship/
+  confidence/match_method/evidence/events/reason); separate
+  upstream_change vs security_vulnerability causes.
+- `AFFECTS_PROJECT` no longer means affected; `NOT_AFFECTED` added
+  above `RELATED`; version tri-state survives end to end.
+- Event `scope` (project/package/artifact/version/registry) drives
+  matching with negative matches; attribution is used, not decorative.
+- `version_scheme` (generic/semver/pep440 vs unknown); unknown schemes
+  compare as UNKNOWN, never guessed.
+- Watchlist accepts optional source/environment/owner; `check` prints
+  AFFECTED / NOT_AFFECTED / RELATED / UNKNOWN distinctly.
+
 ## Addendum — Security Re-Implementation (schema 0.3.0)
 
 Follow-up review implemented, preserving all v0.2 behavior except

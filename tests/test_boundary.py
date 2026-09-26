@@ -181,3 +181,44 @@ def test_identity_refs_keep_redis_separate():
     assert a[0] != b[0]
     assert same_identity(a, b)["same"] is False
     assert same_identity(a, identity_refs_for("docker.io/bitnami/redis:7.4"))["same"] is True
+
+
+def test_observation_is_not_an_event():
+    """Layering: diffs carry no confidence, evidence, or gate verdict."""
+    from core.observations.registry import RegistryObservation, diff_observations
+
+    prev = RegistryObservation(namespace="x", repository="y", tags={"a": ["sha256:1"]}).seal()
+    curr = RegistryObservation(namespace="x", repository="y", tags={}).seal()
+    changes = diff_observations(prev, curr)
+    assert changes and changes[0].type == "tag_disappeared"
+    for change in changes:
+        dumped = change.model_dump()
+        assert "confidence" not in dumped
+        assert "evidences" not in dumped
+        assert "impact" not in dumped
+
+
+def test_report_related_claims_no_affection():
+    """RELATED-only reports must not contain affection language."""
+    from reports.generate import build_report
+
+    items = [
+        {
+            "project": "django",
+            "pulse": {"facets": {}},
+            "findings": [
+                {
+                    "analyst": "security",
+                    "cve_id": "CVE-9",
+                    "impact": "REVIEW",
+                    "title": "CVE-9 tracked",
+                    "summary": "Keyword-associated record under review.",
+                    "relationship": "RELATED",
+                    "sources": ["nvd"],
+                    "references": [],
+                }
+            ],
+        }
+    ]
+    md = build_report("2026-09", items).lower()
+    assert "affect" not in md

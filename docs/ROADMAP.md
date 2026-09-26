@@ -1,11 +1,11 @@
 # Roadmap — 12-week MVP (distilled from proposal)
 
-Status as of v0.4 check: schema 0.3.0, 99 tests, catalog at
-45 entries, watchlist checking with version-aware verdicts.
+Status as of early-warning hardening: schema 0.4.0, explicit
+DependencyVerdicts, event scope, NOT_AFFECTED semantics.
 
 ## Done
 
-- [x] **Phase 0 (W1) — Schema freeze.** `core/schema/` v0.3.0 (was v0.1.0;
+- [x] **Phase 0 (W1) — Schema freeze.** `core/schema/` v0.4.0 (was v0.1.0;
   additive provenance/independence/relation fields). Event taxonomy,
   confidence, impact levels frozen.
 - [x] **Phase 1 (W2–4) — Collectors.** All 7: github (+repo metadata),
@@ -31,6 +31,9 @@ Status as of v0.4 check: schema 0.3.0, 99 tests, catalog at
   refs, `AFFECTS_ARTIFACT` matching, explainable security rendering,
   SHA-pinned actions, `requirements.lock`, 10-test boundary contract.
   See `IMPLEMENTATION_PLAN.md` / `IMPLEMENTATION_SUMMARY.md`.
+- [x] **Early Warning integrity hardening.** Explicit `DependencyVerdict`,
+  scope-driven matching, `NOT_AFFECTED`, tri-state versions end to end,
+  `version_scheme`, watchlist metadata, four-state `check` output.
 
 ## In progress
 

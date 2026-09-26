@@ -121,6 +121,8 @@ def correlate(
                     "affected_package": None,
                     "affected_version": None,
                     "fixed_version": None,
+                    "version_checked": False,
+                    "version_hit": False,
                     "references": [],
                 },
             )
@@ -183,8 +185,10 @@ def _absorb_osv(
         result = osv_applicable(version, affected) if version else None
         if result is not None:
             evaluated = True
+            slot["version_checked"] = True
         if result is True:
             applies = True
+            slot["version_hit"] = True
         for candidate in affected.get("fixed", []) or []:
             fixed = fixed or str(candidate)
     if applies:
@@ -210,7 +214,10 @@ def _absorb_nvd(
         if criteria not in slot["identity_evidence"]:
             slot["identity_evidence"].append(criteria)
         result = cpe_applicable(version, cpe) if version else None
+        if result is not None:
+            slot["version_checked"] = True
         if result is True:
+            slot["version_hit"] = True
             slot["relationship"] = "AFFECTS_VERSION"
             slot["match_method"] = "cpe_version_range"
             slot["affected_version"] = version
@@ -236,6 +243,19 @@ def _decide(slot: dict[str, Any]) -> None:
     if relationship == "UNKNOWN" and (score is not None or slot["in_kev"]):
         relationship = "RELATED"
         slot["relationship"] = relationship
+    if (
+        slot.get("version_checked")
+        and not slot.get("version_hit")
+        and relationship in ("RELATED", "UNKNOWN")
+    ):
+        # Evaluated negative: the version was checked and cleared.
+        # Stronger than RELATED — and stronger than a KEV flag, which
+        # speaks about the CVE, not about this dependency version.
+        slot["relationship"] = "NOT_AFFECTED"
+        slot["impact"] = "INFORMATIONAL"
+        slot["urgency"] = "low"
+        slot["recommended_action"] = "none"
+        return
     if slot["in_kev"] and relationship in ("AFFECTS_VERSION", "AFFECTS_PACKAGE"):
         impact, urgency = "CRITICAL", "high"
     elif slot["in_kev"]:

@@ -1,6 +1,6 @@
 {
   "id": "evt-bitnami-2025-distribution-001",
-  "schema_version": "0.3.0",
+  "schema_version": "0.4.0",
   "project_slug": "bitnami",
   "event_type": "DISTRIBUTION_CHANGE",
   "title": "Bitnami public catalog distribution/support change: versioned images moved to bitnamilegacy, mainline limited to latest-only community tier",
@@ -15,6 +15,16 @@
     {"kind": "helm-chart", "ref": "oci://registry-1.docker.io/bitnamicharts/redis"},
     {"kind": "docker-image", "ref": "docker.io/bitnamilegacy/redis:7.2"}
   ],
+  "scope": {
+    "kind": "artifact",
+    "artifacts": [
+      "docker.io/bitnami/redis:<version>",
+      "docker.io/bitnami/postgresql:<version>",
+      "docker.io/bitnami/kafka:<version>",
+      "oci://registry-1.docker.io/bitnamicharts/redis",
+      "docker.io/bitnamilegacy/redis:<version>"
+    ]
+  },
   "evidences": [
     {
       "source": {

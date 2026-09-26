@@ -1,33 +1,74 @@
-"""Watchlist checking — Dependency Early Warning preview.
+"""Watchlist checking — Dependency Early Warning.
 
 A watchlist names the dependencies a team actually runs (image refs
-and/or packages with versions). `check_watchlist` evaluates each
-against intelligence events (artifact/project matching) and, where a
-raw bundle is available, version-aware correlation (OSV/CPE ranges →
-AFFECTS_VERSION for exact pins). Pure functions; no network.
+and/or packages with versions). Checking keeps two reasoning streams
+separate — event-based intelligence (explicit upstream events) and
+security correlation (CVE/package/version applicability) — and
+combines them only at the final verdict, retaining each cause.
+
+Decision matrix (final relationship):
+  AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE
+  > NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN
+`affected` is True only for ARTIFACT/VERSION/PACKAGE. A project-only
+tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from pydantic import BaseModel, Field
+
 from analyzers.security_analyst import correlate
 from core.entities.resolve import resolve_project
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
+from core.versions import compare
 
-_REL_RANK = {
+_RANK = {
     "UNKNOWN": 0,
     "RELATED": 1,
     "AFFECTS_PROJECT": 2,
-    "AFFECTS_PACKAGE": 3,
-    "AFFECTS_VERSION": 4,
-    "AFFECTS_ARTIFACT": 5,
+    "NOT_AFFECTED": 3,
+    "AFFECTS_PACKAGE": 4,
+    "AFFECTS_VERSION": 5,
+    "AFFECTS_ARTIFACT": 6,
+}
+
+_AFFECTED = ("AFFECTS_ARTIFACT", "AFFECTS_VERSION", "AFFECTS_PACKAGE")
+
+_CONFIDENCE = {
+    "AFFECTS_ARTIFACT": "CONFIRMED",
+    "AFFECTS_VERSION": "CORROBORATED",
+    "AFFECTS_PACKAGE": "EMERGING",
+    "NOT_AFFECTED": "CORROBORATED",
+    "AFFECTS_PROJECT": "EMERGING",
+    "RELATED": "UNVERIFIED",
+    "UNKNOWN": "UNVERIFIED",
 }
 
 
+class DependencyVerdict(BaseModel):
+    """One dependency, fully explained. `affected` derives from evidence."""
+
+    dependency: str
+    affected: bool
+    relationship: str
+    confidence: str = "UNVERIFIED"
+    match_method: str | None = None
+    evidence: list[str] = Field(default_factory=list)
+    events: list[str] = Field(default_factory=list)
+    reason: str = ""
+    verdicts: list[dict[str, Any]] = Field(
+        default_factory=list, description="Retained per-cause verdicts (streams stay separate)"
+    )
+
+
 def load_watchlist_doc(doc: dict[str, Any]) -> list[dict[str, Any]]:
-    """Validate a parsed watchlist document into normalized dep entries."""
+    """Validate a parsed watchlist document into normalized dep entries.
+
+    Optional passthrough (never required): source, environment, owner.
+    """
     if not isinstance(doc, dict):
         raise ValueError("watchlist must be a mapping")
     deps = doc.get("dependencies", [])
@@ -37,8 +78,14 @@ def load_watchlist_doc(doc: dict[str, Any]) -> list[dict[str, Any]]:
     for i, dep in enumerate(deps):
         if not isinstance(dep, dict):
             raise ValueError(f"dependency #{i} must be a mapping")
+        extra = {}
+        for key in ("source", "environment", "owner"):
+            if dep.get(key) is not None:
+                if not isinstance(dep[key], str):
+                    raise ValueError(f"dependency #{i} field `{key}` must be a string")
+                extra[key] = dep[key]
         if dep.get("ref"):
-            normalized.append({"kind": "image", "ref": str(dep["ref"])})
+            normalized.append({"kind": "image", "ref": str(dep["ref"]), **extra})
         elif dep.get("package"):
             normalized.append(
                 {
@@ -46,6 +93,7 @@ def load_watchlist_doc(doc: dict[str, Any]) -> list[dict[str, Any]]:
                     "package": str(dep["package"]),
                     "ecosystem": str(dep.get("ecosystem", "")),
                     "version": str(dep["version"]) if dep.get("version") else None,
+                    **extra,
                 }
             )
         else:
@@ -53,78 +101,215 @@ def load_watchlist_doc(doc: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
-def _strongest_correlation(findings: list[dict[str, Any]]) -> dict[str, Any] | None:
-    best = None
-    for finding in findings:
-        rank = _REL_RANK.get(str(finding.get("relationship", "UNKNOWN")), 0)
-        if best is None or rank > _REL_RANK.get(str(best.get("relationship", "UNKNOWN")), 0):
-            best = finding
-    return best
+def _dep_label(dep: dict[str, Any]) -> str:
+    if dep["kind"] == "image":
+        return str(dep["ref"])
+    version = dep.get("version")
+    return f"{dep['package']}=={version}" if version else str(dep["package"])
+
+
+def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
+    """Package dep vs one event's scope. None when the event says nothing usable."""
+    slug = resolve_project(str(dep["package"]))
+    if slug != event.project_slug:
+        return None
+    scope = event.scope
+    version = dep.get("version")
+    base: dict[str, Any] = {
+        "cause": "upstream_change",
+        "event_id": event.id,
+        "impact": event.impact.value,
+        "evidence": [e.source.name for e in event.evidences],
+    }
+    if scope is None:
+        return {
+            **base,
+            "relationship": "RELATED",
+            "affected": False,
+            "match_method": "project_scope",
+            "reason": f"{dep['package']} belongs to event project {slug}; impact not established",
+        }
+    kind = scope.kind
+    if kind == "version" and scope.versions:
+        if not version:
+            return {
+                **base,
+                "relationship": "RELATED",
+                "affected": False,
+                "match_method": "project_scope",
+                "reason": f"event is version-scoped to {scope.versions}; dep version unknown",
+            }
+        for scoped in scope.versions:
+            if compare(str(version), str(scoped)) == 0:
+                return {
+                    **base,
+                    "relationship": "AFFECTS_VERSION",
+                    "affected": True,
+                    "match_method": "event_scope_version",
+                    "reason": f"{dep['package']}=={version} matches event scope version {scoped}",
+                }
+        return {
+            **base,
+            "relationship": "NOT_AFFECTED",
+            "affected": False,
+            "match_method": "event_scope_version",
+            "reason": (f"{dep['package']}=={version} is outside scope versions {scope.versions}"),
+        }
+    if kind == "package" and scope.packages:
+        names = {str(p).lower() for p in scope.packages}
+        if str(dep["package"]).lower() in names or slug in names:
+            return {
+                **base,
+                "relationship": "AFFECTS_PACKAGE",
+                "affected": True,
+                "match_method": "event_scope_package",
+                "reason": f"{dep['package']} is inside event scope packages {scope.packages}",
+            }
+        return {
+            **base,
+            "relationship": "NOT_AFFECTED",
+            "affected": False,
+            "match_method": "event_scope_package",
+            "reason": f"{dep['package']} is outside event scope packages {scope.packages}",
+        }
+    if kind == "artifact":
+        return {
+            **base,
+            "relationship": "RELATED",
+            "affected": False,
+            "match_method": "project_scope",
+            "reason": "event is artifact-scoped; a package ref cannot match artifacts",
+        }
+    return {
+        **base,
+        "relationship": "AFFECTS_PROJECT",
+        "affected": False,
+        "match_method": "project_scope",
+        "reason": (f"{dep['package']} belongs to {slug}; project ties are contextual, not impact"),
+    }
+
+
+Cause = dict[str, Any]
+
+
+def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) -> list[Cause]:
+    """CVE/package/version applicability stream (independent of events)."""
+    if dep["kind"] != "package":
+        return []
+    slug = resolve_project(str(dep["package"]))
+    raw = bundles.get(slug)
+    if raw is None:
+        return []
+    context = {
+        "slug": slug,
+        "package": dep["package"],
+        "ecosystem": dep.get("ecosystem", ""),
+        "version": dep.get("version"),
+    }
+    causes = []
+    for finding in correlate(raw, context):
+        relationship = str(finding.get("relationship", "UNKNOWN"))
+        if relationship == "UNKNOWN":
+            continue
+        causes.append(
+            {
+                "cause": "security_vulnerability",
+                "relationship": relationship,
+                "affected": relationship in ("AFFECTS_VERSION", "AFFECTS_PACKAGE"),
+                "match_method": finding.get("match_method"),
+                "event_id": finding.get("cve_id"),
+                "impact": finding.get("impact"),
+                "evidence": list(finding.get("sources", [])),
+                "reason": (
+                    f"{finding.get('cve_id')} [{relationship}] via {finding.get('match_method')}"
+                ),
+            }
+        )
+    return causes
+
+
+def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
+    """Explicit decision matrix over retained causes."""
+    label = _dep_label(dep)
+    if not causes:
+        return DependencyVerdict(
+            dependency=label,
+            affected=False,
+            relationship="UNKNOWN",
+            reason="no applicable evidence",
+        )
+    for cause in causes:
+        cause.setdefault("detail", cause.get("reason", ""))
+    top = max(causes, key=lambda c: _RANK.get(str(c["relationship"]), 0))
+    relationship = str(top["relationship"])
+    affected = relationship in _AFFECTED
+    evidence: list[str] = []
+    events: list[str] = []
+    for cause in causes:
+        for item in cause.get("evidence", []) or []:
+            if item not in evidence:
+                evidence.append(str(item))
+        event_id = cause.get("event_id")
+        if event_id and event_id not in events:
+            events.append(str(event_id))
+    if affected:
+        reason = "; ".join(c.get("reason", "") for c in causes if c.get("affected")) or top.get(
+            "reason", ""
+        )
+    else:
+        reason = top.get("reason", "") or f"evaluated {label}: no established impact"
+    return DependencyVerdict(
+        dependency=label,
+        affected=affected,
+        relationship=relationship,
+        confidence=_CONFIDENCE.get(relationship, "UNVERIFIED"),
+        match_method=top.get("match_method"),
+        evidence=evidence,
+        events=events,
+        reason=reason,
+        verdicts=causes,
+    )
+
+
+Verdict = DependencyVerdict
 
 
 def check_dependency(
     dep: dict[str, Any], events: list[OSSEvent], bundles: dict[str, dict[str, Any]] | None = None
-) -> dict[str, Any]:
-    """One dep vs events (+ optional raw bundles) -> verdict dict."""
+) -> DependencyVerdict:
+    """One dep vs events (+ optional raw bundles) -> explicit verdict."""
     bundles = bundles or {}
-    verdicts = []
+    causes: list[Cause] = []
     if dep["kind"] == "image":
         for event in events:
             match = event_affects_ref(event, dep["ref"])
-            if match["affected"]:
-                verdicts.append(
-                    {
-                        "affected": True,
-                        "relationship": match["relationship"],
-                        "via": match["via"],
-                        "event_id": event.id,
-                        "impact": event.impact.value,
-                        "detail": match["detail"],
-                    }
-                )
+            causes.append(
+                {
+                    "cause": "upstream_change",
+                    "relationship": match["relationship"],
+                    "affected": bool(match["affected"]),
+                    "match_method": f"event_scope:{match['via']}"
+                    if match["via"]
+                    else "project_scope",
+                    "event_id": event.id,
+                    "impact": event.impact.value,
+                    "evidence": [e.source.name for e in event.evidences],
+                    "reason": str(match["detail"]),
+                }
+            )
     else:
-        slug = resolve_project(dep["package"])
         for event in events:
-            if slug == event.project_slug:
-                verdicts.append(
-                    {
-                        "affected": True,
-                        "relationship": "AFFECTS_PROJECT",
-                        "via": "project",
-                        "event_id": event.id,
-                        "impact": event.impact.value,
-                        "detail": f"{dep['package']} resolves to {event.project_slug}",
-                    }
-                )
-        raw = bundles.get(slug)
-        if raw is not None:
-            context = {
-                "slug": slug,
-                "package": dep["package"],
-                "ecosystem": dep["ecosystem"],
-                "version": dep["version"],
-            }
-            best = _strongest_correlation(correlate(raw, context))
-            if best and str(best.get("relationship", "UNKNOWN")) not in ("UNKNOWN",):
-                verdicts.append(
-                    {
-                        "affected": best["relationship"] in ("AFFECTS_VERSION", "AFFECTS_PACKAGE"),
-                        "relationship": best["relationship"],
-                        "via": f"correlation:{best.get('match_method')}",
-                        "event_id": None,
-                        "impact": best.get("impact"),
-                        "detail": (
-                            f"{best.get('cve_id')} [{best.get('relationship')}]"
-                            f" via {best.get('match_method')}"
-                        ),
-                    }
-                )
-    if not verdicts:
-        return {"dep": dep, "affected": False, "relationship": "UNKNOWN", "verdicts": []}
-    top = max(verdicts, key=lambda v: _REL_RANK.get(str(v["relationship"]), 0))
-    return {
-        "dep": dep,
-        "affected": any(v["affected"] for v in verdicts),
-        "relationship": top["relationship"],
-        "verdicts": verdicts,
-    }
+            cause = _event_scope_cause(dep, event)
+            if cause is not None:
+                causes.append(cause)
+        causes.extend(_security_causes(dep, bundles))
+    return _combine(dep, causes)
+
+
+def check_watchlist(
+    deps: list[dict[str, Any]],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None = None,
+) -> list[DependencyVerdict]:
+    """Whole watchlist -> one verdict per dependency."""
+    return [check_dependency(dep, events, bundles) for dep in deps]

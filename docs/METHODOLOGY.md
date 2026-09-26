@@ -1,4 +1,4 @@
-# Methodology — how OpenPulse knows what it claims (schema v0.3.0)
+# Methodology — how OpenPulse knows what it claims (schema v0.4.0)
 
 ## Sources
 
@@ -94,3 +94,25 @@ Conflicting evidence → visible + blocking for strong actions.
 - CPE data depends on NVD configuration quality.
 - Popularity informs reach, never risk (stars bands, always 🟢).
 - `latest` moves constantly — pin digests in production.
+
+## Core distinctions (design principles)
+
+- RELATED ≠ AFFECTED — association is not impact.
+- AFFECTS_PROJECT ≠ AFFECTS_VERSION — project ties are contextual.
+- UNKNOWN ≠ NOT_AFFECTED — unevaluated is not cleared.
+- OBSERVATION ≠ CLAIM ≠ EVENT — facts, assertions, and gated
+  intelligence are separate layers.
+- Detection (what was observed) ≠ assessment (what evidence
+  establishes) ≠ recommendation (what to investigate). Recommendations
+  never feed back into impact calculations.
+
+## Verdict decision matrix (`core/risk/check.py`)
+
+AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE >
+NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN.
+`affected` is True only for ARTIFACT/VERSION/PACKAGE. A stronger
+negative (evaluated version outside the range) beats RELATED/UNKNOWN;
+no weaker match overrides it. Verdict confidence: ARTIFACT →
+CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
+EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
+UNVERIFIED.

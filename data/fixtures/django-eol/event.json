@@ -1,0 +1,37 @@
+{
+  "id": "evt-django-2026-eol-001",
+  "schema_version": "0.4.0",
+  "project_slug": "django",
+  "event_type": "EOL",
+  "title": "Django 4.2 LTS reaches end of life",
+  "summary": "Django 4.2 LTS received its last security release in April 2026. Deployments pinned to 4.2.x no longer receive fixes; 5.x lines remain supported. Upgrade 4.2 deployments to a supported release.",
+  "confidence": "CONFIRMED",
+  "impact": "ACTION",
+  "affected_versions": ["4.2"],
+  "affected_artifacts": [],
+  "scope": {"kind": "version", "versions": ["4.2"]},
+  "evidences": [
+    {
+      "source": {
+        "name": "djangoproject/download",
+        "url": "https://www.djangoproject.com/download/",
+        "authority": "official",
+        "fetched_at": "2026-09-25T00:00:00Z"
+      },
+      "excerpt": "Django 4.2 LTS is no longer supported; only currently maintained releases receive security updates.",
+      "announcement_date": "2026-04-01",
+      "effective_date": "2026-04-30"
+    },
+    {
+      "source": {
+        "name": "endoflife.date/django",
+        "url": "https://endoflife.date/django",
+        "authority": "secondary",
+        "fetched_at": "2026-09-25T00:00:00Z"
+      },
+      "excerpt": "Django 4.2 cycle ended 2026-04-30; 5.x cycles remain maintained.",
+      "announcement_date": "2026-04-01",
+      "effective_date": "2026-04-30"
+    }
+  ]
+}

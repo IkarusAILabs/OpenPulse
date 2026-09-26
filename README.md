@@ -106,6 +106,7 @@ Principles that make it different:
 - **Evidence-first.** Every event carries source URLs, announcement/effective dates, and a confidence level (`CONFIRMED` / `CORROBORATED` / `EMERGING` / `UNVERIFIED`). No black boxes.
 - **No mystery scores.** Instead of `Risk: 72`, you see per-facet signals — activity, security, lifecycle, support, license, distribution, popularity.
 - **Impact attribution.** `docker.io/bitnami/redis` and `docker.io/redis` resolve to *different* canonical projects, so a Bitnami distribution event alerts Bitnami users without false-alarming upstream Redis users.
+- **Honest verdicts.** `RELATED ≠ AFFECTED`, `AFFECTS_PROJECT ≠ AFFECTS_VERSION`, `UNKNOWN ≠ NOT_AFFECTED` — same project never means affected, and cleared dependencies say `NOT_AFFECTED`, not "no match".
 - **Analysts, not one giant agent.** Four small, deterministic, testable analysts. The evidence gate has veto power.
 
 ## Who it's for — and what you get
@@ -158,7 +159,7 @@ Expected `demo-bitnami` result: 🚨 on every `bitnami*` ref, ✅ on upstream `r
 ## Repo layout
 
 ```
-core/schema/        # v0.3.0 Intelligence Schema — the source of truth
+core/schema/        # v0.4.0 Intelligence Schema — the source of truth
 core/entities/      # catalog + resolve() — canonical Project <-> Package/Artifact
 core/evidence/      # policy + provenance + independence — the gate with veto power
 core/observations/  # RegistryObservation + local history store + diffs
@@ -187,7 +188,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 
 ## Roadmap
 
-- **v0.1 Intelligence Core** ✅ — schema (now 0.3.0), 7 collectors, entity resolution, evidence model
+- **v0.1 Intelligence Core** ✅ — schema (now 0.4.0), 7 collectors, entity resolution, evidence model
 - **v0.2 OSS Pulse** ✅ — analysts, confidence, Bitnami validation, CLI, and computed Pulse facets (`openpulse pulse` renders worst-wins status + reason per facet)
 - **v0.3 OpenPulse 100** 🔨 in progress — seed at 20, catalog at 32 (growth in [#9](https://github.com/ikaruscareer/OpenPulse/issues/9)); monthly report pipeline working (`openpulse report --month YYYY-MM`)
 - **v0.4 Early Warning** 🔨 in progress — watchlist checks work (`openpulse check --watchlist file --event file`, `--strict` for CI); customer inventory, alerts, weekly digest still to come

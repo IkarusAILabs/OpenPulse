@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.3.0 — enums (frozen since Phase 0)."""
+"""OpenPulse Intelligence Schema v0.4.0 — enums (frozen since Phase 0)."""
 
 from enum import Enum
 

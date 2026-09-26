@@ -1,7 +1,7 @@
 def test_schema_import():
     from core.schema.models import SCHEMA_VERSION
 
-    assert SCHEMA_VERSION == "0.3.0"
+    assert SCHEMA_VERSION == "0.4.0"
 
 
 def test_bitnami_fixture_validates():

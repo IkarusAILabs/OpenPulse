@@ -112,6 +112,7 @@ def build_report(month: str, items: list[dict[str, Any]]) -> str:
                     continue
                 lines.append(render_finding_md(finding))
                 lines.append("")
+                lines += _dependency_block(finding)
                 evidence = [finding.get("analyst", "analyst")]
                 evidence += [s for s in finding.get("sources", []) if s not in evidence]
                 lines.append("Evidence: " + ", ".join(evidence))
@@ -119,3 +120,21 @@ def build_report(month: str, items: list[dict[str, Any]]) -> str:
                     lines.append(f"- {ref}")
                 lines.append("")
     return "\n".join(lines).rstrip()
+
+
+def _dependency_block(finding: dict[str, Any]) -> list[str]:
+    """Structured attribution for security findings — only known fields.
+
+    No confidence is printed: findings carry relationships, not event
+    confidence. Nothing here is inferred beyond the finding data.
+    """
+    if not finding.get("affected_package"):
+        return []
+    lines = [
+        f"Affected dependency: {finding['affected_package']}"
+        f" {finding.get('affected_version') or '(version unknown)'}"
+    ]
+    action = finding.get("recommended_action")
+    if action and action not in ("none", "track"):
+        lines.append(f"Recommended action: {action}")
+    return lines + [""]

@@ -184,7 +184,7 @@ def demo_bitnami():
     for ref in watchlist:
         result = event_affects_ref(event, ref)
         icon = "🚨" if result["affected"] else "✅"
-        click.echo(f"{icon} {ref}: {result['detail']}")
+        click.echo(f"{icon} {ref}: [{result['relationship']}] {result['detail']}")
     click.echo("\n" + report_analyst.render_event_md(event))
 
 
@@ -328,14 +328,19 @@ def check(watchlist, events, raw_bundle_dir, strict):
     for dep in deps:
         result = check_dependency(dep, loaded_events, bundles)
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
-        if result["affected"]:
+        relationship = result.relationship
+        if result.affected:
             affected += 1
-            click.echo(f"🚨 {label}: {result['relationship']}")
-            for verdict in result["verdicts"]:
+            click.echo(f"🚨 {label}: AFFECTED ({relationship})")
+            for verdict in result.verdicts:
                 if verdict["affected"]:
                     click.echo(f"   - [{verdict['impact']}] {verdict['detail']}")
+        elif relationship == "NOT_AFFECTED":
+            click.echo(f"✅ {label}: NOT_AFFECTED — {result.reason}")
+        elif relationship == "RELATED":
+            click.echo(f"ℹ️ {label}: RELATED — {result.reason}")
         else:
-            click.echo(f"✅ {label}: no match ({result['relationship']})")
+            click.echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
     click.echo(f"\n{affected}/{len(deps)} dependencies affected")
     if strict and affected:
         raise SystemExit(1)

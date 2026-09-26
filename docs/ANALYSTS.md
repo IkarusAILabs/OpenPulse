@@ -80,4 +80,13 @@ runs the catalog live or from `--raw-bundle-dir` offline bundles.
 openpulse analyze --project redis
 openpulse analyze --project bitnami
 openpulse demo-bitnami
+openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
 ```
+
+## Verdicts (`core/risk/check.py`)
+
+`check_dependency` keeps event-based and correlation causes separate
+(`upstream_change` vs `security_vulnerability`) and combines them with
+the matrix in METHODOLOGY. AFFECTS_PROJECT never means affected;
+NOT_AFFECTED beats RELATED/UNKNOWN; findings and recommendations stay
+in their lanes (detection ≠ assessment ≠ recommendation).

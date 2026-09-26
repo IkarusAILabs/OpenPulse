@@ -27,6 +27,22 @@ _PRE = {
     "preview": -1,
 }
 
+# Ecosystem schemes OpenPulse understands. Anything else (apk/rpm
+# suffixes, distro tags, date revisions) is UNKNOWN — never guessed.
+KNOWN_SCHEMES = ("generic", "semver", "pep440")
+
+
+def detect_scheme(version: str) -> str:
+    """generic: leading numeric core + optional known prerelease marker.
+    Everything else (distro/build suffixes, unknown alphas) is unknown."""
+    tokens = re.findall(r"\d+|[a-z]+", str(version).lower().lstrip("v"))
+    if not tokens or not tokens[0].isdigit():
+        return "unknown"
+    for token in tokens:
+        if not token.isdigit() and token not in _PRE:
+            return "unknown"
+    return "generic"
+
 
 def _key(version: str) -> tuple[tuple[int, ...], int] | None:
     """(numeric core, prerelease rank); None when no digits at all."""
@@ -47,8 +63,17 @@ def _key(version: str) -> tuple[tuple[int, ...], int] | None:
     return (tuple(nums), rank)
 
 
-def compare(a: str, b: str) -> int | None:
-    """-1/0/1, or None when either side is unparseable."""
+def compare(a: str, b: str, scheme: str | None = None) -> int | None:
+    """-1/0/1, or None when either side is unparseable or not generic.
+
+    An explicit unsupported `scheme` forces None; otherwise both sides
+    must detect as generic (unknown distro/build suffixes are not
+    comparable — never guess).
+    """
+    if scheme is not None and scheme not in KNOWN_SCHEMES:
+        return None
+    if detect_scheme(a) != "generic" or detect_scheme(b) != "generic":
+        return None
     ka, kb = _key(a), _key(b)
     if ka is None or kb is None:
         return None
@@ -63,7 +88,7 @@ def compare(a: str, b: str) -> int | None:
     return 0
 
 
-def satisfies(version: str, constraint: dict[str, Any]) -> bool | None:
+def satisfies(version: str, constraint: dict[str, Any], scheme: str | None = None) -> bool | None:
     """One range constraint (OSV or CPE style) against a version."""
     if not constraint:
         return None
@@ -86,18 +111,18 @@ def satisfies(version: str, constraint: dict[str, Any]) -> bool | None:
     if "versionEndExcluding" in constraint:
         upper.append((constraint["versionEndExcluding"], False))
     if "exact" in constraint:
-        result = compare(version, constraint["exact"])
+        result = compare(version, constraint["exact"], scheme)
         return result == 0 if result is not None else None
     if not lower and not upper:
         return None
     for bound, inclusive in lower:
-        result = compare(version, bound)
+        result = compare(version, bound, scheme)
         if result is None:
             return None
         if result < 0 or (result == 0 and not inclusive):
             return False
     for bound, inclusive in upper:
-        result = compare(version, bound)
+        result = compare(version, bound, scheme)
         if result is None:
             return None
         if result > 0 or (result == 0 and not inclusive):
@@ -105,12 +130,14 @@ def satisfies(version: str, constraint: dict[str, Any]) -> bool | None:
     return True
 
 
-def osv_applicable(version: str | None, affected: dict[str, Any]) -> bool | None:
+def osv_applicable(
+    version: str | None, affected: dict[str, Any], scheme: str | None = None
+) -> bool | None:
     """OSV affected entry vs a deployed version."""
     if not version:
         return None
     for known in affected.get("versions", []) or []:
-        if compare(version, str(known)) == 0:
+        if compare(version, str(known), scheme) == 0:
             return True
     ranges = affected.get("ranges", []) or []
     if not ranges:
@@ -123,7 +150,7 @@ def osv_applicable(version: str | None, affected: dict[str, Any]) -> bool | None
                 if key == "introduced" and value in ("0", "0.0", ""):
                     continue
                 constraint[key] = value
-        result = satisfies(version, constraint)
+        result = satisfies(version, constraint, scheme)
         if result is True:
             return True
         if result is None:
@@ -131,7 +158,9 @@ def osv_applicable(version: str | None, affected: dict[str, Any]) -> bool | None
     return None if undecided else False
 
 
-def cpe_applicable(version: str | None, cpe: dict[str, Any]) -> bool | None:
+def cpe_applicable(
+    version: str | None, cpe: dict[str, Any], scheme: str | None = None
+) -> bool | None:
     """NVD CPE match entry vs a deployed version."""
     if cpe.get("vulnerable") is False:
         return False
@@ -148,10 +177,10 @@ def cpe_applicable(version: str | None, cpe: dict[str, Any]) -> bool | None:
         if k in cpe
     }
     if constraint:
-        return satisfies(version, constraint)
+        return satisfies(version, constraint, scheme)
     exact = _cpe_version(cpe.get("criteria", ""))
     if exact and exact not in ("*", "-"):
-        result = compare(version, exact)
+        result = compare(version, exact, scheme)
         return result == 0 if result is not None else None
     return None
 
