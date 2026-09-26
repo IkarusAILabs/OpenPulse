@@ -40,6 +40,7 @@ def parse_repo(repo: str, payload: dict[str, Any]) -> dict[str, Any]:
         "pushed_at": payload.get("pushed_at"),
         "default_branch": payload.get("default_branch"),
         "license": lic.get("spdx_id") or lic.get("key"),
+        "stargazers": payload.get("stargazers_count"),
         "url": payload.get("html_url"),
     }
 

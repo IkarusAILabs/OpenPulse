@@ -58,14 +58,21 @@ blocks strong actions.
 lifecycle, support, licence, distribution, popularity). Worst impact
 wins per facet; the strongest title is kept as the reason, so every
 dot traces to a finding. Activity derives from repo metadata + release
-recency (archived → action, >365d stale → review); popularity stays
-informational until a real methodology lands. Rendered by
+recency (archived → action, >365d stale → review); popularity uses
+documented stars bands (reach only, never risk). Rendered by
 `openpulse pulse --project <slug> [--raw-bundle file]`.
 
 ## Report Analyst (`analyzers/report_analyst.py`)
 
 `render_event_md`, `render_finding_md`, `render_digest`. Every claim
 traces to an evidence URL or named collector output.
+
+## Monthly report (`reports/generate.py`)
+
+`collect_project` turns one raw bundle into pulse + findings;
+`build_report` ranks items into action-worthy / watch / informational
+with named evidence per item. `openpulse report --month YYYY-MM`
+runs the catalog live or from `--raw-bundle-dir` offline bundles.
 
 ## Try it
 

@@ -121,8 +121,8 @@ Principles that make it different:
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
 - **Change engine**: digest-aware registry observations, local history, observation diffs (`openpulse observe`).
 - **Entity resolution**: canonical catalog with PURL builders and Bitnami-namespace rules.
-- **CLI**: validate events, run analysts live or offline, observe registries, render per-project Pulse, and replay the Bitnami case end to end.
-- **70+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
+- **CLI**: validate events, run analysts live or offline, observe registries, render per-project Pulse, generate monthly reports, check watchlists, and replay the Bitnami case end to end.
+- **90+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
 
 ## Quickstart
 
@@ -143,7 +143,13 @@ openpulse analyze --project bitnami
 # 4. Record a registry observation and diff it against history
 openpulse observe --namespace bitnami --repo redis
 
-# 5. Run the test suite
+# 5. Generate the monthly report (offline bundles or live collectors)
+openpulse report --month 2026-09 --raw-bundle-dir path/to/bundles
+
+# 6. Check your watchlist against an event (Early Warning preview)
+openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+
+# 7. Run the test suite
 pytest -q
 ```
 
@@ -160,10 +166,11 @@ core/risk/          # match.py — event-vs-dependency impact matching
 core/pulse.py       # compute_pulse() — findings/events to 7 facets
 collectors/         # github, osv, nvd, cve, kev, endoflife, registries (+base)
 analyzers/          # change_analyst, security_analyst, evidence_analyst, report_analyst
-cli/                # openpulse CLI (validate, pulse, analyze, observe, demo-bitnami)
+cli/                # openpulse CLI (validate, pulse, analyze, observe, report, check, demo-bitnami)
+reports/            # generate.py — monthly ranked markdown reports
 data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
 docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
-tests/              # 70+ offline tests (no network in CI)
+tests/              # 90+ offline tests (no network in CI)
 ```
 
 The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this repo — the OSS intelligence core stays independent.
@@ -182,8 +189,8 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 
 - **v0.1 Intelligence Core** ✅ — schema (now 0.3.0), 7 collectors, entity resolution, evidence model
 - **v0.2 OSS Pulse** ✅ — analysts, confidence, Bitnami validation, CLI, and computed Pulse facets (`openpulse pulse` renders worst-wins status + reason per facet)
-- **v0.3 OpenPulse 100** 🔨 in progress — seed at 20, catalog at 22 (growth in [#9](https://github.com/ikaruscareer/OpenPulse/issues/9)); next: the monthly report pipeline (`reports/` is still empty)
-- **v0.4 Early Warning** — customer watchlist, impact engine, alerts, weekly digest (only matching preview exists)
+- **v0.3 OpenPulse 100** 🔨 in progress — seed at 20, catalog at 32 (growth in [#9](https://github.com/ikaruscareer/OpenPulse/issues/9)); monthly report pipeline working (`openpulse report --month YYYY-MM`)
+- **v0.4 Early Warning** 🔨 in progress — watchlist checks work (`openpulse check --watchlist file --event file`, `--strict` for CI); customer inventory, alerts, weekly digest still to come
 
 Deliberately *not* in the MVP: full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC, mobile. They don't prove the core hypothesis.
 

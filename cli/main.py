@@ -220,3 +220,122 @@ def observe(namespace, repository, store):
         click.echo(f"- {change.type}: {change.tag or ''} {change.previous} -> {change.current}")
     for finding in change_analyst.analyze_diffs([c.model_dump(mode="json") for c in changes]):
         click.echo("\n" + report_analyst.render_finding_md(finding))
+
+
+@cli.command()
+@click.option("--month", required=True, help="Report month, e.g. 2026-09")
+@click.option("--projects", default="", help="Comma-separated slugs (default: whole catalog)")
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles",
+)
+@click.option("--out", default="", help="Output path (default reports/{month}-openpulse.md)")
+def report(month, projects, raw_bundle_dir, out):
+    """Monthly OSS Dependency Risk Report over seed projects."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.entities.catalog import load_catalog
+    from reports.generate import build_report, collect_project
+
+    slugs = [s.strip() for s in projects.split(",") if s.strip()] or [
+        e["slug"] for e in load_catalog()
+    ]
+    items = []
+    for slug in slugs:
+        raw = None
+        if raw_bundle_dir:
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                raw = _json.loads(bundle.read_text(encoding="utf-8"))
+        if raw is None:
+            if raw_bundle_dir:
+                click.echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
+                continue
+            raw = _live_bundle(slug)
+        items.append(collect_project(slug, raw))
+    markdown = build_report(month, items)
+    destination = out or f"reports/{month}-openpulse.md"
+    _Path(destination).write_text(markdown + "\n", encoding="utf-8")
+    click.echo(f"wrote {destination} ({len(items)} projects)")
+
+
+def _load_yaml(path: str) -> dict:
+    """Bounded YAML load with clean errors (mirrors _load_json)."""
+    import os as _os
+
+    import yaml as _yaml
+
+    try:
+        size = _os.path.getsize(path)
+    except OSError as e:
+        raise click.ClickException(f"cannot read {path}: {e.strerror or e}")
+    if size > MAX_INPUT_BYTES:
+        raise click.ClickException(f"{path} is {size} bytes (limit {MAX_INPUT_BYTES})")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = _yaml.safe_load(f)
+    except _yaml.YAMLError as e:
+        raise click.ClickException(f"{path} is not valid YAML: {e}")
+    except UnicodeDecodeError:
+        raise click.ClickException(f"{path} is not UTF-8 text")
+    if not isinstance(data, dict):
+        raise click.ClickException(f"{path} must contain a mapping")
+    return data
+
+
+@cli.command()
+@click.option(
+    "--watchlist", required=True, type=click.Path(exists=True), help="Watchlist YAML file"
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Intelligence event JSON (repeatable)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for version checks",
+)
+@click.option("--strict", is_flag=True, help="Exit 1 when any dependency is affected")
+def check(watchlist, events, raw_bundle_dir, strict):
+    """Dependency Early Warning: evaluate a watchlist against events."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.entities.resolve import resolve_project as _resolve
+    from core.risk.check import check_dependency, load_watchlist_doc
+
+    try:
+        deps = load_watchlist_doc(_load_yaml(watchlist))
+    except ValueError as e:
+        raise click.ClickException(f"{watchlist}: {e}")
+    loaded_events = [_load_event(path) for path in events]
+    bundles = {}
+    if raw_bundle_dir:
+        for dep in deps:
+            if dep["kind"] != "package":
+                continue
+            slug = _resolve(dep["package"])
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+    affected = 0
+    for dep in deps:
+        result = check_dependency(dep, loaded_events, bundles)
+        label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
+        if result["affected"]:
+            affected += 1
+            click.echo(f"🚨 {label}: {result['relationship']}")
+            for verdict in result["verdicts"]:
+                if verdict["affected"]:
+                    click.echo(f"   - [{verdict['impact']}] {verdict['detail']}")
+        else:
+            click.echo(f"✅ {label}: no match ({result['relationship']})")
+    click.echo(f"\n{affected}/{len(deps)} dependencies affected")
+    if strict and affected:
+        raise SystemExit(1)

@@ -137,3 +137,141 @@
   website: https://spring.io/projects/spring-boot
   aliases: [spring-boot, spring]
   docker_images: []
+- slug: nginx
+  display_name: NGINX
+  github: nginx/nginx
+  website: https://nginx.org
+  aliases: [nginx, docker.io/library/nginx]
+  docker_images: [docker.io/library/nginx]
+- slug: etcd
+  display_name: etcd
+  github: etcd-io/etcd
+  website: https://etcd.io
+  aliases: [etcd]
+  docker_images: []
+- slug: vault
+  display_name: HashiCorp Vault
+  github: hashicorp/vault
+  website: https://www.vaultproject.io
+  aliases: [vault]
+  docker_images: []
+- slug: consul
+  display_name: HashiCorp Consul
+  github: hashicorp/consul
+  website: https://www.consul.io
+  aliases: [consul]
+  docker_images: []
+- slug: elasticsearch
+  display_name: Elasticsearch
+  github: elastic/elasticsearch
+  website: https://www.elastic.co/elasticsearch/
+  aliases: [elasticsearch, elastic]
+  docker_images: []
+- slug: envoy
+  display_name: Envoy
+  github: envoyproxy/envoy
+  website: https://www.envoyproxy.io
+  aliases: [envoy]
+  docker_images: []
+- slug: argocd
+  display_name: Argo CD
+  github: argoproj/argo-cd
+  website: https://argo-cd.readthedocs.io
+  aliases: [argocd, argo-cd]
+  docker_images: []
+- slug: cert-manager
+  display_name: cert-manager
+  github: cert-manager/cert-manager
+  website: https://cert-manager.io
+  aliases: [cert-manager]
+  docker_images: []
+- slug: containerd
+  display_name: containerd
+  github: containerd/containerd
+  website: https://containerd.io
+  aliases: [containerd]
+  docker_images: []
+- slug: coredns
+  display_name: CoreDNS
+  github: coredns/coredns
+  website: https://coredns.io
+  aliases: [coredns, core-dns]
+  docker_images: []
+- slug: valkey
+  display_name: Valkey
+  github: valkey-io/valkey
+  website: https://valkey.io
+  aliases: [valkey]
+  docker_images: []
+- slug: memcached
+  display_name: Memcached
+  github: memcached/memcached
+  website: https://memcached.org
+  aliases: [memcached]
+  docker_images: []
+- slug: haproxy
+  display_name: HAProxy
+  github: haproxy/haproxy
+  website: https://www.haproxy.org
+  aliases: [haproxy, ha-proxy]
+  docker_images: []
+- slug: traefik
+  display_name: Traefik
+  github: traefik/traefik
+  website: https://traefik.io
+  aliases: [traefik]
+  docker_images: []
+- slug: istio
+  display_name: Istio
+  github: istio/istio
+  website: https://istio.io
+  aliases: [istio]
+  docker_images: []
+- slug: cilium
+  display_name: Cilium
+  github: cilium/cilium
+  website: https://cilium.io
+  aliases: [cilium]
+  docker_images: []
+- slug: opa
+  display_name: Open Policy Agent
+  github: open-policy-agent/opa
+  website: https://www.openpolicyagent.org
+  aliases: [opa, open-policy-agent]
+  docker_images: []
+- slug: kyverno
+  display_name: Kyverno
+  github: kyverno/kyverno
+  website: https://kyverno.io
+  aliases: [kyverno]
+  docker_images: []
+- slug: falco
+  display_name: Falco
+  github: falcosecurity/falco
+  website: https://falco.org
+  aliases: [falco]
+  docker_images: []
+- slug: trivy
+  display_name: Trivy
+  github: aquasecurity/trivy
+  website: https://trivy.dev
+  aliases: [trivy]
+  docker_images: []
+- slug: kustomize
+  display_name: Kustomize
+  github: kubernetes-sigs/kustomize
+  website: https://kustomize.io
+  aliases: [kustomize]
+  docker_images: []
+- slug: linkerd
+  display_name: Linkerd
+  github: linkerd/linkerd2
+  website: https://linkerd.io
+  aliases: [linkerd]
+  docker_images: []
+- slug: calico
+  display_name: Project Calico
+  github: projectcalico/calico
+  website: https://www.tigera.io/project-calico/
+  aliases: [calico, project-calico]
+  docker_images: []

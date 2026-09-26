@@ -1,7 +1,7 @@
 # Roadmap — 12-week MVP (distilled from proposal)
 
-Status as of the security re-implementation: schema 0.3.0,
-86 tests, claims + version applicability + observation core landed.
+Status as of v0.4 check: schema 0.3.0, 99 tests, catalog at
+45 entries, watchlist checking with version-aware verdicts.
 
 ## Done
 
@@ -34,9 +34,16 @@ Status as of the security re-implementation: schema 0.3.0,
 
 ## In progress
 
-- [ ] **Phase 5 remainder — OpenPulse 100 seed.** Catalog at 22 entries
+- [ ] **Phase 5 remainder — OpenPulse 100 seed.** Catalog at 45 entries
   (was 10). Growth toward 100 continues in #9.
-- [ ] **Phase 6 (W7–8) — Monthly report pipeline.** `reports/` is empty.
+- [x] **Phase 6 (W7–8) — Monthly report pipeline.** `reports/generate.py`
+  ranks seed projects into action-worthy / watch / informational with
+  evidence per item; `openpulse report --month YYYY-MM` runs offline
+  bundles or live collectors and writes `reports/<month>-openpulse.md`.
+- [x] **Phase 10 preview — watchlist check.** `openpulse check
+  --watchlist file --event file` evaluates image refs (artifact/project
+  matching) and versioned packages (OSV/CPE ranges → `AFFECTS_VERSION`
+  for exact pins); `--strict` exits 1 when anything is affected.
 
 ## Not started
 
@@ -48,21 +55,14 @@ Status as of the security re-implementation: schema 0.3.0,
 Full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC,
 mobile, opaque risk scores. They don't prove the core hypothesis.
 
-## Next phase — v0.3: monthly report pipeline (recommended)
+## Next — website readability + alerts (recommended)
 
-Goal: the first real "OSS Dependency Risk Report" artifact — the Free
-level of the README product ladder.
+The engine answers everything locally now. Next makes it consumable:
 
-1. **Report generator** (`reports/`, pure + offline tests): seed +
-   facets + top findings → ranked markdown (action-worthy / watch /
-   informational, every item with evidence). Reuse `report_analyst`
-   rendering; golden test on frozen bundles.
-2. **Seed growth** (#9, contributor-friendly): 22 → 40 entries so the
-   first report has breadth beyond databases/messaging.
-3. **Popularity methodology**: replace the informational placeholder
-   with a documented rule (e.g. catalog tier + repo stars bands) before
-   the report leans on it.
+1. **Publish the report**: render `reports/` markdown for the web
+   (static site or README-linked archive) — the Free level made real.
+2. **Scheduled watching**: `check` on a timer (cron doc + `--strict`
+   for CI gates) with a weekly digest shape reusing `render_digest`.
+3. **Seed growth** (#9): 45 → 70, prioritizing report coverage gaps.
 
-Then **v0.4**: customer watchlist file format + `openpulse check`
-(generalizing `demo-bitnami`'s hardcoded list) toward Dependency
-Early Warning.
+Deliberately later: accounts, dashboards, SaaS monitoring.

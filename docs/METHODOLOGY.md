@@ -60,6 +60,12 @@ Official evidence proves the statement *from that source*; it does not
 automatically prove the user's dependency is affected. Impact coupling
 is enforced by the gate.
 
+## Popularity
+
+GitHub stars inform reach, never risk: ≥50k very high, ≥10k high,
+≥1k medium, else low, unknown → unranked. The facet stays
+informational (always 🟢) — popularity never promotes an impact.
+
 ## Impact
 
 INFORMATIONAL < WATCH < REVIEW < ACTION < CRITICAL. Findings also
@@ -86,5 +92,5 @@ Conflicting evidence → visible + blocking for strong actions.
 - English sources first; no private-registry visibility.
 - Version comparison is best-effort numeric (exotic schemes → unknown).
 - CPE data depends on NVD configuration quality.
-- Popularity facet is informational (no methodology yet).
+- Popularity informs reach, never risk (stars bands, always 🟢).
 - `latest` moves constantly — pin digests in production.

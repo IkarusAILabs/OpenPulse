@@ -1,0 +1,8 @@
+# Sample watchlist — image refs and versioned packages.
+version: 1
+dependencies:
+  - ref: docker.io/bitnami/redis:7.2
+  - ref: docker.io/redis:7.2
+  - package: django
+    ecosystem: PyPI
+    version: "5.0"
