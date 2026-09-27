@@ -37,7 +37,7 @@ DependencyVerdicts, event scope, NOT_AFFECTED semantics.
 
 ## In progress
 
-- [ ] **Phase 5 remainder — OpenPulse 100 seed.** Catalog at 45 entries
+- [ ] **Phase 5 remainder — OpenPulse 100 seed.** Catalog at 50 entries
   (was 10). Growth toward 100 continues in #9.
 - [x] **Phase 6 (W7–8) — Monthly report pipeline.** `reports/generate.py`
   ranks seed projects into action-worthy / watch / informational with
@@ -58,14 +58,15 @@ DependencyVerdicts, event scope, NOT_AFFECTED semantics.
 Full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC,
 mobile, opaque risk scores. They don't prove the core hypothesis.
 
-## Next — website readability + alerts (recommended)
+## Next — v0.5 consumable intelligence (milestone #1)
 
 The engine answers everything locally now. Next makes it consumable:
 
-1. **Publish the report**: render `reports/` markdown for the web
-   (static site or README-linked archive) — the Free level made real.
-2. **Scheduled watching**: `check` on a timer (cron doc + `--strict`
-   for CI gates) with a weekly digest shape reusing `render_digest`.
-3. **Seed growth** (#9): 45 → 70, prioritizing report coverage gaps.
+1. **Publish the report** (#12): first real `reports/YYYY-MM-openpulse.md`,
+   every strong statement traceable — the Free level made real.
+2. **Scheduled watching** (#13, good first issue): `check` on a timer
+   (cron + Actions recipe) with digest-shaped output reusing
+   `render_digest`.
+3. **Seed growth** (#9): 50 → 70, prioritizing report coverage gaps.
 
 Deliberately later: accounts, dashboards, SaaS monitoring.
