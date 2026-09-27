@@ -43,9 +43,10 @@ def analyze_endoflife(
                     "event_type": "EOL",
                     "signal": "lifecycle",
                     "title": f"{product} {cycle} is end-of-life",
-                    "summary": f"Cycle {cycle} reached EOL on {e.get('eol')}; "
+                    "summary": f"Cycle {cycle} reached EOL {_lifecycle_when(e.get('eol'))}; "
                     "no further fixes. Plan upgrade or extended support.",
                     "impact": "ACTION",
+                    "event_date": str(e.get("eol")),
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
@@ -62,6 +63,7 @@ def analyze_endoflife(
                     "summary": f"Cycle {cycle} ends in {(eol - today).days} days. "
                     "Start migration planning now.",
                     "impact": "REVIEW",
+                    "event_date": str(e.get("eol")),
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
@@ -76,14 +78,22 @@ def analyze_endoflife(
                     "signal": "support",
                     "title": f"{product} {cycle} ended active support",
                     "summary": f"Active support for cycle {cycle} ended "
-                    f"({e.get('support')}); only security fixes, if any.",
+                    f"({_lifecycle_when(e.get('support'))}); only security fixes, if any.",
                     "impact": "REVIEW",
+                    "event_date": str(e.get("support")),
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
                 }
             )
     return findings
+
+
+def _lifecycle_when(raw: Any) -> str:
+    """Human rendering of an endoflife.date date-or-true field."""
+    if raw is True:
+        return "already ended (no date published)"
+    return f"on {raw}"
 
 
 def analyze_registries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:

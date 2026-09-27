@@ -78,10 +78,12 @@ def render_event_md(event: OSSEvent) -> str:
 def render_finding_md(finding: dict[str, Any]) -> str:
     """One analyst finding (not yet an event) -> short markdown."""
     impact = _impact_of(finding)
+    label = finding.get("event_type") or ("SECURITY" if finding.get("cve_id") else "?")
+    summary = finding.get("summary") or finding.get("description") or ""
     return (
-        f"{BADGE.get(impact, '⚪')} **[{finding.get('event_type')}]** {finding.get('title')} "
+        f"{BADGE.get(impact, '⚪')} **[{label}]** {finding.get('title')} "
         f"(_analyst={finding.get('analyst')}, suggested impact={impact}_)\n"
-        f"{finding.get('summary')}"
+        f"{summary}"
     )
 
 
@@ -121,5 +123,49 @@ def render_digest(events: list[OSSEvent]) -> str:
         if items:
             lines.append(f"## {BADGE[level]} {level} ({len(items)})")
             lines += [f"- {e.title} (`{e.project_slug}`, {e.confidence.value})" for e in items]
+            lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+def _verdict_field(verdict: Any, name: str, default: Any = None) -> Any:
+    if isinstance(verdict, dict):
+        return verdict.get(name, default)
+    return getattr(verdict, name, default)
+
+
+def render_check_digest(verdicts: list[Any], title: str = "OpenPulse watchlist digest") -> str:
+    """DependencyVerdicts -> AFFECTED / NOT_AFFECTED / RELATED / UNKNOWN sections.
+
+    One line per dependency (label + relationship + reason). Reads
+    verdicts defensively so offline dict fixtures work in tests.
+    """
+    sections: dict[str, tuple[str, list]] = {
+        "AFFECTED": ("🚨", []),
+        "NOT_AFFECTED": ("✅", []),
+        "RELATED": ("ℹ️", []),
+        "UNKNOWN": ("❓", []),
+    }
+    for verdict in verdicts:
+        if _verdict_field(verdict, "affected", False):
+            bucket = "AFFECTED"
+        else:
+            relationship = str(_verdict_field(verdict, "relationship", "UNKNOWN"))
+            bucket = (
+                "NOT_AFFECTED"
+                if relationship == "NOT_AFFECTED"
+                else ("RELATED" if relationship in ("RELATED", "AFFECTS_PROJECT") else "UNKNOWN")
+            )
+        icon, items = sections[bucket]
+        items.append(
+            f"{icon} {_verdict_field(verdict, 'dependency', '?')}"
+            f" [{_verdict_field(verdict, 'relationship', '?')}]"
+            f" — {_verdict_field(verdict, 'reason', '')}"
+        )
+    affected = len(sections["AFFECTED"][1])
+    lines = [f"# {title}", "", f"{affected}/{len(verdicts)} dependencies affected", ""]
+    for name, (icon, items) in sections.items():
+        if items:
+            lines.append(f"## {icon} {name} ({len(items)})")
+            lines += [f"- {line}" for line in items]
             lines.append("")
     return "\n".join(lines).rstrip()

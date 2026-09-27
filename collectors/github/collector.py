@@ -48,10 +48,22 @@ def parse_repo(repo: str, payload: dict[str, Any]) -> dict[str, Any]:
 class GitHubCollector(BaseCollector):
     name = "github"
 
-    def __init__(self, repo_map: dict[str, str] | None = None, timeout: float = 15.0):
+    def __init__(
+        self,
+        repo_map: dict[str, str] | None = None,
+        timeout: float = 15.0,
+        token: str | None = None,
+    ):
         # project_slug -> "org/repo", e.g. {"redis": "redis/redis"}
         self.repo_map = repo_map or {}
         self.timeout = timeout
+        self.token = token
+
+    def _headers(self) -> dict[str, str]:
+        headers = {"Accept": "application/vnd.github+json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
 
     def collect(self, project_slug: str) -> list[dict[str, Any]]:
         repo = self.repo_map.get(project_slug)
@@ -67,7 +79,7 @@ class GitHubCollector(BaseCollector):
             r = httpx.get(
                 API.format(repo=repo),
                 timeout=self.timeout,
-                headers={"Accept": "application/vnd.github+json"},
+                headers=self._headers(),
             )
             r.raise_for_status()
             return parse_releases(repo, r.json())
@@ -88,7 +100,7 @@ class GitHubCollector(BaseCollector):
             r = httpx.get(
                 REPO_API.format(repo=repo),
                 timeout=self.timeout,
-                headers={"Accept": "application/vnd.github+json"},
+                headers=self._headers(),
             )
             r.raise_for_status()
             return parse_repo(repo, r.json())

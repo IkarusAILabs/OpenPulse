@@ -111,3 +111,116 @@ def test_report_cli_offline(tmp_path):
     text = out.read_text(encoding="utf-8")
     assert "# OpenPulse — 2026-09" in text
     assert "### redis" in text
+
+
+def test_report_counts_findings_not_projects():
+    from reports.generate import build_report
+
+    items = [
+        {
+            "project": "p",
+            "pulse": {"facets": {}},
+            "findings": [
+                {"analyst": "c", "event_type": "EOL", "impact": "ACTION", "title": "a"},
+                {"analyst": "c", "event_type": "EOL", "impact": "WATCH", "title": "b"},
+            ],
+        }
+    ]
+    assert "2 significant events" in build_report("2026-09", items)
+
+
+def test_report_recency_holds_back_stale_dated_findings():
+    from reports.generate import build_report
+
+    def item(published):
+        return {
+            "project": "p",
+            "pulse": {"facets": {}},
+            "findings": [
+                {
+                    "analyst": "security",
+                    "cve_id": "CVE-1",
+                    "impact": "ACTION",
+                    "title": "t",
+                    "published": published,
+                }
+            ],
+        }
+
+    assert "0 significant events" in build_report(
+        "2026-09", [item("2017-01-01")], since="2026-07-01"
+    )
+    assert "1 significant events" in build_report(
+        "2026-09", [item("2026-08-15")], since="2026-07-01"
+    )
+
+
+def test_report_undated_change_findings_always_pass():
+    from reports.generate import build_report
+
+    items = [
+        {
+            "project": "p",
+            "pulse": {"facets": {}},
+            "findings": [
+                {"analyst": "change", "event_type": "EOL", "impact": "ACTION", "title": "eol"}
+            ],
+        }
+    ]
+    assert "1 significant events" in build_report("2026-09", items, since="2026-07-01")
+
+
+def test_render_finding_never_prints_none():
+    from analyzers.report_analyst import render_finding_md
+
+    md = render_finding_md(
+        {"analyst": "security", "cve_id": "CVE-1", "impact": "WATCH", "title": "t"}
+    )
+    assert "[None]" not in md
+    assert "\nNone" not in md
+    assert "[SECURITY]" in md
+
+
+def _finding(**kw):
+    base = {"analyst": "change", "event_type": "EOL", "impact": "ACTION", "title": "t"}
+    base.update(kw)
+    return base
+
+
+def test_report_does_not_mutate_inputs():
+    from reports.generate import build_report
+
+    findings = [_finding(event_date="2020-01-01"), _finding(event_date="2026-08-15")]
+    items = [{"project": "p", "pulse": {"facets": {}}, "findings": findings}]
+    build_report("2026-09", items, since="2026-07-01")
+    assert len(items[0]["findings"]) == 2
+
+
+def test_report_holds_back_stale_lifecycle():
+    from reports.generate import build_report
+
+    old = {"project": "p", "pulse": {"facets": {}}, "findings": [_finding(event_date="2020-01-01")]}
+    assert "0 significant events" in build_report("2026-09", [old], since="2026-07-01")
+    new = {"project": "p", "pulse": {"facets": {}}, "findings": [_finding(event_date="2026-08-15")]}
+    assert "1 significant events" in build_report("2026-09", [new], since="2026-07-01")
+
+
+def test_report_excludes_related_counts_them():
+    from reports.generate import build_report
+
+    items = [
+        {
+            "project": "p",
+            "pulse": {"facets": {}},
+            "findings": [
+                _finding(relationship="RELATED", impact="REVIEW"),
+                _finding(relationship="AFFECTS_PACKAGE", impact="REVIEW"),
+            ],
+        }
+    ]
+    md = build_report("2026-09", items)
+    assert "1 significant events" in md
+    assert "1 related-but-unconfirmed records held back" in md
+    md_all = build_report("2026-09", items, include_related=True)
+    assert "2 significant events" in md_all
+    assert "held back" not in md_all

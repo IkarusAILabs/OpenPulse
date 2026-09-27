@@ -193,3 +193,52 @@ def test_check_cli_strict_fails_when_affected():
         ],
     )
     assert out.exit_code == 1
+
+
+def test_check_digest_groups_all_states():
+    from analyzers.report_analyst import render_check_digest
+
+    verdicts = [
+        {
+            "dependency": "a:1",
+            "affected": True,
+            "relationship": "AFFECTS_VERSION",
+            "reason": "in range",
+        },
+        {
+            "dependency": "b:2",
+            "affected": False,
+            "relationship": "NOT_AFFECTED",
+            "reason": "cleared",
+        },
+        {"dependency": "c", "affected": False, "relationship": "RELATED", "reason": "context only"},
+        {"dependency": "d", "affected": False, "relationship": "UNKNOWN", "reason": ""},
+    ]
+    md = render_check_digest(verdicts)
+    assert "1/4 dependencies affected" in md
+    assert "## 🚨 AFFECTED (1)" in md
+    assert "## ✅ NOT_AFFECTED (1)" in md
+    assert "## ℹ️ RELATED (1)" in md
+    assert "## ❓ UNKNOWN (1)" in md
+    assert md.index("AFFECTED") < md.index("NOT_AFFECTED") < md.index("RELATED")
+
+
+def test_check_cli_digest_flag():
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--event",
+            "data/fixtures/bitnami/event.json",
+            "--digest",
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    assert "1/3 dependencies affected" in out.output
+    assert "## 🚨 AFFECTED (1)" in out.output

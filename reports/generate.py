@@ -68,9 +68,52 @@ def popularity_tier(stars: Any) -> str:
     return "low"
 
 
-def build_report(month: str, items: list[dict[str, Any]]) -> str:
-    """Ranked markdown. Significant = any finding above INFORMATIONAL."""
-    significant = [i for i in items if any(_worst(f) in ("action", "watch") for f in i["findings"])]
+def _fresh(finding: dict[str, Any], since: str | None) -> bool:
+    """Recency gate for dated findings only.
+
+    Security findings carry `published`; lifecycle findings carry
+    `event_date` (EOL/support dates — future ones always pass, they are
+    early warnings). Undated findings always pass. Only dated items
+    older than `since` (YYYY-MM-DD) are held back.
+    """
+    if since is None:
+        return True
+    stamp = str(finding.get("published") or finding.get("event_date") or "")[:10]
+    if not stamp:
+        return True
+    return stamp >= since
+
+
+def _narrate(finding: dict[str, Any], include_related: bool) -> bool:
+    """Monthly narrative rule: established relationships and all change
+    findings; keyword-only RELATED/UNKNOWN items are counted, not told."""
+    relationship = str(finding.get("relationship", ""))
+    if relationship in ("RELATED", "UNKNOWN"):
+        return include_related
+    return True
+
+
+def build_report(
+    month: str,
+    items: list[dict[str, Any]],
+    since: str | None = None,
+    include_related: bool = False,
+    notes: list[str] | None = None,
+) -> str:
+    """Ranked markdown. Significant = findings above INFORMATIONAL (after recency)."""
+    held_back = 0
+    scoped = []
+    for item in items:
+        # Copy: filtering must never mutate the caller's bundles.
+        kept = [f for f in item.get("findings", []) if _fresh(f, since)]
+        held_back += sum(1 for f in kept if not _narrate(f, include_related))
+        scoped.append({**item, "findings": [f for f in kept if _narrate(f, include_related)]})
+    significant = [
+        i for i in scoped if any(_worst(f) in ("action", "watch") for f in i["findings"])
+    ]
+    event_count = sum(
+        1 for i in significant for f in i["findings"] if _worst(f) in ("action", "watch")
+    )
     groups: dict[str, list[dict[str, Any]]] = {"action": [], "watch": [], "info": []}
     for item in significant:
         level = "info"
@@ -85,11 +128,17 @@ def build_report(month: str, items: list[dict[str, Any]]) -> str:
     lines = [
         f"# OpenPulse — {month}",
         "",
-        f"{len(items)} projects monitored",
+        f"{len(scoped)} projects monitored",
         "",
-        f"{len(significant)} significant events",
+        f"{event_count} significant events",
         "",
     ]
+    if held_back:
+        lines.append(
+            f"_{held_back} related-but-unconfirmed records held back "
+            "(see `openpulse analyze` for the full stream)._"
+        )
+        lines.append("")
     for level in ("action", "watch", "info"):
         group = groups[level]
         if not group:
@@ -119,6 +168,11 @@ def build_report(month: str, items: list[dict[str, Any]]) -> str:
                 for ref in finding.get("references", []) or []:
                     lines.append(f"- {ref}")
                 lines.append("")
+    if notes:
+        lines.append("## Notes")
+        lines.append("")
+        lines += [f"- {note}" for note in notes]
+        lines.append("")
     return "\n".join(lines).rstrip()
 
 

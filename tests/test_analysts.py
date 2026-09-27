@@ -32,6 +32,15 @@ def test_change_eol_past_is_action():
     assert by_title["nodejs 18 is end-of-life"]["event_type"] == "EOL"
 
 
+def test_change_eol_true_renders_without_literal():
+    from analyzers.change_analyst import analyze_endoflife
+
+    entries = [{"collector": "endoflife", "product": "x", "cycle": "1", "eol": True}]
+    out = analyze_endoflife(entries, today=date(2026, 9, 26))
+    assert "already ended" in out[0]["summary"]
+    assert "True" not in out[0]["summary"]
+
+
 def test_change_eol_approaching_is_review():
     from analyzers.change_analyst import analyze_endoflife
 

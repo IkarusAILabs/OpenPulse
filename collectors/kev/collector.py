@@ -70,15 +70,21 @@ def filter_catalog(catalog: dict[str, Any], project_slug: str) -> list[dict[str,
 class KEVCollector(BaseCollector):
     name = "kev"
 
+    # Process-wide catalog cache: the feed is one document, and report
+    # runs would otherwise download it once per project.
+    _shared_catalog: dict[str, Any] | None = None
+
     def __init__(self, timeout: float = 20.0):
         self.timeout = timeout
         self._catalog: dict[str, Any] | None = None
 
     def _fetch(self) -> dict[str, Any]:
         if self._catalog is None:
-            r = httpx.get(API, timeout=self.timeout)
-            r.raise_for_status()
-            self._catalog = r.json()
+            if KEVCollector._shared_catalog is None:
+                r = httpx.get(API, timeout=self.timeout)
+                r.raise_for_status()
+                KEVCollector._shared_catalog = r.json()
+            self._catalog = KEVCollector._shared_catalog
         return self._catalog
 
     def is_exploited(self, cve_id: str) -> bool:

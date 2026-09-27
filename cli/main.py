@@ -99,6 +99,8 @@ def pulse(project, show_signals, raw_bundle):
 
 def _live_bundle(slug):
     """Run live collectors; each degrades to error/skipped dicts, never raises."""
+    import os as _os
+
     from collectors.endoflife.collector import EndoflifeCollector
     from collectors.github.collector import GitHubCollector
     from collectors.kev.collector import KEVCollector
@@ -107,8 +109,9 @@ def _live_bundle(slug):
     from collectors.registries.reference import bitnami_distribution_probes
     from core.entities.catalog import load_catalog
 
+    token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
     repo_map = {e["slug"]: e["github"] for e in load_catalog() if e.get("github")}
-    github = GitHubCollector(repo_map)
+    github = GitHubCollector(repo_map, token=token)
     registries = RegistryCollector()
     return {
         "endoflife": EndoflifeCollector().collect(slug),
@@ -231,7 +234,9 @@ def observe(namespace, repository, store):
     help="Offline {slug}.json bundles",
 )
 @click.option("--out", default="", help="Output path (default reports/{month}-openpulse.md)")
-def report(month, projects, raw_bundle_dir, out):
+@click.option("--since", default="", help="Recency floor for dated findings (YYYY-MM-DD)")
+@click.option("--include-related", is_flag=True, help="Narrate RELATED findings too")
+def report(month, projects, raw_bundle_dir, out, since, include_related):
     """Monthly OSS Dependency Risk Report over seed projects."""
     import json as _json
     from pathlib import Path as _Path
@@ -255,7 +260,19 @@ def report(month, projects, raw_bundle_dir, out):
                 continue
             raw = _live_bundle(slug)
         items.append(collect_project(slug, raw))
-    markdown = build_report(month, items)
+    import os
+
+    notes = [
+        "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
+        "GitHub calls authenticated (5000 req/hr budget)."
+        if (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN"))
+        else "GitHub calls unauthenticated (60 req/hr budget); some repos may show gaps.",
+        "NVD queried without API key (5 req/30s); misses degrade to gaps, not findings.",
+        "Keyword-associated CVE records without identity evidence are held back, not narrated.",
+    ]
+    markdown = build_report(
+        month, items, since=since or None, include_related=include_related, notes=notes
+    )
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
     click.echo(f"wrote {destination} ({len(items)} projects)")
@@ -302,7 +319,12 @@ def _load_yaml(path: str) -> dict:
     help="Offline {slug}.json bundles for version checks",
 )
 @click.option("--strict", is_flag=True, help="Exit 1 when any dependency is affected")
-def check(watchlist, events, raw_bundle_dir, strict):
+@click.option(
+    "--digest",
+    is_flag=True,
+    help="Print grouped digest instead of per-dependency lines (cron-friendly)",
+)
+def check(watchlist, events, raw_bundle_dir, strict, digest):
     """Dependency Early Warning: evaluate a watchlist against events."""
     import json as _json
     from pathlib import Path as _Path
@@ -325,8 +347,19 @@ def check(watchlist, events, raw_bundle_dir, strict):
             if bundle.exists():
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     affected = 0
-    for dep in deps:
-        result = check_dependency(dep, loaded_events, bundles)
+    # A flag, not a subcommand: digest is a presentation of the same run,
+    # so --strict semantics stay identical in both shapes.
+    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    if digest:
+        from analyzers.report_analyst import render_check_digest
+
+        click.echo(render_check_digest(results))
+        affected = sum(1 for r in results if r.affected)
+        click.echo(f"\n{affected}/{len(deps)} dependencies affected")
+        if strict and affected:
+            raise SystemExit(1)
+        return
+    for dep, result in zip(deps, results):
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
         relationship = result.relationship
         if result.affected:

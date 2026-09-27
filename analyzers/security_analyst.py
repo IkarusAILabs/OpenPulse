@@ -121,6 +121,8 @@ def correlate(
                     "affected_package": None,
                     "affected_version": None,
                     "fixed_version": None,
+                    "published": None,
+                    "description": "",
                     "version_checked": False,
                     "version_hit": False,
                     "references": [],
@@ -144,6 +146,12 @@ def correlate(
             score = _score(e)
             if score is not None and (slot["max_score"] is None or score > slot["max_score"]):
                 slot["max_score"] = score
+            published = e.get("published")
+            if published and (slot["published"] is None or str(published) > str(slot["published"])):
+                slot["published"] = published
+            description = e.get("description") or ""
+            if description and len(description) > len(slot["description"]):
+                slot["description"] = str(description)[:300]
             for ref in e.get("references", []) or []:
                 if ref and ref not in slot["references"]:
                     slot["references"].append(ref)

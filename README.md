@@ -74,9 +74,9 @@ That is the bar for every OpenPulse event: **what changed, the evidence, who may
 
 | Level | Customer question | OpenPulse answer | Status |
 |---|---|---|---|
-| Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report over the 100 open-source projects we believe matter most to modern software supply chains | Planned |
+| Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (50 projects; growing toward 100) | ✅ Shipped, expanding |
 | Intelligence | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 Building now |
-| Early Warning | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching | Early preview (`demo-bitnami`) |
+| Early Warning | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
 | AI-native | "What dependencies is AI introducing?" | AI Supply Chain Governance — Know Your Dependencies | Direction |
 
 ## The metric that matters: Early Warning Lead Time

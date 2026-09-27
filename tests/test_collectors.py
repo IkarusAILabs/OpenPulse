@@ -55,3 +55,11 @@ def test_registry_parse_latest_only():
         "bitnamilegacy", "redis", {"count": 2, "results": [{"name": "7.2.0"}, {"name": "latest"}]}
     )
     assert out2["has_versioned_tags"] is True
+
+
+def test_github_token_header():
+    from collectors.github.collector import GitHubCollector
+
+    authed = GitHubCollector({"x": "y/z"}, token="secret")
+    assert authed._headers()["Authorization"] == "Bearer secret"
+    assert "Authorization" not in GitHubCollector()._headers()

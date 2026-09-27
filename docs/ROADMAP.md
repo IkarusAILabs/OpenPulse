@@ -1,7 +1,8 @@
 # Roadmap — 12-week MVP (distilled from proposal)
 
-Status as of early-warning hardening: schema 0.4.0, explicit
-DependencyVerdicts, event scope, NOT_AFFECTED semantics.
+Status as of the first published report: schema 0.4.0, 122 tests,
+`reports/2026-09-openpulse.md` shipped (50 projects), `check --digest`
+and scheduled-run recipe landed.
 
 ## Done
 
@@ -58,15 +59,12 @@ DependencyVerdicts, event scope, NOT_AFFECTED semantics.
 Full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC,
 mobile, opaque risk scores. They don't prove the core hypothesis.
 
-## Next — v0.5 consumable intelligence (milestone #1)
+## Next — scheduled watching at scale + report cadence
 
-The engine answers everything locally now. Next makes it consumable:
-
-1. **Publish the report** (#12): first real `reports/YYYY-MM-openpulse.md`,
-   every strong statement traceable — the Free level made real.
-2. **Scheduled watching** (#13, good first issue): `check` on a timer
-   (cron + Actions recipe) with digest-shaped output reusing
-   `render_digest`.
+1. **Report cadence**: monthly regeneration ritual (first Monday run,
+   curator pass, commit). October edition grows with the catalog.
+2. **Digest consumers**: post `--digest` output where teams already look
+   (release notes, Slack webhook recipe in `docs/SCHEDULED_CHECKS.md`).
 3. **Seed growth** (#9): 50 → 70, prioritizing report coverage gaps.
 
 Deliberately later: accounts, dashboards, SaaS monitoring.
