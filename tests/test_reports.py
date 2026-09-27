@@ -224,3 +224,27 @@ def test_report_excludes_related_counts_them():
     md_all = build_report("2026-09", items, include_related=True)
     assert "2 significant events" in md_all
     assert "held back" not in md_all
+
+
+def test_report_prints_supporting_urls_once():
+    from reports.generate import _supporting_urls, build_report
+
+    finding = {
+        "analyst": "change",
+        "event_type": "EOL",
+        "impact": "ACTION",
+        "title": "t",
+        "supporting": [
+            {"collector": "endoflife", "link": "https://endoflife.date/redis"},
+            {"collector": "endoflife", "link": "https://endoflife.date/redis"},
+            {"collector": "x"},
+            "not-a-dict",
+        ],
+        "references": ["https://endoflife.date/redis"],
+    }
+    assert _supporting_urls(finding) == ["https://endoflife.date/redis"]
+    md = build_report(
+        "2026-09",
+        [{"project": "redis", "pulse": {"facets": {}}, "findings": [finding]}],
+    )
+    assert md.count("https://endoflife.date/redis") == 1

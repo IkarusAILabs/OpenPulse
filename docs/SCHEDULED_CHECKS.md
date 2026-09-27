@@ -38,6 +38,18 @@ jobs:
 `RELATED`/`UNKNOWN` never fail a gate. Keep the watchlist and the
 event files committed next to this recipe so every run is reproducible.
 
+## Posting digests (Slack)
+
+```bash
+openpulse check --watchlist watchlists/prod.yaml --event events/current.json \
+  --digest --webhook "$SLACK_WEBHOOK_URL" --strict
+```
+
+Posts the grouped digest to any JSON-text webhook (Slack incoming
+webhook contract: `{"text": "..."}`). Delivery failures warn but never
+mask the check result — `--strict` still reflects affected state only.
+Store the URL as an Actions secret, never in the repo.
+
 ## Watchlist format
 
 See `data/fixtures/watchlist_sample.yaml`. Optional per-dependency

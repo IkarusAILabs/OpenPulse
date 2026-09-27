@@ -78,7 +78,7 @@ def analyze_endoflife(
                     "signal": "support",
                     "title": f"{product} {cycle} ended active support",
                     "summary": f"Active support for cycle {cycle} ended "
-                    f"({_lifecycle_when(e.get('support'))}); only security fixes, if any.",
+                    f"{_lifecycle_when(e.get('support'))}; only security fixes, if any.",
                     "impact": "REVIEW",
                     "event_date": str(e.get("support")),
                     "affected_versions": [str(cycle)],
@@ -92,7 +92,7 @@ def analyze_endoflife(
 def _lifecycle_when(raw: Any) -> str:
     """Human rendering of an endoflife.date date-or-true field."""
     if raw is True:
-        return "already ended (no date published)"
+        return "(date not published)"
     return f"on {raw}"
 
 

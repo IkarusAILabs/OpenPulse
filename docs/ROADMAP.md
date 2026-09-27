@@ -1,8 +1,8 @@
 # Roadmap — 12-week MVP (distilled from proposal)
 
-Status as of the first published report: schema 0.4.0, 122 tests,
-`reports/2026-09-openpulse.md` shipped (50 projects), `check --digest`
-and scheduled-run recipe landed.
+Status as of OpenPulse 100: schema 0.4.0, 129 tests, catalog at
+100 entries, September report regenerated over the full catalog with
+sourced references, iText license case validated end to end.
 
 ## Done
 
@@ -38,8 +38,10 @@ and scheduled-run recipe landed.
 
 ## In progress
 
-- [ ] **Phase 5 remainder — OpenPulse 100 seed.** Catalog at 50 entries
-  (was 10). Growth toward 100 continues in #9.
+- [x] **Phase 5 — OpenPulse 100 seed.** Catalog at 100 entries
+  (was 10), incl. endoflife overrides verified live (kafka, airflow,
+  spark, argocd, cassandra, couchdb) and the iText license-change
+  reference case (`data/fixtures/itext-license/`).
 - [x] **Phase 6 (W7–8) — Monthly report pipeline.** `reports/generate.py`
   ranks seed projects into action-worthy / watch / informational with
   evidence per item; `openpulse report --month YYYY-MM` runs offline

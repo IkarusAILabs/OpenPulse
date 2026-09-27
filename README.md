@@ -74,7 +74,7 @@ That is the bar for every OpenPulse event: **what changed, the evidence, who may
 
 | Level | Customer question | OpenPulse answer | Status |
 |---|---|---|---|
-| Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (50 projects; growing toward 100) | ✅ Shipped, expanding |
+| Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (100 projects, every item sourced) | ✅ Shipped |
 | Intelligence | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 Building now |
 | Early Warning | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
 | AI-native | "What dependencies is AI introducing?" | AI Supply Chain Governance — Know Your Dependencies | Direction |
@@ -122,8 +122,8 @@ Principles that make it different:
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
 - **Change engine**: digest-aware registry observations, local history, observation diffs (`openpulse observe`).
 - **Entity resolution**: canonical catalog with PURL builders and Bitnami-namespace rules.
-- **CLI**: validate events, run analysts live or offline, observe registries, render per-project Pulse, generate monthly reports, check watchlists, and replay the Bitnami case end to end.
-- **90+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
+- **CLI**: validate events, run analysts live or offline, observe registries, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end.
+- **120+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
 
 ## Quickstart
 

@@ -107,14 +107,15 @@ def _live_bundle(slug):
     from collectors.nvd.collector import NVDCollector
     from collectors.registries.docker import RegistryCollector
     from collectors.registries.reference import bitnami_distribution_probes
-    from core.entities.catalog import load_catalog
+    from core.entities.catalog import endoflife_map, load_catalog
 
     token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
     repo_map = {e["slug"]: e["github"] for e in load_catalog() if e.get("github")}
     github = GitHubCollector(repo_map, token=token)
     registries = RegistryCollector()
+    endoflife = EndoflifeCollector(endoflife_map())
     return {
-        "endoflife": EndoflifeCollector().collect(slug),
+        "endoflife": endoflife.collect(slug),
         "github": github.collect(slug),
         "github_meta": [github.fetch_repo_meta(slug)],
         "nvd": NVDCollector().collect(slug),
@@ -324,7 +325,12 @@ def _load_yaml(path: str) -> dict:
     is_flag=True,
     help="Print grouped digest instead of per-dependency lines (cron-friendly)",
 )
-def check(watchlist, events, raw_bundle_dir, strict, digest):
+@click.option(
+    "--webhook",
+    default="",
+    help="POST the digest markdown to a JSON-text webhook (e.g. Slack incoming)",
+)
+def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
     """Dependency Early Warning: evaluate a watchlist against events."""
     import json as _json
     from pathlib import Path as _Path
@@ -350,10 +356,20 @@ def check(watchlist, events, raw_bundle_dir, strict, digest):
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
     results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
-    if digest:
+    if digest or webhook:
         from analyzers.report_analyst import render_check_digest
 
-        click.echo(render_check_digest(results))
+        text = render_check_digest(results)
+        click.echo(text)
+        if webhook:
+            from core.notify import post_digest
+
+            delivery = post_digest(webhook, text)
+            if delivery["ok"]:
+                click.echo(f"posted digest (http {delivery['status_code']})")
+            else:
+                # Delivery failure must not mask the check result itself.
+                click.echo(f"webhook delivery failed: {delivery['error']}")
         affected = sum(1 for r in results if r.affected)
         click.echo(f"\n{affected}/{len(deps)} dependencies affected")
         if strict and affected:

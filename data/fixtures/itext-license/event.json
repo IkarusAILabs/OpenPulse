@@ -1,0 +1,43 @@
+{
+  "id": "evt-itext-2020-license-001",
+  "schema_version": "0.4.0",
+  "project_slug": "itext",
+  "event_type": "LICENSE_CHANGE",
+  "title": "iText commercial use requires a paid license; commercial terms moved to subscription",
+  "summary": "iText 7 Community is AGPLv3-only: any closed-source or proprietary use — including shipping iText in a closed product, serving PDFs from a web app, or paid ASP services — requires a commercial license with source-code disclosure otherwise. Commercial licenses moved from perpetual to annual subscription effective 2020-04-02. Companies depending on com.itextpdf artifacts in proprietary software must hold a commercial agreement or migrate.",
+  "confidence": "CONFIRMED",
+  "impact": "ACTION",
+  "affected_versions": ["*"],
+  "affected_artifacts": [
+    {"kind": "maven", "ref": "pkg:maven/com.itextpdf/itext-core"},
+    {"kind": "maven", "ref": "pkg:maven/com.itextpdf/kernel"},
+    {"kind": "maven", "ref": "pkg:maven/com.itextpdf/layout"}
+  ],
+  "scope": {
+    "kind": "package",
+    "packages": ["itext", "itext7", "itext-core", "com.itextpdf/itext-core", "com.itextpdf/kernel", "com.itextpdf/layout"]
+  },
+  "attribution": {"affected_project": "itext", "affected_package": "com.itextpdf/itext-core"},
+  "evidences": [
+    {
+      "source": {
+        "name": "itextpdf/how-buy",
+        "url": "https://itextpdf.com/how-buy",
+        "authority": "official",
+        "fetched_at": "2026-09-27T00:00:00Z"
+      },
+      "excerpt": "iText employs a dual-license model: commercial and AGPL licenses. Free use only where you also distribute your software as free open source. As soon as you want to use iText in a closed source, proprietary environment, you have to pay for your use of iText."
+    },
+    {
+      "source": {
+        "name": "itextpdf/subscription-transition",
+        "url": "https://itextpdf.com/blog/itext-news/itext-transitions-subscription-based-commercial-licenses",
+        "authority": "official",
+        "fetched_at": "2026-09-27T00:00:00Z"
+      },
+      "excerpt": "From April 2020 onwards, changing the commercial model from perpetual license to annual subscription. Applies to all new customers and new installations from April 2nd, 2020; open-source AGPL and commercial licenses remain the dual scheme for companies that cannot comply with AGPL conditions.",
+      "announcement_date": "2020-02-04",
+      "effective_date": "2020-04-02"
+    }
+  ]
+}

@@ -195,6 +195,33 @@ def test_check_cli_strict_fails_when_affected():
     assert out.exit_code == 1
 
 
+def test_itext_license_change_warns():
+    """iText closed-source use without a commercial license: ACTION warning."""
+    import json as _json
+
+    from core.evidence.policy import gate
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    event = OSSEvent(**_json.load(open("data/fixtures/itext-license/event.json")))
+    assert gate(event) == []
+    assert event.confidence.value == "CONFIRMED"
+    dep = {"kind": "package", "package": "itext-core", "ecosystem": "Maven", "version": "8.0.2"}
+    result = check_dependency(dep, [event])
+    assert result.affected is True
+    assert result.relationship == "AFFECTS_PACKAGE"
+    unrelated = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "5.2"}
+    assert check_dependency(unrelated, [event]).affected is False
+
+
+def test_itext_resolves_from_maven_coordinates():
+    from core.entities.resolve import resolve_project
+
+    assert resolve_project("itext") == "itext"
+    assert resolve_project("itext7") == "itext"
+    assert resolve_project("com.itextpdf/itext-core") == "itext"
+
+
 def test_check_digest_groups_all_states():
     from analyzers.report_analyst import render_check_digest
 
@@ -242,3 +269,73 @@ def test_check_cli_digest_flag():
     assert out.exit_code == 0, out.output
     assert "1/3 dependencies affected" in out.output
     assert "## 🚨 AFFECTED (1)" in out.output
+
+
+def test_post_digest_success(monkeypatch):
+    import httpx
+
+    from core.notify import post_digest
+
+    seen = {}
+
+    class FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    def fake_post(url, json, timeout):
+        seen.update(url=url, json=json, timeout=timeout)
+        return FakeResponse()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    result = post_digest("https://hooks.example/x", "# digest")
+    assert result == {"ok": True, "status_code": 200, "error": None}
+    assert seen["json"] == {"text": "# digest"}
+
+
+def test_post_digest_failure_never_raises(monkeypatch):
+    import httpx
+
+    from core.notify import post_digest
+
+    def fake_post(url, json, timeout):
+        raise httpx.ConnectTimeout("down")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    result = post_digest("https://hooks.example/x", "md")
+    assert result["ok"] is False
+    assert result["status_code"] is None
+    assert post_digest("ftp://x", "md")["ok"] is False
+
+
+def test_check_cli_webhook_posts_digest(monkeypatch):
+    from click.testing import CliRunner
+
+    import core.notify as notify
+    from cli.main import cli
+
+    seen = {}
+    monkeypatch.setattr(
+        notify,
+        "post_digest",
+        lambda url, text, timeout=15.0: (
+            seen.update(url=url) or {"ok": True, "status_code": 200, "error": None}
+        ),
+    )
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--event",
+            "data/fixtures/bitnami/event.json",
+            "--digest",
+            "--webhook",
+            "https://hooks.example/x",
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    assert seen["url"] == "https://hooks.example/x"
+    assert "posted digest" in out.output

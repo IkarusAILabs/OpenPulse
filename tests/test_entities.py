@@ -40,6 +40,18 @@ def test_purl_builder():
     assert purl_for("github", "redis", "redis") == "pkg:github/redis/redis"
 
 
+def test_endoflife_map_verified_overrides():
+    from core.entities.catalog import endoflife_map, load_catalog
+
+    mapping = endoflife_map(load_catalog())
+    assert mapping["kafka"] == "apache-kafka"
+    assert mapping["spark"] == "apache-spark"
+    assert "redis" not in mapping  # slug == product needs no override
+    for product in mapping.values():
+        assert product == product.strip().lower()
+        assert " " not in product
+
+
 def test_catalog_new_entries_resolve():
     from core.entities.resolve import resolve_project
 

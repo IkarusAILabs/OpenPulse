@@ -165,8 +165,11 @@ def build_report(
                 evidence = [finding.get("analyst", "analyst")]
                 evidence += [s for s in finding.get("sources", []) if s not in evidence]
                 lines.append("Evidence: " + ", ".join(evidence))
-                for ref in finding.get("references", []) or []:
-                    lines.append(f"- {ref}")
+                seen = set()
+                for ref in list(finding.get("references", []) or []) + _supporting_urls(finding):
+                    if ref and ref not in seen:
+                        seen.add(ref)
+                        lines.append(f"- {ref}")
                 lines.append("")
     if notes:
         lines.append("## Notes")
@@ -174,6 +177,20 @@ def build_report(
         lines += [f"- {note}" for note in notes]
         lines.append("")
     return "\n".join(lines).rstrip()
+
+
+def _supporting_urls(finding: dict[str, Any]) -> list[str]:
+    """Source URLs carried inside supporting raw entries (endoflife links,
+    GitHub release/advisory URLs). Deduplicated by the caller."""
+    urls = []
+    for entry in finding.get("supporting", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        for key in ("link", "url"):
+            value = entry.get(key)
+            if isinstance(value, str) and value.startswith("http") and value not in urls:
+                urls.append(value)
+    return urls
 
 
 def _dependency_block(finding: dict[str, Any]) -> list[str]:

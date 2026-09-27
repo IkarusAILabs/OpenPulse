@@ -94,6 +94,10 @@ Conflicting evidence → visible + blocking for strong actions.
 - CPE data depends on NVD configuration quality.
 - Popularity informs reach, never risk (stars bands, always 🟢).
 - `latest` moves constantly — pin digests in production.
+- License/support-model changes are curated events for now (Bitnami,
+  iText fixtures): no automated license collector exists yet, so the
+  pipeline cannot *discover* them — only validate, gate, and match
+  them once recorded with evidence.
 
 ## Core distinctions (design principles)
 

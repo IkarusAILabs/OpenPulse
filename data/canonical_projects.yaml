@@ -2,6 +2,9 @@
 # Rules:
 # - `slug` is the canonical key used in OSSEvents and watchlists.
 # - `aliases` MUST be lowercase and tag/digest-free (validated by tests).
+# - `endoflife` is optional: the endoflife.date product name when it
+#   differs from the slug (verified live against the API index before
+#   adding; never guessed).
 # - `bitnami/*` namespaced refs intentionally resolve to `bitnami-*` stack
 #   slugs (not upstream `redis` etc.) so Bitnami distribution events keep
 #   their impact attribution: depending on docker.io/bitnami/redis means
@@ -33,6 +36,7 @@
   display_name: Apache Kafka
   github: apache/kafka
   website: https://kafka.apache.org
+  endoflife: apache-kafka
   aliases: [kafka, apache/kafka]
   docker_images: []
 - slug: keycloak
@@ -177,6 +181,7 @@
   display_name: Argo CD
   github: argoproj/argo-cd
   website: https://argo-cd.readthedocs.io
+  endoflife: argo-cd
   aliases: [argocd, argo-cd]
   docker_images: []
 - slug: cert-manager
@@ -280,12 +285,14 @@
   display_name: Apache Airflow
   github: apache/airflow
   website: https://airflow.apache.org
+  endoflife: apache-airflow
   aliases: [airflow, apache/airflow]
   docker_images: []
 - slug: spark
   display_name: Apache Spark
   github: apache/spark
   website: https://spark.apache.org
+  endoflife: apache-spark
   aliases: [spark, apache/spark]
   docker_images: []
 - slug: minio
@@ -305,4 +312,306 @@
   github: apache/zookeeper
   website: https://zookeeper.apache.org
   aliases: [zookeeper, apache/zookeeper]
+  docker_images: []
+- slug: nats
+  display_name: NATS
+  github: nats-io/nats-server
+  website: https://nats.io
+  aliases: [nats, nats-server]
+  docker_images: []
+- slug: clickhouse
+  display_name: ClickHouse
+  github: ClickHouse/ClickHouse
+  website: https://clickhouse.com
+  aliases: [clickhouse]
+  docker_images: []
+- slug: loki
+  display_name: Loki
+  github: grafana/loki
+  website: https://grafana.com/oss/loki/
+  aliases: [loki]
+  docker_images: []
+- slug: jaeger
+  display_name: Jaeger
+  github: jaegertracing/jaeger
+  website: https://www.jaegertracing.io
+  aliases: [jaeger, jaegertracing]
+  docker_images: []
+- slug: vitess
+  display_name: Vitess
+  github: vitessio/vitess
+  website: https://vitess.io
+  aliases: [vitess]
+  docker_images: []
+- slug: solr
+  display_name: Apache Solr
+  github: apache/solr
+  website: https://solr.apache.org
+  aliases: [solr, apache/solr]
+  docker_images: []
+- slug: cassandra
+  display_name: Apache Cassandra
+  github: apache/cassandra
+  website: https://cassandra.apache.org
+  endoflife: apache-cassandra
+  aliases: [cassandra, apache/cassandra]
+  docker_images: []
+- slug: couchdb
+  display_name: Apache CouchDB
+  github: apache/couchdb
+  website: https://couchdb.apache.org
+  endoflife: apache-couchdb
+  aliases: [couchdb, apache/couchdb]
+  docker_images: []
+- slug: neo4j
+  display_name: Neo4j
+  github: neo4j/neo4j
+  website: https://neo4j.com
+  aliases: [neo4j]
+  docker_images: []
+- slug: influxdb
+  display_name: InfluxDB
+  github: influxdata/influxdb
+  website: https://www.influxdata.com
+  aliases: [influxdb, influx]
+  docker_images: []
+- slug: cpython
+  display_name: CPython
+  github: python/cpython
+  website: https://www.python.org
+  aliases: [cpython, python]
+  docker_images: []
+- slug: php
+  display_name: PHP
+  github: php/php-src
+  website: https://www.php.net
+  aliases: [php, php-src]
+  docker_images: []
+- slug: ruby
+  display_name: Ruby
+  github: ruby/ruby
+  website: https://www.ruby-lang.org
+  aliases: [ruby]
+  docker_images: []
+- slug: go
+  display_name: Go
+  github: golang/go
+  website: https://go.dev
+  aliases: [go, golang]
+  docker_images: []
+- slug: rust
+  display_name: Rust
+  github: rust-lang/rust
+  website: https://www.rust-lang.org
+  aliases: [rust]
+  docker_images: []
+- slug: maven
+  display_name: Apache Maven
+  github: apache/maven
+  website: https://maven.apache.org
+  aliases: [maven, apache/maven]
+  docker_images: []
+- slug: gradle
+  display_name: Gradle
+  github: gradle/gradle
+  website: https://gradle.org
+  aliases: [gradle]
+  docker_images: []
+- slug: junit
+  display_name: JUnit
+  github: junit-team/junit5
+  website: https://junit.org
+  aliases: [junit, junit5]
+  docker_images: []
+- slug: ansible
+  display_name: Ansible
+  github: ansible/ansible
+  website: https://www.ansible.com
+  aliases: [ansible]
+  docker_images: []
+- slug: k9s
+  display_name: K9s
+  github: derailed/k9s
+  website: https://k9scli.io
+  aliases: [k9s]
+  docker_images: []
+- slug: react
+  display_name: React
+  github: facebook/react
+  website: https://react.dev
+  aliases: [react]
+  docker_images: []
+- slug: vue
+  display_name: Vue
+  github: vuejs/core
+  website: https://vuejs.org
+  aliases: [vue, vuejs/vue, vuejs/core]
+  docker_images: []
+- slug: angular
+  display_name: Angular
+  github: angular/angular
+  website: https://angular.dev
+  aliases: [angular]
+  docker_images: []
+- slug: webpack
+  display_name: webpack
+  github: webpack/webpack
+  website: https://webpack.js.org
+  aliases: [webpack]
+  docker_images: []
+- slug: express
+  display_name: Express
+  github: expressjs/express
+  website: https://expressjs.com
+  aliases: [express]
+  docker_images: []
+- slug: typescript
+  display_name: TypeScript
+  github: microsoft/TypeScript
+  website: https://www.typescriptlang.org
+  aliases: [typescript]
+  docker_images: []
+- slug: vite
+  display_name: Vite
+  github: vitejs/vite
+  website: https://vite.dev
+  aliases: [vite]
+  docker_images: []
+- slug: nest
+  display_name: Nest
+  github: nestjs/nest
+  website: https://nestjs.com
+  aliases: [nest, nestjs]
+  docker_images: []
+- slug: flask
+  display_name: Flask
+  github: pallets/flask
+  website: https://flask.palletsprojects.com
+  aliases: [flask]
+  docker_images: []
+- slug: requests
+  display_name: Requests
+  github: psf/requests
+  website: https://requests.readthedocs.io
+  aliases: [requests]
+  docker_images: []
+- slug: numpy
+  display_name: NumPy
+  github: numpy/numpy
+  website: https://numpy.org
+  aliases: [numpy]
+  docker_images: []
+- slug: pandas
+  display_name: pandas
+  github: pandas-dev/pandas
+  website: https://pandas.pydata.org
+  aliases: [pandas]
+  docker_images: []
+- slug: transformers
+  display_name: Transformers
+  github: huggingface/transformers
+  website: https://huggingface.co
+  aliases: [transformers, huggingface-transformers]
+  docker_images: []
+- slug: tensorflow
+  display_name: TensorFlow
+  github: tensorflow/tensorflow
+  website: https://www.tensorflow.org
+  aliases: [tensorflow]
+  docker_images: []
+- slug: ollama
+  display_name: Ollama
+  github: ollama/ollama
+  website: https://ollama.com
+  aliases: [ollama]
+  docker_images: []
+- slug: qdrant
+  display_name: Qdrant
+  github: qdrant/qdrant
+  website: https://qdrant.tech
+  aliases: [qdrant]
+  docker_images: []
+- slug: pytest
+  display_name: pytest
+  github: pytest-dev/pytest
+  website: https://docs.pytest.org
+  aliases: [pytest, pytest-dev/pytest]
+  docker_images: []
+- slug: cosign
+  display_name: Cosign
+  github: sigstore/cosign
+  website: https://docs.sigstore.dev
+  aliases: [cosign]
+  docker_images: []
+- slug: flux
+  display_name: Flux
+  github: fluxcd/flux2
+  website: https://fluxcd.io
+  aliases: [flux, fluxcd]
+  docker_images: []
+- slug: jenkins
+  display_name: Jenkins
+  github: jenkinsci/jenkins
+  website: https://www.jenkins.io
+  aliases: [jenkins]
+  docker_images: []
+- slug: crossplane
+  display_name: Crossplane
+  github: crossplane/crossplane
+  website: https://www.crossplane.io
+  aliases: [crossplane]
+  docker_images: []
+- slug: pulsar
+  display_name: Apache Pulsar
+  github: apache/pulsar
+  website: https://pulsar.apache.org
+  aliases: [pulsar, apache/pulsar]
+  docker_images: []
+- slug: redpanda
+  display_name: Redpanda
+  github: redpanda-data/redpanda
+  website: https://redpanda.com
+  aliases: [redpanda]
+  docker_images: []
+- slug: mariadb
+  display_name: MariaDB
+  github: mariadb/server
+  website: https://mariadb.org
+  aliases: [mariadb]
+  docker_images: []
+- slug: cockroach
+  display_name: CockroachDB
+  github: cockroachdb/cockroach
+  website: https://www.cockroachlabs.com
+  aliases: [cockroach, cockroachdb]
+  docker_images: []
+- slug: tidb
+  display_name: TiDB
+  github: pingcap/tidb
+  website: https://pingcap.com
+  aliases: [tidb]
+  docker_images: []
+- slug: timescaledb
+  display_name: TimescaleDB
+  github: timescale/timescaledb
+  website: https://www.timescale.com
+  aliases: [timescaledb, timescale]
+  docker_images: []
+- slug: crio
+  display_name: CRI-O
+  github: cri-o/cri-o
+  website: https://cri-o.io
+  aliases: [crio, cri-o]
+  docker_images: []
+- slug: buildkit
+  display_name: BuildKit
+  github: moby/buildkit
+  website: https://docs.docker.com/build/buildkit/
+  aliases: [buildkit]
+  docker_images: []
+- slug: itext
+  display_name: iText
+  github: itext/itext-java
+  website: https://itextpdf.com
+  aliases: [itext, itext7, itext-java, itext-core, com.itextpdf/itext-core, com.itextpdf/kernel]
   docker_images: []

@@ -31,6 +31,15 @@ def catalog_alias_map(catalog: list[dict[str, Any]]) -> dict[str, str]:
     return out
 
 
+def endoflife_map(catalog: list[dict[str, Any]] | None = None) -> dict[str, str]:
+    """slug -> endoflife.date product for entries that declare one."""
+    return {
+        str(e["slug"]): str(e["endoflife"])
+        for e in (catalog if catalog is not None else load_catalog())
+        if e.get("slug") and e.get("endoflife")
+    }
+
+
 def purl_for(kind: str, namespace: str, name: str, version: str | None = None) -> str:
     """Minimal Package-URL builder (https://github.com/package-url/purl-spec)."""
     base = {

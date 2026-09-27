@@ -33,22 +33,25 @@ def parse_product(product: str, payload: Any) -> list[dict[str, Any]]:
 class EndoflifeCollector(BaseCollector):
     name = "endoflife"
 
-    def __init__(self, timeout: float = 15.0):
+    def __init__(self, slug_map: dict[str, str] | None = None, timeout: float = 15.0):
+        # project_slug -> endoflife.date product, e.g. {"kafka": "apache-kafka"}
+        self.slug_map = slug_map or {}
         self.timeout = timeout
 
     def collect(self, project_slug: str) -> list[dict[str, Any]]:
-        url = f"https://endoflife.date/api/{project_slug}.json"
+        product = self.slug_map.get(project_slug, project_slug)
+        url = f"https://endoflife.date/api/{product}.json"
         try:
             r = httpx.get(url, timeout=self.timeout)
             if r.status_code == 404:
                 return [
                     {
                         "collector": "endoflife",
-                        "product": project_slug,
+                        "product": product,
                         "skipped": "not on endoflife.date",
                     }
                 ]
             r.raise_for_status()
-            return parse_product(project_slug, r.json())
+            return parse_product(product, r.json())
         except Exception as e:
-            return [as_error("endoflife", e, product=project_slug)]
+            return [as_error("endoflife", e, product=product)]

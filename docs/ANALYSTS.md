@@ -71,7 +71,10 @@ traces to an evidence URL or named collector output.
 
 `collect_project` turns one raw bundle into pulse + findings;
 `build_report` ranks items into action-worthy / watch / informational
-with named evidence per item. `openpulse report --month YYYY-MM`
+with named evidence per item. Supporting source URLs (endoflife links,
+release/advisory URLs) print beneath each item, deduplicated; recency
+(`--since`) and relationship (`--include-related`) filters keep the
+monthly narrative honest. `openpulse report --month YYYY-MM`
 runs the catalog live or from `--raw-bundle-dir` offline bundles.
 
 ## Try it
