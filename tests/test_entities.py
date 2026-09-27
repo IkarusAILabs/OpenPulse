@@ -38,3 +38,17 @@ def test_purl_builder():
 
     assert purl_for("docker", "bitnami", "redis", "7.2") == "pkg:docker/bitnami/redis@7.2"
     assert purl_for("github", "redis", "redis") == "pkg:github/redis/redis"
+
+
+def test_catalog_new_entries_resolve():
+    from core.entities.resolve import resolve_project
+
+    assert resolve_project("airflow") == "airflow"
+    assert resolve_project("apache/airflow") == "airflow"
+    assert resolve_project("spark") == "spark"
+    assert resolve_project("apache/spark") == "spark"
+    assert resolve_project("minio") == "minio"
+    assert resolve_project("docker.io/minio") == "minio"
+    assert resolve_project("celery") == "celery"
+    assert resolve_project("zookeeper") == "zookeeper"
+    assert resolve_project("apache/zookeeper") == "zookeeper"
