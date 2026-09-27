@@ -1,72 +1,68 @@
-# Roadmap — 12-week MVP (distilled from proposal)
+# Roadmap — strategic sequence (reset 2026-09-27, see `docs/STRATEGIC_RESET.md`)
 
-Status as of OpenPulse 100: schema 0.4.0, 129 tests, catalog at
-100 entries, September report regenerated over the full catalog with
-sourced references, iText license case validated end to end.
+Status: schema 0.4.0, 129+ tests, catalog at 100, monthly report +
+watchlist checking + verdict engine working. Positioning: Upstream
+Change Intelligence + Dependency Impact Intelligence — explicitly not
+an EOL tracker, vulnerability scanner, or SCA.
 
-## Done
+## Built to date (condensed history)
 
-- [x] **Phase 0 (W1) — Schema freeze.** `core/schema/` v0.4.0 (was v0.1.0;
-  additive provenance/independence/relation fields). Event taxonomy,
-  confidence, impact levels frozen.
-- [x] **Phase 1 (W2–4) — Collectors.** All 7: github (+repo metadata),
-  osv, nvd (+CPE criteria), cve, kev (+match strength), endoflife.date,
-  registries (+digests). Structured `CollectorError`s, graceful degrade.
-- [x] **Phase 2 (W3–5) — Analysts.** Change, Security, Evidence, Report
-  as pure functions + evidence gate with veto power. No giant agent.
-- [x] **Phase 3 (W5) — Bitnami validation.** Reference event
-  (`CONFIRMED`/`ACTION`, 3 official evidences), `demo-bitnami`
-  rehearsal, permanent acceptance test (`tests/test_acceptance.py`).
-  Gate passed — SaaS track unblocked in principle, not started.
-- [x] **Phase 4 (W5–7) — OSS Pulse facets.** `core/pulse.py` maps
-  findings+events to 7 facets (worst-wins + reason); `pulse` CLI
-  renders computed status live or from offline bundles.
-- [x] **Trust hardening (arch review).** Provenance fields, independent
-  corroboration, NVD relationships + caps, KEV strength, observation
-  history + diffs, `CollectorError` redaction, CLI input bounds,
-  `PROJECT_ARCHIVED`, CI (least privilege, CodeQL, pip-audit),
-  Dependabot.
-- [x] **Security re-implementation.** Conservative CPE identity,
-  explicit version applicability (`core/versions.py`), claim objects +
-  support/conflict gate rules, generalized observations, typed identity
-  refs, `AFFECTS_ARTIFACT` matching, explainable security rendering,
-  SHA-pinned actions, `requirements.lock`, 10-test boundary contract.
-  See `IMPLEMENTATION_PLAN.md` / `IMPLEMENTATION_SUMMARY.md`.
-- [x] **Early Warning integrity hardening.** Explicit `DependencyVerdict`,
-  scope-driven matching, `NOT_AFFECTED`, tri-state versions end to end,
-  `version_scheme`, watchlist metadata, four-state `check` output.
+Schema 0.4.0 (taxonomy, confidence, evidence, claims, scope);
+7 collectors (github, osv, nvd, cve, kev, endoflife.date, registries);
+4 analysts + veto gate; entity resolution + catalog 100; version
+applicability; KEV strength; observations + diffs; verdicts with
+NOT_AFFECTED; Pulse facets; monthly reports; watchlist `check`;
+trust hardening (provenance, independence, redacted errors, CLI
+bounds, SHA-pinned CI, lockfile). Detail: git history +
+`docs/ARCHITECTURE_REVIEW.md`.
 
-## In progress
+## Phase 0 — Strategic reset [DONE]
 
-- [x] **Phase 5 — OpenPulse 100 seed.** Catalog at 100 entries
-  (was 10), incl. endoflife overrides verified live (kafka, airflow,
-  spark, argocd, cassandra, couchdb) and the iText license-change
-  reference case (`data/fixtures/itext-license/`).
-- [x] **Phase 6 (W7–8) — Monthly report pipeline.** `reports/generate.py`
-  ranks seed projects into action-worthy / watch / informational with
-  evidence per item; `openpulse report --month YYYY-MM` runs offline
-  bundles or live collectors and writes `reports/<month>-openpulse.md`.
-- [x] **Phase 10 preview — watchlist check.** `openpulse check
-  --watchlist file --event file` evaluates image refs (artifact/project
-  matching) and versioned packages (OSV/CPE ranges → `AFFECTS_VERSION`
-  for exact pins); `--strict` exits 1 when anything is affected.
+Product thesis, positioning, competitive boundary, canonical schema,
+event taxonomy, evidence model, source authority model, this roadmap.
+Deliverable: `docs/STRATEGIC_RESET.md`.
 
-## Not started
+## Phase 1 — Intelligence foundation [IN PROGRESS]
 
-- **Phase 7–10 (W8–12)** — website, follows/newsletter, customer
-  watchlist, impact engine (only `core/risk/match.py` preview exists).
+Raw Signal model, Evidence model, entity resolution ✅, event
+correlation (lifecycle story aggregation — this slice), provenance ✅,
+confidence ✅, deduplication (per-project stories ✅; cross-project
+next). Acceptance: September re-render shows coherent stories, fewer
+rows, same versions; ruff/pytest green.
 
-## Non-goals W1–12 (unchanged)
+## Phase 2 — Upstream Change Intelligence [NEXT]
 
-Full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC,
-mobile, opaque risk scores. They don't prove the core hypothesis.
+Prioritise: GitHub releases, repo changes, archival ✅ (exists),
+announcements, docs, package registries, Docker/OCI ✅ (exists),
+advisories, distribution changes. New work starts with distribution
+discovery across the catalog. Acceptance: a non-lifecycle story the
+pipeline discovers (not curates).
 
-## Next — scheduled watching at scale + report cadence
+## Phase 3 — Golden scenarios [PARTIAL]
 
-1. **Report cadence**: monthly regeneration ritual (first Monday run,
-   curator pass, commit). October edition grows with the catalog.
-2. **Digest consumers**: post `--digest` output where teams already look
-   (release notes, Slack webhook recipe in `docs/SCHEDULED_CHECKS.md`).
-3. **Seed growth** (#9): 50 → 70, prioritizing report coverage gaps.
+Bitnami ✅, iText ✅, minio ✅ end to end. Still to formalise:
+cert-manager, Redis, PostgreSQL, Kafka, Grafana, Terraform,
+Kubernetes, one AI/ML project (+ `tests/test_golden.py`).
+Criterion: each proves something a lifecycle database cannot.
 
-Deliberately later: accounts, dashboards, SaaS monitoring.
+## Phase 4 — Public intelligence [PARTIAL]
+
+Pulse ✅, OpenPulse 100 ✅, monthly intelligence ✅, scheduled
+watching ✅. Missing: event history store, project pages, trends.
+
+## Phase 5 — Customer Impact [NOT STARTED]
+
+Inventory, SBOM, GitHub integration, matching ✅ (engine ready),
+dashboard, alerts. Watchlist `check` is the local-first preview.
+
+## Phase 6 — Early Warning Network [NOT STARTED]
+
+Emerging signals, community contributions, confidence progression,
+warning lead time (instrumented, never published until measurable),
+historical intelligence.
+
+## Non-goals (unchanged, plus strategy §18)
+
+Full SAST/SCA, auto-remediation, generic vuln scanner, SBOM platform,
+asset inventory, AI-agent/MCP security, GRC, mobile. SafeAI stays a
+separate repo (conceptual KYA/KYD integration only).

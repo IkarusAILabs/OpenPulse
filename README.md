@@ -109,6 +109,19 @@ Principles that make it different:
 - **Honest verdicts.** `RELATED ≠ AFFECTED`, `AFFECTS_PROJECT ≠ AFFECTS_VERSION`, `UNKNOWN ≠ NOT_AFFECTED` — same project never means affected, and cleared dependencies say `NOT_AFFECTED`, not "no match".
 - **Analysts, not one giant agent.** Four small, deterministic, testable analysts. The evidence gate has veto power.
 
+## What OpenPulse is not
+
+| Existing category | Asks | OpenPulse instead asks |
+|---|---|---|
+| Lifecycle database (endoflife.date) | When does software reach EOL? | What is changing upstream, and does it affect what I depend on? |
+| Vulnerability database (OSV/NVD) | Is this package vulnerable? | Same question, plus: is the match identity-strong or keyword-only? |
+| SCA / scanners | What dependency risks exist in my code? | What changed upstream since we last looked? |
+| Dependency updater | Should I upgrade? | What breaks if I don't — and by when? |
+
+endoflife.date is one of our sources, not our definition: lifecycle data
+enters as raw signals, gets correlated into stories, and is gated like
+everything else. We do not compete on EOL record counts.
+
 ## Who it's for — and what you get
 
 - **Software security teams / AppSec** — extend vulnerability management beyond CVEs: EOL software, exploited-in-the-wild (CISA KEV) correlation, license and support-model drift, with evidence you can paste into a risk register.

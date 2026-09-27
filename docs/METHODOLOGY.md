@@ -7,6 +7,24 @@ Security: OSV.dev, NVD, MITRE CVE, CISA KEV, GitHub Advisories,
 Exploit-DB (link only). Lifecycle: endoflife.date. Ecosystems: Maven,
 npm, PyPI, Docker/OCI (initial).
 
+## Source authority tiers
+
+Sources are not equal. Tiers, strongest first:
+
+- **official** — the vendor/project itself (announcement, changelog,
+  advisory, repo). Alone sufficient for CONFIRMED.
+- **primary** — lifecycle databases (endoflife.date), registries
+  serving protocol truth (tag lists, digests). Strong but narrow:
+  endoflife.date proves dates, never distribution intent.
+- **secondary** — reputable press, mirrors, aggregators. Corroborates;
+  never confirms alone.
+- **tertiary** — rumors, single discussions. Context at most.
+
+endoflife.date is a primary lifecycle source — one input among many,
+not the definition of OpenPulse. A lifecycle database answers "when
+does software reach EOL"; OpenPulse answers "what is changing upstream,
+and does it affect what I depend on".
+
 ## Identity hierarchy
 
 `docker.io/redis` ≠ `docker.io/bitnami/redis`, always. Resolution

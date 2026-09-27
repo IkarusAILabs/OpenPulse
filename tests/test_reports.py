@@ -222,7 +222,9 @@ def test_report_excludes_related_counts_them():
     assert "1 significant events" in md
     assert "1 related-but-unconfirmed records held back" in md
     md_all = build_report("2026-09", items, include_related=True)
-    assert "2 significant events" in md_all
+    # Same class merges into ONE coherent story even when narrated.
+    assert "1 significant events" in md_all
+    assert "lifecycle:" in md_all
     assert "held back" not in md_all
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from analyzers import change_analyst, security_analyst
+from analyzers.event_correlation import aggregate_lifecycle, lifecycle_first
 from analyzers.report_analyst import render_finding_md
 from core.entities.catalog import project_context
 from core.pulse import compute_pulse
@@ -107,7 +108,8 @@ def build_report(
         # Copy: filtering must never mutate the caller's bundles.
         kept = [f for f in item.get("findings", []) if _fresh(f, since)]
         held_back += sum(1 for f in kept if not _narrate(f, include_related))
-        scoped.append({**item, "findings": [f for f in kept if _narrate(f, include_related)]})
+        narrated = aggregate_lifecycle([f for f in kept if _narrate(f, include_related)])
+        scoped.append({**item, "findings": narrated})
     significant = [
         i for i in scoped if any(_worst(f) in ("action", "watch") for f in i["findings"])
     ]
@@ -145,7 +147,7 @@ def build_report(
             continue
         lines.append(f"## {SECTION[level]} ({len(group)})")
         lines.append("")
-        for item in sorted(group, key=lambda i: i["project"]):
+        for item in lifecycle_first(sorted(group, key=lambda i: i["project"])):
             lines.append(f"### {item['project']}")
             lines.append("")
             non_ok = [
@@ -166,7 +168,12 @@ def build_report(
                 evidence += [s for s in finding.get("sources", []) if s not in evidence]
                 lines.append("Evidence: " + ", ".join(evidence))
                 seen = set()
-                for ref in list(finding.get("references", []) or []) + _supporting_urls(finding):
+                refs = (
+                    list(finding.get("references", []) or [])
+                    + _supporting_urls(finding)
+                    + list(finding.get("evidence_links", []) or [])
+                )
+                for ref in refs:
                     if ref and ref not in seen:
                         seen.add(ref)
                         lines.append(f"- {ref}")
