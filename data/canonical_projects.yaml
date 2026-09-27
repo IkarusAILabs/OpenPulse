@@ -275,3 +275,34 @@
   website: https://www.tigera.io/project-calico/
   aliases: [calico, project-calico]
   docker_images: []
+
+- slug: airflow
+  display_name: Apache Airflow
+  github: apache/airflow
+  website: https://airflow.apache.org
+  aliases: [airflow, apache/airflow]
+  docker_images: []
+- slug: spark
+  display_name: Apache Spark
+  github: apache/spark
+  website: https://spark.apache.org
+  aliases: [spark, apache/spark]
+  docker_images: []
+- slug: minio
+  display_name: MinIO
+  github: minio/minio
+  website: https://min.io
+  aliases: [minio]
+  docker_images: [docker.io/minio]
+- slug: celery
+  display_name: Celery
+  github: celery/celery
+  website: https://docs.celeryq.dev
+  aliases: [celery]
+  docker_images: []
+- slug: zookeeper
+  display_name: Apache ZooKeeper
+  github: apache/zookeeper
+  website: https://zookeeper.apache.org
+  aliases: [zookeeper, apache/zookeeper]
+  docker_images: []
