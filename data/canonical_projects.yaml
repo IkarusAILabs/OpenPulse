@@ -292,8 +292,8 @@
   display_name: MinIO
   github: minio/minio
   website: https://min.io
-  aliases: [minio]
-  docker_images: [docker.io/minio]
+  aliases: [minio, minio/minio]
+  docker_images: [docker.io/minio/minio]
 - slug: celery
   display_name: Celery
   github: celery/celery

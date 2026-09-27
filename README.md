@@ -211,6 +211,13 @@ pytest -q      # must pass (offline)
 
 Good first issues are labeled [`good first issue`](https://github.com/ikaruscareer/OpenPulse/labels/good%20first%20issue).
 
+## Contributors
+
+Thank you to everyone moving OpenPulse forward. Our first external
+contributor:
+
+- **[@wufangyong973](https://github.com/wufangyong973)** — grew the canonical project catalog toward OpenPulse 100 (Airflow, Spark, MinIO, Celery, ZooKeeper) in [#11](https://github.com/ikaruscareer/OpenPulse/pull/11). First of many.
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE). Commercial use, modification, and distribution are welcome; the SaaS service layer lives outside this repo.
