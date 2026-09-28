@@ -1,8 +1,8 @@
 # OpenPulse lifecycle coverage — 2026-09
 
-Checked 60 catalog projects live (endoflife.date + GitHub metadata, Change Analyst rules).
+Checked 100 catalog projects live (endoflife.date + GitHub metadata, Change Analyst rules).
 
-ACTION 41 · REVIEW 0 · OK 1 · NO-DATA 18
+ACTION 57 · REVIEW 1 · OK 1 · NO-DATA 41
 
 NO-DATA means absent from endoflife.date (full 478-product index checked) — an explicit gap, never a guessed answer. bitnami entries are distribution constructs, correctly N/A for lifecycle.
 
@@ -68,6 +68,46 @@ NO-DATA means absent from endoflife.date (full 478-product index checked) — an
 | couchdb | ACTION | apache-couchdb 3.3 is end-of-life; apache-couchdb 3.2 is end-of-life |
 | neo4j | ACTION | neo4j 2026.08 is end-of-life; neo4j 2026.07 is end-of-life; neo4j 2026.06 is end-of-life |
 | influxdb | ACTION | influxdb 3.9 is end-of-life; influxdb 3.8 is end-of-life; influxdb 3.7 is end-of-life |
+| cpython | ACTION | python 3.9 is end-of-life; python 3.8 is end-of-life; python 3.7 is end-of-life |
+| php | ACTION | php 8.1 is end-of-life; php 8.0 is end-of-life; php 7.4 is end-of-life |
+| ruby | ACTION | ruby 3.2 is end-of-life; ruby 3.1 is end-of-life; ruby 3.0 is end-of-life |
+| go | ACTION | go 1.25 is end-of-life; go 1.24 is end-of-life; go 1.23 is end-of-life |
+| rust | ACTION | rust 1.97 is end-of-life; rust 1.96 is end-of-life; rust 1.95 is end-of-life |
+| maven | ACTION | apache-maven 3.8 is end-of-life; apache-maven 3.6 is end-of-life; apache-maven 3.5 is end-of-life |
+| gradle | ACTION | gradle 7 is end-of-life; gradle 6 is end-of-life; gradle 5 is end-of-life |
+| junit | NO-DATA | not on endoflife.date |
+| ansible | ACTION | ansible 13 is end-of-life; ansible 12 is end-of-life; ansible 11 is end-of-life |
+| k9s | NO-DATA | not on endoflife.date |
+| react | REVIEW | react 19 ended active support; react 18 ended active support; react 17 ended active support |
+| vue | ACTION | vue 3.4 is end-of-life; vue 3.3 is end-of-life; vue 2.7 is end-of-life |
+| angular | ACTION | angular 19 is end-of-life; angular 18 is end-of-life; angular 17 is end-of-life |
+| webpack | NO-DATA | not on endoflife.date |
+| express | ACTION | express 3 is end-of-life; express 2 is end-of-life; express 1 is end-of-life |
+| typescript | NO-DATA | not on endoflife.date |
+| vite | NO-DATA | not on endoflife.date |
+| nest | NO-DATA | not on endoflife.date |
+| flask | NO-DATA | not on endoflife.date |
+| requests | NO-DATA | not on endoflife.date |
+| numpy | ACTION | numpy 2.1 is end-of-life; numpy 2.0 is end-of-life; numpy 1.26 is end-of-life |
+| pandas | NO-DATA | not on endoflife.date |
+| transformers | NO-DATA | not on endoflife.date |
+| tensorflow | NO-DATA | not on endoflife.date |
+| ollama | NO-DATA | not on endoflife.date |
+| qdrant | NO-DATA | not on endoflife.date |
+| pytest | NO-DATA | not on endoflife.date |
+| cosign | NO-DATA | not on endoflife.date |
+| flux | ACTION | flux 2.6 is end-of-life; flux 2.5 is end-of-life; flux 2.4 is end-of-life |
+| jenkins | ACTION | jenkins 2.555 is end-of-life; jenkins 2.541 is end-of-life; jenkins 2.528 is end-of-life |
+| crossplane | NO-DATA | not on endoflife.date |
+| pulsar | ACTION | apache-pulsar 4.2 is end-of-life; apache-pulsar 4.1 is end-of-life; apache-pulsar 3.3 is end-of-life |
+| redpanda | NO-DATA | not on endoflife.date |
+| mariadb | ACTION | mariadb 12.2 is end-of-life; mariadb 12.1 is end-of-life; mariadb 12.0 is end-of-life |
+| cockroach | NO-DATA | not on endoflife.date |
+| tidb | NO-DATA | not on endoflife.date |
+| timescaledb | NO-DATA | not on endoflife.date |
+| crio | NO-DATA | not on endoflife.date |
+| buildkit | NO-DATA | not on endoflife.date |
+| itext | NO-DATA | not on endoflife.date |
 
 ## Notes
 

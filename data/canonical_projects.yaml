@@ -379,6 +379,7 @@
   display_name: CPython
   github: python/cpython
   website: https://www.python.org
+  endoflife: python
   aliases: [cpython, python]
   docker_images: []
 - slug: php
@@ -409,6 +410,7 @@
   display_name: Apache Maven
   github: apache/maven
   website: https://maven.apache.org
+  endoflife: apache-maven
   aliases: [maven, apache/maven]
   docker_images: []
 - slug: gradle
@@ -565,6 +567,7 @@
   display_name: Apache Pulsar
   github: apache/pulsar
   website: https://pulsar.apache.org
+  endoflife: apache-pulsar
   aliases: [pulsar, apache/pulsar]
   docker_images: []
 - slug: redpanda

@@ -46,6 +46,9 @@ def test_endoflife_map_verified_overrides():
     mapping = endoflife_map(load_catalog())
     assert mapping["kafka"] == "apache-kafka"
     assert mapping["spark"] == "apache-spark"
+    assert mapping["maven"] == "apache-maven"
+    assert mapping["pulsar"] == "apache-pulsar"
+    assert mapping["cpython"] == "python"
     assert "redis" not in mapping  # slug == product needs no override
     for product in mapping.values():
         assert product == product.strip().lower()

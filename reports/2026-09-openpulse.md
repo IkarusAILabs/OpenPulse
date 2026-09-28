@@ -2,11 +2,43 @@
 
 100 projects monitored
 
-85 significant events
+58 significant events
 
-_147 related-but-unconfirmed records held back (see `openpulse analyze` for the full stream)._
+_158 related-but-unconfirmed records held back (see `openpulse analyze` for the full stream)._
 
 ## 🔴 Action-worthy changes (28)
+
+### cert-manager
+
+Pulse: lifecycle action
+
+🔴 **[EOL]** cert-manager 1.19 is end-of-life (_analyst=change, suggested impact=ACTION_)
+Cycle 1.19 reached EOL on 2026-07-08; no further fixes. Plan upgrade or extended support.
+
+Evidence: change
+- https://endoflife.date/cert-manager
+
+🟠 **[SECURITY]** CVE-2026-62290 [AFFECTS_PACKAGE] tracked by nvd (_analyst=security, suggested impact=REVIEW_)
+cert-manager adds certificates and certificate issuers as resource types in Kubernetes clusters, and simplifies the process of obtaining, renewing and using those certificates. From 1.18.0 until 1.19.6 and 1.20.3, Challenge resources under acme.cert-manager.io can be created directly by namespace us
+
+Evidence: security, nvd
+- https://github.com/cert-manager/cert-manager/commit/6bda47297c8fbc6b121b8b76624b668d26f1a155
+- https://github.com/cert-manager/cert-manager/commit/b37dbf01ecea50a0b3a19df0a7fe4c5ad6803f16
+- https://github.com/cert-manager/cert-manager/pull/8940
+- https://github.com/cert-manager/cert-manager/pull/8941
+- https://github.com/cert-manager/cert-manager/releases/tag/v1.19.6
+- https://github.com/cert-manager/cert-manager/releases/tag/v1.20.3
+- https://github.com/cert-manager/cert-manager/security/advisories/GHSA-8rvj-mm4h-c258
+
+### minio
+
+Pulse: activity action, lifecycle action
+
+🔴 **[PROJECT_ARCHIVED]** minio/minio is archived on GitHub (_analyst=change, suggested impact=ACTION_)
+The repository is read-only; no fixes will land. Last push 2026-04-24T17:54:39Z. Migrate off it.
+
+Evidence: change
+- https://github.com/minio/minio
 
 ### airflow
 
@@ -34,28 +66,6 @@ Cycle 3.2 reached EOL on 2026-08-04; no further fixes. Plan upgrade or extended 
 Evidence: change
 - https://endoflife.date/argo-cd
 
-### cert-manager
-
-Pulse: lifecycle action
-
-🔴 **[EOL]** cert-manager 1.19 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1.19 reached EOL on 2026-07-08; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/cert-manager
-
-🟠 **[SECURITY]** CVE-2026-62290 [AFFECTS_PACKAGE] tracked by nvd (_analyst=security, suggested impact=REVIEW_)
-cert-manager adds certificates and certificate issuers as resource types in Kubernetes clusters, and simplifies the process of obtaining, renewing and using those certificates. From 1.18.0 until 1.19.6 and 1.20.3, Challenge resources under acme.cert-manager.io can be created directly by namespace us
-
-Evidence: security, nvd
-- https://github.com/cert-manager/cert-manager/commit/6bda47297c8fbc6b121b8b76624b668d26f1a155
-- https://github.com/cert-manager/cert-manager/commit/b37dbf01ecea50a0b3a19df0a7fe4c5ad6803f16
-- https://github.com/cert-manager/cert-manager/pull/8940
-- https://github.com/cert-manager/cert-manager/pull/8941
-- https://github.com/cert-manager/cert-manager/releases/tag/v1.19.6
-- https://github.com/cert-manager/cert-manager/releases/tag/v1.20.3
-- https://github.com/cert-manager/cert-manager/security/advisories/GHSA-8rvj-mm4h-c258
-
 ### cilium
 
 Pulse: lifecycle action
@@ -70,32 +80,14 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🔴 **[EOL]** clickhouse 26.6 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 26.6 reached EOL on 2026-09-21; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** clickhouse lifecycle: reached end-of-life (26.6, 26.5, 26.4, 25.8) (_analyst=event-correlation, suggested impact=ACTION_)
+4 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/clickhouse
-
-🔴 **[EOL]** clickhouse 26.5 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 26.5 reached EOL on 2026-08-27; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/clickhouse
-
-🔴 **[EOL]** clickhouse 26.4 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 26.4 reached EOL on 2026-07-22; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/clickhouse
 
 🟠 **[EOL]** clickhouse 26.3 EOL approaching (2027-03-26) (_analyst=change, suggested impact=REVIEW_)
-Cycle 26.3 ends in 180 days. Start migration planning now.
-
-Evidence: change
-- https://endoflife.date/clickhouse
-
-🔴 **[EOL]** clickhouse 25.8 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 25.8 reached EOL on 2026-08-29; no further fixes. Plan upgrade or extended support.
+Cycle 26.3 ends in 179 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/clickhouse
@@ -104,28 +96,16 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** containerd 2.2 EOL approaching (2026-11-06) (_analyst=change, suggested impact=REVIEW_)
-Cycle 2.2 ends in 40 days. Start migration planning now.
+🟠 **[EOL]** containerd lifecycle: approaching end-of-life (2.2, 2.0) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/containerd
 
-🔴 **[EOL]** containerd 2.1 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2.1 reached EOL on 2026-07-03; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** containerd lifecycle: reached end-of-life (2.1, 1.7) (_analyst=event-correlation, suggested impact=ACTION_)
+2 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/containerd
-
-🟠 **[EOL]** containerd 2.0 EOL approaching (2027-03-01) (_analyst=change, suggested impact=REVIEW_)
-Cycle 2.0 ends in 155 days. Start migration planning now.
-
-Evidence: change
-- https://endoflife.date/containerd
-
-🔴 **[EOL]** containerd 1.7 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1.7 reached EOL on 2026-09-01; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/containerd
 
 ### elasticsearch
@@ -142,16 +122,10 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** envoy 1.37 EOL approaching (2027-01-13) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.37 ends in 108 days. Start migration planning now.
+🟠 **[EOL]** envoy lifecycle: approaching end-of-life (1.37, 1.36) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/envoy
-
-🟠 **[EOL]** envoy 1.36 EOL approaching (2026-10-14) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.36 ends in 17 days. Start migration planning now.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/envoy
 
 🔴 **[EOL]** envoy 1.35 is end-of-life (_analyst=change, suggested impact=ACTION_)
@@ -174,28 +148,16 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOS]** grafana 13.2 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 13.2 ended (date not published); only security fixes, if any.
+🟠 **[EOS]** grafana lifecycle: ended active support (13.2, 13.1) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/grafana
 
-🟠 **[EOL]** grafana 13.1 EOL approaching (2027-03-20) (_analyst=change, suggested impact=REVIEW_)
-Cycle 13.1 ends in 174 days. Start migration planning now.
+🟠 **[EOL]** grafana lifecycle: approaching end-of-life (13.1, 13.0) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/grafana
-
-🟠 **[EOS]** grafana 13.1 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 13.1 ended on 2026-08-18; only security fixes, if any.
-
-Evidence: change
-- https://endoflife.date/grafana
-
-🟠 **[EOL]** grafana 13.0 EOL approaching (2027-01-09) (_analyst=change, suggested impact=REVIEW_)
-Cycle 13.0 ends in 104 days. Start migration planning now.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/grafana
 
 🔴 **[EOL]** grafana 12.3 is end-of-life (_analyst=change, suggested impact=ACTION_)
@@ -218,22 +180,10 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** istio 1.31 EOL approaching (2027-02-28) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.31 ends in 154 days. Start migration planning now.
+🟠 **[EOL]** istio lifecycle: approaching end-of-life (1.31, 1.30, 1.29) (_analyst=event-correlation, suggested impact=REVIEW_)
+3 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/istio
-
-🟠 **[EOL]** istio 1.30 EOL approaching (2026-12-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.30 ends in 95 days. Start migration planning now.
-
-Evidence: change
-- https://endoflife.date/istio
-
-🟠 **[EOL]** istio 1.29 EOL approaching (2026-10-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.29 ends in 34 days. Start migration planning now.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/istio
 
 🔴 **[EOL]** istio 1.28 is end-of-life (_analyst=change, suggested impact=ACTION_)
@@ -267,7 +217,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** mariadb 13.0 EOL approaching (2026-12-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 13.0 ends in 95 days. Start migration planning now.
+Cycle 13.0 ends in 94 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/mariadb
@@ -277,16 +227,6 @@ Cycle 10.6 reached EOL on 2026-07-06; no further fixes. Plan upgrade or extended
 
 Evidence: change
 - https://endoflife.date/mariadb
-
-### minio
-
-Pulse: activity action, lifecycle action
-
-🔴 **[PROJECT_ARCHIVED]** minio/minio is archived on GitHub (_analyst=change, suggested impact=ACTION_)
-The repository is read-only; no fixes will land. Last push 2026-04-24T17:54:39Z. Migrate off it.
-
-Evidence: change
-- https://github.com/minio/minio
 
 ### mongodb
 
@@ -302,50 +242,20 @@ Evidence: change
 
 Pulse: activity review, lifecycle action
 
-🔴 **[EOL]** neo4j 2026.08 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2026.08 reached EOL on 2026-09-21; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** neo4j lifecycle: reached end-of-life (2026.08, 2026.07, 2026.06, 2026.05) (_analyst=event-correlation, suggested impact=ACTION_)
+4 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/neo4j
-
-🔴 **[EOL]** neo4j 2026.07 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2026.07 reached EOL on 2026-09-10; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/neo4j
-
-🔴 **[EOL]** neo4j 2026.06 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2026.06 reached EOL on 2026-07-30; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/neo4j
-
-🔴 **[EOL]** neo4j 2026.05 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2026.05 reached EOL on 2026-07-08; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/neo4j
 
 ### nodejs
 
 Pulse: lifecycle action
 
-🔴 **[EOL]** nodejs 3 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 3 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** nodejs lifecycle: reached end-of-life (3, 2, 1) (_analyst=event-correlation, suggested impact=ACTION_)
+3 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/nodejs
-
-🔴 **[EOL]** nodejs 2 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/nodejs
-
-🔴 **[EOL]** nodejs 1 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/nodejs
 
 ### numpy
@@ -353,7 +263,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** numpy 2.2 EOL approaching (2026-12-09) (_analyst=change, suggested impact=REVIEW_)
-Cycle 2.2 ends in 73 days. Start migration planning now.
+Cycle 2.2 ends in 72 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/numpy
@@ -368,16 +278,10 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** openssl 3.6 EOL approaching (2026-11-01) (_analyst=change, suggested impact=REVIEW_)
-Cycle 3.6 ends in 35 days. Start migration planning now.
+🟠 **[EOL]** openssl lifecycle: approaching end-of-life (3.6, 3.4) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/openssl
-
-🟠 **[EOL]** openssl 3.4 EOL approaching (2026-10-22) (_analyst=change, suggested impact=REVIEW_)
-Cycle 3.4 ends in 25 days. Start migration planning now.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/openssl
 
 🔴 **[EOL]** openssl 3.0 is end-of-life (_analyst=change, suggested impact=ACTION_)
@@ -390,22 +294,16 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** prometheus 3.14 EOL approaching (2026-09-30) (_analyst=change, suggested impact=REVIEW_)
-Cycle 3.14 ends in 3 days. Start migration planning now.
+🟠 **[EOL]** prometheus lifecycle: approaching end-of-life (3.15, 3.14) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/prometheus
 
-🔴 **[EOL]** prometheus 3.12 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 3.12 reached EOL on 2026-07-09; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** prometheus lifecycle: reached end-of-life (3.12, 3.5) (_analyst=event-correlation, suggested impact=ACTION_)
+2 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/prometheus
-
-🔴 **[EOL]** prometheus 3.5 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 3.5 reached EOL on 2026-07-31; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/prometheus
 
 ### rabbitmq
@@ -422,38 +320,20 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🔴 **[EOL]** rust 1.97 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1.97 reached EOL on 2026-08-20; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** rust lifecycle: reached end-of-life (1.97, 1.96) (_analyst=event-correlation, suggested impact=ACTION_)
+2 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/rust
-
-🔴 **[EOL]** rust 1.96 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1.96 reached EOL on 2026-07-09; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/rust
 
 ### solr
 
 Pulse: lifecycle action
 
-🔴 **[EOL]** solr 4 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 4 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** solr lifecycle: reached end-of-life (4, 3, 1) (_analyst=event-correlation, suggested impact=ACTION_)
+3 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/solr
-
-🔴 **[EOL]** solr 3 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 3 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
-
-Evidence: change
-- https://endoflife.date/solr
-
-🔴 **[EOL]** solr 1 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 1 reached EOL (date not published); no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/solr
 
 ### terraform
@@ -476,16 +356,10 @@ Active support for cycle 3.7 ended (date not published); only security fixes, if
 Evidence: change
 - https://endoflife.date/traefik
 
-🔴 **[EOL]** traefik 3.6 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 3.6 reached EOL on 2026-08-16; no further fixes. Plan upgrade or extended support.
+🔴 **[EOL]** traefik lifecycle: reached end-of-life (3.6, 2.11) (_analyst=event-correlation, suggested impact=ACTION_)
+2 cycles share one lifecycle story; strongest signal kept at ACTION.
 
-Evidence: change
-- https://endoflife.date/traefik
-
-🔴 **[EOL]** traefik 2.11 is end-of-life (_analyst=change, suggested impact=ACTION_)
-Cycle 2.11 reached EOL on 2026-09-07; no further fixes. Plan upgrade or extended support.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/traefik
 
 ### vue
@@ -504,56 +378,24 @@ Cycle 1 reached EOL (date not published); no further fixes. Plan upgrade or exte
 Evidence: change
 - https://endoflife.date/vue
 
-## 🟠 Changes to watch (15)
+## 🟠 Changes to watch (14)
 
 ### angular
 
 Pulse: lifecycle action
 
 🟠 **[EOL]** angular 20 EOL approaching (2026-11-28) (_analyst=change, suggested impact=REVIEW_)
-Cycle 20 ends in 62 days. Start migration planning now.
+Cycle 20 ends in 61 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/angular
-
-### calico
-
-Pulse: lifecycle action
-
-🟠 **[SECURITY]** CVE-2026-41186 [AFFECTS_PACKAGE] tracked by nvd (_analyst=security, suggested impact=REVIEW_)
-When Calico's shared debug server is enabled (disabled by default), the Calico kube-controllers and Goldmane components bind their Go pprof debug listener to 0.0.0.0 without authentication. Any pod with network reachability to the listener can retrieve the process heap, goroutine stacks (including f
-
-Evidence: security, nvd
-- https://github.com/projectcalico/calico/pull/12491
-- https://github.com/projectcalico/calico/pull/12633
-- https://github.com/projectcalico/calico/pull/12634
-- https://www.tigera.io/security-bulletins/tta-2026-004/
-
-🟡 **[SECURITY]** CVE-2026-41187 [AFFECTS_PACKAGE] tracked by nvd (_analyst=security, suggested impact=WATCH_)
-Calico's apiserver wraps tier-scoped resources so that every operation runs through AuthorizeTierOperation, but the Delete override on NetworkPolicy, GlobalNetworkPolicy, and their staged variants is not invoked for DeleteCollection requests. A user holding the deletecollection verb or wildcard verb
-
-Evidence: security, nvd
-- https://github.com/projectcalico/calico/pull/12731
-- https://github.com/projectcalico/calico/pull/12735
-- https://github.com/projectcalico/calico/pull/12736
-- https://github.com/projectcalico/calico/pull/12737
-- https://www.tigera.io/security-bulletins/tta-2026-006/
-
-🟠 **[SECURITY]** CVE-2026-6540 [AFFECTS_PACKAGE] tracked by nvd (_analyst=security, suggested impact=REVIEW_)
-Calico's Application Layer Policy (disabled by default), which enforces HTTP rules through Dikastes, fails to perform URL path normalization. As a result, HTTP requests using path-traversal segments, encoded slashes, or repeated slashes are not correctly evaluated by Prefix path rules. Dikastes auth
-
-Evidence: security, nvd
-- https://github.com/projectcalico/calico/pull/12531
-- https://github.com/projectcalico/calico/pull/12532
-- https://github.com/projectcalico/calico/pull/12533
-- https://www.tigera.io/security-bulletins/tta-2026-005/
 
 ### consul
 
 Pulse: lifecycle action
 
 🟠 **[EOL]** consul 1.22 EOL approaching (2026-10-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.22 ends in 34 days. Start migration planning now.
+Cycle 1.22 ends in 33 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/consul
@@ -583,7 +425,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** haproxy 3.3 EOL approaching (2027-01-01) (_analyst=change, suggested impact=REVIEW_)
-Cycle 3.3 ends in 96 days. Start migration planning now.
+Cycle 3.3 ends in 95 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/haproxy
@@ -592,16 +434,10 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOL]** kubernetes 1.35 EOL approaching (2027-02-28) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.35 ends in 154 days. Start migration planning now.
+🟠 **[EOL]** kubernetes lifecycle: approaching end-of-life (1.35, 1.34) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/kubernetes
-
-🟠 **[EOL]** kubernetes 1.34 EOL approaching (2026-10-27) (_analyst=change, suggested impact=REVIEW_)
-Cycle 1.34 ends in 30 days. Start migration planning now.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/kubernetes
 
 🟠 **[EOS]** kubernetes 1.34 ended active support (_analyst=change, suggested impact=REVIEW_)
@@ -615,7 +451,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** php 8.2 EOL approaching (2026-12-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 8.2 ends in 95 days. Start migration planning now.
+Cycle 8.2 ends in 94 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/php
@@ -625,7 +461,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** postgresql 14 EOL approaching (2026-11-12) (_analyst=change, suggested impact=REVIEW_)
-Cycle 14 ends in 46 days. Start migration planning now.
+Cycle 14 ends in 45 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/postgresql
@@ -644,20 +480,14 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOS]** redis 8.10 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 8.10 ended (date not published); only security fixes, if any.
+🟠 **[EOS]** redis lifecycle: ended active support (8.10, 8.8) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/redis
-
-🟠 **[EOS]** redis 8.8 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 8.8 ended on 2026-07-29; only security fixes, if any.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/redis
 
 🟠 **[EOL]** redis 8.0 EOL approaching (2026-12-01) (_analyst=change, suggested impact=REVIEW_)
-Cycle 8.0 ends in 65 days. Start migration planning now.
+Cycle 8.0 ends in 64 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/redis
@@ -667,7 +497,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** apache-spark 4.0 EOL approaching (2026-11-23) (_analyst=change, suggested impact=REVIEW_)
-Cycle 4.0 ends in 57 days. Start migration planning now.
+Cycle 4.0 ends in 56 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/apache-spark
@@ -677,7 +507,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** spring-boot 4.0 EOL approaching (2026-12-31) (_analyst=change, suggested impact=REVIEW_)
-Cycle 4.0 ends in 95 days. Start migration planning now.
+Cycle 4.0 ends in 94 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/spring-boot
@@ -687,7 +517,7 @@ Evidence: change
 Pulse: lifecycle action
 
 🟠 **[EOL]** vitess 23 EOL approaching (2026-11-04) (_analyst=change, suggested impact=REVIEW_)
-Cycle 23 ends in 38 days. Start migration planning now.
+Cycle 23 ends in 37 days. Start migration planning now.
 
 Evidence: change
 - https://endoflife.date/vitess
@@ -696,16 +526,10 @@ Evidence: change
 
 Pulse: lifecycle action
 
-🟠 **[EOS]** zookeeper 3.9 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 3.9 ended (date not published); only security fixes, if any.
+🟠 **[EOS]** zookeeper lifecycle: ended active support (3.9, 3.8) (_analyst=event-correlation, suggested impact=REVIEW_)
+2 cycles share one lifecycle story; strongest signal kept at REVIEW.
 
-Evidence: change
-- https://endoflife.date/zookeeper
-
-🟠 **[EOS]** zookeeper 3.8 ended active support (_analyst=change, suggested impact=REVIEW_)
-Active support for cycle 3.8 ended (date not published); only security fixes, if any.
-
-Evidence: change
+Evidence: event-correlation
 - https://endoflife.date/zookeeper
 
 ## Notes
