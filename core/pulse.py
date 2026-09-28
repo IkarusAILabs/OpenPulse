@@ -122,9 +122,20 @@ def compute_pulse(
         if RANK[status] > best[facet][0]:
             best[facet] = (RANK[status], _title_of(item))
     facets: dict[str, dict[str, str]] = {}
+    archived = next(
+        (
+            _title_of(item)
+            for item in list(findings or []) + list(events or [])
+            if _type_of(item) == "PROJECT_ARCHIVED"
+        ),
+        None,
+    )
     for facet in FACETS:
         if facet == "activity":
             status, reason = activity_status(activity, today)
+            if archived is not None:
+                # An archived repo is dead regardless of release recency.
+                status, reason = "action", archived
         elif facet == "popularity":
             status, reason = "ok", popularity_note or "popularity methodology pending"
         elif best[facet][0] < 0:

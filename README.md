@@ -135,8 +135,8 @@ everything else. We do not compete on EOL record counts.
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
 - **Change engine**: digest-aware registry observations, local history, observation diffs (`openpulse observe`).
 - **Entity resolution**: canonical catalog with PURL builders and Bitnami-namespace rules.
-- **CLI**: validate events, run analysts live or offline, observe registries, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end.
-- **120+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end.
+- **140+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
 
 ## Quickstart
 

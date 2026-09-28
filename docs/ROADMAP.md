@@ -1,9 +1,10 @@
 # Roadmap — strategic sequence (reset 2026-09-27, see `docs/STRATEGIC_RESET.md`)
 
-Status: schema 0.4.0, 129+ tests, catalog at 100, monthly report +
-watchlist checking + verdict engine working. Positioning: Upstream
-Change Intelligence + Dependency Impact Intelligence — explicitly not
-an EOL tracker, vulnerability scanner, or SCA.
+Status: schema 0.4.0, 143 tests, catalog at 100 (15 probeable
+images), `openpulse sweep` live, golden suite green (Bitnami, iText,
+minio, Django EOL). Positioning: Upstream Change Intelligence +
+Dependency Impact Intelligence — explicitly not an EOL tracker,
+vulnerability scanner, or SCA.
 
 ## Built to date (condensed history)
 
@@ -30,19 +31,22 @@ confidence ✅, deduplication (per-project stories ✅; cross-project
 next). Acceptance: September re-render shows coherent stories, fewer
 rows, same versions; ruff/pytest green.
 
-## Phase 2 — Upstream Change Intelligence [NEXT]
+## Phase 2 — Upstream Change Intelligence [STARTED]
 
 Prioritise: GitHub releases, repo changes, archival ✅ (exists),
-announcements, docs, package registries, Docker/OCI ✅ (exists),
-advisories, distribution changes. New work starts with distribution
-discovery across the catalog. Acceptance: a non-lifecycle story the
-pipeline discovers (not curates).
+announcements, docs, package registries, Docker/OCI ✅ (exists +
+`sweep`), advisories, distribution changes. `openpulse sweep`
+(`core/observations/sweep.py`, injectable probes, offline tests)
+is the first standing non-lifecycle discovery beyond curated
+fixtures; `tests/test_golden.py` locks the golden scenarios.
+Acceptance: a non-lifecycle story the pipeline discovers (not curates).
 
-## Phase 3 — Golden scenarios [PARTIAL]
+## Phase 3 — Golden scenarios [MOSTLY DONE]
 
-Bitnami ✅, iText ✅, minio ✅ end to end. Still to formalise:
-cert-manager, Redis, PostgreSQL, Kafka, Grafana, Terraform,
-Kubernetes, one AI/ML project (+ `tests/test_golden.py`).
+Bitnami ✅, iText ✅, minio ✅, Django EOL ✅ end to end, locked in
+`tests/test_golden.py` against the five product questions. Still to
+formalise: cert-manager, Redis, PostgreSQL, Kafka, Grafana,
+Terraform, Kubernetes, one AI/ML project.
 Criterion: each proves something a lifecycle database cannot.
 
 ## Phase 4 — Public intelligence [PARTIAL]

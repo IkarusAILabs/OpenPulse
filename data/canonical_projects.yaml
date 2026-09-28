@@ -14,7 +14,7 @@
   github: bitnami/containers
   website: https://bitnami.com
   aliases: [bitnami]
-  docker_images: [docker.io/bitnami, docker.io/bitnamilegacy, docker.io/bitnamisecure]
+  docker_images: []
 - slug: bitnami-redis-stack
   display_name: Bitnami Redis stack
   github: bitnami/containers
@@ -25,13 +25,13 @@
   github: redis/redis
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
-  docker_images: [docker.io/redis]
+  docker_images: [docker.io/library/redis]
 - slug: postgresql
   display_name: PostgreSQL
   github: postgres/postgres
   website: https://www.postgresql.org
   aliases: [postgres, postgresql, postgresql-server, docker.io/postgres, docker.io/library/postgres]
-  docker_images: [docker.io/postgres]
+  docker_images: [docker.io/library/postgres]
 - slug: kafka
   display_name: Apache Kafka
   github: apache/kafka
@@ -381,7 +381,7 @@
   website: https://www.python.org
   endoflife: python
   aliases: [cpython, python]
-  docker_images: []
+  docker_images: [docker.io/library/python]
 - slug: php
   display_name: PHP
   github: php/php-src
@@ -399,7 +399,7 @@
   github: golang/go
   website: https://go.dev
   aliases: [go, golang]
-  docker_images: []
+  docker_images: [docker.io/library/golang]
 - slug: rust
   display_name: Rust
   github: rust-lang/rust

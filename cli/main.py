@@ -393,3 +393,41 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
     click.echo(f"\n{affected}/{len(deps)} dependencies affected")
     if strict and affected:
         raise SystemExit(1)
+
+
+@cli.command()
+@click.option("--store", default=".openpulse/observations", help="History root directory")
+@click.option(
+    "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
+)
+@click.option("--out", default="", help="Write findings JSON here (default: print only)")
+def sweep(store, projects, out):
+    """Distribution discovery: probe every catalog image, diff against history."""
+    from collectors.registries.docker import RegistryCollector
+    from core.entities.catalog import load_catalog
+    from core.observations.sweep import sweep_catalog, sweep_targets
+
+    catalog = load_catalog()
+    slugs = [s.strip() for s in projects.split(",") if s.strip()] or None
+    targets = sweep_targets(catalog)
+    click.echo(f"probing {len(targets)} catalog images...")
+    collector = RegistryCollector()
+    result = sweep_catalog(catalog, collector.check_image, store_root=store, slugs=slugs)
+    click.echo(
+        f"observations: {len(result['observations'])}, "
+        f"changes: {len(result['changes'])}, "
+        f"findings: {len(result['findings'])}, "
+        f"errors: {len(result['errors'])}"
+    )
+    for finding in result["findings"]:
+        click.echo(f"- [{finding['impact']}] {finding['title']}")
+    for error in result["errors"]:
+        click.echo(f"! {error.get('slug')}: {error.get('safe_message')}")
+    if not result["changes"]:
+        click.echo("no changes since last observations (first sightings are baselines).")
+    if out:
+        import json as _json
+        from pathlib import Path as _Path
+
+        _Path(out).write_text(_json.dumps(result["findings"], indent=2), encoding="utf-8")
+        click.echo(f"wrote {out}")

@@ -77,6 +77,21 @@ release/advisory URLs) print beneath each item, deduplicated; recency
 monthly narrative honest. `openpulse report --month YYYY-MM`
 runs the catalog live or from `--raw-bundle-dir` offline bundles.
 
+## Distribution discovery (`core/observations/sweep.py`)
+
+`sweep_targets` lists every probeable catalog image (registry/namespace/
+repo triples only — bare namespaces are skipped, never guessed).
+`sweep_catalog` probes (injected function, offline-testable), persists
+sealed observations, diffs against history, and emits distribution
+findings. First sightings are baselines. `openpulse sweep` wires the
+live Docker Hub probe with `--projects` filter and `--out` findings.
+
+## Golden scenarios (`tests/test_golden.py`)
+
+Bitnami, iText, minio-archived, Django EOL versions — each asserting
+the five product questions. New golden cases go here, not scattered
+across suites.
+
 ## Try it
 
 ```bash
@@ -84,6 +99,7 @@ openpulse analyze --project redis
 openpulse analyze --project bitnami
 openpulse demo-bitnami
 openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+openpulse sweep --projects bitnami,redis
 ```
 
 ## Verdicts (`core/risk/check.py`)
