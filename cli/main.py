@@ -1,6 +1,8 @@
 """openpulse CLI — validate + pulse + analyze + demo-bitnami."""
 
 import json
+import sys
+from typing import Any
 
 import click
 
@@ -303,6 +305,54 @@ def _load_yaml(path: str) -> dict:
     return data
 
 
+_GLYPH_FALLBACKS = {
+    "🚨": "[affected]",
+    "✅": "[ok]",
+    "ℹ️": "[related]",
+    "ℹ": "[related]",
+    "❓": "[unknown]",
+}
+
+
+def _safe_text(text: Any, stream: Any = None) -> str:
+    """Format text safely for output streams that cannot encode unicode glyphs."""
+    if text is None:
+        return ""
+    if not isinstance(text, str):
+        text = str(text)
+    target = stream or sys.stdout
+    encoding = (
+        getattr(target, "encoding", None)
+        or getattr(sys.__stdout__, "encoding", None)
+        or "utf-8"
+    )
+    try:
+        text.encode(encoding)
+        return text
+    except (UnicodeEncodeError, LookupError):
+        pass
+
+    out = text
+    for glyph, ascii_marker in _GLYPH_FALLBACKS.items():
+        out = out.replace(glyph, ascii_marker)
+    try:
+        out.encode(encoding)
+        return out
+    except (UnicodeEncodeError, LookupError):
+        out = out.replace("—", "-").replace("–", "-")
+    try:
+        out.encode(encoding)
+        return out
+    except (UnicodeEncodeError, LookupError):
+        return out.encode(encoding, errors="replace").decode(encoding)
+
+
+def _echo(msg: Any = "", **kwargs: Any) -> None:
+    """Echo helper falling back to ASCII markers when stdout cannot encode glyphs."""
+    file = kwargs.get("file")
+    click.echo(_safe_text(msg, stream=file), **kwargs)
+
+
 @cli.command()
 @click.option(
     "--watchlist", required=True, type=click.Path(exists=True), help="Watchlist YAML file"
@@ -360,18 +410,18 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
         from analyzers.report_analyst import render_check_digest
 
         text = render_check_digest(results)
-        click.echo(text)
+        _echo(text)
         if webhook:
             from core.notify import post_digest
 
             delivery = post_digest(webhook, text)
             if delivery["ok"]:
-                click.echo(f"posted digest (http {delivery['status_code']})")
+                _echo(f"posted digest (http {delivery['status_code']})")
             else:
                 # Delivery failure must not mask the check result itself.
-                click.echo(f"webhook delivery failed: {delivery['error']}")
+                _echo(f"webhook delivery failed: {delivery['error']}")
         affected = sum(1 for r in results if r.affected)
-        click.echo(f"\n{affected}/{len(deps)} dependencies affected")
+        _echo(f"\n{affected}/{len(deps)} dependencies affected")
         if strict and affected:
             raise SystemExit(1)
         return
@@ -380,17 +430,17 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
         relationship = result.relationship
         if result.affected:
             affected += 1
-            click.echo(f"🚨 {label}: AFFECTED ({relationship})")
+            _echo(f"🚨 {label}: AFFECTED ({relationship})")
             for verdict in result.verdicts:
                 if verdict["affected"]:
-                    click.echo(f"   - [{verdict['impact']}] {verdict['detail']}")
+                    _echo(f"   - [{verdict['impact']}] {verdict['detail']}")
         elif relationship == "NOT_AFFECTED":
-            click.echo(f"✅ {label}: NOT_AFFECTED — {result.reason}")
+            _echo(f"✅ {label}: NOT_AFFECTED — {result.reason}")
         elif relationship == "RELATED":
-            click.echo(f"ℹ️ {label}: RELATED — {result.reason}")
+            _echo(f"ℹ️ {label}: RELATED — {result.reason}")
         else:
-            click.echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
-    click.echo(f"\n{affected}/{len(deps)} dependencies affected")
+            _echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
+    _echo(f"\n{affected}/{len(deps)} dependencies affected")
     if strict and affected:
         raise SystemExit(1)
 

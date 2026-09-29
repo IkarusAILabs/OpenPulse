@@ -339,3 +339,62 @@ def test_check_cli_webhook_posts_digest(monkeypatch):
     assert out.exit_code == 0, out.output
     assert seen["url"] == "https://hooks.example/x"
     assert "posted digest" in out.output
+
+
+def test_check_cli_non_utf8_stdout(tmp_path):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    bundle_dir = tmp_path / "bundles"
+    bundle_dir.mkdir()
+
+    # Simulate non-UTF-8 stdout (e.g. Windows console with cp1252 charset)
+    runner = CliRunner(charset="cp1252")
+    out = runner.invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--event",
+            "data/fixtures/bitnami/event.json",
+            "--raw-bundle-dir",
+            str(bundle_dir),
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    assert "1/3 dependencies affected" in out.output
+    assert "[affected] docker.io/bitnami/redis:7.2: AFFECTED" in out.output
+    assert "[ok] docker.io/redis:7.2: NOT_AFFECTED" in out.output
+    assert "[unknown] django==5.0: UNKNOWN" in out.output
+
+
+def test_check_echo_fallback_when_stdout_encoding_non_utf8(monkeypatch):
+    import io
+    import sys
+
+    from cli.main import _echo
+
+    class StrictCp1252Stream(io.StringIO):
+        encoding = "cp1252"
+
+        def write(self, s):
+            s.encode(self.encoding)
+            return super().write(s)
+
+    fake_out = StrictCp1252Stream()
+    monkeypatch.setattr(sys, "stdout", fake_out)
+
+    _echo("🚨 pkg1: AFFECTED (DIRECT)")
+    _echo("✅ pkg2: NOT_AFFECTED — reason")
+    _echo("ℹ️ pkg3: RELATED — reason")
+    _echo("❓ pkg4: UNKNOWN — evaluated")
+    _echo("1/4 dependencies affected")
+
+    val = fake_out.getvalue()
+    assert "[affected] pkg1: AFFECTED (DIRECT)" in val
+    assert "[ok] pkg2: NOT_AFFECTED" in val
+    assert "[related] pkg3: RELATED" in val
+    assert "[unknown] pkg4: UNKNOWN" in val
+    assert "1/4 dependencies affected" in val
