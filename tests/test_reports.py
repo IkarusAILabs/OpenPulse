@@ -97,7 +97,8 @@ def test_report_archived_is_review_never_actionable():
     md = build_report("2026-09", [_item("minio", [finding])])
     assert "### Project signals (1)" in md
     actionable = md.split("## What appears actionable?")[1].split(
-        "## Where our data is incomplete")[0]
+        "## Where our data is incomplete"
+    )[0]
     assert "archived" not in actionable
 
 
@@ -106,10 +107,20 @@ def test_report_source_and_gap_sections():
 
     md = build_report(
         "2026-09",
-        [_item("p", [{
-            "analyst": "security", "cve_id": "CVE-1", "impact": "ACTION",
-            "title": "t", "sources": ["nvd", "osv"],
-        }])],
+        [
+            _item(
+                "p",
+                [
+                    {
+                        "analyst": "security",
+                        "cve_id": "CVE-1",
+                        "impact": "ACTION",
+                        "title": "t",
+                        "sources": ["nvd", "osv"],
+                    }
+                ],
+            )
+        ],
     )
     assert "## Sources" in md
     assert "NVD" in md and "OSV" in md
@@ -179,6 +190,8 @@ def test_report_cli_offline(tmp_path):
     text = out.read_text(encoding="utf-8")
     assert "# OpenPulse — 2026-09" in text
     assert "#### redis" in text
+    # Public/customer boundary travels with every generated report.
+    assert "whether it affects YOUR dependencies" in text
 
 
 def test_report_counts_findings_not_projects():

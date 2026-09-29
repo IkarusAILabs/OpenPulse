@@ -20,6 +20,12 @@ Rules today:
   `tag_appeared`/`tag_digest_changed`/`latest_moved` → `WATCH`,
   `repo_missing` → `ACTION`, `repo_restored` → `INFORMATIONAL`.
 
+Registry findings label `detection_method`: `registry_observation`
+for direct probe/diff facts, `namespace_heuristic` for the
+legacy-namespace pattern rule (discovery aid, never authoritative
+evidence). `official_distribution_announcement` is reserved for
+curated official findings.
+
 ## Security Analyst (`analyzers/security_analyst.py`)
 
 Merges OSV + NVD + CVE + KEV entries by CVE ID: source list, max CVSS,
@@ -41,6 +47,11 @@ CPE matching is normalized-exact only: token overlap (`spring` vs
 their match method (`osv_package[+version_range]`, `cpe_version_range`,
 `cpe_vendor_product`, `keyword_only`); `keyword_only` never yields
 `AFFECTS_VERSION`/`AFFECTS_ARTIFACT`.
+
+Findings also carry `confidence` (CORROBORATED for ≥2 sources, else
+EMERGING for AFFECTS_*, UNVERIFIED for RELATED/UNKNOWN) and cap at
+REVIEW on weak evidence. `check --strict` fires only on affected
+verdicts carried by ACTION/CRITICAL causes.
 
 ## Evidence Analyst (`analyzers/evidence_analyst.py`)
 

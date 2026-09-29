@@ -173,6 +173,40 @@ def test_security_cpe_match_restores_action():
     project = {"slug": "redis", "aliases": ["redis-server"], "vendors": ["Redis"]}
     out = correlate(raw, project)[0]
     assert out["relationship"] == "AFFECTS_PACKAGE"
+    # Single source: EMERGING evidence caps impact at REVIEW, never ACTION.
+    assert out["confidence"] == "EMERGING"
+    assert out["impact"] == "REVIEW"
+
+
+def test_security_corroborated_affects_reaches_action():
+    """Two independent sources: CORROBORATED evidence may emit ACTION."""
+    from analyzers.security_analyst import correlate
+
+    raw = {
+        "nvd": [
+            {
+                "collector": "nvd",
+                "id": "CVE-2024-0009",
+                "cvss": {"base_score": 9.5},
+                "cpes": [{"criteria": "cpe:2.3:a:redis:redis:*:*:*:*:*:*:*:*", "vulnerable": True}],
+                "references": [],
+            }
+        ],
+        "osv": [
+            {
+                "collector": "osv",
+                "package": "redis",
+                "ecosystem": "PyPI",
+                "id": "CVE-2024-0009",
+                "severity": [],
+                "affected": [],
+                "references": [],
+            }
+        ],
+    }
+    project = {"slug": "redis", "aliases": ["redis-server"], "vendors": ["Redis"]}
+    out = correlate(raw, project)[0]
+    assert out["confidence"] == "CORROBORATED"
     assert out["impact"] == "ACTION"
 
 

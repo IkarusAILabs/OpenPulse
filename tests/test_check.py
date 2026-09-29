@@ -195,6 +195,26 @@ def test_check_cli_strict_fails_when_affected():
     assert out.exit_code == 1
 
 
+def test_strict_fires_only_on_action_impacts():
+    """REVIEW-level affected verdicts must not trip the ACTION gate."""
+    from core.risk.check import DependencyVerdict, strict_affected
+
+    def verdict(impact, affected=True):
+        return DependencyVerdict(
+            dependency="x",
+            affected=affected,
+            relationship="AFFECTS_VERSION",
+            confidence="EMERGING",
+            reason="t",
+            verdicts=[{"affected": affected, "impact": impact}],
+        )
+
+    assert strict_affected([verdict("ACTION")]) is True
+    assert strict_affected([verdict("CRITICAL")]) is True
+    assert strict_affected([verdict("REVIEW")]) is False
+    assert strict_affected([verdict("ACTION", affected=False)]) is False
+
+
 def test_itext_license_change_warns():
     """iText closed-source use without a commercial license: ACTION warning."""
     import json as _json

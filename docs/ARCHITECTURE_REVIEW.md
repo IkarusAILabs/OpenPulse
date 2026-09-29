@@ -139,6 +139,21 @@ Deferred: impact split, knowledge graph, SQLite, CPE catalog.
 - Watchlist accepts optional source/environment/owner; `check` prints
   AFFECTED / NOT_AFFECTED / RELATED / UNKNOWN distinctly.
 
+## Addendum — final intelligence semantics hardening
+
+- Finding confidence follows evidence strength; EMERGING/UNVERIFIED
+  findings cap at REVIEW (weak impact never enters ACTION channels;
+  `check --strict` fires only on ACTION/CRITICAL causes).
+- `detection_method` labels registry findings (`registry_observation`
+  vs `namespace_heuristic`; `official_distribution_announcement`
+  reserved for curated official findings).
+- `independent_intelligence_ratio` renamed to
+  `derived_intelligence_ratio` (alias kept); independence stays a
+  separate evidence metric.
+- Golden semantics suite (`tests/test_golden_semantics.py`) pins the
+  A–F scenarios; public reports carry the public/customer boundary
+  note. No new collectors, no SDKs, no graph — semantics only.
+
 ## Addendum — Security Re-Implementation (schema 0.3.0)
 
 Follow-up review implemented, preserving all v0.2 behavior except

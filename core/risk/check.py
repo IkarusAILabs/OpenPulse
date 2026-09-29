@@ -271,6 +271,22 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
     )
 
 
+_ACTION_IMPACTS = ("ACTION", "CRITICAL")
+
+
+def strict_affected(results: list[DependencyVerdict]) -> bool:
+    """Whether --strict should fail: an affected verdict carried by an
+    ACTION-level cause. REVIEW/WATCH-level affected verdicts (e.g. weak
+    evidence capped findings) never trip the gate on their own."""
+    for result in results:
+        if not result.affected:
+            continue
+        for cause in result.verdicts:
+            if cause.get("affected") and str(cause.get("impact", "")).upper() in _ACTION_IMPACTS:
+                return True
+    return False
+
+
 Verdict = DependencyVerdict
 
 

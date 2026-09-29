@@ -22,6 +22,15 @@ from typing import Any
 
 EOL_WARN_DAYS = 180
 
+#: How a registry finding was detected. ``namespace_heuristic`` fires on
+#: naming patterns (e.g. *-legacy holding versioned tags) — useful for
+#: discovery, never authoritative evidence. ``registry_observation``
+#: records direct probe/diff facts. ``official_distribution_announcement``
+#: is reserved for curated official findings (no producer yet).
+DETECTION_REGISTRY_OBSERVATION = "registry_observation"
+DETECTION_NAMESPACE_HEURISTIC = "namespace_heuristic"
+DETECTION_OFFICIAL_ANNOUNCEMENT = "official_distribution_announcement"
+
 #: Lifecycle temporal states (P1 §8): announced/upcoming vs effective.
 STATE_EFFECTIVE = "EFFECTIVE"
 STATE_UPCOMING = "UPCOMING"
@@ -153,8 +162,7 @@ def analyze_registries(
     for image, repos in by_image.items():
         mainline = [e for e in repos if e.get("latest_only")]
         legacy = [
-            e for e in repos
-            if e.get("has_versioned_tags") and _is_legacy_ns(e.get("namespace"))
+            e for e in repos if e.get("has_versioned_tags") and _is_legacy_ns(e.get("namespace"))
         ]
         if mainline and legacy:
             main, old = mainline[0], legacy[0]
@@ -173,6 +181,7 @@ def analyze_registries(
                     "effective_at": None,
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "high",
+                    "detection_method": DETECTION_NAMESPACE_HEURISTIC,
                     "distribution_model_change": True,
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
@@ -207,11 +216,10 @@ def analyze_registries(
                     "effective_at": None,
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "medium",
+                    "detection_method": DETECTION_REGISTRY_OBSERVATION,
                     "scope": {"kind": "artifact", "artifacts": [ref]},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [
-                        {"kind": "docker-image", "ref": f"{ref}:<version>"}
-                    ],
+                    "affected_artifacts": [{"kind": "docker-image", "ref": f"{ref}:<version>"}],
                     "supporting": [e],
                 }
             )
@@ -229,11 +237,10 @@ def analyze_registries(
                     "effective_at": None,
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "high",
+                    "detection_method": DETECTION_REGISTRY_OBSERVATION,
                     "scope": {"kind": "artifact", "artifacts": [ref]},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [
-                        {"kind": "docker-image", "ref": ref}
-                    ],
+                    "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
                     "supporting": [e],
                 }
             )
@@ -319,9 +326,7 @@ DIFF_RULES = {
 }
 
 
-def analyze_diffs(
-    changes: list[dict[str, Any]], today: date | None = None
-) -> list[dict[str, Any]]:
+def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> list[dict[str, Any]]:
     """Detected observation diffs -> findings (no diff, no finding)."""
     today = today or date.today()
     findings = []
@@ -342,14 +347,13 @@ def analyze_diffs(
                 "summary": f"Observed {c.get('type')} at {observed}.",
                 "impact": impact,
                 "significance": significance,
+                "detection_method": DETECTION_REGISTRY_OBSERVATION,
                 "observed_at": str(today),
                 "effective_at": observed,
                 "lifecycle_state": STATE_EFFECTIVE,
                 "scope": {"kind": "artifact", "artifacts": [ref]},
                 "affected_versions": ["*"],
-                "affected_artifacts": [
-                    {"kind": "docker-image", "ref": ref}
-                ],
+                "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
                 "supporting": [c],
             }
         )

@@ -129,9 +129,11 @@ def correlate(
                 },
             )
             collector = e.get("collector", "?")
-            if collector not in slot["sources"]:
-                slot["sources"].append(collector)
-            if collector == "kev" and e.get("match", "exact") in ("exact", "strong"):
+            kev_strength = e.get("match", "exact") if collector == "kev" else None
+            if not (collector == "kev" and kev_strength == "weak"):
+                if collector not in slot["sources"]:
+                    slot["sources"].append(collector)
+            if collector == "kev" and kev_strength in ("exact", "strong"):
                 slot["in_kev"] = True
                 slot["kev_match"] = e.get("match", "exact")
             elif collector == "kev":
@@ -244,6 +246,22 @@ def _absorb_cna(slot: dict[str, Any], e: dict[str, Any], names: set[str]) -> Non
             slot["identity_evidence"].append(f"cna:{a.get('vendor')}/{a.get('product')}")
 
 
+def _finding_confidence(slot: dict[str, Any], relationship: str) -> str:
+    """Confidence follows evidence strength, never assertion strength.
+
+    AFFECTS_* from ≥2 independent sources → CORROBORATED, else EMERGING.
+    RELATED stays UNVERIFIED unless KEV confirms exploitation (EMERGING).
+    """
+    sources = slot.get("sources", [])
+    if relationship in ("AFFECTS_VERSION", "AFFECTS_PACKAGE"):
+        return "CORROBORATED" if len(sources) >= 2 else "EMERGING"
+    if relationship == "RELATED":
+        return "EMERGING" if slot.get("in_kev") else "UNVERIFIED"
+    if relationship == "NOT_AFFECTED":
+        return "CORROBORATED" if slot.get("version_checked") else "UNVERIFIED"
+    return "UNVERIFIED"
+
+
 def _decide(slot: dict[str, Any]) -> None:
     score = slot["max_score"]
     slot["severity"] = _severity(score)
@@ -260,10 +278,12 @@ def _decide(slot: dict[str, Any]) -> None:
         # Stronger than RELATED — and stronger than a KEV flag, which
         # speaks about the CVE, not about this dependency version.
         slot["relationship"] = "NOT_AFFECTED"
+        slot["confidence"] = "CORROBORATED" if slot.get("version_checked") else "UNVERIFIED"
         slot["impact"] = "INFORMATIONAL"
         slot["urgency"] = "low"
         slot["recommended_action"] = "none"
         return
+    slot["confidence"] = _finding_confidence(slot, relationship)
     if slot["in_kev"] and relationship in ("AFFECTS_VERSION", "AFFECTS_PACKAGE"):
         impact, urgency = "CRITICAL", "high"
     elif slot["in_kev"]:
@@ -291,6 +311,12 @@ def _decide(slot: dict[str, Any]) -> None:
         impact, urgency = ("WATCH", "low") if score is not None else ("INFORMATIONAL", "low")
     slot["impact"] = impact
     slot["urgency"] = urgency
+    if slot["confidence"] in ("EMERGING", "UNVERIFIED") and impact in ("ACTION", "CRITICAL"):
+        # Central rule: weakly established impact never enters an
+        # ACTION-level channel. Cap, don't drop — the signal stays visible.
+        slot["impact"] = "REVIEW"
+        slot["urgency"] = "low"
+        impact = "REVIEW"
     fixed = slot.get("fixed_version")
     if fixed:
         slot["recommended_action"] = f"upgrade to {fixed}+"

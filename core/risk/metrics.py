@@ -110,7 +110,7 @@ def _is_derived(finding: dict[str, Any]) -> bool:
     return False
 
 
-def independent_intelligence_ratio(
+def derived_intelligence_ratio(
     findings: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Internal health metric: derived conclusions over material ones.
@@ -127,7 +127,16 @@ def independent_intelligence_ratio(
     derived = [f for f in material if _is_derived(f)]
     ratio = round(len(derived) / len(material), 3) if material else 0.0
     return {
-        "independent_intelligence_ratio": ratio,
+        "derived_intelligence_ratio": ratio,
         "derived_findings": len(derived),
         "material_findings": len(material),
     }
+
+
+# Backwards-compatible alias (previous name conflated source
+# independence with derived correlation; prefer the new name).
+def independent_intelligence_ratio(findings: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deprecated alias of :func:`derived_intelligence_ratio`."""
+    result = derived_intelligence_ratio(findings)
+    result["independent_intelligence_ratio"] = result.pop("derived_intelligence_ratio")
+    return result

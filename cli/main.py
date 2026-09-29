@@ -272,6 +272,8 @@ def report(month, projects, raw_bundle_dir, out, since, include_related):
         else "GitHub calls unauthenticated (60 req/hr budget); some repos may show gaps.",
         "NVD queried without API key (5 req/30s); misses degrade to gaps, not findings.",
         "Keyword-associated CVE records without identity evidence are held back, not narrated.",
+        "Public intelligence describes project-level change; whether it affects "
+        "YOUR dependencies needs a watchlist (`openpulse check`).",
     ]
     markdown = build_report(
         month, items, since=since or None, include_related=include_related, notes=notes
@@ -422,7 +424,9 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
                 _echo(f"webhook delivery failed: {delivery['error']}")
         affected = sum(1 for r in results if r.affected)
         _echo(f"\n{affected}/{len(deps)} dependencies affected")
-        if strict and affected:
+        from core.risk.check import strict_affected
+
+        if strict and strict_affected(results):
             raise SystemExit(1)
         return
     for dep, result in zip(deps, results):
@@ -441,7 +445,9 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
         else:
             _echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
     _echo(f"\n{affected}/{len(deps)} dependencies affected")
-    if strict and affected:
+    from core.risk.check import strict_affected
+
+    if strict and strict_affected(results):
         raise SystemExit(1)
 
 

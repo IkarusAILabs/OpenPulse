@@ -78,6 +78,13 @@ Official evidence proves the statement *from that source*; it does not
 automatically prove the user's dependency is affected. Impact coupling
 is enforced by the gate.
 
+Finding confidence follows the same ladder at analyst level
+(`AFFECTS_*` from ≥2 sources → CORROBORATED, else EMERGING;
+`RELATED` → UNVERIFIED unless KEV-confirmed-exploited → EMERGING).
+Weakly established findings (EMERGING/UNVERIFIED) cap at REVIEW:
+weak evidence never enters an ACTION-level channel (`check --strict`
+fires only on ACTION/CRITICAL causes).
+
 ## Popularity
 
 GitHub stars inform reach, never risk: ≥50k very high, ≥10k high,
