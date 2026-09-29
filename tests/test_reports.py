@@ -43,10 +43,78 @@ def test_report_groups_and_counts():
     md = build_report("2026-09", items)
     assert "3 projects monitored" in md
     assert "2 significant events" in md
-    assert "## 🔴 Action-worthy changes (1)" in md
-    assert "## 🟠 Changes to watch (1)" in md
-    assert "c-proj" not in md
-    assert md.index("Action-worthy") < md.index("Changes to watch")
+    assert "## What changed this month?" in md
+    assert "### Lifecycle changes (2)" in md
+    assert "Public report findings describe OSS ecosystem changes" in md
+    assert "c-proj" not in md.split("## Where our data is incomplete")[0]
+    assert "c-proj" in md  # named as having no signals
+    assert md.index("What changed") < md.index("What appears actionable?")
+
+
+def test_report_actionable_requires_scope_and_state():
+    from reports.generate import build_report
+
+    scoped = {
+        "analyst": "change",
+        "event_type": "EOL",
+        "impact": "ACTION",
+        "title": "django 5.0 is end-of-life",
+        "lifecycle_state": "EFFECTIVE",
+        "effective_at": "2026-09-01",
+        "scope": {"kind": "version", "versions": ["5.0"]},
+        "affected_versions": ["5.0"],
+        "sources": ["endoflife"],
+    }
+    unscoped = {
+        "analyst": "change",
+        "event_type": "EOL",
+        "impact": "ACTION",
+        "title": "x 9 is end-of-life",
+        "sources": ["endoflife"],
+    }
+    md = build_report(
+        "2026-09",
+        [_item("django", [scoped]), _item("x", [unscoped])],
+    )
+    actionable = md.split("## What appears actionable?")[1]
+    assert "django 5.0 is end-of-life" in actionable
+    assert "Why:" in actionable and "5.0" in actionable
+    assert "x 9 is end-of-life" not in actionable
+
+
+def test_report_archived_is_review_never_actionable():
+    from reports.generate import build_report
+
+    finding = {
+        "analyst": "change",
+        "event_type": "PROJECT_ARCHIVED",
+        "impact": "ACTION",
+        "title": "minio/minio is archived on GitHub",
+        "lifecycle_state": "EFFECTIVE",
+        "scope": {"kind": "project", "versions": []},
+        "sources": ["github"],
+    }
+    md = build_report("2026-09", [_item("minio", [finding])])
+    assert "### Project signals (1)" in md
+    actionable = md.split("## What appears actionable?")[1].split(
+        "## Where our data is incomplete")[0]
+    assert "archived" not in actionable
+
+
+def test_report_source_and_gap_sections():
+    from reports.generate import build_report
+
+    md = build_report(
+        "2026-09",
+        [_item("p", [{
+            "analyst": "security", "cve_id": "CVE-1", "impact": "ACTION",
+            "title": "t", "sources": ["nvd", "osv"],
+        }])],
+    )
+    assert "## Sources" in md
+    assert "NVD" in md and "OSV" in md
+    assert "corroborated by 2+ sources" in md
+    assert "## Where our data is incomplete" in md
 
 
 def test_report_names_evidence():
@@ -110,7 +178,7 @@ def test_report_cli_offline(tmp_path):
     assert result.exit_code == 0, result.output
     text = out.read_text(encoding="utf-8")
     assert "# OpenPulse — 2026-09" in text
-    assert "### redis" in text
+    assert "#### redis" in text
 
 
 def test_report_counts_findings_not_projects():
@@ -220,7 +288,7 @@ def test_report_excludes_related_counts_them():
     ]
     md = build_report("2026-09", items)
     assert "1 significant events" in md
-    assert "1 related-but-unconfirmed records held back" in md
+    assert "1 related-but-unconfirmed or below-bar records held back" in md
     md_all = build_report("2026-09", items, include_related=True)
     # Same class merges into ONE coherent story even when narrated.
     assert "1 significant events" in md_all

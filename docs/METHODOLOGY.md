@@ -90,6 +90,24 @@ INFORMATIONAL < WATCH < REVIEW < ACTION < CRITICAL. Findings also
 carry severity (CVSS band), urgency, and recommended_action. No opaque
 single score — facets stay separate.
 
+## Intelligence semantics
+
+An analyst `impact` is a proposal, not a conclusion. Reports place
+findings through impact eligibility (`core/risk/impact.py`):
+
+- `PROJECT_SIGNAL` — something exists (unscoped, unconfirmed).
+- `PROJECT_CHANGE` — scoped ecosystem change (what changed, with
+  versions/artifacts/dates). Never customer impact.
+- `AFFECTS_DEPENDENCY` — a linked inventory entry matches.
+- `ACTION_REQUIRED` — affected + effective + strong confidence. Only
+  here does EOL (or any change) become action for *your* software.
+
+Eligibility ladder for public reports: scoped effective EOL and
+distribution model changes may be ACTION-framed (with disclaimer);
+archived upstreams, vanished repositories/tags, and support ends are
+REVIEW at most; upcoming EOL and routine registry churn are WATCH.
+EOL detected never equals ACTION_REQUIRED — that needs inventory.
+
 ## Registry observations
 
 What the registry exposed at time T: repository state, tag→digest
@@ -127,6 +145,11 @@ Conflicting evidence → visible + blocking for strong actions.
 - Detection (what was observed) ≠ assessment (what evidence
   establishes) ≠ recommendation (what to investigate). Recommendations
   never feed back into impact calculations.
+- SOURCE SIGNAL ≠ CHANGE ≠ AFFECTED DEPENDENCY ≠ ACTIONABLE
+  INTELLIGENCE. A lifecycle date is a signal; a scoped, dated change
+  is intelligence; impact requires a dependency.
+- Public intelligence (what changed in OSS) ≠ customer intelligence
+  (does it affect my software). Public reports never assert the second.
 
 ## Verdict decision matrix (`core/risk/check.py`)
 

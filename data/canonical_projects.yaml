@@ -9,6 +9,11 @@
 #   slugs (not upstream `redis` etc.) so Bitnami distribution events keep
 #   their impact attribution: depending on docker.io/bitnami/redis means
 #   depending on the Bitnami stack, not on upstream Redis.
+# - Optional identity metadata (security-critical, prioritize ambiguous
+#   aliases): `identity_source` (why this slug maps these names),
+#   `reviewed_at` (YYYY-MM-DD), `maintainer` (who reviewed), `confidence`
+#   (high/medium/low). Absent metadata means unreviewed — never assume
+#   reviewed.
 - slug: bitnami
   display_name: Bitnami catalog
   github: bitnami/containers
@@ -26,6 +31,10 @@
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
   docker_images: [docker.io/library/redis]
+  identity_source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
+  reviewed_at: "2026-09-26"
+  maintainer: openpulse
+  confidence: high
 - slug: postgresql
   display_name: PostgreSQL
   github: postgres/postgres
@@ -39,6 +48,10 @@
   endoflife: apache-kafka
   aliases: [kafka, apache/kafka]
   docker_images: []
+  identity_source: "apache-kafka maps to the Kafka project (not a separate product)"
+  reviewed_at: "2026-09-26"
+  maintainer: openpulse
+  confidence: high
 - slug: keycloak
   display_name: Keycloak
   github: keycloak/keycloak
@@ -141,6 +154,10 @@
   website: https://spring.io/projects/spring-boot
   aliases: [spring-boot, spring]
   docker_images: []
+  identity_source: "spring maps to Spring Boot (spring-projects/spring-boot), not the wider Spring portfolio"
+  reviewed_at: "2026-09-26"
+  maintainer: openpulse
+  confidence: medium
 - slug: nginx
   display_name: NGINX
   github: nginx/nginx

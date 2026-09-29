@@ -221,4 +221,14 @@ def test_report_related_claims_no_affection():
         }
     ]
     md = build_report("2026-09", items).lower()
-    assert "affect" not in md
+    for phrase in (
+        "affects_artifact",
+        "affects_version",
+        "affects_package",
+        "affected dependency",
+        "is affected by",
+        "you are affected",
+    ):
+        assert phrase not in md
+    # The disclaimer negates customer impact explicitly — required.
+    assert "not assertions that a particular customer's environment" in md

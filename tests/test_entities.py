@@ -33,6 +33,20 @@ def test_catalog_hygiene():
         assert ":" not in alias and "@" not in alias
 
 
+def test_catalog_identity_metadata_optional():
+    from core.entities.catalog import load_catalog
+
+    catalog = load_catalog()
+    by_slug = {e.get("slug"): e for e in catalog}
+    for slug in ("redis", "kafka", "spring-boot"):
+        entry = by_slug[slug]
+        assert entry.get("identity_source"), slug
+        assert entry.get("reviewed_at"), slug
+        assert entry.get("confidence") in ("high", "medium", "low"), slug
+    # Unreviewed entries simply lack the keys — never assumed reviewed.
+    assert "identity_source" not in by_slug["django"]
+
+
 def test_purl_builder():
     from core.entities.catalog import purl_for
 
