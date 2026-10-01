@@ -6,204 +6,210 @@ _Public report findings describe OSS ecosystem changes. They are not assertions 
 
 ## Executive Summary
 
-OpenPulse detected 162 material upstream changes across 100 monitored projects in 2026-10. That includes 218 non-lifecycle discoveries — changes no lifecycle database records. 57 changes require attention now; no upcoming changes carry warning windows.
+OpenPulse detected 120 material upstream changes across 100 monitored projects in 2026-10. That includes 102 non-lifecycle discoveries — changes no lifecycle database records. 57 changes require attention now; no upcoming changes carry warning windows.
 
 - Projects monitored: 100
-- Material changes (action + review): 162
+- Material changes (action + review): 120
 - Changes requiring attention: 57
 - Upcoming changes with warning: 0
-- Non-lifecycle discoveries: 218
-- Evidence confidence: 0 CONFIRMED, 0 CORROBORATED, 311 EMERGING, 0 UNVERIFIED
-- Data gaps: 39 projects with no signals, 308 records held back
+- Non-lifecycle discoveries: 102
+- Evidence confidence: 0 CONFIRMED, 0 CORROBORATED, 195 EMERGING, 0 UNVERIFIED
+- Data gaps: 37 projects with no signals, 317 records held back
 
 ## Top Changes
 
-### 1. **registry sweep** — Tag `1.30-alpine3.24` disappeared from library/nginx
+### 1. **bitnami** — CVE-2025-22248 [AFFECTS_PACKAGE] tracked by nvd
 
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `docker.io/library/nginx:1.30-alpine3.24`
+Scope: project
 
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
+Sources: nvd
 
-Why it matters: high-significance distribution change: review
+Timing: Effective date unknown
 
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### 2. **registry sweep** — Tag `1.30.5-alpine3.24` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:1.30.5-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://hub.docker.com/r/library/nginx/tags
+- https://github.com/bitnami/charts/security/advisories/GHSA-mx38-x658-5fwj
 
-### 3. **registry sweep** — Tag `1.30.5-alpine` disappeared from library/nginx
+### 2. **gradle** — CVE-2016-6199 [AFFECTS_PACKAGE] tracked by nvd
 
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `docker.io/library/nginx:1.30.5-alpine`
+Scope: project
 
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
+Sources: nvd
 
-Why it matters: high-significance distribution change: review
+Timing: Effective date unknown
 
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### 4. **registry sweep** — Tag `19beta4-bookworm` disappeared from library/postgres
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/postgres:19beta4-bookworm`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://hub.docker.com/r/library/postgres/tags
+- https://discuss.gradle.org/t/a-security-issue-about-gradle-rce/17726
+- https://philwantsfish.github.io/security/java-deserialization-github
 
-### 5. **registry sweep** — Tag `3.11.16-slim-trixie` disappeared from library/python
+### 3. **gradle** — CVE-2019-15052 [AFFECTS_PACKAGE] tracked by nvd
 
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `docker.io/library/python:3.11.16-slim-trixie`
+Scope: project
 
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
+Sources: nvd
 
-Why it matters: high-significance distribution change: review
+Timing: Effective date unknown
 
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### 6. **registry sweep** — Tag `3.12-slim-trixie` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.12-slim-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://hub.docker.com/r/library/python/tags
+- https://github.com/gradle/gradle/issues/10278
+- https://github.com/gradle/gradle/pull/10176
+- https://github.com/gradle/gradle/security/advisories/GHSA-4cwg-f7qc-6r95
 
-### 7. **registry sweep** — Tag `3.12-slim` disappeared from library/python
+### 4. **grafana** — CVE-2018-15727 [AFFECTS_PACKAGE] tracked by nvd
 
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `docker.io/library/python:3.12-slim`
+Scope: project
 
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
+Sources: nvd
 
-Why it matters: high-significance distribution change: review
+Timing: Effective date unknown
 
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### 8. **registry sweep** — Tag `3.12.14-slim` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.12.14-slim`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://hub.docker.com/r/library/python/tags
+- http://www.securityfocus.com/bid/105184
+- https://access.redhat.com/errata/RHSA-2018:3829
+- https://access.redhat.com/errata/RHSA-2019:0019
+- (+1 more in the appendix)
 
-### 9. **registry sweep** — Tag `8.3-noble` disappeared from library/mongo
+### 5. **grafana** — CVE-2019-15043 [AFFECTS_PACKAGE] tracked by nvd
 
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `docker.io/library/mongo:8.3-noble`
+Scope: project
 
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
+Sources: nvd
 
-Why it matters: high-significance distribution change: review
+Timing: Effective date unknown
 
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### 10. **registry sweep** — Tag `8.3.11-noble` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:8.3.11-noble`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
+Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://hub.docker.com/r/library/mongo/tags
+- http://lists.opensuse.org/opensuse-security-announce/2020-06/msg00060.html
+- http://lists.opensuse.org/opensuse-security-announce/2020-07/msg00083.html
+- http://lists.opensuse.org/opensuse-security-announce/2020-10/msg00009.html
+- (+7 more in the appendix)
 
-## OpenPulse Reference Discovery
+### 6. **influxdb** — CVE-2019-10329 [AFFECTS_PACKAGE] tracked by nvd
 
-OpenPulse detects upstream changes and connects them to dependency identity.
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-### Tag `1.30-alpine3.24` disappeared from library/nginx
+Scope: project
 
-WHAT CHANGED
+Sources: nvd
 
-Observed tag_disappeared at 2026-10-01T21:26:59.595129Z.
+Timing: Effective date unknown
 
-WHY IT MATTERS
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-high-significance distribution change: review
+Investigate: Assess whether the affected package and version are in your inventory.
 
-HOW OPENPULSE DETECTED IT
+Evidence:
+- http://www.openwall.com/lists/oss-security/2019/05/31/2
+- http://www.securityfocus.com/bid/108540
+- https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1403
 
-Direct registry observation: `tag_disappeared` for `docker.io/library/nginx:1.30-alpine3.24` between 2026-09-28T21:21:53.765879Z and 2026-10-01T21:26:59.595129Z. Chain-verified observations `docker-hub:docker.io/library/nginx:a75476be2c41` → `docker-hub:docker.io/library/nginx:2b730a1bda97`.
+### 7. **influxdb** — CVE-2019-20933 [AFFECTS_PACKAGE] tracked by nvd
 
-WHAT WAS AFFECTED
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-- `docker.io/library/nginx:1.30-alpine3.24`
+Scope: project
 
-WHAT WAS NOT AFFECTED
+Sources: nvd
 
-Other tags still published in the same repository (`alpine3.24-perl`, `mainline-alpine-perl`, `mainline-alpine3.24-perl`, `stable-alpine-perl`, `stable-alpine3.24-perl`): no change observed for these.
+Timing: Effective date unknown
 
-EVIDENCE
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
 
-- https://hub.docker.com/r/library/nginx/tags
-- observation `docker-hub:docker.io/library/nginx:2b730a1bda97`
-- content `sha256:2b730a1bda97d52352a3fd1d5585b0686b1672f21b9142e2466c0cf44f296dd9`
-- chain `sha256:f1d56d64e2169b75cad9c4f815cb0d2023d90679eba57153084eb4061167122e`
+Investigate: Assess whether the affected package and version are in your inventory.
 
-WARNING WINDOW
+Evidence:
+- https://github.com/influxdata/influxdb/commit/761b557315ff9c1642cf3b0e5797cd3d983a24c0
+- https://github.com/influxdata/influxdb/compare/v1.7.5...v1.7.6
+- https://github.com/influxdata/influxdb/issues/12927
+- (+2 more in the appendix)
 
-0 days (Detected 2026-10-01 → Effective 2026-10-01).
+### 8. **influxdb** — CVE-2022-36640 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- http://www.krsecu.com/CVE/409b5310045bd6b9a984a5fb63bd8786d5c5681a8ad5b1c815c84b2b90002ad7.docx
+- https://dl.influxdata.com/influxdb/releases/influxdb_1.8.10_amd64.deb
+- https://portal.influxdata.com/downloads/
+- (+1 more in the appendix)
+
+### 9. **kafka** — CVE-2018-17196 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- http://www.securityfocus.com/bid/109139
+- https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f%40%3Cdev.drill.apache.org%3E
+- https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442%40%3Cdev.drill.apache.org%3E
+- (+8 more in the appendix)
+
+### 10. **kafka** — CVE-2019-12399 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- http://www.openwall.com/lists/oss-security/2020/01/14/1
+- https://lists.apache.org/thread.html/r0e3a613705d70950aca2bfe9a6265c87503921852d9a3dbce512ca9f%40%3Ccommits.druid.apache.org%3E
+- https://lists.apache.org/thread.html/r2d390dec5f360ec8aa294bef18e1a4385e2a3698d747209216f5a48b%40%3Ccommits.druid.apache.org%3E
+- (+21 more in the appendix)
 
 ## Changes Requiring Attention
 
@@ -330,8 +336,8 @@ No upcoming changes with trustworthy dates this month.
 
 | Category | Changes | Requiring attention |
 |---|---|---|
-| Distribution | 65 | 0 |
-| Security | 153 | 0 |
+| Distribution | 0 | 0 |
+| Security | 102 | 0 |
 | License | 0 | 0 |
 | Lifecycle | 93 | 57 |
 | Support | 0 | 0 |
@@ -343,7 +349,7 @@ No upcoming changes with trustworthy dates this month.
 
 - CONFIRMED (0): official announcement from the source itself.
 - CORROBORATED (0): confirmed by 2+ independent source families.
-- EMERGING (311): single credible source.
+- EMERGING (195): single credible source.
 - UNVERIFIED (0): weak or unconfirmed signal — never action-framed.
 
 ## What OpenPulse Added This Month
@@ -354,44 +360,23 @@ This month the report answers it with the findings below — detected upstream c
 
 ### Upstream Change Detection
 
-- Distribution (65): e.g. **registry sweep** — Tag `1.30-alpine3.24` disappeared from library/nginx
-- Security (153): e.g. **bitnami** — CVE-2025-22248 [AFFECTS_PACKAGE] tracked by nvd
+- Security (102): e.g. **bitnami** — CVE-2025-22248 [AFFECTS_PACKAGE] tracked by nvd
 - Lifecycle (93): e.g. **airflow** — apache-airflow lifecycle: reached end-of-life (3.2, 3.1, 3.0, 2, 1.10, 1.9, 1.8, 1.7)
 
 ### Dependency Attribution
 
-- Affected artifact: `docker.io/library/nginx:1.30-alpine3.24` — Tag `1.30-alpine3.24` disappeared from library/nginx
 - Affected version: `3.2` — apache-airflow lifecycle: reached end-of-life (3.2, 3.1, 3.0, 2, 1.10, 1.9, 1.8, 1.7)
-- `docker.io/bitnamisecure/redis:sha256-3137e956206543da840944d24debce8cfd2b230440aba6c12df96a5f3496ec9f` resolves to the Bitnami distribution identity, not the upstream project.
-docker.io/bitnami/redis is not docker.io/redis: namespace-aware resolution keeps distribution packaging apart from upstream code.
-- Not affected: Other tags still published in the same repository (`alpine3.24-perl`, `mainline-alpine-perl`, `mainline-alpine3.24-perl`, `stable-alpine-perl`, `stable-alpine3.24-perl`): no change observed for these.
 
 ### Evidence-backed Intelligence
 
 - Confirmation level: strongest finding this month is EMERGING; full breakdown in Evidence Quality. No opaque risk scores.
-- 2 independent source families across 1341 supporting references.
-- Scope established for 158/311 findings.
-- Effective date known for 158/311 findings.
+- 2 independent source families across 800 supporting references.
+- Scope established for 93/195 findings.
+- Effective date known for 93/195 findings.
 
 ### Early Warning
 
 - No upcoming changes with trustworthy dates this month — nothing to warn about yet.
-
-### Reference Case
-
-Problem: Tag `1.30-alpine3.24` disappeared from library/nginx
-
-Signal: Distribution · registry_observation · significance high.
-
-Evidence: EMERGING confidence · 1 references · observation `docker-hub:docker.io/library/nginx:2b730a1bda97`.
-
-Identity: docker.io/library/nginx:1.30-alpine3.24.
-
-Applicability: PROJECT_CHANGE (REVIEW) — high-significance distribution change: review
-
-Recommended investigation: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01).
 
 ### From Public Intelligence to Early Warning
 
@@ -429,475 +414,39 @@ Investigate: Assess whether the affected package and version are in your invento
 Evidence:
 - https://github.com/bitnami/charts/security/advisories/GHSA-mx38-x658-5fwj
 
-#### containerd
+#### gradle
 
-### **containerd** — containerd lifecycle: approaching end-of-life (2.2, 2.0)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `2.2`, `2.0`
-
-Timing: Effective 2026-11-06 (upcoming; first detection unrecorded)
-
-Why it matters: EOL announced but not yet effective: watch
-
-Investigate: Note the upcoming date; confirm you have migration runway.
-
-Evidence:
-- https://endoflife.date/containerd
-
-### **containerd** — containerd lifecycle: reached end-of-life (2.1, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `2.1`, `1.7`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`
-
-Timing: Effective 2018-12-05 (already effective)
-
-Why it matters: EOL effective for scoped versions `2.1`, `1.7`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/containerd
-
-### **containerd** — containerd 2.0 ended active support
+### **gradle** — gradle lifecycle: ended active support (9, 8)
 
 Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
-Scope: `2.0`
+Scope: `9`, `8`
 
-Timing: Effective 2025-11-07 (already effective)
+Timing: Effective 2025-07-31 (already effective)
 
 Why it matters: active support ended: review support posture
 
 Investigate: Track the affected versions in your inventory; schedule migration planning.
 
 Evidence:
-- https://endoflife.date/containerd
+- https://endoflife.date/gradle
 
-### **containerd** — CVE-2020-15157 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/releases/tag/v1.2.14
-- https://github.com/containerd/containerd/security/advisories/GHSA-742w-89gc-8m9c
-- https://usn.ubuntu.com/4589-1/
-- https://usn.ubuntu.com/4589-2/
-- https://www.debian.org/security/2021/dsa-4865
-
-### **containerd** — CVE-2020-15257 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/4a4bb851f5da563ff6e68a83dc837c7699c469ad
-- https://github.com/containerd/containerd/releases/tag/v1.4.3
-- https://github.com/containerd/containerd/security/advisories/GHSA-36xw-fx78-c5r4
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/LNKXLOLZWO5FMAPX63ZL7JNKTNNT5NQD/
-- https://security.gentoo.org/glsa/202105-33
-- https://www.debian.org/security/2021/dsa-4865
-
-### **containerd** — CVE-2021-21334 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/05f951a3781f4f2c1911b05e61c160e9c30eaa8e
-- https://github.com/containerd/containerd/releases/tag/v1.3.10
-- https://github.com/containerd/containerd/releases/tag/v1.4.4
-- https://github.com/containerd/containerd/security/advisories/GHSA-6g2q-w5j3-fwh4
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/KUE2Z2ZUWBHRU36ZGBD2YSJCYB6ELPXE/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/QIBPKSX5IOWPM3ZPFB3JVLXWDHSZTTWT/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/VTXHA5JOWQRCCUZH7ZQBEYN6KZKJEYSD/
-- https://security.gentoo.org/glsa/202105-33
-
-### **containerd** — CVE-2021-32760 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/releases/tag/v1.4.8
-- https://github.com/containerd/containerd/releases/tag/v1.5.4
-- https://github.com/containerd/containerd/security/advisories/GHSA-c72p-9xmj-rx3w
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/DDMNDPJJTP3J5GOEDB66F6MGXUTRG3Y3/
-- https://security.gentoo.org/glsa/202401-31
-
-### **containerd** — CVE-2021-41103 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://cert-portal.siemens.com/productcert/pdf/ssa-222547.pdf
-- https://github.com/containerd/containerd/commit/5b46e404f6b9f661a205e28d59c982d3634148f8
-- https://github.com/containerd/containerd/security/advisories/GHSA-c2h3-6mxw-7mvq
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/B5Q6G6I4W5COQE25QMC7FJY3I3PAYFBB/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/ZNFADTCHHYWVM6W4NJ6CB4FNFM2VMBIB/
-- https://security.gentoo.org/glsa/202401-31
-- https://www.debian.org/security/2021/dsa-5002
-
-### **containerd** — CVE-2021-43816 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/a731039238c62be081eb8c31525b988415745eea
-- https://github.com/containerd/containerd/issues/6194
-- https://github.com/containerd/containerd/security/advisories/GHSA-mvff-h3cj-wj9c
-- https://github.com/dweomer/containerd/commit/f7f08f0e34fb97392b0d382e58916d6865100299
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/GD5GH7NMK5VJMA2Y5CYB5O5GTPYMWMLX/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/MPDIZMI7ZPERSZE2XO265UCK5IWM7CID/
-
-### **containerd** — CVE-2022-23471 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/a05d175400b1145e5e6a735a6710579d181e7fb0
-- https://github.com/containerd/containerd/security/advisories/GHSA-2qjp-425j-52j9
-- https://security.gentoo.org/glsa/202401-31
-
-### **containerd** — CVE-2022-23648 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://packetstormsecurity.com/files/166421/containerd-Image-Volume-Insecure-Handling.html
-- https://github.com/containerd/containerd/commit/10f428dac7cec44c864e1b830a4623af27a9fc70
-- https://github.com/containerd/containerd/releases/tag/v1.4.13
-- https://github.com/containerd/containerd/releases/tag/v1.5.10
-- https://github.com/containerd/containerd/releases/tag/v1.6.1
-- https://github.com/containerd/containerd/security/advisories/GHSA-crp2-qrr5-8pq7
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/AUDQUQBZJGBWJPMRVB6QCCCRF7O3O4PA/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/HFTS2EF3S7HNYSNZSEJZIJHPRU7OPUV3/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/OCCARJ6FU4MWBTXHZNMS7NELPDBIX2VO/
-- https://security.gentoo.org/glsa/202401-31
-- https://www.debian.org/security/2022/dsa-5091
-
-### **containerd** — CVE-2022-31030 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://www.openwall.com/lists/oss-security/2022/06/07/1
-- https://github.com/containerd/containerd/commit/c1bcabb4541930f643aa36a2b38655e131346382
-- https://github.com/containerd/containerd/security/advisories/GHSA-5ffw-gxpp-mxpf
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/REOZCUAPCA7NFDWYBDYX6EYXWLHABKBO/
-- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WSIGDBHAB3I75JBJNGWEPBTJPS2FOVHD/
-- https://security.gentoo.org/glsa/202401-31
-- https://www.debian.org/security/2022/dsa-5162
-
-### **containerd** — CVE-2023-25153 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/0c314901076a74a7b797a545d2f462285fdbb8c4
-- https://github.com/containerd/containerd/releases/tag/v1.5.18
-- https://github.com/containerd/containerd/releases/tag/v1.6.18
-- https://github.com/containerd/containerd/security/advisories/GHSA-259w-8hf6-59c2
-
-### **containerd** — CVE-2023-25173 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/advisories/GHSA-4wjj-jwc9-2x96
-- https://github.com/advisories/GHSA-fjm8-m7m6-2fjp
-- https://github.com/advisories/GHSA-phjr-8j92-w5v7
-- https://github.com/containerd/containerd/commit/133f6bb6cd827ce35a5fb279c1ead12b9d21460a
-- https://github.com/containerd/containerd/releases/tag/v1.5.18
-- https://github.com/containerd/containerd/releases/tag/v1.6.18
-- https://github.com/containerd/containerd/security/advisories/GHSA-hmfx-3pcx-653p
-- https://github.com/moby/moby/security/advisories/GHSA-rc4r-wh2q-q6c4
-- https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/LYZOKMMVX4SIEHPJW3SJUQGMO5YZCPHC/
-- https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/XNF4OLYZRQE75EB5TW5N42FSXHBXGWFE/
-- https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZTE4ITXXPIWZEQ4HYQCB6N6GZIMWXDAI/
-- https://www.benthamsgaze.org/2022/08/22/vulnerability-in-linux-containers-investigation-and-mitigation/
-
-### **containerd** — CVE-2024-25621 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/containerd/containerd/blob/main/docs/rootless.md
-- https://github.com/containerd/containerd/commit/7c59e8e9e970d38061a77b586b23655c352bfec5
-- https://github.com/containerd/containerd/security/advisories/GHSA-pwhc-rpq9-4c8w
-
-### **containerd** — CVE-2024-40635 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/05044ec0a9a75232cad458027ca83437aae3f4da
-- https://github.com/containerd/containerd/commit/1a43cb6a1035441f9aca8f5666a9b3ef9e70ab20
-- https://github.com/containerd/containerd/commit/cf158e884cfe4812a6c371b59e4ea9bc4c46e51a
-- https://github.com/containerd/containerd/security/advisories/GHSA-265r-hfxg-fhmg
-- https://lists.debian.org/debian-lts-announce/2025/05/msg00005.html
-
-### **containerd** — CVE-2025-47290 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/cada13298fba85493badb6fecb6ccf80e49673cc
-- https://github.com/containerd/containerd/releases/tag/v2.1.1
-- https://github.com/containerd/containerd/security/advisories/GHSA-cm76-qm8v-3j95
-
-### **containerd** — CVE-2025-47291 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/containerd/containerd/security/advisories/GHSA-cxfp-7pvr-95ff
-
-### **containerd** — CVE-2025-64329 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/containerd/containerd/commit/083b53cd6f19b5de7717b0ce92c11bdf95e612df
-- https://github.com/containerd/containerd/security/advisories/GHSA-m6hq-p25p-ffr2
-
-### **containerd** — CVE-2026-53488 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/containerd/containerd/security/advisories/GHSA-xhf5-7wjv-pqxp
-
-#### elasticsearch
-
-### **elasticsearch** — elasticsearch lifecycle: reached end-of-life (9.3, 9.2, 9.1, 8.18, 9.0, 8.17, 8.16, 7, 6)
+### **gradle** — gradle lifecycle: reached end-of-life (7, 6, 5, 4, 3, 2, 1)
 
 Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
 
-Scope: `9.3`, `9.2`, `9.1`, `8.18`, `9.0`, `8.17`, `8.16`, `7`, `6`
+Scope: `7`, `6`, `5`, `4`, `3`, `2`, `1`
 
-Timing: Effective 2022-02-10 (already effective)
+Timing: Effective 2014-07-01 (already effective)
 
-Why it matters: EOL effective for scoped versions `9.3`, `9.2`, `9.1`, `8.18`, `9.0`, `8.17`, `8.16`, `7`, `6`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+Why it matters: EOL effective for scoped versions `7`, `6`, `5`, `4`, `3`, `2`, `1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
 
 Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
 
 Evidence:
-- https://endoflife.date/elasticsearch
+- https://endoflife.date/gradle
 
-### **elasticsearch** — CVE-2014-6439 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://packetstormsecurity.com/files/128556/Elasticsearch-1.3.x-CORS-Issue.html
-- http://www.elasticsearch.org/blog/elasticsearch-1-4-0-beta-released/
-- http://www.securityfocus.com/archive/1/533602/100/0/threaded
-- http://www.securityfocus.com/bid/70233
-- https://www.elastic.co/community/security/
-
-### **elasticsearch** — CVE-2015-3337 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://packetstormsecurity.com/files/131646/Elasticsearch-Directory-Traversal.html
-- http://www.debian.org/security/2015/dsa-3241
-- http://www.securityfocus.com/archive/1/535385
-- http://www.securityfocus.com/bid/74353
-- https://www.elastic.co/community/security
-- https://www.exploit-db.com/exploits/37054/
-
-### **elasticsearch** — CVE-2015-4165 [AFFECTS_PACKAGE] tracked by nvd
+### **gradle** — CVE-2016-6199 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -912,34 +461,10 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- http://packetstormsecurity.com/files/132234/Elasticsearch-1.5.2-File-Creation.html
-- http://www.securityfocus.com/archive/1/535727/100/0/threaded
-- http://www.securityfocus.com/archive/1/536855/100/0/threaded
-- http://www.securityfocus.com/bid/75113
-- https://bugzilla.redhat.com/show_bug.cgi?id=1230761
-- https://www.elastic.co/community/security/
+- https://discuss.gradle.org/t/a-security-issue-about-gradle-rce/17726
+- https://philwantsfish.github.io/security/java-deserialization-github
 
-### **elasticsearch** — CVE-2015-5377 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://www.securityfocus.com/bid/75938
-- http://www.zerodayinitiative.com/advisories/ZDI-15-365/
-- https://discuss.elastic.co/t/elasticsearch-remote-code-execution-cve-2015-5377/25736
-- https://github.com/elastic/elasticsearch/commit/bf3052d14c874aead7da8855c5fcadf5428a43f2
-
-### **elasticsearch** — CVE-2015-5531 [AFFECTS_PACKAGE] tracked by nvd
+### **gradle** — CVE-2019-11065 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -954,15 +479,31 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- http://packetstormsecurity.com/files/132721/Elasticsearch-Directory-Traversal.html
-- http://packetstormsecurity.com/files/133797/ElasticSearch-Path-Traversal-Arbitrary-File-Download.html
-- http://packetstormsecurity.com/files/133964/ElasticSearch-Snapshot-API-Directory-Traversal.html
-- http://www.securityfocus.com/archive/1/536017/100/0/threaded
-- http://www.securityfocus.com/bid/75935
-- https://www.elastic.co/community/security/
-- https://www.exploit-db.com/exploits/38383/
+- https://github.com/gradle/gradle/pull/8927
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WVXOXNLAYRGPKAZV63PYNV3HF27JW2MW/
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/Y43P7SVDJOG6OUDVFR4ZIDITZLNHPGTO/
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/YQ5CGOV5QVQCSPGE3WRZDKUGIXLHSZDR/
 
-### **elasticsearch** — CVE-2018-3826 [AFFECTS_PACKAGE] tracked by nvd
+### **gradle** — CVE-2019-15052 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- https://github.com/gradle/gradle/issues/10278
+- https://github.com/gradle/gradle/pull/10176
+- https://github.com/gradle/gradle/security/advisories/GHSA-4cwg-f7qc-6r95
+
+### **gradle** — CVE-2019-16370 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -977,48 +518,8 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- https://discuss.elastic.co/t/elastic-stack-6-3-0-and-5-6-10-security-update/135777
-- https://www.elastic.co/community/security
-
-#### flask
-
-### **flask** — CVE-2018-1000656 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/pallets/flask/pull/2691
-- https://github.com/pallets/flask/releases/tag/0.12.3
-- https://lists.debian.org/debian-lts-announce/2019/08/msg00025.html
-- https://security.netapp.com/advisory/ntap-20190221-0001/
-- https://usn.ubuntu.com/4378-1/
-
-### **flask** — CVE-2019-1010083 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://www.palletsprojects.com/blog/flask-1-0-released/
+- https://github.com/gradle/gradle/commit/425b2b7a50cd84106a77cdf1ab665c89c6b14d2f
+- https://github.com/gradle/gradle/pull/10543
 
 #### grafana
 
@@ -1354,24 +855,42 @@ Evidence:
 - https://github.com/grafana/grafana/releases/tag/v7.0.0
 - https://security.netapp.com/advisory/ntap-20200528-0003/
 
-#### jaeger
+#### influxdb
 
-### **jaeger** — jaeger 1 is end-of-life
+### **influxdb** — influxdb lifecycle: reached end-of-life (3.9, 3.8, 3.7, 3.6, 3.5, 3.4, 3.3, 3.2, 3.1, 3.0)
 
 Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
 
-Scope: `1`
+Scope: `3.9`, `3.8`, `3.7`, `3.6`, `3.5`, `3.4`, `3.3`, `3.2`, `3.1`, `3.0`
 
-Timing: Effective 2025-12-31 (already effective)
+Timing: Effective 2025-06-25 (already effective)
 
-Why it matters: EOL effective for scoped versions `1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+Why it matters: EOL effective for scoped versions `3.9`, `3.8`, `3.7`, `3.6`, `3.5`, `3.4`, `3.3`, `3.2`, `3.1`, `3.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
 
 Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
 
 Evidence:
-- https://endoflife.date/jaeger
+- https://endoflife.date/influxdb
 
-### **jaeger** — CVE-2020-10750 [AFFECTS_PACKAGE] tracked by nvd
+### **influxdb** — CVE-2018-17572 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Track the advisory; confirm exposure if a version match emerges.
+
+Evidence:
+- https://gist.github.com/Raghavrao29/1cb84f1f2d8ce993fd7b2d1366d35f48
+- https://github.com/influxdata/influxdb/releases/tag/v0.9.6
+
+### **influxdb** — CVE-2019-10329 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -1386,8 +905,50 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- https://bugzilla.redhat.com/show_bug.cgi?id=CVE-2020-10750
-- https://github.com/jaegertracing/jaeger/releases/tag/v1.18.1
+- http://www.openwall.com/lists/oss-security/2019/05/31/2
+- http://www.securityfocus.com/bid/108540
+- https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1403
+
+### **influxdb** — CVE-2019-20933 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- https://github.com/influxdata/influxdb/commit/761b557315ff9c1642cf3b0e5797cd3d983a24c0
+- https://github.com/influxdata/influxdb/compare/v1.7.5...v1.7.6
+- https://github.com/influxdata/influxdb/issues/12927
+- https://lists.debian.org/debian-lts-announce/2020/12/msg00030.html
+- https://www.debian.org/security/2021/dsa-4823
+
+### **influxdb** — CVE-2022-36640 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- http://www.krsecu.com/CVE/409b5310045bd6b9a984a5fb63bd8786d5c5681a8ad5b1c815c84b2b90002ad7.docx
+- https://dl.influxdata.com/influxdb/releases/influxdb_1.8.10_amd64.deb
+- https://portal.influxdata.com/downloads/
+- https://www.influxdata.com/
 
 #### kafka
 
@@ -1934,39 +1495,9 @@ Evidence:
 - https://access.redhat.com/errata/RHSA-2018:3595
 - https://bugzilla.redhat.com/show_bug.cgi?id=CVE-2018-14658
 
-#### mariadb
+#### loki
 
-### **mariadb** — mariadb 13.0 EOL approaching (2026-12-31)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `13.0`
-
-Timing: Effective 2026-12-31 (upcoming; first detection unrecorded)
-
-Why it matters: EOL announced but not yet effective: watch
-
-Investigate: Note the upcoming date; confirm you have migration runway.
-
-Evidence:
-- https://endoflife.date/mariadb
-
-### **mariadb** — mariadb lifecycle: reached end-of-life (12.2, 12.1, 12.0, 11.7, 11.6, 11.5, 11.3, 11.2, 11.1, 11.0, 10.10, 10.9, 10.8, 10.7, 10.6, 10.5, 10.4, 10.3, 10.2, 10.1, 10.0, 5.5, 5.3, 5.2, 5.1)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `12.2`, `12.1`, `12.0`, `11.7`, `11.6`, `11.5`, `11.3`, `11.2`, `11.1`, `11.0`, `10.10`, `10.9`, `10.8`, `10.7`, `10.6`, `10.5`, `10.4`, `10.3`, `10.2`, `10.1`, `10.0`, `5.5`, `5.3`, `5.2`, `5.1`
-
-Timing: Effective 2015-02-01 (already effective)
-
-Why it matters: EOL effective for scoped versions `12.2`, `12.1`, `12.0`, `11.7`, `11.6`, `11.5`, `11.3`, `11.2`, `11.1`, `11.0`, `10.10`, `10.9`, `10.8`, `10.7`, `10.6`, `10.5`, `10.4`, `10.3`, `10.2`, `10.1`, `10.0`, `5.5`, `5.3`, `5.2`, `5.1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/mariadb
-
-### **mariadb** — CVE-2012-2122 [AFFECTS_PACKAGE] tracked by nvd
+### **loki** — CVE-2021-36156 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -1981,626 +1512,8 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- http://bugs.mysql.com/bug.php?id=64884
-- http://kb.askmonty.org/en/mariadb-5162-release-notes/
-- http://lists.opensuse.org/opensuse-security-announce/2012-08/msg00007.html
-- http://seclists.org/oss-sec/2012/q2/493
-- http://secunia.com/advisories/49417
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://securitytracker.com/id?1027143
-- http://www.exploit-db.com/exploits/19092
-- http://www.securityfocus.com/bid/53911
-- https://community.rapid7.com/community/metasploit/blog/2012/06/11/cve-2012-2122-a-tragically-comedic-security-flaw-in-mysql
-
-### **mariadb** — CVE-2012-4414 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://bugs.mysql.com/bug.php?id=66550
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00000.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00002.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00013.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00020.html
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:102
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:150
-- http://www.mysqlperformanceblog.com/2013/01/13/cve-2012-4414-in-mysql-5-5-29-and-percona-server-5-5-29/
-- http://www.openwall.com/lists/oss-security/2012/09/11/4
-- http://www.securityfocus.com/bid/55498
-- https://bugzilla.redhat.com/show_bug.cgi?id=852144
-- https://mariadb.atlassian.net/browse/MDEV-382
-
-### **mariadb** — CVE-2012-5611 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00000.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00001.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00002.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00013.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-01/msg00020.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-02/msg00000.html
-- http://lists.opensuse.org/opensuse-updates/2013-09/msg00010.html
-- http://rhn.redhat.com/errata/RHSA-2012-1551.html
-- http://rhn.redhat.com/errata/RHSA-2013-0180.html
-- http://seclists.org/fulldisclosure/2012/Dec/4
-- http://secunia.com/advisories/51443
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.debian.org/security/2012/dsa-2581
-- http://www.exploit-db.com/exploits/23075
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:102
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:150
-- http://www.openwall.com/lists/oss-security/2012/12/02/3
-- http://www.openwall.com/lists/oss-security/2012/12/02/4
-- http://www.oracle.com/technetwork/topics/security/cpujan2013-1515902.html
-- http://www.ubuntu.com/usn/USN-1658-1
-- http://www.ubuntu.com/usn/USN-1703-1
-- https://kb.askmonty.org/en/mariadb-5166-release-notes/
-- https://kb.askmonty.org/en/mariadb-5213-release-notes/
-- https://kb.askmonty.org/en/mariadb-5311-release-notes/
-- https://kb.askmonty.org/en/mariadb-5528a-release-notes/
-- https://oval.cisecurity.org/repository/search/definition/oval%3Aorg.mitre.oval%3Adef%3A16395
-
-### **mariadb** — CVE-2012-5612 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2013-02/msg00000.html
-- http://seclists.org/fulldisclosure/2012/Dec/5
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.exploit-db.com/exploits/23076
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:102
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:150
-- http://www.openwall.com/lists/oss-security/2012/12/02/3
-- http://www.openwall.com/lists/oss-security/2012/12/02/4
-- http://www.oracle.com/technetwork/topics/security/cpujan2013-1515902.html
-- http://www.ubuntu.com/usn/USN-1703-1
-- https://mariadb.atlassian.net/browse/MDEV-3908
-- https://oval.cisecurity.org/repository/search/definition/oval%3Aorg.mitre.oval%3Adef%3A16960
-
-### **mariadb** — CVE-2012-5613 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2013-02/msg00000.html
-- http://seclists.org/fulldisclosure/2012/Dec/6
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.openwall.com/lists/oss-security/2012/12/02/3
-- http://www.openwall.com/lists/oss-security/2012/12/02/4
-
-### **mariadb** — CVE-2012-5614 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://rhn.redhat.com/errata/RHSA-2013-0772.html
-- http://seclists.org/fulldisclosure/2012/Dec/7
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:150
-- http://www.openwall.com/lists/oss-security/2012/12/02/3
-- http://www.openwall.com/lists/oss-security/2012/12/02/4
-- http://www.oracle.com/technetwork/topics/security/cpuapr2013-1899555.html
-- http://www.securitytracker.com/id?1027829
-- https://bugzilla.redhat.com/show_bug.cgi?id=882607
-- https://mariadb.atlassian.net/browse/MDEV-3910
-
-### **mariadb** — CVE-2012-5615 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2013-02/msg00000.html
-- http://lists.opensuse.org/opensuse-security-announce/2015-04/msg00016.html
-- http://seclists.org/fulldisclosure/2012/Dec/9
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:102
-- http://www.openwall.com/lists/oss-security/2012/12/02/3
-- http://www.openwall.com/lists/oss-security/2012/12/02/4
-- http://www.oracle.com/technetwork/topics/security/bulletinoct2015-2511968.html
-- http://www.oracle.com/technetwork/topics/security/cpuoct2014-1972960.html
-- https://mariadb.atlassian.net/browse/MDEV-3909
-
-### **mariadb** — CVE-2012-5627 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://seclists.org/fulldisclosure/2012/Dec/58
-- http://seclists.org/fulldisclosure/2012/Dec/83
-- http://seclists.org/oss-sec/2012/q4/424
-- http://secunia.com/advisories/53372
-- http://security.gentoo.org/glsa/glsa-201308-06.xml
-- http://www.mandriva.com/security/advisories?name=MDVSA-2013:102
-- https://bugzilla.redhat.com/show_bug.cgi?id=883719
-- https://mariadb.atlassian.net/browse/MDEV-3915
-
-### **mariadb** — CVE-2013-1861 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.askmonty.org/pipermail/commits/2013-March/004371.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-08/msg00022.html
-- http://lists.opensuse.org/opensuse-security-announce/2013-10/msg00001.html
-- http://lists.opensuse.org/opensuse-updates/2013-08/msg00024.html
-- http://lists.opensuse.org/opensuse-updates/2013-09/msg00008.html
-- http://seclists.org/oss-sec/2013/q1/671
-- http://secunia.com/advisories/52639
-- http://secunia.com/advisories/54300
-- http://security.gentoo.org/glsa/glsa-201409-04.xml
-- http://www.debian.org/security/2013/dsa-2818
-- http://www.oracle.com/technetwork/topics/security/cpujuly2013-1899826.html
-- http://www.osvdb.org/91415
-- http://www.securityfocus.com/bid/58511
-- http://www.ubuntu.com/usn/USN-1909-1
-- https://bugzilla.redhat.com/show_bug.cgi?id=919247
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/82895
-- https://mariadb.atlassian.net/browse/MDEV-4252
-
-### **mariadb** — CVE-2014-0001 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://bazaar.launchpad.net/~maria-captains/maria/5.5/revision/2502.565.64
-- http://osvdb.org/102713
-- http://rhn.redhat.com/errata/RHSA-2014-0164.html
-- http://rhn.redhat.com/errata/RHSA-2014-0173.html
-- http://rhn.redhat.com/errata/RHSA-2014-0186.html
-- http://rhn.redhat.com/errata/RHSA-2014-0189.html
-- http://secunia.com/advisories/52161
-- http://security.gentoo.org/glsa/glsa-201409-04.xml
-- http://www.mandriva.com/security/advisories?name=MDVSA-2014:029
-- http://www.osvdb.org/102714
-- http://www.securityfocus.com/bid/65298
-- http://www.securitytracker.com/id/1029708
-- https://bugzilla.redhat.com/show_bug.cgi?id=1054592
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/90901
-- https://mariadb.com/kb/en/mariadb-5535-changelog/
-
-### **mariadb** — CVE-2016-0505 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81088
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0546 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81066
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://bugzilla.redhat.com/show_bug.cgi?id=1301493
-- https://dev.mysql.com/doc/relnotes/mysql/5.5/en/news-5-5-47.html
-- https://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-28.html
-- https://github.com/mysql/mysql-server/commit/0dbd5a8797ed4bd18e8b883988fb62177eb0f73f
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0596 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81130
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0597 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81151
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0598 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81182
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0600 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81188
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0606 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0608 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81226
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
-
-### **mariadb** — CVE-2016-0609 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00015.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-02/msg00016.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00033.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00034.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00051.html
-- http://lists.opensuse.org/opensuse-security-announce/2016-06/msg00053.html
-- http://rhn.redhat.com/errata/RHSA-2016-0534.html
-- http://rhn.redhat.com/errata/RHSA-2016-0705.html
-- http://rhn.redhat.com/errata/RHSA-2016-1480.html
-- http://rhn.redhat.com/errata/RHSA-2016-1481.html
-- http://www.debian.org/security/2016/dsa-3453
-- http://www.debian.org/security/2016/dsa-3459
-- http://www.oracle.com/technetwork/topics/security/bulletinapr2016-2952098.html
-- http://www.oracle.com/technetwork/topics/security/cpujan2016-2367955.html
-- http://www.oracle.com/technetwork/topics/security/linuxbulletinapr2016-2952096.html
-- http://www.securityfocus.com/bid/81258
-- http://www.securitytracker.com/id/1034708
-- http://www.ubuntu.com/usn/USN-2881-1
-- https://access.redhat.com/errata/RHSA-2016:1132
-- https://mariadb.com/kb/en/mariadb/mariadb-10110-release-notes/
-- https://mariadb.com/kb/en/mariadb/mariadb-5547-release-notes/
-- https://mariadb.com/kb/en/mdb-10023-rn/
+- https://github.com/grafana/loki/pull/4020#issue-694377133
+- https://github.com/grafana/loki/releases/tag/v2.3.0
 
 #### nodejs
 
@@ -3259,54 +2172,9 @@ Evidence:
 - https://oval.cisecurity.org/repository/search/definition/oval%3Aorg.mitre.oval%3Adef%3A928
 - https://oval.cisecurity.org/repository/search/definition/oval%3Aorg.mitre.oval%3Adef%3A9580
 
-#### php
+#### pandas
 
-### **php** — php lifecycle: ended active support (8.3, 8.2)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `8.3`, `8.2`
-
-Timing: Effective 2024-12-31 (already effective)
-
-Why it matters: active support ended: review support posture
-
-Investigate: Track the affected versions in your inventory; schedule migration planning.
-
-Evidence:
-- https://endoflife.date/php
-
-### **php** — php 8.2 EOL approaching (2026-12-31)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `8.2`
-
-Timing: Effective 2026-12-31 (upcoming; first detection unrecorded)
-
-Why it matters: EOL announced but not yet effective: watch
-
-Investigate: Note the upcoming date; confirm you have migration runway.
-
-Evidence:
-- https://endoflife.date/php
-
-### **php** — php lifecycle: reached end-of-life (8.1, 8.0, 7.4, 7.3, 7.2, 7.1, 7.0, 5.6, 5.5, 5.4, 5.3, 5.2, 5.1, 5.0)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `8.1`, `8.0`, `7.4`, `7.3`, `7.2`, `7.1`, `7.0`, `5.6`, `5.5`, `5.4`, `5.3`, `5.2`, `5.1`, `5.0`
-
-Timing: Effective 2005-09-05 (already effective)
-
-Why it matters: EOL effective for scoped versions `8.1`, `8.0`, `7.4`, `7.3`, `7.2`, `7.1`, `7.0`, `5.6`, `5.5`, `5.4`, `5.3`, `5.2`, `5.1`, `5.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/php
-
-### **php** — CVE-1999-0058 [AFFECTS_PACKAGE] tracked by nvd
+### **pandas** — CVE-2020-13091 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -3321,152 +2189,8 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- http://www.securityfocus.com/bid/712
-
-### **php** — CVE-1999-0068 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://www.osvdb.org/3396
-- http://www.securityfocus.com/bid/713
-
-### **php** — CVE-1999-0238 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/CVE-1999-0238
-
-### **php** — CVE-2000-0059 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- http://www.securityfocus.com/bid/911
-
-### **php** — CVE-2000-0860 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://archives.neohapsis.com/archives/bugtraq/2000-08/0455.html
-- http://archives.neohapsis.com/archives/bugtraq/2000-08/0477.html
-- http://archives.neohapsis.com/archives/bugtraq/2000-09/0150.html
-- http://cvsweb.php.net/viewcvs.cgi/php4/main/rfc1867.c.diff?r1=1.38%3Aphp_4_0_2&tr1=1.1&r2=text&tr2=1.45&diff_format=u
-- http://www.securityfocus.com/bid/1649
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/5190
-
-### **php** — CVE-2000-0967 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- ftp://ftp.FreeBSD.org/pub/FreeBSD/CERT/advisories/FreeBSD-SA-00:75.php.asc
-- http://archives.neohapsis.com/archives/bugtraq/2000-10/0204.html
-- http://www.atstake.com/research/advisories/2000/a101200-1.txt
-- http://www.calderasystems.com/support/security/advisories/CSSA-2000-037.0.txt
-- http://www.linux-mandrake.com/en/security/MDKSA-2000-062.php3?dis=7.1
-- http://www.redhat.com/support/errata/RHSA-2000-088.html
-- http://www.redhat.com/support/errata/RHSA-2000-095.html
-- http://www.securityfocus.com/bid/1786
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/5359
-
-### **php** — CVE-2001-0108 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://distro.conectiva.com.br/atualizacoes/?id=a&anuncio=000373
-- http://marc.info/?l=bugtraq&m=97957961212852
-- http://www.debian.org/security/2001/dsa-020
-- http://www.linux-mandrake.com/en/security/2001/MDKSA-2001-013.php3
-- http://www.redhat.com/support/errata/RHSA-2000-136.html
-- http://www.securityfocus.com/bid/2206
-- https://exchange.xforce.ibmcloud.com/vulnerabilities/5940
-
-### **php** — CVE-2001-1385 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://distro.conectiva.com.br/atualizacoes/?id=a&anuncio=000373
-- http://marc.info/?l=bugtraq&m=97957961212852
-- http://www.debian.org/security/2001/dsa-020
-- http://www.iss.net/security_center/static/5939.php
-- http://www.linux-mandrake.com/en/security/2001/MDKSA-2001-013.php3
-- http://www.redhat.com/support/errata/RHSA-2000-136.html
-- http://www.securityfocus.com/bid/2205
+- https://github.com/0FuzzingQ/vuln/blob/master/pandas%20unserialize.md
+- https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_pickle.html
 
 #### postgresql
 
@@ -3922,120 +2646,6 @@ Evidence:
 - https://github.com/prometheus/prometheus/releases/tag/v2.27.1
 - https://github.com/prometheus/prometheus/security/advisories/GHSA-vx57-7f4q-fpc7
 
-#### qdrant
-
-### **qdrant** — CVE-2023-38975 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://aisec.today/Qdrant-56dd05e12ca94d75a5e798b3fee80fa3
-- https://github.com/qdrant/qdrant/issues/2268
-
-### **qdrant** — CVE-2024-2221 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/qdrant/qdrant/commit/e6411907f0ecf3c2f8ba44ab704b9e4597d9705d
-- https://huntr.com/bounties/6be8d4e3-67e6-4660-a8db-04215a1cff3e
-
-### **qdrant** — CVE-2024-3078 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://github.com/qdrant/qdrant/commit/3ab5172e9c8f14fa1f7b24e7147eac74e2412b62
-- https://github.com/qdrant/qdrant/pull/3856
-- https://github.com/qdrant/qdrant/releases/tag/v1.8.3
-- https://vuldb.com/?ctiid.258611
-- https://vuldb.com/?id.258611
-
-### **qdrant** — CVE-2024-3584 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/qdrant/qdrant/commit/15479a45ffa3b955485ae516696f7e933a8cce8a
-- https://huntr.com/bounties/5c7c82e2-4873-40b7-a5f3-0f4a42642f73
-
-### **qdrant** — CVE-2024-3829 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/qdrant/qdrant/commit/ee7a31ec3459a6a4219200234615c1817ab82260
-- https://huntr.com/bounties/abd9c906-75ee-4d84-b76d-ce1386401e08
-
-### **qdrant** — CVE-2026-25628 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Assess whether the affected package and version are in your inventory.
-
-Evidence:
-- https://github.com/qdrant/qdrant/blob/48203e414e4e7f639a6d394fb6e4df695f808e51/src/actix/api/service_api.rs#L195
-- https://github.com/qdrant/qdrant/commit/32b7fdfb7f542624ecd1f7c8d3e2b13c4e36a2c1
-- https://github.com/qdrant/qdrant/security/advisories/GHSA-f632-vm87-2m2f
-
 #### redis
 
 ### **redis** — redis lifecycle: ended active support (8.10, 8.8, 8.6, 8.4, 8.2, 8.0, 7.4, 7.2, 6.2)
@@ -4243,56 +2853,9 @@ Evidence:
 - https://github.com/antirez/redis/commit/c04082cf138f1f51cedf05ee9ad36fb6763cafc6
 - https://www.exploit-db.com/exploits/44908/
 
-#### spark
+#### timescaledb
 
-### **spark** — apache-spark 4.0 EOL approaching (2026-11-23)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `4.0`
-
-Timing: Effective 2026-11-23 (upcoming; first detection unrecorded)
-
-Why it matters: EOL announced but not yet effective: watch
-
-Investigate: Note the upcoming date; confirm you have migration runway.
-
-Evidence:
-- https://endoflife.date/apache-spark
-
-### **spark** — apache-spark lifecycle: reached end-of-life (3.4, 3.3, 3.2, 3.1, 3.0, 2.4, 2.3, 2.2, 2.1, 2.0, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `3.4`, `3.3`, `3.2`, `3.1`, `3.0`, `2.4`, `2.3`, `2.2`, `2.1`, `2.0`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`
-
-Timing: Effective 2014-09-03 (already effective)
-
-Why it matters: EOL effective for scoped versions `3.4`, `3.3`, `3.2`, `3.1`, `3.0`, `2.4`, `2.3`, `2.2`, `2.1`, `2.0`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/apache-spark
-
-### **spark** — CVE-2015-6303 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://tools.cisco.com/security/center/viewAlert.x?alertId=41127
-
-### **spark** — CVE-2016-1322 [AFFECTS_PACKAGE] tracked by nvd
+### **timescaledb** — CVE-2022-24128 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -4307,43 +2870,12 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20160210-sp1
+- https://docs.timescale.com/timescaledb/latest/overview/release-notes/
+- https://github.com/timescale/timescaledb/commit/6275c2985927cfd4900b85cac5120227c8cb1f0c
+- https://github.com/timescale/timescaledb/commit/c8b8516e466c2bb7d2ae6a4b0b2e8e60b24b24a2
+- https://github.com/timescale/timescaledb/security/advisories/GHSA-fh8v-663w-79w9
 
-### **spark** — CVE-2016-1323 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20160210-sp2
-
-### **spark** — CVE-2016-1324 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20160210-sp3
-
-### **spark** — CVE-2016-9177 [AFFECTS_PACKAGE] tracked by nvd
+### **timescaledb** — CVE-2023-25149 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -4358,30 +2890,11 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- http://seclists.org/fulldisclosure/2016/Nov/13
-- http://www.securityfocus.com/bid/94218
-- https://access.redhat.com/errata/RHSA-2017:0868
-- https://github.com/perwendel/spark/issues/700
+- https://github.com/timescale/timescaledb/pull/5259
+- https://github.com/timescale/timescaledb/releases/tag/2.9.3
+- https://github.com/timescale/timescaledb/security/advisories/GHSA-44jh-j22r-33wq
 
-### **spark** — CVE-2017-12269 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://www.securityfocus.com/bid/101150
-- https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20171004-sprk
-
-### **spark** — CVE-2017-12612 [AFFECTS_PACKAGE] tracked by nvd
+### **timescaledb** — CVE-2026-29089 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
 
@@ -4396,28 +2909,12 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Assess whether the affected package and version are in your inventory.
 
 Evidence:
-- http://www.securityfocus.com/bid/100823
-- https://mail-archives.apache.org/mod_mbox/spark-dev/201709.mbox/%3CCAEccTyy-1yYuhdNgkBUg0sr9NeaZSrBKkBePdTNZbxXZNTAR-g%40mail.gmail.com%3E
+- https://github.com/timescale/timescaledb/commit/9a8f7f8bdeb99e6abae0786ffe526791a8628ce3
+- https://github.com/timescale/timescaledb/pull/9331
+- https://github.com/timescale/timescaledb/releases/tag/2.25.2
+- https://github.com/timescale/timescaledb/security/advisories/GHSA-vgp2-jj5c-828m
 
-### **spark** — CVE-2017-7678 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- http://apache-spark-developers-list.1001551.n3.nabble.com/CVE-2017-7678-Apache-Spark-XSS-web-UI-MHTML-vulnerability-td21947.html
-- http://www.securityfocus.com/bid/99603
-
-### **spark** — CVE-2018-11770 [AFFECTS_PACKAGE] tracked by nvd
+### **timescaledb** — CVE-2026-70633 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -4432,11 +2929,72 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- http://www.securityfocus.com/bid/105097
-- https://lists.apache.org/thread.html/bd8e51314041451a2acd720e9223fc1c15a263ccacb396a75b1fc485%40%3Cdev.spark.apache.org%3E
-- https://spark.apache.org/security.html#CVE-2018-11770
+- https://github.com/timescale/timescaledb/commit/517c13e7cc6afadb4a7deaa7a5a5a29065e5b5a3
+- https://github.com/timescale/timescaledb/pull/10360
+- https://www.vulncheck.com/advisories/timescaledb-out-of-bounds-read-dos-via-gorilla-compression-reverse-iterator
 
-### **spark** — CVE-2018-1334 [AFFECTS_PACKAGE] tracked by nvd
+### **timescaledb** — CVE-2026-70634 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- https://github.com/timescale/timescaledb/commit/517c13e7cc6afadb4a7deaa7a5a5a29065e5b5a3
+- https://github.com/timescale/timescaledb/pull/10360
+- https://www.vulncheck.com/advisories/timescaledb-out-of-bounds-read-information-disclosure-via-dictionary-compression-reverse-iterator
+
+### **timescaledb** — CVE-2026-70635 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- https://github.com/timescale/timescaledb/commit/517c13e7cc6afadb4a7deaa7a5a5a29065e5b5a3
+- https://github.com/timescale/timescaledb/pull/10360
+- https://www.vulncheck.com/advisories/timescaledb-out-of-bounds-read-dos-via-bulk-dictionary-decompression-negative-index
+
+#### webpack
+
+### **webpack** — CVE-2023-28154 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Assess whether the affected package and version are in your inventory.
+
+Evidence:
+- https://github.com/webpack/webpack/compare/v5.75.0...v5.76.0
+- https://github.com/webpack/webpack/pull/16500
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/AU7BOXTBK3KDYSWH67ASZ22TUIOZ3X5G/
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/PPSAXUTXBCCTAHTCX5BUR4YVP25XALQ3/
+- https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/U2AFCM6FFE3LRYI6KNEQWKMXMQOBZQ2D/
+
+### **webpack** — CVE-2024-43788 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -4451,28 +3009,13 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- https://lists.apache.org/thread.html/4d6d210e319a501b740293daaeeeadb51927111fb8261a3e4cd60060%40%3Cdev.spark.apache.org%3E
-- https://spark.apache.org/security.html#CVE-2018-1334
+- https://github.com/webpack/webpack/commit/955e057abc6cc83cbc3fa1e1ef67a49758bf5a61
+- https://github.com/webpack/webpack/issues/18718#issuecomment-2326296270
+- https://github.com/webpack/webpack/security/advisories/GHSA-4vvj-4cpr-p986
+- https://research.securitum.com/xss-in-amp4email-dom-clobbering
+- https://scnps.co/papers/sp23_domclob.pdf
 
-### **spark** — CVE-2018-8024 [AFFECTS_PACKAGE] tracked by nvd
-
-Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: project
-
-Sources: nvd
-
-Timing: Effective date unknown
-
-Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
-
-Investigate: Track the advisory; confirm exposure if a version match emerges.
-
-Evidence:
-- https://lists.apache.org/thread.html/5f241d2cda21cbcb3b63e46e474cf5f50cce66927f08399f4fab0aba%40%3Cdev.spark.apache.org%3E
-- https://spark.apache.org/security.html#CVE-2018-8024
-
-### **spark** — CVE-2018-9159 [AFFECTS_PACKAGE] tracked by nvd
+### **webpack** — CVE-2025-68157 [AFFECTS_PACKAGE] tracked by nvd
 
 Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
 
@@ -4487,13 +3030,24 @@ Why it matters: AFFECTS_PACKAGE from security correlation; placement follows ana
 Investigate: Track the advisory; confirm exposure if a version match emerges.
 
 Evidence:
-- http://sparkjava.com/news#spark-272-released
-- https://access.redhat.com/errata/RHSA-2018:2020
-- https://access.redhat.com/errata/RHSA-2018:2405
-- https://github.com/perwendel/spark/commit/030e9d00125cbd1ad759668f85488aba1019c668
-- https://github.com/perwendel/spark/commit/a221a864db28eb736d36041df2fa6eb8839fc5cd
-- https://github.com/perwendel/spark/commit/ce9e11517eca69e58ed4378d1e47a02bd06863cc
-- https://github.com/perwendel/spark/issues/981
+- https://github.com/webpack/webpack/security/advisories/GHSA-38r7-794h-5758
+
+### **webpack** — CVE-2025-68458 [AFFECTS_PACKAGE] tracked by nvd
+
+Category: Security · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: project
+
+Sources: nvd
+
+Timing: Effective date unknown
+
+Why it matters: AFFECTS_PACKAGE from security correlation; placement follows analyst impact
+
+Investigate: Track the advisory; confirm exposure if a version match emerges.
+
+Evidence:
+- https://github.com/webpack/webpack/security/advisories/GHSA-8fgc-7cc6-rx7x
 
 #### airflow
 
@@ -4740,6 +3294,53 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 Evidence:
 - https://endoflife.date/consul
 
+#### containerd
+
+### **containerd** — containerd lifecycle: approaching end-of-life (2.2, 2.0)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: `2.2`, `2.0`
+
+Timing: Effective 2026-11-06 (upcoming; first detection unrecorded)
+
+Why it matters: EOL announced but not yet effective: watch
+
+Investigate: Note the upcoming date; confirm you have migration runway.
+
+Evidence:
+- https://endoflife.date/containerd
+
+### **containerd** — containerd lifecycle: reached end-of-life (2.1, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `2.1`, `1.7`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`
+
+Timing: Effective 2018-12-05 (already effective)
+
+Why it matters: EOL effective for scoped versions `2.1`, `1.7`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/containerd
+
+### **containerd** — containerd 2.0 ended active support
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: `2.0`
+
+Timing: Effective 2025-11-07 (already effective)
+
+Why it matters: active support ended: review support posture
+
+Investigate: Track the affected versions in your inventory; schedule migration planning.
+
+Evidence:
+- https://endoflife.date/containerd
+
 #### couchdb
 
 ### **couchdb** — apache-couchdb lifecycle: reached end-of-life (3.3, 3.2)
@@ -4835,6 +3436,23 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 
 Evidence:
 - https://endoflife.date/django
+
+#### elasticsearch
+
+### **elasticsearch** — elasticsearch lifecycle: reached end-of-life (9.3, 9.2, 9.1, 8.18, 9.0, 8.17, 8.16, 7, 6)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `9.3`, `9.2`, `9.1`, `8.18`, `9.0`, `8.17`, `8.16`, `7`, `6`
+
+Timing: Effective 2022-02-10 (already effective)
+
+Why it matters: EOL effective for scoped versions `9.3`, `9.2`, `9.1`, `8.18`, `9.0`, `8.17`, `8.16`, `7`, `6`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/elasticsearch
 
 #### envoy
 
@@ -4936,38 +3554,6 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 Evidence:
 - https://endoflife.date/go
 
-#### gradle
-
-### **gradle** — gradle lifecycle: ended active support (9, 8)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `9`, `8`
-
-Timing: Effective 2025-07-31 (already effective)
-
-Why it matters: active support ended: review support posture
-
-Investigate: Track the affected versions in your inventory; schedule migration planning.
-
-Evidence:
-- https://endoflife.date/gradle
-
-### **gradle** — gradle lifecycle: reached end-of-life (7, 6, 5, 4, 3, 2, 1)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `7`, `6`, `5`, `4`, `3`, `2`, `1`
-
-Timing: Effective 2014-07-01 (already effective)
-
-Why it matters: EOL effective for scoped versions `7`, `6`, `5`, `4`, `3`, `2`, `1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/gradle
-
 #### haproxy
 
 ### **haproxy** — haproxy 3.3 EOL approaching (2027-01-01)
@@ -5000,23 +3586,6 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 Evidence:
 - https://endoflife.date/haproxy
 
-#### influxdb
-
-### **influxdb** — influxdb lifecycle: reached end-of-life (3.9, 3.8, 3.7, 3.6, 3.5, 3.4, 3.3, 3.2, 3.1, 3.0)
-
-Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
-
-Scope: `3.9`, `3.8`, `3.7`, `3.6`, `3.5`, `3.4`, `3.3`, `3.2`, `3.1`, `3.0`
-
-Timing: Effective 2025-06-25 (already effective)
-
-Why it matters: EOL effective for scoped versions `3.9`, `3.8`, `3.7`, `3.6`, `3.5`, `3.4`, `3.3`, `3.2`, `3.1`, `3.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
-
-Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
-
-Evidence:
-- https://endoflife.date/influxdb
-
 #### istio
 
 ### **istio** — istio lifecycle: approaching end-of-life (1.31, 1.30, 1.29)
@@ -5048,6 +3617,23 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 
 Evidence:
 - https://endoflife.date/istio
+
+#### jaeger
+
+### **jaeger** — jaeger 1 is end-of-life
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `1`
+
+Timing: Effective 2025-12-31 (already effective)
+
+Why it matters: EOL effective for scoped versions `1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/jaeger
 
 #### jenkins
 
@@ -5129,6 +3715,38 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 
 Evidence:
 - https://endoflife.date/kyverno
+
+#### mariadb
+
+### **mariadb** — mariadb 13.0 EOL approaching (2026-12-31)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: `13.0`
+
+Timing: Effective 2026-12-31 (upcoming; first detection unrecorded)
+
+Why it matters: EOL announced but not yet effective: watch
+
+Investigate: Note the upcoming date; confirm you have migration runway.
+
+Evidence:
+- https://endoflife.date/mariadb
+
+### **mariadb** — mariadb lifecycle: reached end-of-life (12.2, 12.1, 12.0, 11.7, 11.6, 11.5, 11.3, 11.2, 11.1, 11.0, 10.10, 10.9, 10.8, 10.7, 10.6, 10.5, 10.4, 10.3, 10.2, 10.1, 10.0, 5.5, 5.3, 5.2, 5.1)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `12.2`, `12.1`, `12.0`, `11.7`, `11.6`, `11.5`, `11.3`, `11.2`, `11.1`, `11.0`, `10.10`, `10.9`, `10.8`, `10.7`, `10.6`, `10.5`, `10.4`, `10.3`, `10.2`, `10.1`, `10.0`, `5.5`, `5.3`, `5.2`, `5.1`
+
+Timing: Effective 2015-02-01 (already effective)
+
+Why it matters: EOL effective for scoped versions `12.2`, `12.1`, `12.0`, `11.7`, `11.6`, `11.5`, `11.3`, `11.2`, `11.1`, `11.0`, `10.10`, `10.9`, `10.8`, `10.7`, `10.6`, `10.5`, `10.4`, `10.3`, `10.2`, `10.1`, `10.0`, `5.5`, `5.3`, `5.2`, `5.1`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/mariadb
 
 #### maven
 
@@ -5264,6 +3882,53 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 Evidence:
 - https://endoflife.date/numpy
 
+#### php
+
+### **php** — php lifecycle: ended active support (8.3, 8.2)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
+
+Scope: `8.3`, `8.2`
+
+Timing: Effective 2024-12-31 (already effective)
+
+Why it matters: active support ended: review support posture
+
+Investigate: Track the affected versions in your inventory; schedule migration planning.
+
+Evidence:
+- https://endoflife.date/php
+
+### **php** — php 8.2 EOL approaching (2026-12-31)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: `8.2`
+
+Timing: Effective 2026-12-31 (upcoming; first detection unrecorded)
+
+Why it matters: EOL announced but not yet effective: watch
+
+Investigate: Note the upcoming date; confirm you have migration runway.
+
+Evidence:
+- https://endoflife.date/php
+
+### **php** — php lifecycle: reached end-of-life (8.1, 8.0, 7.4, 7.3, 7.2, 7.1, 7.0, 5.6, 5.5, 5.4, 5.3, 5.2, 5.1, 5.0)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `8.1`, `8.0`, `7.4`, `7.3`, `7.2`, `7.1`, `7.0`, `5.6`, `5.5`, `5.4`, `5.3`, `5.2`, `5.1`, `5.0`
+
+Timing: Effective 2005-09-05 (already effective)
+
+Why it matters: EOL effective for scoped versions `8.1`, `8.0`, `7.4`, `7.3`, `7.2`, `7.1`, `7.0`, `5.6`, `5.5`, `5.4`, `5.3`, `5.2`, `5.1`, `5.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/php
+
 #### pulsar
 
 ### **pulsar** — apache-pulsar lifecycle: reached end-of-life (4.2, 4.1, 3.3, 3.2, 3.1, 3.0, 2.11, 2.10, 2.9, 2.8, 2.7, 2.6, 2.5)
@@ -5380,6 +4045,38 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 
 Evidence:
 - https://endoflife.date/solr
+
+#### spark
+
+### **spark** — apache-spark 4.0 EOL approaching (2026-11-23)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
+
+Scope: `4.0`
+
+Timing: Effective 2026-11-23 (upcoming; first detection unrecorded)
+
+Why it matters: EOL announced but not yet effective: watch
+
+Investigate: Note the upcoming date; confirm you have migration runway.
+
+Evidence:
+- https://endoflife.date/apache-spark
+
+### **spark** — apache-spark lifecycle: reached end-of-life (3.4, 3.3, 3.2, 3.1, 3.0, 2.4, 2.3, 2.2, 2.1, 2.0, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0)
+
+Category: Lifecycle · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (ACTION)
+
+Scope: `3.4`, `3.3`, `3.2`, `3.1`, `3.0`, `2.4`, `2.3`, `2.2`, `2.1`, `2.0`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`
+
+Timing: Effective 2014-09-03 (already effective)
+
+Why it matters: EOL effective for scoped versions `3.4`, `3.3`, `3.2`, `3.1`, `3.0`, `2.4`, `2.3`, `2.2`, `2.1`, `2.0`, `1.6`, `1.5`, `1.4`, `1.3`, `1.2`, `1.1`, `1.0`: evidence and scope justify action-oriented framing (applies only if you run these versions)
+
+Investigate: Check whether you run the affected versions (`openpulse check --watchlist <file>`); plan upgrade or extended support.
+
+Evidence:
+- https://endoflife.date/apache-spark
 
 #### spring-boot
 
@@ -5558,993 +4255,16 @@ Investigate: Check whether you run the affected versions (`openpulse check --wat
 Evidence:
 - https://endoflife.date/zookeeper
 
-#### Catalog-wide registry observations
-
-### **registry sweep** — Tag `sha256-8590b45e13ef6b71521eccfd07f6c5b95f9ed61d7b8814ffaea63fd0dd6b565c` appeared in bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnami/redis:sha256-8590b45e13ef6b71521eccfd07f6c5b95f9ed61d7b8814ffaea63fd0dd6b565c`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-8590b45e13ef6b71521eccfd07f6c5b95f9ed61d7b8814ffaea63fd0dd6b565c.sig` appeared in bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnami/redis:sha256-8590b45e13ef6b71521eccfd07f6c5b95f9ed61d7b8814ffaea63fd0dd6b565c.sig`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-e4994d08134e6188f52b3edc02b8649658b5d53bb34caf9fcae0e637943d083b` appeared in bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnami/redis:sha256-e4994d08134e6188f52b3edc02b8649658b5d53bb34caf9fcae0e637943d083b`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-f4797b37502e6db910d3653368fcfadc171ef605586917774de125ddd05b3e62.metadata` appeared in bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnami/redis:sha256-f4797b37502e6db910d3653368fcfadc171ef605586917774de125ddd05b3e62.metadata`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-33a5a129cadcc5dfa294e5a1fe622efcbe3774a8b85c731ac14d0532877b7d16.metadata` disappeared from bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnami/redis:sha256-33a5a129cadcc5dfa294e5a1fe622efcbe3774a8b85c731ac14d0532877b7d16.metadata`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-76b9a363de4559ada5d69524de636551cc6c6e29478f0d43f881e8121cf54619` disappeared from bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnami/redis:sha256-76b9a363de4559ada5d69524de636551cc6c6e29478f0d43f881e8121cf54619`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-76b9a363de4559ada5d69524de636551cc6c6e29478f0d43f881e8121cf54619.sig` disappeared from bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnami/redis:sha256-76b9a363de4559ada5d69524de636551cc6c6e29478f0d43f881e8121cf54619.sig`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-f8d8801dc53e868bafebbf9ed9e507ab0b281d6be00c383f41fec0abdab5ae5c` disappeared from bitnami/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnami/redis:sha256-f8d8801dc53e868bafebbf9ed9e507ab0b281d6be00c383f41fec0abdab5ae5c`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnami/redis/tags
-
-### **registry sweep** — Tag `sha256-6650a0496138ade09492d7f2c0e601edd2d5fc17de72288094eb1ad044ca1f8e` appeared in bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-6650a0496138ade09492d7f2c0e601edd2d5fc17de72288094eb1ad044ca1f8e`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-c11dd243eff5342629395da5e0fe95c85953b4be81385a8d4a94293f00f834dc` appeared in bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-c11dd243eff5342629395da5e0fe95c85953b4be81385a8d4a94293f00f834dc`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-c11dd243eff5342629395da5e0fe95c85953b4be81385a8d4a94293f00f834dc.sig` appeared in bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-c11dd243eff5342629395da5e0fe95c85953b4be81385a8d4a94293f00f834dc.sig`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-f4797b37502e6db910d3653368fcfadc171ef605586917774de125ddd05b3e62.metadata` appeared in bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-f4797b37502e6db910d3653368fcfadc171ef605586917774de125ddd05b3e62.metadata`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-3137e956206543da840944d24debce8cfd2b230440aba6c12df96a5f3496ec9f` disappeared from bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-3137e956206543da840944d24debce8cfd2b230440aba6c12df96a5f3496ec9f`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-33a5a129cadcc5dfa294e5a1fe622efcbe3774a8b85c731ac14d0532877b7d16.metadata` disappeared from bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-33a5a129cadcc5dfa294e5a1fe622efcbe3774a8b85c731ac14d0532877b7d16.metadata`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-84bd2bcfeedd860d07e54082e00f7767ab6738633dcb6577473a9899b4033658` disappeared from bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-84bd2bcfeedd860d07e54082e00f7767ab6738633dcb6577473a9899b4033658`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `sha256-84bd2bcfeedd860d07e54082e00f7767ab6738633dcb6577473a9899b4033658.sig` disappeared from bitnamisecure/redis
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/bitnamisecure/redis:sha256-84bd2bcfeedd860d07e54082e00f7767ab6738633dcb6577473a9899b4033658.sig`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/bitnamisecure/redis/tags
-
-### **registry sweep** — Tag `19beta4` appeared in library/postgres
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/postgres:19beta4`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Tag `19beta4-bookworm` disappeared from library/postgres
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/postgres:19beta4-bookworm`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Digest behind `19beta4-alpine` changed in library/postgres — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/postgres:19beta4-alpine`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Digest behind `19beta4-alpine3.23` changed in library/postgres — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/postgres:19beta4-alpine3.23`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Digest behind `19beta4-alpine3.24` changed in library/postgres — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/postgres:19beta4-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Digest behind `19beta4-trixie` changed in library/postgres — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/postgres:19beta4-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/postgres/tags
-
-### **registry sweep** — Digest behind `lts` changed in library/mysql — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mysql:lts`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mysql/tags
-
-### **registry sweep** — Digest behind `lts-oracle` changed in library/mysql — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mysql:lts-oracle`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mysql/tags
-
-### **registry sweep** — Digest behind `lts-oraclelinux9` changed in library/mysql — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mysql:lts-oraclelinux9`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mysql/tags
-
-### **registry sweep** — Digest behind `oracle` changed in library/mysql — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mysql:oracle`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mysql/tags
-
-### **registry sweep** — Digest behind `oraclelinux9` changed in library/mysql — republished under the same name
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mysql:oraclelinux9`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mysql/tags
-
-### **registry sweep** — Tag `9.0-nanoserver-ltsc2022` appeared in library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mongo:9.0-nanoserver-ltsc2022`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `9.0.2-nanoserver` appeared in library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mongo:9.0.2-nanoserver`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `9.0.2-nanoserver-ltsc2022` appeared in library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mongo:9.0.2-nanoserver-ltsc2022`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `nanoserver` appeared in library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mongo:nanoserver`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `nanoserver-ltsc2022` appeared in library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/mongo:nanoserver-ltsc2022`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `8.3-noble` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:8.3-noble`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `8.3.11` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:8.3.11`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `8.3.11-noble` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:8.3.11-noble`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `latest` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:latest`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `noble` disappeared from library/mongo
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/mongo:noble`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/mongo/tags
-
-### **registry sweep** — Tag `alpine3.24-perl` appeared in library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/nginx:alpine3.24-perl`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `mainline-alpine-perl` appeared in library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/nginx:mainline-alpine-perl`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `mainline-alpine3.24-perl` appeared in library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/nginx:mainline-alpine3.24-perl`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `stable-alpine-perl` appeared in library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/nginx:stable-alpine-perl`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `stable-alpine3.24-perl` appeared in library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/nginx:stable-alpine3.24-perl`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `1.30-alpine3.24` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:1.30-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `1.30.5-alpine` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:1.30.5-alpine`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `1.30.5-alpine3.24` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:1.30.5-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `stable-alpine` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:stable-alpine`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `stable-alpine3.24` disappeared from library/nginx
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/nginx:stable-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/nginx/tags
-
-### **registry sweep** — Tag `3.10-slim` appeared in library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/python:3.10-slim`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.10-slim-trixie` appeared in library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/python:3.10-slim-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.10.21-slim` appeared in library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/python:3.10.21-slim`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.10.21-slim-trixie` appeared in library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/python:3.10.21-slim-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.11.16-slim-trixie` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.11.16-slim-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.12-slim` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.12-slim`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.12-slim-trixie` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.12-slim-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `3.12.14-slim` disappeared from library/python
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/python:3.12.14-slim`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/python/tags
-
-### **registry sweep** — Tag `1.27-trixie` appeared in library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/golang:1.27-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `1.27.1` appeared in library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/golang:1.27.1`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `1.27.1-trixie` appeared in library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/golang:1.27.1-trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `latest` appeared in library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/golang:latest`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `trixie` appeared in library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (WATCH)
-
-Scope: `docker.io/library/golang:trixie`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: distribution observation without high significance: watch
-
-Investigate: No action; track the repository for further changes.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `tip-20260920-alpine3.23` disappeared from library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/golang:tip-20260920-alpine3.23`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `tip-20260920-alpine3.24` disappeared from library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/golang:tip-20260920-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `tip-alpine` disappeared from library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/golang:tip-alpine`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `tip-alpine3.23` disappeared from library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/golang:tip-alpine3.23`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
-### **registry sweep** — Tag `tip-alpine3.24` disappeared from library/golang
-
-Category: Distribution · Evidence confidence: EMERGING · Assessment: PROJECT_CHANGE (REVIEW)
-
-Scope: `docker.io/library/golang:tip-alpine3.24`
-
-Timing: Effective 2026-10-01 · Warning window: 0 days (Detected 2026-10-01 → Effective 2026-10-01)
-
-Why it matters: high-significance distribution change: review
-
-Investigate: Confirm whether this is a removal or a rename (pull/mirror check); review pinned references.
-
-Evidence:
-- https://hub.docker.com/r/library/golang/tags
-
 ### B. Source references
 
-Finding source distribution: NVD 49.2%, endoflife.date 29.9%
+Finding source distribution: NVD 52.3%, endoflife.date 47.7%
 Independent source families observed: 2 (across 2 recorded source labels).
 
 ### C. Data gaps and limitations
 
-No signals observed for: bitnami-redis-stack, buildkit, celery, cockroach, coredns, cosign, crio, crossplane, falco, fastapi, helm, itext, junit, k9s, kustomize, langchain, linkerd, loki, minio, nats, nest, ollama, opa, opentelemetry, pandas, pytest, pytorch, redpanda, requests, tensorflow, tidb, timescaledb, transformers, trivy, typescript, valkey, vault, vite, webpack.
+No signals observed for: bitnami-redis-stack, buildkit, celery, cockroach, coredns, cosign, crio, crossplane, falco, fastapi, flask, helm, itext, junit, k9s, kustomize, langchain, linkerd, minio, nats, nest, ollama, opa, opentelemetry, pytest, pytorch, qdrant, redpanda, requests, tensorflow, tidb, transformers, trivy, typescript, valkey, vault, vite.
 
-308 related-but-unconfirmed or below-bar records held back (see `openpulse analyze` for the full stream).
+317 related-but-unconfirmed or below-bar records held back (see `openpulse analyze` for the full stream).
 
 ### D. Notes
 
