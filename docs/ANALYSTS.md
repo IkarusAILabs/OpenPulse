@@ -86,15 +86,44 @@ traces to an evidence URL or named collector output.
 ## Monthly report (`reports/generate.py`)
 
 `collect_project` turns one raw bundle into pulse + findings;
-`build_report` ranks items into action-worthy / watch / informational
-with named evidence per item. Supporting source URLs (endoflife links,
-release/advisory URLs) print beneath each item, deduplicated; recency
-(`--since`) and relationship (`--include-related`) filters keep the
-monthly narrative honest. `openpulse report --month YYYY-MM`
-runs the catalog live or from `--raw-bundle-dir` offline bundles.
-`--with-sweep` adds a Distribution discovery section from live
-registry diffs — the first report content no lifecycle database
-could provide.
+`build_report` ranks them into a decision-support briefing —
+Executive Summary, Top Changes (deterministic evidence-aware rank:
+non-lifecycle first, then actionability, confidence, upcoming
+dates), Reference Discovery, Changes Requiring Attention, Upcoming
+Changes (first-detection warning windows only), Category Overview,
+Evidence Quality, What OpenPulse Added This Month, For Your
+Environment, and an Appendix with every finding, sources, and gaps. Finding cards show
+category, evidence confidence (`finding_confidence`: declared
+finding confidence, else strong→CONFIRMED, weak→UNVERIFIED, else
+EMERGING), assessment, scope, timing, a conditional recommended
+investigation, and evidence refs — never `_analyst` or raw impact
+proposals. Recency (`--since`) and relationship
+(`--include-related`) filters keep the monthly narrative honest.
+`openpulse report --month YYYY-MM` runs the catalog live or from
+`--raw-bundle-dir` offline bundles. `--with-sweep` feeds live
+registry diffs into the ranking, the reference story, and the
+appendix — the first report content no lifecycle database could
+provide. `## What OpenPulse Added This Month` is the demonstrated-value section: upstream detection per present category, dependency
+attribution with scope-kind examples (plus the Bitnami namespace
+distinction when bitnami evidence is present), evidence-backed
+counts, early-warning maxima, a six-stage reference case built
+solely from the reference finding's data, and the public-to-early-
+warning progression. Empty dimensions are omitted, never padded.
+
+## Lifecycle posture report (`reports/lifecycle.py`)
+
+`collect_lifecycle_status` turns one raw bundle's endoflife.date
+entries into structured posture (effective EOL, upcoming deadlines
+with trustworthy dates, ended support, or explicit NO-DATA);
+`build_lifecycle_report` renders the planning view — Executive
+Summary, Upcoming Deadlines (soonest first, dated only), Recently
+Ended (last year, capped, overflow noted), Coverage Gaps grouped by
+reason, Top Planning Items (soonest deadlines, then recent ends,
+then confirmed EOL by version count), and the full matrix as an
+appendix. NO-DATA is a coverage limitation, never an OK state.
+`openpulse lifecycle-report --month YYYY-MM` runs endoflife.date
+live or from `--raw-bundle-dir` offline bundles. Day counts derive
+from an explicit `today`, so renders stay deterministic.
 
 ## Distribution discovery (`core/observations/sweep.py`)
 

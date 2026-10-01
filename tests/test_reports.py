@@ -41,14 +41,14 @@ def test_report_groups_and_counts():
         ),
     ]
     md = build_report("2026-09", items)
-    assert "3 projects monitored" in md
-    assert "2 significant events" in md
-    assert "## What changed this month?" in md
-    assert "### Lifecycle changes (2)" in md
+    assert "- Projects monitored: 3" in md
+    assert "- Material changes (action + review): 2" in md
+    assert "## Top Changes" in md
+    assert "| Lifecycle | 2 | 0 |" in md
     assert "Public report findings describe OSS ecosystem changes" in md
-    assert "c-proj" not in md.split("## Where our data is incomplete")[0]
+    assert "c-proj" not in md.split("### C. Data gaps")[0]
     assert "c-proj" in md  # named as having no signals
-    assert md.index("What changed") < md.index("What appears actionable?")
+    assert md.index("## Top Changes") < md.index("## Changes Requiring Attention")
 
 
 def test_report_actionable_requires_scope_and_state():
@@ -76,10 +76,10 @@ def test_report_actionable_requires_scope_and_state():
         "2026-09",
         [_item("django", [scoped]), _item("x", [unscoped])],
     )
-    actionable = md.split("## What appears actionable?")[1]
-    assert "django 5.0 is end-of-life" in actionable
-    assert "Why:" in actionable and "5.0" in actionable
-    assert "x 9 is end-of-life" not in actionable
+    attention = md.split("## Changes Requiring Attention")[1].split("## Upcoming Changes")[0]
+    assert "django 5.0 is end-of-life" in attention
+    assert "Scope:" in attention and "5.0" in attention
+    assert "x 9 is end-of-life" not in attention
 
 
 def test_report_archived_is_review_never_actionable():
@@ -95,11 +95,9 @@ def test_report_archived_is_review_never_actionable():
         "sources": ["github"],
     }
     md = build_report("2026-09", [_item("minio", [finding])])
-    assert "### Project signals (1)" in md
-    actionable = md.split("## What appears actionable?")[1].split(
-        "## Where our data is incomplete"
-    )[0]
-    assert "archived" not in actionable
+    assert "| Repository | 1 | 0 |" in md
+    attention = md.split("## Changes Requiring Attention")[1].split("## Upcoming Changes")[0]
+    assert "archived" not in attention
 
 
 def test_report_source_and_gap_sections():
@@ -122,14 +120,12 @@ def test_report_source_and_gap_sections():
             )
         ],
     )
-    assert "## Sources" in md
+    assert "### B. Source references" in md
     assert "NVD" in md and "OSV" in md
-    assert "cite 2+ sources" in md
-    # NVD + OSV share the vuln-data family: label-corroborated but not
+    # NVD + OSV share the vuln-data family: label-listed but not
     # family-corroborated — the report must say so honestly.
-    assert "0 are corroborated across" in md
     assert "Independent source families observed: 1" in md
-    assert "## Where our data is incomplete" in md
+    assert "### C. Data gaps and limitations" in md
 
 
 def test_report_names_evidence():
@@ -151,8 +147,10 @@ def test_report_names_evidence():
         )
     ]
     md = build_report("2026-09", items)
-    assert "Evidence: security, nvd, osv" in md
+    assert "Sources: nvd, osv" in md
+    assert "Evidence confidence:" in md
     assert "https://example.com/x" in md
+    assert "_analyst=" not in md
 
 
 def test_collect_project_from_fixture():
@@ -192,7 +190,7 @@ def test_report_cli_offline(tmp_path):
     )
     assert result.exit_code == 0, result.output
     text = out.read_text(encoding="utf-8")
-    assert "# OpenPulse — 2026-09" in text
+    assert "# OpenPulse Monthly Intelligence — 2026-09" in text
     assert "#### redis" in text
     # Public/customer boundary travels with every generated report.
     assert "whether it affects YOUR dependencies" in text
@@ -211,7 +209,7 @@ def test_report_counts_findings_not_projects():
             ],
         }
     ]
-    assert "2 significant events" in build_report("2026-09", items)
+    assert "- Material changes (action + review): 2" in build_report("2026-09", items)
 
 
 def test_report_recency_holds_back_stale_dated_findings():
@@ -232,10 +230,10 @@ def test_report_recency_holds_back_stale_dated_findings():
             ],
         }
 
-    assert "0 significant events" in build_report(
+    assert "- Material changes (action + review): 0" in build_report(
         "2026-09", [item("2017-01-01")], since="2026-07-01"
     )
-    assert "1 significant events" in build_report(
+    assert "- Material changes (action + review): 1" in build_report(
         "2026-09", [item("2026-08-15")], since="2026-07-01"
     )
 
@@ -252,7 +250,9 @@ def test_report_undated_change_findings_always_pass():
             ],
         }
     ]
-    assert "1 significant events" in build_report("2026-09", items, since="2026-07-01")
+    assert "- Material changes (action + review): 1" in build_report(
+        "2026-09", items, since="2026-07-01"
+    )
 
 
 def test_render_finding_never_prints_none():
@@ -285,9 +285,13 @@ def test_report_holds_back_stale_lifecycle():
     from reports.generate import build_report
 
     old = {"project": "p", "pulse": {"facets": {}}, "findings": [_finding(event_date="2020-01-01")]}
-    assert "0 significant events" in build_report("2026-09", [old], since="2026-07-01")
+    assert "- Material changes (action + review): 0" in build_report(
+        "2026-09", [old], since="2026-07-01"
+    )
     new = {"project": "p", "pulse": {"facets": {}}, "findings": [_finding(event_date="2026-08-15")]}
-    assert "1 significant events" in build_report("2026-09", [new], since="2026-07-01")
+    assert "- Material changes (action + review): 1" in build_report(
+        "2026-09", [new], since="2026-07-01"
+    )
 
 
 def test_report_excludes_related_counts_them():
@@ -304,13 +308,13 @@ def test_report_excludes_related_counts_them():
         }
     ]
     md = build_report("2026-09", items)
-    assert "1 significant events" in md
+    assert "- Material changes (action + review): 1" in md
     assert "1 related-but-unconfirmed or below-bar records held back" in md
     md_all = build_report("2026-09", items, include_related=True)
     # Same class merges into ONE coherent story even when narrated.
-    assert "1 significant events" in md_all
+    assert "- Material changes (action + review): 1" in md_all
     assert "lifecycle:" in md_all
-    assert "held back" not in md_all
+    assert "0 records held back" in md_all
 
 
 def test_report_prints_supporting_urls_once():
@@ -334,7 +338,7 @@ def test_report_prints_supporting_urls_once():
         "2026-09",
         [{"project": "redis", "pulse": {"facets": {}}, "findings": [finding]}],
     )
-    assert md.count("https://endoflife.date/redis") == 1
+    assert md.count("https://endoflife.date/redis") == 2  # top card + appendix card
 
 
 def _sweep_finding():
@@ -359,7 +363,8 @@ def test_report_renders_sweep_section():
     from reports.generate import build_report
 
     md = build_report("2026-09", [], sweep_findings=[_sweep_finding()])
-    assert "## Distribution discovery (1)" in md
+    assert "## OpenPulse Reference Discovery" in md
+    assert "## Top Changes" in md
     assert "docker.io/bitnami/redis:7.2" in md
     assert "https://hub.docker.com/r/bitnami/redis/tags" in md
 
@@ -368,7 +373,7 @@ def test_report_without_sweep_has_no_section():
     from reports.generate import build_report
 
     md = build_report("2026-09", [])
-    assert "Distribution discovery" not in md
+    assert "Reference Discovery" not in md
 
 
 def _dated_finding(**kw):
@@ -402,7 +407,7 @@ def test_report_shows_lead_time_for_upcoming_change():
             )
         ],
     )
-    assert "Lead time: 28 days (2026-09-01 → 2026-09-29)" in md
+    assert "Warning window: 28 days (Detected 2026-09-01 → Effective 2026-09-29)" in md
 
 
 def test_report_silent_lead_time_for_past_or_unknown():
@@ -419,7 +424,7 @@ def test_report_silent_lead_time_for_past_or_unknown():
             _item("unknown", [_dated_finding(observed_at="2026-09-01")]),
         ],
     )
-    assert "Lead time" not in md
+    assert "Warning window:" not in md
 
 
 def test_public_report_never_claims_customer_impact():
@@ -456,6 +461,6 @@ def test_public_report_never_claims_customer_impact():
         ],
     )
     assert "Assessment: ACTION_REQUIRED" not in md
-    assert "never ACTION_REQUIRED" in md
+    assert "does not establish that a specific customer environment is affected" in md
     assert "Assessment: PROJECT_CHANGE" in md
-    assert "Applicability:" in md
+    assert "Scope:" in md

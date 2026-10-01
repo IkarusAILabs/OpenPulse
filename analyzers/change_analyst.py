@@ -397,6 +397,7 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
                         "tag": c.get("tag"),
                         "previous_digests": c.get("previous"),
                         "current_digests": c.get("current"),
+                        "tags_present": c.get("tags_present") or [],
                     },
                 },
                 "supporting": [c],

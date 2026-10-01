@@ -221,6 +221,10 @@ def test_report_related_claims_no_affection():
         }
     ]
     md = build_report("2026-09", items).lower()
+    # Affection language must not appear in the findings narrative (Top
+    # Changes through Appendix). The For-Your-Environment boilerplate
+    # after that point may name the product pipeline in the abstract.
+    narrative = md.split("## for your environment")[0]
     for phrase in (
         "affects_artifact",
         "affects_version",
@@ -229,6 +233,6 @@ def test_report_related_claims_no_affection():
         "is affected by",
         "you are affected",
     ):
-        assert phrase not in md
+        assert phrase not in narrative
     # The disclaimer negates customer impact explicitly — required.
     assert "not assertions that a particular customer's environment" in md

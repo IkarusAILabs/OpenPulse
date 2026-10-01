@@ -158,6 +158,10 @@ class Change(BaseModel):
     current_chain: str | None = Field(
         default=None, description="Current observation chain_hash (tamper-evident link)"
     )
+    tags_present: list[str] | None = Field(
+        default=None,
+        description="Tags present in the current observation (grounds NOT-AFFECTED scope)",
+    )
     first_detected_at: datetime | None = Field(
         default=None, description="First history scan that surfaced this change"
     )
@@ -212,6 +216,7 @@ def diff_observations(prev: RegistryObservation | None, curr: RegistryObservatio
         "current_hash": curr.content_hash,
         "previous_chain": prev.chain_hash,
         "current_chain": curr.chain_hash,
+        "tags_present": sorted(curr.tags or {}),
         "parser_version": curr.parser_version,
     }
     if curr.missing and not prev.missing:

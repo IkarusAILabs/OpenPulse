@@ -6,6 +6,7 @@ URL or a named collector output — no invented facts.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from core.schema.models import OSSEvent
@@ -85,6 +86,185 @@ def render_finding_md(finding: dict[str, Any]) -> str:
         f"(_analyst={finding.get('analyst')}, suggested impact={impact}_)\n"
         f"{summary}"
     )
+
+
+#: Display-only evidence confidence for findings. Findings carry
+#: relationships and strengths, not event confidence — this maps what
+#: exists onto the report vocabulary WITHOUT inventing corroboration:
+#: explicit finding confidence wins; a directly observed fact from one
+#: source is EMERGING (single credible); heuristics are UNVERIFIED;
+#: only reserved official announcements could be CONFIRMED.
+_VALID_CONFIDENCE = ("CONFIRMED", "CORROBORATED", "EMERGING", "UNVERIFIED")
+
+CONFIDENCE_MEANINGS = {
+    "CONFIRMED": "official announcement from the source itself",
+    "CORROBORATED": "confirmed by 2+ independent source families",
+    "EMERGING": "single credible source",
+    "UNVERIFIED": "weak or unconfirmed signal — never action-framed",
+}
+
+
+def finding_confidence(finding: dict[str, Any]) -> str:
+    """Report vocabulary confidence for one finding (display, not semantics)."""
+    if not isinstance(finding, dict):
+        return "UNVERIFIED"
+    declared = str(finding.get("confidence") or "").upper()
+    if declared in _VALID_CONFIDENCE:
+        return declared
+    strength = str(finding.get("evidence_strength") or "").lower()
+    if strength == "strong":
+        return "CONFIRMED"
+    if strength == "weak":
+        return "UNVERIFIED"
+    return "EMERGING"
+
+
+#: (category, eligibility) -> recommended investigation. Conditional
+#: wording only ("check whether") — instructions, never claims about
+#: the reader's environment.
+_INVESTIGATIONS = {
+    ("Lifecycle", "ACTION"): (
+        "Check whether you run the affected versions "
+        "(`openpulse check --watchlist <file>`); plan upgrade or extended support."
+    ),
+    ("Lifecycle", "REVIEW"): (
+        "Track the affected versions in your inventory; schedule migration planning."
+    ),
+    ("Lifecycle", "WATCH"): "Note the upcoming date; confirm you have migration runway.",
+    ("Distribution", "ACTION"): (
+        "Verify pulls and mirrors for the affected artifacts; "
+        "plan migration off affected references."
+    ),
+    ("Distribution", "REVIEW"): (
+        "Confirm whether this is a removal or a rename (pull/mirror check); "
+        "review pinned references."
+    ),
+    ("Distribution", "WATCH"): "No action; track the repository for further changes.",
+    ("Security", "ACTION"): (
+        "Check whether the affected package and version are in your inventory; "
+        "prioritize by severity and KEV status."
+    ),
+    ("Security", "REVIEW"): (
+        "Assess whether the affected package and version are in your inventory."
+    ),
+    ("Security", "WATCH"): "Track the advisory; confirm exposure if a version match emerges.",
+}
+
+_FALLBACK_INVESTIGATION = {
+    "ACTION": "Investigate whether this change touches your inventory; scope first, then plan.",
+    "REVIEW": "Review in the next planning cycle.",
+    "WATCH": "Watch for further changes; no action now.",
+}
+
+
+def recommended_investigation(finding: dict[str, Any], category: str = "") -> str:
+    """One conditional next step for a finding card."""
+    eligibility = ((finding.get("_assessment") or {}) if isinstance(finding, dict) else {}).get(
+        "eligibility", ""
+    )
+    if not eligibility and isinstance(finding, dict):
+        eligibility = str(finding.get("impact", "")).upper()
+    hit = _INVESTIGATIONS.get((category, str(eligibility)))
+    if hit:
+        return hit
+    return _FALLBACK_INVESTIGATION.get(str(eligibility), "Track this signal for changes.")
+
+
+def _scope_line(finding: dict[str, Any]) -> str:
+    scope = finding.get("scope") or {}
+    parts: list[str] = []
+    for key in ("versions", "artifacts", "packages", "registries"):
+        for value in scope.get(key) or []:
+            parts.append(str(value))
+    if parts:
+        return ", ".join(f"`{p}`" for p in parts)
+    return str(scope.get("kind", "project"))
+
+
+def _timing_line(finding: dict[str, Any]) -> str:
+    """Effective date + warning window. Silence when nothing is known."""
+    from datetime import date
+
+    from core.leadtime import finding_lead_time, parse_day
+
+    effective = parse_day(finding.get("effective_at") or finding.get("event_date"))
+    days, detected, eff = finding_lead_time(finding)
+    if days is not None and detected and eff:
+        return (
+            f"Effective {eff} · Warning window: {days} days "
+            f"(Detected {detected} → Effective {eff})"
+        )
+    if effective is not None:
+        if effective > date.today():
+            return f"Effective {effective} (upcoming; first detection unrecorded)"
+        return f"Effective {effective} (already effective)"
+    return "Effective date unknown"
+
+
+def _why_line(finding: dict[str, Any]) -> str:
+    reasons = (finding.get("_assessment") or {}).get("reasons") or []
+    text = str(reasons[0]) if reasons else str(finding.get("summary") or "No assessment recorded.")
+    # Assessment reasons embed Python list reprs (scoped versions
+    # ['5.0']) — render them as readable version literals.
+    return re.sub(r"\['([^']+)'(?:, '([^']+)')*\]", _version_list, text)
+
+
+def _version_list(match: re.Match) -> str:
+    inner = match.group(0)[1:-1]
+    parts = [p.strip().strip("'\"") for p in inner.split(",")]
+    return ", ".join(f"`{p}`" for p in parts if p)
+
+
+def render_finding_card(
+    project: str,
+    finding: dict[str, Any],
+    category: str,
+    number: int | None = None,
+    max_refs: int | None = None,
+) -> str:
+    """One decision-support block. No implementation metadata
+    (`_analyst`, raw impact proposals): only category, evidence
+    confidence, assessment, scope, timing, investigation, evidence.
+    """
+    assessment = (finding.get("_assessment") or {}) if isinstance(finding, dict) else {}
+    head = f"**{project}** — {finding.get('title', 'untitled')}"
+    if number is not None:
+        head = f"{number}. {head}"
+    lines = [
+        f"### {head}",
+        "",
+        f"Category: {category} · Evidence confidence: {finding_confidence(finding)} · "
+        f"Assessment: {assessment.get('assessment', '?')} ({assessment.get('eligibility', '?')})",
+        "",
+        f"Scope: {_scope_line(finding)}",
+        "",
+    ]
+    if finding.get("affected_package"):
+        lines.append(
+            f"Affected dependency: {finding['affected_package']} "
+            f"{finding.get('affected_version') or '(version unknown)'}"
+        )
+        lines.append("")
+    sources = [str(s) for s in (finding.get("sources") or []) if s]
+    if sources:
+        lines.append(f"Sources: {', '.join(sources)}")
+        lines.append("")
+    lines += [
+        f"Timing: {_timing_line(finding)}",
+        "",
+        f"Why it matters: {_why_line(finding)}",
+        "",
+        f"Investigate: {recommended_investigation(finding, category)}",
+    ]
+    refs = [r for r in (finding.get("_refs") or []) if r]
+    if refs:
+        lines.append("")
+        lines.append("Evidence:")
+        shown = refs if max_refs is None else refs[:max_refs]
+        lines += [f"- {ref}" for ref in shown]
+        if max_refs is not None and len(refs) > max_refs:
+            lines.append(f"- (+{len(refs) - max_refs} more in the appendix)")
+    return "\n".join(lines)
 
 
 def render_security_finding_md(finding: dict[str, Any]) -> str:

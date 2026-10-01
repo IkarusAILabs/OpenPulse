@@ -310,6 +310,50 @@ def report(month, projects, raw_bundle_dir, out, since, include_related, with_sw
     click.echo(f"wrote {destination} ({len(items)} projects)")
 
 
+@cli.command(name="lifecycle-report")
+@click.option("--month", required=True, help="Report month, e.g. 2026-09")
+@click.option("--projects", default="", help="Comma-separated slugs (default: whole catalog)")
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles",
+)
+@click.option("--out", default="", help="Output path (default reports/lifecycle-{month}.md)")
+def lifecycle_report(month, projects, raw_bundle_dir, out):
+    """Lifecycle posture and planning view over seed projects."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.entities.catalog import endoflife_map, load_catalog
+    from reports.lifecycle import build_lifecycle_report, collect_lifecycle_status
+
+    slugs = [s.strip() for s in projects.split(",") if s.strip()] or [
+        e["slug"] for e in load_catalog()
+    ]
+    live_collector = None
+    statuses = []
+    for slug in slugs:
+        raw = None
+        if raw_bundle_dir:
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                raw = _json.loads(bundle.read_text(encoding="utf-8"))
+        if raw is None:
+            if raw_bundle_dir:
+                click.echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
+                continue
+            if live_collector is None:
+                from collectors.endoflife.collector import EndoflifeCollector
+
+                live_collector = EndoflifeCollector(endoflife_map())
+            raw = {"endoflife": live_collector.collect(slug)}
+        statuses.append(collect_lifecycle_status(slug, raw))
+    markdown = build_lifecycle_report(month, statuses)
+    destination = out or f"reports/lifecycle-{month}.md"
+    _Path(destination).write_text(markdown + "\n", encoding="utf-8")
+    click.echo(f"wrote {destination} ({len(statuses)} projects)")
+
+
 def _load_yaml(path: str) -> dict:
     """Bounded YAML load with clean errors (mirrors _load_json)."""
     import os as _os
