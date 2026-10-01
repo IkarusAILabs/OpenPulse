@@ -175,6 +175,38 @@ pytest -q
 
 Expected `demo-bitnami` result: 🚨 on every `bitnami*` ref, ✅ on upstream `redis` / `postgres` / `nginx` — the distinction traditional tooling doesn't make.
 
+## Outputs — what you get
+
+Every month OpenPulse produces two decision-support briefings (see
+`reports/` for real examples). They read like security intelligence,
+not database exports: ranked findings with evidence confidence,
+scope, timing, and a recommended investigation — never raw CVE/EOL
+dumps, never claims about your environment without a watchlist.
+
+![October 2026 monthly intelligence briefing](docs/screenshot-report.png)
+
+**Monthly intelligence** (`openpulse report --month YYYY-MM [--with-sweep]`):
+
+- Executive Summary — material changes, attention items, upcoming
+  warnings, non-lifecycle discoveries, evidence confidence, data gaps.
+- Top Changes — deterministic evidence-aware ranking (non-lifecycle
+  first, never raw counts).
+- Reference Discovery — the strongest non-lifecycle story, broken
+  out as WHAT / WHY / HOW DETECTED / AFFECTED / NOT AFFECTED /
+  EVIDENCE / WARNING WINDOW.
+- Changes Requiring Attention, Upcoming Changes (first-detection
+  warning windows only), Category Overview, Evidence Quality.
+- What OpenPulse Added This Month — value demonstrated from the
+  report's own data, ending in the public → watchlist → impact →
+  warning progression.
+- Appendix with every finding, sources, and gaps.
+
+**Lifecycle posture** (`openpulse lifecycle-report --month YYYY-MM`):
+
+- Executive Summary, Upcoming Deadlines table (soonest first),
+  Recently Ended, Coverage Gaps (NO-DATA is a limitation, never OK),
+  Top Planning Items, and the full coverage matrix as an appendix.
+
 ## Repo layout
 
 ```
