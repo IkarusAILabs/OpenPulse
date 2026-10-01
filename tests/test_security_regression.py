@@ -136,7 +136,11 @@ def test_corrupted_json_history_is_untrusted(tmp_path):
 
     result = sweep_catalog(_catalog(), _probe(["latest"]), store_root=tmp_path)
     assert result["errors"] == []
-    directory = next(p for p in (tmp_path / "docker.io" / "demo" / "app").glob("*.json"))
+    from core.observations.store import list_observations
+
+    files = list_observations("docker.io", "demo", "app", root=tmp_path)
+    assert len(files) == 1
+    directory = files[0]
     record = json.loads(directory.read_text(encoding="utf-8"))
     record["observed_at"] = "not-a-timestamp"  # keep hashes: chain must still break
     directory.write_text(json.dumps(record), encoding="utf-8")
