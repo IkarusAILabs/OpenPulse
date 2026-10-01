@@ -108,6 +108,29 @@ def _eligibility(finding: dict[str, Any]) -> dict[str, Any]:
         }
 
 
+def _trust_block(finding: dict[str, Any]) -> list[str]:
+    """Machine-checkable trust boundary per finding: what was observed,
+    what it applies to, what was concluded, and how actionable it is.
+
+    Observed change, dependency match, impact, and actionability stay
+    on separate lines so no reader — human or machine — can mistake
+    ecosystem framing for a claim about their environment.
+    """
+    assessment = finding.get("_assessment") or {}
+    scope = finding.get("scope") or {}
+    applies: list[str] = []
+    for key in ("versions", "artifacts", "packages", "registries"):
+        for value in scope.get(key) or []:
+            applies.append(str(value))
+    lines = [
+        f"Assessment: {assessment.get('assessment', '?')} "
+        f"(eligibility {assessment.get('eligibility', '?')})"
+    ]
+    applies_line = ", ".join(applies) if applies else scope.get("kind", "project")
+    lines.append(f"Applicability: {applies_line}")
+    return lines
+
+
 def _lead_time_line(finding: dict[str, Any]) -> str | None:
     """One honest sentence when a finding carries both detection and effect.
 
@@ -218,6 +241,7 @@ def build_report(
             lead = _lead_time_line(finding)
             if lead:
                 lines.append(lead)
+            lines += _trust_block(finding)
             lines.append("")
             lines += _dependency_block(finding)
             evidence = [finding.get("analyst", "analyst")]
@@ -255,6 +279,7 @@ def build_report(
             lead = _lead_time_line(finding)
             if lead:
                 lines.append(lead)
+            lines += _trust_block(finding)
             lines.append("")
             artifacts = [
                 a.get("ref")
@@ -293,6 +318,12 @@ def build_report(
     ]
     lines.append("## What appears actionable?")
     lines.append("")
+    lines.append(
+        "_Action-oriented ecosystem framing, not customer impact: without "
+        "a linked dependency in your inventory this is never ACTION_REQUIRED. "
+        "Run `openpulse check` against a watchlist to cross the boundary._"
+    )
+    lines.append("")
     if not actionable:
         lines.append(
             "No changes met the action bar this month: nothing with "
@@ -318,8 +349,10 @@ def build_report(
         lines.append(f"No signals observed for: {', '.join(silent)}.")
         lines.append("")
     lines.append(
-        f"{metrics['single_source_findings']} findings rest on a single source; "
-        f"{metrics['corroborated_findings']} are corroborated by 2+ sources; "
+        f"{metrics['single_source_findings']} findings rest on a single recorded source; "
+        f"{metrics['corroborated_findings']} cite 2+ sources, of which "
+        f"{metrics['corroborating_family_count']} are corroborated across "
+        "independent source families; "
         f"{metrics['no_source_findings']} carry no recorded source."
     )
     lines.append("")
@@ -333,7 +366,10 @@ def build_report(
         )
     else:
         lines.append("Finding source distribution: no findings this month.")
-    lines.append(f"Independent sources observed: {metrics['independent_sources']}.")
+    lines.append(
+        f"Independent source families observed: {metrics['source_family_count']} "
+        f"(across {metrics['source_count']} recorded source labels)."
+    )
     lines.append("")
     if notes:
         lines.append("## Notes")

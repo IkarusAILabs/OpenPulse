@@ -28,6 +28,26 @@ _SOURCE_LABELS = {
     "security": "OpenPulse security analysis",
 }
 
+#: Source labels folded into independent families. Labels starting
+#: with "OpenPulse" are derived correlation, not independent sources —
+#: they never count toward corroboration.
+_SOURCE_FAMILIES = {
+    "endoflife.date": "lifecycle-data",
+    "GitHub": "upstream-vcs",
+    "NVD": "vuln-data",
+    "OSV": "vuln-data",
+    "CVE": "vuln-data",
+    "CISA KEV": "vuln-data",
+    "Registry": "distribution",
+}
+
+
+def _family(label: str) -> str | None:
+    """Independent family for a label, or None when derived/internal."""
+    if label.startswith("OpenPulse"):
+        return None
+    return _SOURCE_FAMILIES.get(label, label)
+
 
 def _finding_sources(finding: dict[str, Any]) -> list[str]:
     """Distinct normalized source labels behind one finding."""
@@ -62,9 +82,16 @@ def finding_source_distribution(
     One vote per finding (multi-evidence findings do not skew the
     distribution). Tiers: corroborated (2+ distinct sources),
     single-source (exactly 1), no-source (none recorded).
+
+    Independence is counted in source *families*, not labels: NVD +
+    OSV corroborate as one vuln-data family only when joined by a
+    second family, and OpenPulse's own correlation never counts as
+    an independent source. ``independent_sources`` is kept as a
+    legacy alias of the label count; prefer ``source_family_count``.
     """
     counts: dict[str, int] = {}
     corroborated = single_source = no_source = 0
+    family_hits = 0
     for finding in findings or []:
         sources = _finding_sources(finding if isinstance(finding, dict) else {})
         if not sources:
@@ -76,14 +103,21 @@ def finding_source_distribution(
             single_source += 1
         for source in sources:
             counts[source] = counts.get(source, 0) + 1
+        families = {f for f in (_family(s) for s in sources) if f}
+        if len(families) >= 2:
+            family_hits += 1
     total = corroborated + single_source + no_source
     distribution = {
         source: round(100.0 * count / total, 1) if total else 0.0
         for source, count in sorted(counts.items(), key=lambda kv: -kv[1])
     }
+    families = {f for label in counts for f in [_family(label)] if f}
     return {
         "finding_source_distribution": distribution,
         "independent_sources": len(counts),
+        "source_count": len(counts),
+        "source_family_count": len(families),
+        "corroborating_family_count": family_hits,
         "single_source_findings": single_source,
         "corroborated_findings": corroborated,
         "no_source_findings": no_source,

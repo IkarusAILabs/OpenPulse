@@ -85,7 +85,7 @@ Repositories monitored is a vanity metric. The commercially meaningful one is:
 
 > **Early Warning Lead Time** — time between OpenPulse detecting a material upstream change and that change producing an observable impact on the customer's environment.
 
-The goal: *"We identified an upstream change 47 days before it affected the customer's pipeline."* We will not publish an average until independently measured customer incidents make it defensible — until then, verified case studies (Bitnami first).
+"Detecting" means first trustworthy detection (`first_detected_at`), never the latest re-observation; unknown first detection means no lead-time claim. The goal: *"We identified an upstream change 47 days before it affected the customer's pipeline."* We will not publish an average until independently measured customer incidents make it defensible — until then, verified case studies (Bitnami first).
 
 ## What OpenPulse does
 
@@ -133,10 +133,16 @@ everything else. We do not compete on EOL record counts.
 
 - **7 collectors**: GitHub releases, OSV, NVD, MITRE CVE, CISA KEV, endoflife.date, Docker Hub registries. All degrade gracefully (errors become data, never crashes).
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
-- **Change engine**: digest-aware registry observations, local history, observation diffs (`openpulse observe`).
-- **Entity resolution**: canonical catalog with PURL builders and Bitnami-namespace rules.
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end.
-- **140+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit).
+- **Change engine**: tamper-evident digest-aware registry observations
+  (hash-chained local history, frozen sealed records, per-repo locks),
+  observation diffs (`openpulse observe`), catalog sweep with
+  first-detection tracking (`openpulse sweep`, `report --with-sweep`).
+- **Entity resolution**: canonical catalog with PURL builders,
+  Bitnami-namespace rules, and identity trust (VERIFIED /
+  REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
+  EMERGING).
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
+- **240+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
 ## Quickstart
 

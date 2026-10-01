@@ -35,6 +35,18 @@ registry_artifact, purl, cpe) record *why* two names were treated as
 the same thing. Same identity evidence = same thing; same name is
 never enough.
 
+Every resolution carries an identity status: VERIFIED (curated
+mappings and self-identity), REVIEW_REQUIRED (heuristic rules or
+flagged catalog entries, e.g. broad aliases), UNVERIFIED
+(explicitly distrusted). Catalog entries that need it declare an
+`identity:` block (status, source, reviewed_at, maintainer,
+confidence, note) — never mechanically, only where ambiguity lives
+(aliases, forks, renames, distributions, namespace collisions).
+Affected verdicts that rely on REVIEW_REQUIRED/UNVERIFIED mappings
+are capped at EMERGING confidence: unverified identity can never
+silently elevate impact. Exact artifact equality needs no mapping
+and is never capped.
+
 ## Vulnerability correlation methodology
 
 NVD `keywordSearch` is **discovery**, never applicability. Findings
@@ -62,10 +74,14 @@ strengthens a conclusion.
 
 Every claim names supporting evidence (`Claim.evidence_refs`); an
 official-but-unrelated source never satisfies a claim. Corroboration
-counts independent families, folding `derived_from` chains.
-Contradicting evidence stays visible (`⚠️ CONTRADICTS`); unresolved
-conflict blocks `ACTION`/`CRITICAL`. High-impact conclusions require
-official/primary authority or hashed provenance.
+counts independent families, folding `derived_from` chains — and the
+monthly report counts families, not labels: NVD + OSV share the
+vuln-data family, and OpenPulse's own correlation never counts as an
+independent source (`source_family_count`,
+`corroborating_family_count`). Contradicting evidence stays visible
+(`⚠️ CONTRADICTS`); unresolved conflict blocks `ACTION`/`CRITICAL`.
+High-impact conclusions require official/primary authority or hashed
+provenance.
 
 ## Confidence
 
@@ -74,9 +90,14 @@ official/primary authority or hashed provenance.
 - EMERGING: single credible secondary.
 - UNVERIFIED: weak/rumor — never triggers ACTION alone.
 
-Official evidence proves the statement *from that source*; it does not
-automatically prove the user's dependency is affected. Impact coupling
-is enforced by the gate.
+Match strength and evidence strength are separate axes
+(`core/risk/check.py`): an exact artifact match answers *what
+matches*; the event's evidence answers *how trustworthy the claim
+is*. Final verdict confidence is the conservative minimum of the
+two — a precise match on a weak claim stays weak. Official evidence
+proves the statement *from that source*; it does not automatically
+prove the user's dependency is affected. Impact coupling is enforced
+by the gate.
 
 Finding confidence follows the same ladder at analyst level
 (`AFFECTS_*` from ≥2 sources → CORROBORATED, else EMERGING;
@@ -117,11 +138,17 @@ EOL detected never equals ACTION_REQUIRED — that needs inventory.
 
 ## Lead time
 
-Upcoming changes carry their remaining warning in days:
-effective − observed, per finding (`core/leadtime.py`). Unknown or
-already-past effective dates print nothing — silence, not a number.
-Lead times are never averaged, ranked, or marketed: the metric stays
-instrumented but unclaimed until independently measured incidents exist.
+Upcoming changes carry their warning in days: effective −
+first_detected_at, per finding (`core/leadtime.py`). First detection
+is the first trustworthy OpenPulse detection of the change —
+re-observations never stand in, and an unknown first detection means
+no lead-time claim (never estimated). Unknown or already-past
+effective dates print nothing — silence, not a number. Temporal
+roles are never conflated: published/announcement (source claims),
+first detection (our discovery), last observation (confirmation),
+effective (applies). Lead times are never averaged, ranked, or
+marketed: the metric stays instrumented but unclaimed until
+independently measured incidents exist.
 
 ## Registry observations
 
@@ -130,6 +157,28 @@ map, content hash (`core/observations/`). Tags are mutable pointers,
 never identities. First sighting is a baseline; changes derive only
 from observation diffs. History lives in git-ignored local JSON —
 portable, no server.
+
+Observations are tamper-evident: every persisted record carries a
+chain hash `H[n] = SHA256(canonical_fields(n) + H[n-1])` over
+observation id, source, entity, timestamps, content hash, parser
+version, and predecessor link; the first record links to an explicit
+`genesis` marker. Histories verify VALID / BROKEN / UNKNOWN —
+a broken chain is never diffed against (no findings, no append;
+the corrupt predecessor stays on disk as evidence). Sealed records
+are frozen; concurrent writers serialize on a per-repository lock
+with atomic writes, and history is ordered by chain links, never
+filenames. Threat model: the chain defeats silent corruption,
+partial edits, and rollback/fork anomalies — not an adversary who
+recomputes the whole suffix (no secrets in a local-first store).
+
+Every registry-derived finding retains first-class observation
+evidence (`observation_evidence`: observation ids, hashes, chain
+links, timestamps, the exact diff fact). The public Hub URL is
+reader context; the observation identity is the machine evidence.
+Diffs are candidate changes with explicit evidence strength
+(observed fact: moderate; namespace heuristic: weak) — weak
+evidence caps report placement at REVIEW and can never become
+ACTION_REQUIRED, however precise the dependency match.
 
 ## Uncertainty handling
 
@@ -165,6 +214,25 @@ Conflicting evidence → visible + blocking for strong actions.
   is intelligence; impact requires a dependency.
 - Public intelligence (what changed in OSS) ≠ customer intelligence
   (does it affect my software). Public reports never assert the second.
+- MATCH STRENGTH ≠ EVIDENCE STRENGTH — precise identity answers
+  "what matches", never "how trustworthy is the claim".
+- HEURISTIC DETECTION ≠ AUTHORITATIVE EVIDENCE — discovery leads
+  stay capped until confirmed.
+- OBSERVED DATE ≠ FIRST DETECTED DATE — re-observation is
+  confirmation, not discovery.
+
+## Webhook security boundary (`core/notify.py`)
+
+Digest webhooks POST to operator-supplied URLs, but OpenPulse runs
+automated — so delivery enforces an SSRF policy: https by default
+(http needs `--webhook-allow-http` opt-in), no credentials in URLs,
+every resolved IP checked (loopback, link-local incl. the cloud
+metadata range, RFC1918/ULA, CGNAT, multicast, reserved, and named
+metadata endpoints all rejected — one blocked address refuses the
+whole delivery), redirects never followed, short timeout, bounded
+response body, failures never log secrets. Known limitation: DNS is
+resolved before connecting, so a hostile resolver could race the
+check; short timeouts and no-redirects bound the blast radius.
 
 ## Verdict decision matrix (`core/risk/check.py`)
 
@@ -172,7 +240,10 @@ AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE >
 NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN.
 `affected` is True only for ARTIFACT/VERSION/PACKAGE. A stronger
 negative (evaluated version outside the range) beats RELATED/UNKNOWN;
-no weaker match overrides it. Verdict confidence: ARTIFACT →
-CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
+no weaker match overrides it. The match implies a confidence *ceiling*
+(ARTIFACT → CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
 EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
-UNVERIFIED.
+UNVERIFIED); the verdict takes the minimum of that ceiling and the
+evidence behind the event. NOT_AFFECTED carries the explicit
+NOT_AFFECTED assessment (informational/cleared) — a negative is never
+combinable with an AFFECTS_* assessment.

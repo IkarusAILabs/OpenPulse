@@ -201,30 +201,32 @@ def demo_bitnami():
 def observe(namespace, repository, store):
     """Probe a Docker Hub repo, persist the observation, diff against history."""
     from collectors.registries.docker import RegistryCollector
-    from core.observations.registry import diff_observations, to_observation
-    from core.observations.store import load_previous, save_observation
+    from core.observations.sweep import observe_repository
 
     probe = RegistryCollector().check_image(namespace, repository)
     if probe.get("error"):
         click.echo(f"error: {probe.get('safe_message')} (category={probe.get('category')})")
         raise SystemExit(1)
-    current = to_observation(probe)
-    previous_raw = load_previous("docker.io", namespace, repository, root=store)
-    from core.observations.registry import RegistryObservation
-
-    previous = RegistryObservation(**previous_raw) if previous_raw else None
-    changes = diff_observations(previous, current)
-    path = save_observation(current.model_dump(mode="json"), root=store)
-    click.echo(f"saved: {path}")
-    if previous is None:
+    result = observe_repository("docker.io", namespace, repository, probe, store_root=store)
+    if result["error"] is not None:
+        click.echo(
+            f"error: {result['error'].get('safe_message')} "
+            f"(category={result['error'].get('category')})"
+        )
+        raise SystemExit(1)
+    click.echo(f"saved: {result['saved_path']}")
+    if result["history_status"] == "GENESIS":
         click.echo("baseline recorded — no previous observation, no change claims.")
         return
-    if not changes:
+    if not result["changes"]:
         click.echo("no changes since last observation.")
         return
-    for change in changes:
-        click.echo(f"- {change.type}: {change.tag or ''} {change.previous} -> {change.current}")
-    for finding in change_analyst.analyze_diffs([c.model_dump(mode="json") for c in changes]):
+    for change in result["changes"]:
+        click.echo(
+            f"- {change['type']}: {change.get('tag') or ''} "
+            f"{change.get('previous')} -> {change.get('current')}"
+        )
+    for finding in change_analyst.analyze_diffs(result["changes"]):
         click.echo("\n" + report_analyst.render_finding_md(finding))
 
 
@@ -405,7 +407,12 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     default="",
     help="POST the digest markdown to a JSON-text webhook (e.g. Slack incoming)",
 )
-def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
+@click.option(
+    "--webhook-allow-http",
+    is_flag=True,
+    help="Opt in to plain-http webhooks (https is required by default)",
+)
+def check(watchlist, events, raw_bundle_dir, strict, digest, webhook, webhook_allow_http):
     """Dependency Early Warning: evaluate a watchlist against events."""
     import json as _json
     from pathlib import Path as _Path
@@ -437,9 +444,11 @@ def check(watchlist, events, raw_bundle_dir, strict, digest, webhook):
         text = render_check_digest(results)
         _echo(text)
         if webhook:
-            from core.notify import post_digest
+            from core.notify import WebhookPolicy, post_digest
 
-            delivery = post_digest(webhook, text)
+            delivery = post_digest(
+                webhook, text, policy=WebhookPolicy(allow_http=webhook_allow_http)
+            )
             if delivery["ok"]:
                 _echo(f"posted digest (http {delivery['status_code']})")
             else:

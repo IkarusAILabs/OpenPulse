@@ -90,7 +90,11 @@ def test_package_dep_affected_version(event):
     assert result.affected is True
     assert result.relationship == "AFFECTS_VERSION"
     assert result.match_method == "osv_package+version_range"
-    assert result.confidence == "CORROBORATED"
+    # Single-source range hit: scoped match, EMERGING evidence — the
+    # precise match must not inflate confidence to CORROBORATED (§5).
+    assert result.match_strength == "scoped"
+    assert result.evidence_confidence == "EMERGING"
+    assert result.confidence == "EMERGING"
 
 
 def test_package_dep_fixed_version_cleared(event):
@@ -291,39 +295,42 @@ def test_check_cli_digest_flag():
     assert "## 🚨 AFFECTED (1)" in out.output
 
 
-def test_post_digest_success(monkeypatch):
+def _mock_transport(status=200, location=None):
     import httpx
 
+    def handler(request):
+        headers = {"location": location} if location else {}
+        return httpx.Response(status, headers=headers, request=request)
+
+    return httpx.MockTransport(handler)
+
+
+def test_post_digest_success():
     from core.notify import post_digest
 
-    seen = {}
-
-    class FakeResponse:
-        status_code = 200
-
-        def raise_for_status(self):
-            pass
-
-    def fake_post(url, json, timeout):
-        seen.update(url=url, json=json, timeout=timeout)
-        return FakeResponse()
-
-    monkeypatch.setattr(httpx, "post", fake_post)
-    result = post_digest("https://hooks.example/x", "# digest")
+    result = post_digest(
+        "https://hooks.example/x",
+        "# digest",
+        transport=_mock_transport(200),
+        resolver=lambda host: ["93.184.216.34"],
+    )
     assert result == {"ok": True, "status_code": 200, "error": None}
-    assert seen["json"] == {"text": "# digest"}
 
 
-def test_post_digest_failure_never_raises(monkeypatch):
+def test_post_digest_failure_never_raises():
     import httpx
 
     from core.notify import post_digest
 
-    def fake_post(url, json, timeout):
+    def boom(request):
         raise httpx.ConnectTimeout("down")
 
-    monkeypatch.setattr(httpx, "post", fake_post)
-    result = post_digest("https://hooks.example/x", "md")
+    result = post_digest(
+        "https://hooks.example/x",
+        "md",
+        transport=httpx.MockTransport(boom),
+        resolver=lambda host: ["93.184.216.34"],
+    )
     assert result["ok"] is False
     assert result["status_code"] is None
     assert post_digest("ftp://x", "md")["ok"] is False
@@ -339,7 +346,7 @@ def test_check_cli_webhook_posts_digest(monkeypatch):
     monkeypatch.setattr(
         notify,
         "post_digest",
-        lambda url, text, timeout=15.0: (
+        lambda url, text, **kw: (
             seen.update(url=url) or {"ok": True, "status_code": 200, "error": None}
         ),
     )

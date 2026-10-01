@@ -25,16 +25,25 @@
   github: bitnami/containers
   aliases: [bitnami/redis, bitnamilegacy/redis, bitnamisecure/redis]
   docker_images: [docker.io/bitnami/redis, docker.io/bitnamilegacy/redis, docker.io/bitnamisecure/redis]
+  identity:
+    status: VERIFIED
+    source: "curated distribution aliases for the Bitnami Redis stack (bitnami/containers)"
+    reviewed_at: "2026-10-01"
+    maintainer: openpulse
+    confidence: high
+    note: "distribution of redis, not the redis project: docker.io/bitnami/redis and docker.io/redis are different stacks"
 - slug: redis
   display_name: Redis
   github: redis/redis
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
   docker_images: [docker.io/library/redis]
-  identity_source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
-  reviewed_at: "2026-09-26"
-  maintainer: openpulse
-  confidence: high
+  identity:
+    status: VERIFIED
+    source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
+    reviewed_at: "2026-09-26"
+    maintainer: openpulse
+    confidence: high
 - slug: postgresql
   display_name: PostgreSQL
   github: postgres/postgres
@@ -48,10 +57,12 @@
   endoflife: apache-kafka
   aliases: [kafka, apache/kafka]
   docker_images: []
-  identity_source: "apache-kafka maps to the Kafka project (not a separate product)"
-  reviewed_at: "2026-09-26"
-  maintainer: openpulse
-  confidence: high
+  identity:
+    status: VERIFIED
+    source: "apache-kafka maps to the Kafka project (not a separate product)"
+    reviewed_at: "2026-09-26"
+    maintainer: openpulse
+    confidence: high
 - slug: keycloak
   display_name: Keycloak
   github: keycloak/keycloak
@@ -154,10 +165,13 @@
   website: https://spring.io/projects/spring-boot
   aliases: [spring-boot, spring]
   docker_images: []
-  identity_source: "spring maps to Spring Boot (spring-projects/spring-boot), not the wider Spring portfolio"
-  reviewed_at: "2026-09-26"
-  maintainer: openpulse
-  confidence: medium
+  identity:
+    status: REVIEW_REQUIRED
+    source: "spring maps to Spring Boot (spring-projects/spring-boot), not the wider Spring portfolio"
+    reviewed_at: "2026-09-26"
+    maintainer: openpulse
+    confidence: medium
+    note: "broad alias ('spring') may over-match Spring portfolio artifacts; strong conclusions need narrower identity"
 - slug: nginx
   display_name: NGINX
   github: nginx/nginx

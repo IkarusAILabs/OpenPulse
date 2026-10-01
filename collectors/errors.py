@@ -6,6 +6,10 @@ details. Collectors must return `as_error(...)` dicts instead of
 `safe_message`) with the raw detail kept out of findings, events, and
 reports. Full tracebacks stay available locally by re-running with
 tracebacks enabled — never embedded in pipeline data.
+
+This is the shared acquisition-error policy for collectors, the
+registry sweep, webhook delivery, CLI output, and stored error
+records: same shape, same redaction, everywhere.
 """
 
 from __future__ import annotations
@@ -21,11 +25,13 @@ _SECRET_RE = re.compile(
     re.IGNORECASE,
 )
 _QUERY_RE = re.compile(r"\?[^\s]*")
+_URL_USERINFO_RE = re.compile(r"(https?://)[^/\s@]+@", re.IGNORECASE)
 
 
 def redact(text: str) -> str:
-    """Strip paths, query strings, and secret-looking fragments."""
+    """Strip paths, query strings, URL userinfo, and secret-looking fragments."""
     text = _PATH_RE.sub("<path>", text)
+    text = _URL_USERINFO_RE.sub(r"\1<redacted>@", text)
     text = _QUERY_RE.sub("", text)
     return _SECRET_RE.sub("<redacted>", text)
 

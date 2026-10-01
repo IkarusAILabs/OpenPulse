@@ -74,7 +74,9 @@ def test_matrix_not_affected_version_has_reason():
     assert result.relationship == "NOT_AFFECTED"
     assert result.affected is False
     assert "5.2" in result.reason and "5.0" in result.reason
-    assert result.confidence == "CORROBORATED"
+    # Exclusion proven by a single secondary source: EMERGING, not the
+    # old match-implied CORROBORATED (§5).
+    assert result.confidence == "EMERGING"
 
 
 def test_matrix_unknown_version_is_related_not_unknown_impact():

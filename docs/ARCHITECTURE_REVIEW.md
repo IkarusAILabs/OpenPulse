@@ -180,3 +180,46 @@ deliberately tightened correlation:
   10-test security boundary contract (`tests/test_boundary.py`),
   strengthened north-star regression. Method: `IMPLEMENTATION_PLAN.md`;
   record: `IMPLEMENTATION_SUMMARY.md`.
+
+## Addendum - Trust-boundary hardening (v0.5.0 line)
+
+Objective: make it harder for OpenPulse to be wrong — no conclusion
+stronger than its evidence, identity, observation integrity, or
+applicability. No redesign, no database, no new runtime dependencies.
+
+- **Tamper-evident observations** (`core/observations/chain.py`):
+  `H[n] = SHA256(canonical_fields(n) + H[n-1])`, explicit `genesis`
+  baseline, VALID / BROKEN / UNKNOWN verification. Broken history is
+  never diffed or appended to; history is ordered by chain links, not
+  filenames. Sealed records are frozen (mutation raises); per-repo
+  lock + atomic writes serialize concurrent sweeps.
+- **First-class observation evidence**: every registry finding keeps
+  `observation_evidence` (ids, hashes, chain links, timestamps, exact
+  diff fact) plus an explicit evidence strength; weak evidence caps at
+  REVIEW in both public and dependency-context paths.
+- **Match vs evidence confidence** (`core/risk/check.py`): verdict
+  confidence is min(match ceiling, event evidence); exact-artifact
+  equality is exempt as self-identity. `NOT_AFFECTED` is now an
+  explicit assessment (informational/cleared), never combinable with
+  AFFECTS_*.
+- **Identity trust** (`core/entities/identity.py`): VERIFIED /
+  REVIEW_REQUIRED / UNVERIFIED with formal catalog `identity:` blocks
+  only where ambiguity lives; untrusted mappings cap affected verdicts
+  at EMERGING.
+- **Lead time** (`core/leadtime.py`): effective minus first_detected
+  only; observed_at never stands in; unknown first detection means
+  no claim.
+- **Webhook SSRF policy** (`core/notify.py`): https-by-default, no
+  credentials, resolved-IP blocklists, no redirects, bounded bodies.
+- **Shared error policy** (`collectors/errors.py`): same shape and
+  redaction for collectors, sweep, webhooks, CLI, stored records.
+- **Family-counted independence**: reports count source families, and
+  correlation output never counts as an independent source.
+- **CI**: lock-drift check, deterministic SBOM, secret tripwire,
+  packaging smoke — all stdlib, each with a documented threat model.
+
+Known limitations: hash chains detect corruption and partial edits,
+not an adversary who recomputes the whole suffix (no secrets in a
+local-first store); DNS rebinding races the webhook check (bounded,
+documented); the secret tripwire complements but does not replace
+push protection.

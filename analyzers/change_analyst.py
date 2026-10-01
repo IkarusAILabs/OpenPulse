@@ -31,6 +31,16 @@ DETECTION_REGISTRY_OBSERVATION = "registry_observation"
 DETECTION_NAMESPACE_HEURISTIC = "namespace_heuristic"
 DETECTION_OFFICIAL_ANNOUNCEMENT = "official_distribution_announcement"
 
+#: Evidence strength carried by registry-diff findings. A directly
+#: observed probe/diff fact is ``moderate`` — a real fact from one
+#: source, not corroboration and not authority. Heuristic detections
+#: (namespace patterns) are ``weak``: discovery leads, never evidence.
+#: Only official distribution announcements (no producer yet) may be
+#: ``strong``. ``core.risk.impact`` caps weak findings at REVIEW.
+EVIDENCE_MODERATE = "moderate"
+EVIDENCE_WEAK = "weak"
+EVIDENCE_STRONG = "strong"
+
 #: Lifecycle temporal states (P1 §8): announced/upcoming vs effective.
 STATE_EFFECTIVE = "EFFECTIVE"
 STATE_UPCOMING = "UPCOMING"
@@ -182,6 +192,7 @@ def analyze_registries(
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "high",
                     "detection_method": DETECTION_NAMESPACE_HEURISTIC,
+                    "evidence_strength": EVIDENCE_WEAK,
                     "distribution_model_change": True,
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
@@ -217,6 +228,7 @@ def analyze_registries(
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "medium",
                     "detection_method": DETECTION_REGISTRY_OBSERVATION,
+                    "evidence_strength": EVIDENCE_MODERATE,
                     "scope": {"kind": "artifact", "artifacts": [ref]},
                     "affected_versions": ["*"],
                     "affected_artifacts": [{"kind": "docker-image", "ref": f"{ref}:<version>"}],
@@ -238,6 +250,7 @@ def analyze_registries(
                     "lifecycle_state": STATE_EFFECTIVE,
                     "significance": "high",
                     "detection_method": DETECTION_REGISTRY_OBSERVATION,
+                    "evidence_strength": EVIDENCE_MODERATE,
                     "scope": {"kind": "artifact", "artifacts": [ref]},
                     "affected_versions": ["*"],
                     "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
@@ -327,10 +340,18 @@ DIFF_RULES = {
 
 
 def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> list[dict[str, Any]]:
-    """Detected observation diffs -> findings (no diff, no finding)."""
+    """Detected observation diffs -> findings (no diff, no finding).
+
+    Every finding retains first-class observation evidence: the exact
+    diff fact plus the immutable identity (ids, hashes, timestamps)
+    of both observations behind it. The public URL is context for
+    readers; the observation identity is the evidence for machines.
+    """
     today = today or date.today()
     findings = []
     for c in changes:
+        if not isinstance(c, dict):
+            continue
         rule = DIFF_RULES.get(str(c.get("type", "")))
         if not rule:
             continue
@@ -348,13 +369,36 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
                 "impact": impact,
                 "significance": significance,
                 "detection_method": DETECTION_REGISTRY_OBSERVATION,
+                "evidence_strength": EVIDENCE_MODERATE,
                 "observed_at": str(today),
+                "first_detected_at": c.get("first_detected_at"),
                 "effective_at": observed,
                 "lifecycle_state": STATE_EFFECTIVE,
                 "scope": {"kind": "artifact", "artifacts": [ref]},
                 "affected_versions": ["*"],
                 "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
                 "references": [f"https://hub.docker.com/r/{ns}/{repo}/tags"],
+                "observation_evidence": {
+                    "observation_id": c.get("current_observation_id"),
+                    "source": "docker-hub",
+                    "source_url": f"https://hub.docker.com/r/{ns}/{repo}/tags",
+                    "observed_at": observed,
+                    "content_hash": c.get("current_hash"),
+                    "chain_hash": c.get("current_chain"),
+                    "parser_version": c.get("parser_version"),
+                    "previous_observation_id": c.get("previous_observation_id"),
+                    "previous_observation_hash": c.get("previous_chain")
+                    or c.get("previous_hash"),
+                    "previous_observed_at": c.get("previous_observed_at"),
+                    "previous_content_hash": c.get("previous_hash"),
+                    "fact": {
+                        "type": c.get("type"),
+                        "image": f"docker.io/{ns}/{repo}",
+                        "tag": c.get("tag"),
+                        "previous_digests": c.get("previous"),
+                        "current_digests": c.get("current"),
+                    },
+                },
                 "supporting": [c],
             }
         )

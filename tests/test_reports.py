@@ -124,7 +124,11 @@ def test_report_source_and_gap_sections():
     )
     assert "## Sources" in md
     assert "NVD" in md and "OSV" in md
-    assert "corroborated by 2+ sources" in md
+    assert "cite 2+ sources" in md
+    # NVD + OSV share the vuln-data family: label-corroborated but not
+    # family-corroborated — the report must say so honestly.
+    assert "0 are corroborated across" in md
+    assert "Independent source families observed: 1" in md
     assert "## Where our data is incomplete" in md
 
 
@@ -389,7 +393,8 @@ def test_report_shows_lead_time_for_upcoming_change():
                 "x",
                 [
                     _dated_finding(
-                        observed_at="2026-09-01",
+                        first_detected_at="2026-09-01",
+                        observed_at="2026-09-20",
                         effective_at="2026-09-29",
                         event_date="2026-09-29",
                     )
@@ -406,8 +411,51 @@ def test_report_silent_lead_time_for_past_or_unknown():
     md = build_report(
         "2026-09",
         [
-            _item("past", [_dated_finding(observed_at="2026-09-26", effective_at="2026-04-30")]),
-            _item("unknown", [_dated_finding()]),
+            _item(
+                "past",
+                [_dated_finding(first_detected_at="2026-09-26", effective_at="2026-04-30")],
+            ),
+            # observed_at without first detection: no claim, never estimated.
+            _item("unknown", [_dated_finding(observed_at="2026-09-01")]),
         ],
     )
     assert "Lead time" not in md
+
+
+def test_public_report_never_claims_customer_impact():
+    from reports.generate import build_report
+
+    md = build_report(
+        "2026-09",
+        [
+            _item(
+                "x",
+                [
+                    _dated_finding(
+                        first_detected_at="2026-09-01",
+                        observed_at="2026-09-20",
+                        effective_at="2026-09-29",
+                        event_date="2026-09-29",
+                    )
+                ],
+            )
+        ],
+        sweep_findings=[
+            {
+                "analyst": "change",
+                "event_type": "DISTRIBUTION_CHANGE",
+                "signal": "distribution",
+                "title": "t",
+                "summary": "s",
+                "impact": "ACTION",
+                "significance": "high",
+                "distribution_model_change": True,
+                "evidence_strength": "weak",
+                "scope": {"kind": "project", "versions": []},
+            }
+        ],
+    )
+    assert "Assessment: ACTION_REQUIRED" not in md
+    assert "never ACTION_REQUIRED" in md
+    assert "Assessment: PROJECT_CHANGE" in md
+    assert "Applicability:" in md

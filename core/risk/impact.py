@@ -21,10 +21,14 @@ from datetime import date
 from typing import Any
 
 #: Assessment vocabulary (§2-§4): claim kinds, weakest first.
+#: NOT_AFFECTED is the explicit negative: the dependency was checked
+#: against the scope and is outside it. It is informational/cleared
+#: semantics — never combinable with an AFFECTS_* assessment.
 PROJECT_SIGNAL = "PROJECT_SIGNAL"
 PROJECT_CHANGE = "PROJECT_CHANGE"
 AFFECTS_DEPENDENCY = "AFFECTS_DEPENDENCY"
 ACTION_REQUIRED = "ACTION_REQUIRED"
+NOT_AFFECTED = "NOT_AFFECTED"
 
 #: Eligibility ladder for report placement.
 INFORMATIONAL = "INFORMATIONAL"
@@ -112,6 +116,11 @@ def _with_context(
     affected = bool(context.get("affected"))
     confidence = str(context.get("confidence") or "UNVERIFIED")
     if verdict in _AFFECTED and affected:
+        # Weak evidence caps the dependency path too: a precise match
+        # on a heuristic claim is AFFECTS at most, never ACTION.
+        if str(finding.get("evidence_strength") or "").lower() == "weak":
+            reasons.append("weak evidence strength: match established, action withheld")
+            return _result(AFFECTS_DEPENDENCY, REVIEW, reasons)
         effective = _effective(finding, today)
         if effective and confidence in _STRONG_CONFIDENCE:
             reasons.append(
@@ -123,10 +132,13 @@ def _with_context(
             f"{verdict} established but action policy not met "
             f"(confidence={confidence}, effective={effective})"
         )
-        return _result(AFFECTS_DEPENDENCY, ACTION, reasons)
-    if verdict == "NOT_AFFECTED":
+        # Weak evidence never enters ACTION channels: at most REVIEW.
+        if confidence in _STRONG_CONFIDENCE:
+            return _result(AFFECTS_DEPENDENCY, ACTION, reasons)
+        return _result(AFFECTS_DEPENDENCY, REVIEW, reasons)
+    if verdict == "NOT_AFFECTED" and not affected:
         reasons.append(str(context.get("reason") or "dependency outside event scope"))
-        return _result(AFFECTS_DEPENDENCY, INFORMATIONAL, reasons)
+        return _result(NOT_AFFECTED, INFORMATIONAL, reasons)
     if verdict == "RELATED":
         reasons.append(str(context.get("reason") or "contextual tie, impact not established"))
         return _result(PROJECT_SIGNAL, WATCH, reasons)
@@ -151,8 +163,32 @@ def _public(
     event_type = str(finding.get("event_type", ""))
     signal = str(finding.get("signal", ""))
     if signal == "security" or finding.get("relationship"):
-        return _public_security(finding, analyst, reasons)
-    return _public_change(finding, event_type, analyst, reasons)
+        result = _public_security(finding, analyst, reasons)
+    else:
+        result = _public_change(finding, event_type, analyst, reasons)
+    return _apply_evidence_cap(finding, result)
+
+
+#: Explicit weak evidence never rises above REVIEW, however strong the
+#: analyst proposal. Missing evidence_strength means the producer
+#: predates strength labeling — legacy tolerance, no cap.
+_WEAK_EVIDENCE_CEILING = REVIEW
+
+
+def _apply_evidence_cap(
+    finding: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
+    if str(finding.get("evidence_strength") or "").lower() != "weak":
+        return result
+    order = {name: rank for rank, name in enumerate(_ELIGIBILITY)}
+    if order.get(result["eligibility"], 0) > order[_WEAK_EVIDENCE_CEILING]:
+        capped = dict(result)
+        capped["eligibility"] = _WEAK_EVIDENCE_CEILING
+        capped["reasons"] = list(result.get("reasons") or []) + [
+            "weak evidence strength caps placement at REVIEW"
+        ]
+        return capped
+    return result
 
 
 def _public_security(

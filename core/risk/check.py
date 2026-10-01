@@ -20,6 +20,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
+from core.entities.identity import resolution_trust
 from core.entities.resolve import resolve_project
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
@@ -37,7 +38,11 @@ _RANK = {
 
 _AFFECTED = ("AFFECTS_ARTIFACT", "AFFECTS_VERSION", "AFFECTS_PACKAGE")
 
-_CONFIDENCE = {
+#: Match strength answers "what matches" — never "how trustworthy is
+#: the underlying claim". The ceiling below is what a match *alone*
+#: can justify; the verdict confidence is the conservative minimum of
+#: this ceiling and the evidence behind the event.
+_MATCH_CEILING = {
     "AFFECTS_ARTIFACT": "CONFIRMED",
     "AFFECTS_VERSION": "CORROBORATED",
     "AFFECTS_PACKAGE": "EMERGING",
@@ -47,6 +52,28 @@ _CONFIDENCE = {
     "UNKNOWN": "UNVERIFIED",
 }
 
+_MATCH_STRENGTH = {
+    "AFFECTS_ARTIFACT": "exact",
+    "AFFECTS_VERSION": "scoped",
+    "AFFECTS_PACKAGE": "scoped",
+    "NOT_AFFECTED": "exclusion",
+    "AFFECTS_PROJECT": "contextual",
+    "RELATED": "contextual",
+    "UNKNOWN": "none",
+}
+
+_CONFIDENCE_ORDER = {"UNVERIFIED": 0, "EMERGING": 1, "CORROBORATED": 2, "CONFIRMED": 3}
+
+#: Identity statuses that must not silently elevate impact. Exact
+#: artifact equality (self-identity) is exempt — see identity.py.
+_UNTRUSTED_IDENTITY = ("REVIEW_REQUIRED", "UNVERIFIED")
+_IDENTITY_CAP = "EMERGING"
+
+
+def _weaker(first: str, second: str) -> str:
+    order = _CONFIDENCE_ORDER
+    return first if order.get(first, 0) <= order.get(second, 0) else second
+
 
 class DependencyVerdict(BaseModel):
     """One dependency, fully explained. `affected` derives from evidence."""
@@ -55,6 +82,9 @@ class DependencyVerdict(BaseModel):
     affected: bool
     relationship: str
     confidence: str = "UNVERIFIED"
+    match_strength: str = "none"
+    evidence_confidence: str = "UNVERIFIED"
+    identity_status: str = "VERIFIED"
     match_method: str | None = None
     evidence: list[str] = Field(default_factory=list)
     events: list[str] = Field(default_factory=list)
@@ -113,6 +143,7 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
     slug = resolve_project(str(dep["package"]))
     if slug != event.project_slug:
         return None
+    trust = resolution_trust(str(dep["package"]))
     scope = event.scope
     version = dep.get("version")
     base: dict[str, Any] = {
@@ -120,6 +151,9 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
         "event_id": event.id,
         "impact": event.impact.value,
         "evidence": [e.source.name for e in event.evidences],
+        "evidence_confidence": event.confidence.value,
+        "identity_status": trust["identity_status"],
+        "identity_via": trust["via"],
     }
     if scope is None:
         return {
@@ -207,6 +241,7 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
         "version": dep.get("version"),
     }
     causes = []
+    trust = resolution_trust(str(dep["package"]))
     for finding in correlate(raw, context):
         relationship = str(finding.get("relationship", "UNKNOWN"))
         if relationship == "UNKNOWN":
@@ -220,6 +255,9 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
                 "event_id": finding.get("cve_id"),
                 "impact": finding.get("impact"),
                 "evidence": list(finding.get("sources", [])),
+                "evidence_confidence": str(finding.get("confidence") or "UNVERIFIED"),
+                "identity_status": trust["identity_status"],
+                "identity_via": trust["via"],
                 "reason": (
                     f"{finding.get('cve_id')} [{relationship}] via {finding.get('match_method')}"
                 ),
@@ -229,7 +267,15 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
 
 
 def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
-    """Explicit decision matrix over retained causes."""
+    """Explicit decision matrix over retained causes.
+
+    Final confidence is the conservative minimum of what the match
+    alone justifies (match ceiling) and the evidence behind the
+    winning cause — a precise match on a weak claim stays weak.
+    Verdicts that rely on untrusted identity mappings (anything but
+    exact artifact equality through REVIEW_REQUIRED/UNVERIFIED
+    mappings) are capped at EMERGING.
+    """
     label = _dep_label(dep)
     if not causes:
         return DependencyVerdict(
@@ -240,9 +286,22 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
         )
     for cause in causes:
         cause.setdefault("detail", cause.get("reason", ""))
+        cause.setdefault("evidence_confidence", "UNVERIFIED")
+        cause.setdefault("identity_status", "VERIFIED")
     top = max(causes, key=lambda c: _RANK.get(str(c["relationship"]), 0))
     relationship = str(top["relationship"])
     affected = relationship in _AFFECTED
+    match_strength = _MATCH_STRENGTH.get(relationship, "none")
+    evidence_confidence = str(top.get("evidence_confidence") or "UNVERIFIED")
+    confidence = _weaker(
+        _MATCH_CEILING.get(relationship, "UNVERIFIED"), evidence_confidence
+    )
+    identity_status = str(top.get("identity_status") or "VERIFIED")
+    via_artifact_exact = str(top.get("match_method") or "") == "event_scope:artifact"
+    capped_identity = False
+    if affected and not via_artifact_exact and identity_status in _UNTRUSTED_IDENTITY:
+        confidence = _weaker(confidence, _IDENTITY_CAP)
+        capped_identity = True
     evidence: list[str] = []
     events: list[str] = []
     for cause in causes:
@@ -258,11 +317,19 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
         )
     else:
         reason = top.get("reason", "") or f"evaluated {label}: no established impact"
+    if capped_identity:
+        reason = (
+            f"{reason} [identity {identity_status} via "
+            f"{top.get('identity_via', '?')}: confidence capped at {_IDENTITY_CAP}]"
+        )
     return DependencyVerdict(
         dependency=label,
         affected=affected,
         relationship=relationship,
-        confidence=_CONFIDENCE.get(relationship, "UNVERIFIED"),
+        confidence=confidence,
+        match_strength=match_strength,
+        evidence_confidence=evidence_confidence,
+        identity_status=identity_status,
         match_method=top.get("match_method"),
         evidence=evidence,
         events=events,
@@ -297,8 +364,10 @@ def check_dependency(
     bundles = bundles or {}
     causes: list[Cause] = []
     if dep["kind"] == "image":
+        trust = resolution_trust(str(dep["ref"]))
         for event in events:
             match = event_affects_ref(event, dep["ref"])
+            exact = match["via"] == "artifact"
             causes.append(
                 {
                     "cause": "upstream_change",
@@ -310,6 +379,12 @@ def check_dependency(
                     "event_id": event.id,
                     "impact": event.impact.value,
                     "evidence": [e.source.name for e in event.evidences],
+                    "evidence_confidence": event.confidence.value,
+                    # Exact artifact equality is self-identity (no
+                    # mapping involved); anything coarser relies on the
+                    # slug resolution and inherits its trust.
+                    "identity_status": "VERIFIED" if exact else trust["identity_status"],
+                    "identity_via": "exact-artifact" if exact else trust["via"],
                     "reason": str(match["detail"]),
                 }
             )

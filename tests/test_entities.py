@@ -35,16 +35,33 @@ def test_catalog_hygiene():
 
 def test_catalog_identity_metadata_optional():
     from core.entities.catalog import load_catalog
+    from core.entities.identity import (
+        REVIEW_REQUIRED,
+        VERIFIED,
+        identity_block_for_slug,
+    )
 
     catalog = load_catalog()
     by_slug = {e.get("slug"): e for e in catalog}
-    for slug in ("redis", "kafka", "spring-boot"):
-        entry = by_slug[slug]
-        assert entry.get("identity_source"), slug
-        assert entry.get("reviewed_at"), slug
-        assert entry.get("confidence") in ("high", "medium", "low"), slug
-    # Unreviewed entries simply lack the keys — never assumed reviewed.
-    assert "identity_source" not in by_slug["django"]
+    for slug in ("redis", "kafka", "spring-boot", "bitnami-redis-stack"):
+        block = identity_block_for_slug(slug, catalog)
+        assert block.get("status") in (VERIFIED, REVIEW_REQUIRED), slug
+        assert block.get("reviewed_at"), slug
+    assert identity_block_for_slug("redis", catalog)["status"] == "VERIFIED"
+    assert identity_block_for_slug("spring-boot", catalog)["status"] == "REVIEW_REQUIRED"
+    # Unreviewed entries simply lack identity metadata — never assumed reviewed.
+    assert identity_block_for_slug("django", catalog) == {}
+    assert "identity" not in by_slug["django"]
+
+
+def test_identity_status_values_valid():
+    from core.entities.catalog import load_catalog
+    from core.entities.identity import VALID_STATUSES
+
+    for entry in load_catalog():
+        block = entry.get("identity")
+        if isinstance(block, dict) and "status" in block:
+            assert str(block["status"]).upper() in VALID_STATUSES, entry.get("slug")
 
 
 def test_purl_builder():

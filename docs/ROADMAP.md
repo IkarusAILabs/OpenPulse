@@ -27,10 +27,14 @@ Deliverable: `docs/STRATEGIC_RESET.md`.
 
 Raw Signal model, Evidence model, entity resolution ✅, event
 correlation (lifecycle story aggregation — this slice), provenance ✅,
-confidence ✅, lead time ✅ (`core/leadtime.py` — recorded per
-finding, never averaged or marketed), deduplication (per-project
-stories ✅; cross-project next). Acceptance: September re-render shows coherent stories, fewer
-rows, same versions; ruff/pytest green.
+confidence ✅ (match strength vs evidence strength split),
+lead time ✅ (`core/leadtime.py` — effective minus first detection,
+never averaged or marketed), identity trust ✅ (VERIFIED /
+REVIEW_REQUIRED / UNVERIFIED), observation integrity ✅
+(hash-chained, tamper-evident, concurrency-safe), deduplication
+(per-project stories ✅; cross-project next). Acceptance: September
+re-render shows coherent stories, fewer rows, same versions;
+ruff/pytest green.
 
 ## Phase 2 — Upstream Change Intelligence [STARTED]
 

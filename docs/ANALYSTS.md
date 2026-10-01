@@ -18,13 +18,18 @@ Rules today:
 - Archived GitHub repo (via `fetch_repo_meta`) → `PROJECT_ARCHIVED` / `ACTION`.
 - Observation diffs (`analyze_diffs`): `tag_disappeared` → `REVIEW`,
   `tag_appeared`/`tag_digest_changed`/`latest_moved` → `WATCH`,
-  `repo_missing` → `ACTION`, `repo_restored` → `INFORMATIONAL`.
+  `repo_missing` → `REVIEW`, `repo_restored` → `INFORMATIONAL`.
 
 Registry findings label `detection_method`: `registry_observation`
 for direct probe/diff facts, `namespace_heuristic` for the
 legacy-namespace pattern rule (discovery aid, never authoritative
 evidence). `official_distribution_announcement` is reserved for
-curated official findings.
+curated official findings. Every diff finding also carries
+`evidence_strength` (`moderate` for observed facts, `weak` for
+heuristics) and `observation_evidence` — the immutable observation
+identity (ids, content/chain hashes, timestamps, exact diff fact)
+behind the claim. Weak evidence caps report placement at REVIEW and
+can never become ACTION_REQUIRED, however precise the match.
 
 ## Security Analyst (`analyzers/security_analyst.py`)
 

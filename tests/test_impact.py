@@ -60,20 +60,22 @@ def test_affected_version_with_policy_is_action_required():
     assert out["eligibility"] == "ACTION"
 
 
-def test_affected_but_weak_confidence_is_not_action_required():
+def test_affected_but_weak_confidence_is_capped_at_review():
+    # Weak evidence never enters ACTION channels (§6).
     context = {"verdict": "AFFECTS_VERSION", "affected": True,
                "confidence": "EMERGING", "reason": "pin matches scope"}
     out = evaluate_impact(_eol(), dependency_context=context, today=TODAY)
     assert out["assessment"] == "AFFECTS_DEPENDENCY"
-    assert out["eligibility"] == "ACTION"
+    assert out["eligibility"] == "REVIEW"
 
 
-def test_not_affected_is_informational_with_reason():
+def test_not_affected_is_negative_assessment_informational():
+    # Explicit negative assessment: cleared semantics, never AFFECTS_*.
     context = {"verdict": "NOT_AFFECTED", "affected": False,
                "confidence": "CORROBORATED",
                "reason": "django==5.2 is outside scope versions ['5.0']"}
     out = evaluate_impact(_eol(), dependency_context=context, today=TODAY)
-    assert out["assessment"] == "AFFECTS_DEPENDENCY"
+    assert out["assessment"] == "NOT_AFFECTED"
     assert out["eligibility"] == "INFORMATIONAL"
     assert "5.2" in out["reasons"][0]
 
