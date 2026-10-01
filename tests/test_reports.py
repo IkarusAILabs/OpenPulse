@@ -331,3 +331,83 @@ def test_report_prints_supporting_urls_once():
         [{"project": "redis", "pulse": {"facets": {}}, "findings": [finding]}],
     )
     assert md.count("https://endoflife.date/redis") == 1
+
+
+def _sweep_finding():
+    return {
+        "analyst": "change",
+        "event_type": "DISTRIBUTION_CHANGE",
+        "signal": "distribution",
+        "title": "Tag `7.2` disappeared from bitnami/redis",
+        "summary": "Observed tag_disappeared.",
+        "impact": "REVIEW",
+        "significance": "high",
+        "detection_method": "registry_observation",
+        "scope": {"kind": "artifact", "artifacts": ["docker.io/bitnami/redis:7.2"]},
+        "affected_versions": ["*"],
+        "affected_artifacts": [{"kind": "docker-image", "ref": "docker.io/bitnami/redis:7.2"}],
+        "references": ["https://hub.docker.com/r/bitnami/redis/tags"],
+        "supporting": [],
+    }
+
+
+def test_report_renders_sweep_section():
+    from reports.generate import build_report
+
+    md = build_report("2026-09", [], sweep_findings=[_sweep_finding()])
+    assert "## Distribution discovery (1)" in md
+    assert "docker.io/bitnami/redis:7.2" in md
+    assert "https://hub.docker.com/r/bitnami/redis/tags" in md
+
+
+def test_report_without_sweep_has_no_section():
+    from reports.generate import build_report
+
+    md = build_report("2026-09", [])
+    assert "Distribution discovery" not in md
+
+
+def _dated_finding(**kw):
+    base = {
+        "analyst": "c",
+        "event_type": "EOL",
+        "impact": "ACTION",
+        "title": "eol",
+        "sources": ["endoflife"],
+    }
+    base.update(kw)
+    return base
+
+
+def test_report_shows_lead_time_for_upcoming_change():
+    from reports.generate import build_report
+
+    md = build_report(
+        "2026-09",
+        [
+            _item(
+                "x",
+                [
+                    _dated_finding(
+                        observed_at="2026-09-01",
+                        effective_at="2026-09-29",
+                        event_date="2026-09-29",
+                    )
+                ],
+            )
+        ],
+    )
+    assert "Lead time: 28 days (2026-09-01 → 2026-09-29)" in md
+
+
+def test_report_silent_lead_time_for_past_or_unknown():
+    from reports.generate import build_report
+
+    md = build_report(
+        "2026-09",
+        [
+            _item("past", [_dated_finding(observed_at="2026-09-26", effective_at="2026-04-30")]),
+            _item("unknown", [_dated_finding()]),
+        ],
+    )
+    assert "Lead time" not in md

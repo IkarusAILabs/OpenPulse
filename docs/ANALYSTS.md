@@ -87,6 +87,9 @@ release/advisory URLs) print beneath each item, deduplicated; recency
 (`--since`) and relationship (`--include-related`) filters keep the
 monthly narrative honest. `openpulse report --month YYYY-MM`
 runs the catalog live or from `--raw-bundle-dir` offline bundles.
+`--with-sweep` adds a Distribution discovery section from live
+registry diffs — the first report content no lifecycle database
+could provide.
 
 ## Distribution discovery (`core/observations/sweep.py`)
 

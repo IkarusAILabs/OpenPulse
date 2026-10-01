@@ -27,8 +27,9 @@ Deliverable: `docs/STRATEGIC_RESET.md`.
 
 Raw Signal model, Evidence model, entity resolution ✅, event
 correlation (lifecycle story aggregation — this slice), provenance ✅,
-confidence ✅, deduplication (per-project stories ✅; cross-project
-next). Acceptance: September re-render shows coherent stories, fewer
+confidence ✅, lead time ✅ (`core/leadtime.py` — recorded per
+finding, never averaged or marketed), deduplication (per-project
+stories ✅; cross-project next). Acceptance: September re-render shows coherent stories, fewer
 rows, same versions; ruff/pytest green.
 
 ## Phase 2 — Upstream Change Intelligence [STARTED]
@@ -39,7 +40,9 @@ announcements, docs, package registries, Docker/OCI ✅ (exists +
 (`core/observations/sweep.py`, injectable probes, offline tests)
 is the first standing non-lifecycle discovery beyond curated
 fixtures; `tests/test_golden.py` locks the golden scenarios.
-Acceptance: a non-lifecycle story the pipeline discovers (not curates).
+`report --with-sweep` carries live distribution findings into the
+monthly edition with evidence links. Acceptance: a non-lifecycle
+story the pipeline discovers (not curates).
 
 ## Phase 3 — Golden scenarios [MOSTLY DONE]
 

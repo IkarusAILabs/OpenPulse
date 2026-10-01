@@ -239,7 +239,13 @@ def observe(namespace, repository, store):
 @click.option("--out", default="", help="Output path (default reports/{month}-openpulse.md)")
 @click.option("--since", default="", help="Recency floor for dated findings (YYYY-MM-DD)")
 @click.option("--include-related", is_flag=True, help="Narrate RELATED findings too")
-def report(month, projects, raw_bundle_dir, out, since, include_related):
+@click.option(
+    "--with-sweep",
+    is_flag=True,
+    help="Run live distribution sweep first and include its findings",
+)
+@click.option("--store", default=".openpulse/observations", help="History root for --with-sweep")
+def report(month, projects, raw_bundle_dir, out, since, include_related, with_sweep, store):
     """Monthly OSS Dependency Risk Report over seed projects."""
     import json as _json
     from pathlib import Path as _Path
@@ -265,6 +271,20 @@ def report(month, projects, raw_bundle_dir, out, since, include_related):
         items.append(collect_project(slug, raw))
     import os
 
+    sweep_findings: list = []
+    if with_sweep:
+        from collectors.registries.docker import RegistryCollector
+        from core.entities.catalog import load_catalog as _load_catalog
+        from core.observations.sweep import sweep_catalog
+
+        catalog = _load_catalog()
+        wanted = set(slugs)
+        selected = [e for e in catalog if e.get("slug") in wanted]
+        click.echo("running distribution sweep...")
+        sweep_findings = sweep_catalog(selected, RegistryCollector().check_image, store_root=store)[
+            "findings"
+        ]
+        click.echo(f"sweep findings: {len(sweep_findings)}")
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."
@@ -276,7 +296,12 @@ def report(month, projects, raw_bundle_dir, out, since, include_related):
         "YOUR dependencies needs a watchlist (`openpulse check`).",
     ]
     markdown = build_report(
-        month, items, since=since or None, include_related=include_related, notes=notes
+        month,
+        items,
+        since=since or None,
+        include_related=include_related,
+        notes=notes,
+        sweep_findings=sweep_findings,
     )
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
@@ -324,9 +349,7 @@ def _safe_text(text: Any, stream: Any = None) -> str:
         text = str(text)
     target = stream or sys.stdout
     encoding = (
-        getattr(target, "encoding", None)
-        or getattr(sys.__stdout__, "encoding", None)
-        or "utf-8"
+        getattr(target, "encoding", None) or getattr(sys.__stdout__, "encoding", None) or "utf-8"
     )
     try:
         text.encode(encoding)

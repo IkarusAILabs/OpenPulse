@@ -354,6 +354,7 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
                 "scope": {"kind": "artifact", "artifacts": [ref]},
                 "affected_versions": ["*"],
                 "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
+                "references": [f"https://hub.docker.com/r/{ns}/{repo}/tags"],
                 "supporting": [c],
             }
         )

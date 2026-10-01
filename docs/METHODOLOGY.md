@@ -115,6 +115,14 @@ archived upstreams, vanished repositories/tags, and support ends are
 REVIEW at most; upcoming EOL and routine registry churn are WATCH.
 EOL detected never equals ACTION_REQUIRED — that needs inventory.
 
+## Lead time
+
+Upcoming changes carry their remaining warning in days:
+effective − observed, per finding (`core/leadtime.py`). Unknown or
+already-past effective dates print nothing — silence, not a number.
+Lead times are never averaged, ranked, or marketed: the metric stays
+instrumented but unclaimed until independently measured incidents exist.
+
 ## Registry observations
 
 What the registry exposed at time T: repository state, tag→digest

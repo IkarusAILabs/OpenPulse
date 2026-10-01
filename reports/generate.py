@@ -20,6 +20,7 @@ from analyzers import change_analyst, security_analyst
 from analyzers.event_correlation import aggregate_lifecycle, lifecycle_first
 from analyzers.report_analyst import render_finding_md
 from core.entities.catalog import project_context
+from core.leadtime import finding_lead_time
 from core.pulse import compute_pulse
 from core.risk.impact import evaluate_impact
 from core.risk.metrics import finding_source_distribution
@@ -100,8 +101,22 @@ def _eligibility(finding: dict[str, Any]) -> dict[str, Any]:
     try:
         return evaluate_impact(finding)
     except Exception:
-        return {"assessment": "PROJECT_SIGNAL", "eligibility": "INFORMATIONAL",
-                "reasons": ["eligibility evaluation failed; held back"]}
+        return {
+            "assessment": "PROJECT_SIGNAL",
+            "eligibility": "INFORMATIONAL",
+            "reasons": ["eligibility evaluation failed; held back"],
+        }
+
+
+def _lead_time_line(finding: dict[str, Any]) -> str | None:
+    """One honest sentence when a finding carries both detection and effect.
+
+    Past or unknown effective dates yield None — silence, not a number.
+    """
+    days, detected, effective = finding_lead_time(finding)
+    if days is None:
+        return None
+    return f"Lead time: {days} days ({detected} → {effective})"
 
 
 def _change_class(finding: dict[str, Any]) -> str:
@@ -123,10 +138,16 @@ def build_report(
     since: str | None = None,
     include_related: bool = False,
     notes: list[str] | None = None,
+    sweep_findings: list[dict[str, Any]] | None = None,
 ) -> str:
     """Ranked markdown. Narrative = eligible findings (eligibility above
     INFORMATIONAL after recency); actionable = eligibility ACTION only,
-    each with its justification; incompleteness stated explicitly."""
+    each with its justification; incompleteness stated explicitly.
+
+    `sweep_findings` (distribution discovery output) renders as its own
+    section — cross-project observations don't belong to any single
+    project item, and merging them in would hide their provenance.
+    """
     held_back = 0
     scoped = []
     for item in items:
@@ -144,7 +165,6 @@ def build_report(
         scoped.append({**item, "findings": assessed})
     event_count = sum(len(i["findings"]) for i in scoped)
     assessed_findings = [f for i in scoped for f in i["findings"]]
-    metrics = finding_source_distribution(assessed_findings)
     lines = [
         f"# OpenPulse — {month}",
         "",
@@ -169,8 +189,12 @@ def build_report(
             continue
         for finding in item["findings"]:
             classes.setdefault(_change_class(finding), []).append((item, finding))
-    for heading in ("Lifecycle changes", "Distribution changes",
-                    "Security changes", "Project signals"):
+    for heading in (
+        "Lifecycle changes",
+        "Distribution changes",
+        "Security changes",
+        "Project signals",
+    ):
         group = classes.get(heading, [])
         if not group:
             continue
@@ -191,6 +215,9 @@ def build_report(
                     lines.append("Pulse: " + ", ".join(non_ok))
                 lines.append("")
             lines.append(render_finding_md(finding))
+            lead = _lead_time_line(finding)
+            if lead:
+                lines.append(lead)
             lines.append("")
             lines += _dependency_block(finding)
             evidence = [finding.get("analyst", "analyst")]
@@ -207,15 +234,70 @@ def build_report(
                     seen.add(ref)
                     lines.append(f"- {ref}")
             lines.append("")
+    assessed_sweep = []
+    for finding in sweep_findings or []:
+        if not _fresh(finding, since):
+            continue
+        assessment = _eligibility(finding)
+        if assessment["eligibility"] == "INFORMATIONAL":
+            continue
+        assessed_sweep.append({**finding, "_assessment": assessment})
+    if assessed_sweep:
+        lines.append(f"## Distribution discovery ({len(assessed_sweep)})")
+        lines.append("")
+        lines.append(
+            "Observed registry diffs across catalog images — the standing "
+            "non-lifecycle discovery capability, not curated fixtures."
+        )
+        lines.append("")
+        for finding in assessed_sweep:
+            lines.append(render_finding_md(finding))
+            lead = _lead_time_line(finding)
+            if lead:
+                lines.append(lead)
+            lines.append("")
+            artifacts = [
+                a.get("ref")
+                for a in finding.get("affected_artifacts", []) or []
+                if isinstance(a, dict) and a.get("ref")
+            ]
+            if artifacts:
+                lines.append("Affected artifacts:")
+                lines += [f"- `{ref}`" for ref in artifacts]
+                lines.append("")
+            lines += _dependency_block(finding)
+            evidence = [finding.get("analyst", "analyst")]
+            evidence += [s for s in finding.get("sources", []) if s not in evidence]
+            lines.append("Evidence: " + ", ".join(evidence))
+            seen = set()
+            refs = (
+                list(finding.get("references", []) or [])
+                + _supporting_urls(finding)
+                + list(finding.get("evidence_links", []) or [])
+            )
+            for ref in refs:
+                if ref and ref not in seen:
+                    seen.add(ref)
+                    lines.append(f"- {ref}")
+            lines.append("")
     actionable = [
-        (item, finding) for item in scoped for finding in item["findings"]
+        (item, finding)
+        for item in scoped
+        for finding in item["findings"]
+        if finding["_assessment"]["eligibility"] == "ACTION"
+    ]
+    actionable += [
+        ({"project": "registry sweep"}, finding)
+        for finding in assessed_sweep
         if finding["_assessment"]["eligibility"] == "ACTION"
     ]
     lines.append("## What appears actionable?")
     lines.append("")
     if not actionable:
-        lines.append("No changes met the action bar this month: nothing with "
-                     "evidence and scope justifying action-oriented framing.")
+        lines.append(
+            "No changes met the action bar this month: nothing with "
+            "evidence and scope justifying action-oriented framing."
+        )
         lines.append("")
     for item, finding in actionable:
         reasons = finding["_assessment"].get("reasons") or []
@@ -228,6 +310,7 @@ def build_report(
             lines.append(f"  Scope: {', '.join(str(v) for v in versions)}")
     if actionable:
         lines.append("")
+    metrics = finding_source_distribution(assessed_findings + list(assessed_sweep))
     lines.append("## Where our data is incomplete")
     lines.append("")
     silent = sorted(i["project"] for i in scoped if not i["findings"])
@@ -244,13 +327,13 @@ def build_report(
     lines.append("")
     distribution = metrics["finding_source_distribution"]
     if distribution:
-        lines.append("Finding source distribution: " + ", ".join(
-            f"{source} {pct}%" for source, pct in distribution.items()))
+        lines.append(
+            "Finding source distribution: "
+            + ", ".join(f"{source} {pct}%" for source, pct in distribution.items())
+        )
     else:
         lines.append("Finding source distribution: no findings this month.")
-    lines.append(
-        f"Independent sources observed: {metrics['independent_sources']}."
-    )
+    lines.append(f"Independent sources observed: {metrics['independent_sources']}.")
     lines.append("")
     if notes:
         lines.append("## Notes")
