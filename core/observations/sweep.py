@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from analyzers.change_analyst import analyze_diffs
+from analyzers.event_correlation import aggregate_distribution
 from collectors.errors import as_error, safe_message
 from core.observations.chain import BROKEN, GENESIS_PREVIOUS, link_hash_for, order_history
 from core.observations.registry import (
@@ -383,7 +384,7 @@ def sweep_catalog(
         if result["observation"] is not None:
             observations.append(result["observation"])
         changes += result["changes"]
-    findings = analyze_diffs(changes)
+    findings = aggregate_distribution(analyze_diffs(changes))
     return {
         "observations": observations,
         "changes": changes,

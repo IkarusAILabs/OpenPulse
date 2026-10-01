@@ -130,8 +130,10 @@ from an explicit `today`, so renders stay deterministic.
 `sweep_targets` lists every probeable catalog image (registry/namespace/
 repo triples only — bare namespaces are skipped, never guessed).
 `sweep_catalog` probes (injected function, offline-testable), persists
-sealed observations, diffs against history, and emits distribution
-findings. First sightings are baselines. `openpulse sweep` wires the
+sealed observations, diffs against history, emits distribution
+findings, and aggregates same-repo/same-direction diffs into one
+story (`aggregate_distribution` — one pruning event, one card).
+First sightings are baselines. `openpulse sweep` wires the
 live Docker Hub probe with `--projects` filter and `--out` findings.
 
 ## Golden scenarios (`tests/test_golden.py`)

@@ -78,3 +78,85 @@ def test_lifecycle_first_ordering():
         {"project": "a", "findings": [{"event_type": "DISTRIBUTION_CHANGE"}]},
     ]
     assert [i["project"] for i in lifecycle_first(items)] == ["a", "b"]
+
+
+def _diff_change(tag, direction="tag_disappeared", namespace="library", repo="nginx"):
+    return {
+        "type": direction,
+        "namespace": namespace,
+        "repository": repo,
+        "tag": tag,
+        "previous": ["sha256:111"],
+        "current": None,
+        "previous_observation_id": "obs-prev",
+        "current_observation_id": "obs-cur",
+        "previous_observed_at": "2026-09-01",
+        "previous_hash": "sha256:prev",
+        "current_hash": "sha256:cur",
+        "previous_chain": "sha256:pc",
+        "current_chain": "sha256:cc",
+        "parser_version": "openpulse-parsers/0.4.0",
+        "tags_present": ["latest", tag],
+        "observed_at": "2026-10-01",
+        "first_detected_at": "2026-10-01",
+    }
+
+
+def _diff_findings(*changes):
+    from analyzers.change_analyst import analyze_diffs
+
+    return analyze_diffs(list(changes))
+
+
+def test_same_repo_disappearances_become_one_story():
+    from analyzers.event_correlation import aggregate_distribution
+
+    stories = aggregate_distribution(
+        _diff_findings(_diff_change("1.0"), _diff_change("2.0"), _diff_change("3.0"))
+    )
+    assert len(stories) == 1
+    story = stories[0]
+    assert story["title"] == "3 tags disappeared from library/nginx"
+    assert story["stories_merged"] == 3
+    assert story["impact"] == "REVIEW"
+    assert story["significance"] == "high"
+    assert len(story["affected_artifacts"]) == 3
+    assert [t["tag"] for t in story["observation_evidence"]["fact"]["tags"]] == [
+        "1.0",
+        "2.0",
+        "3.0",
+    ]
+    # Nothing dropped: every scope ref and supporting change retained.
+    assert len(story["scope"]["artifacts"]) == 3
+    assert len(story["supporting"]) == 3
+
+
+def test_directions_and_repos_stay_separate():
+    from analyzers.event_correlation import aggregate_distribution
+
+    stories = aggregate_distribution(
+        _diff_findings(
+            _diff_change("1.0"),
+            _diff_change("2.0", direction="tag_appeared"),
+            _diff_change("1.0", repo="redis"),
+        )
+    )
+    assert len(stories) == 3
+
+
+def test_singleton_and_heuristic_pass_through():
+    from analyzers.event_correlation import aggregate_distribution
+
+    heuristic = {
+        "analyst": "change",
+        "event_type": "DISTRIBUTION_CHANGE",
+        "signal": "distribution",
+        "title": "heuristic",
+        "impact": "ACTION",
+        "detection_method": "namespace_heuristic",
+    }
+    findings = _diff_findings(_diff_change("1.0")) + [heuristic]
+    out = aggregate_distribution(findings)
+    assert len(out) == 2
+    assert out[0]["title"].startswith("Tag `1.0` disappeared")
+    assert out[1] == heuristic

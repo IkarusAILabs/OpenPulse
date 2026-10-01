@@ -680,9 +680,12 @@ def _not_affected_text(project: str, finding: dict[str, Any]) -> str:
     """Concrete NOT-AFFECTED scope, only from evidence on hand."""
     evidence = finding.get("observation_evidence") or {}
     fact = evidence.get("fact") or {}
-    if finding.get("event_type") == "DISTRIBUTION_CHANGE" and fact.get("tag"):
-        others = [t for t in fact.get("tags_present") or [] if t != fact.get("tag")]
-        if others:
+    if finding.get("event_type") == "DISTRIBUTION_CHANGE":
+        gone = [str(t.get("tag")) for t in fact.get("tags", []) or []]
+        if not gone and fact.get("tag") is not None:
+            gone = [str(fact.get("tag"))]
+        others = [t for t in fact.get("tags_present") or [] if str(t) not in gone]
+        if gone and others:
             rendered = ", ".join(f"`{t}`" for t in sorted(others))
             return (
                 f"Other tags still published in the same repository ({rendered}): "

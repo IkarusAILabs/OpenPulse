@@ -95,6 +95,41 @@ def test_top_changes_ranked_non_lifecycle_first():
     assert "2. **db**" in top
 
 
+def test_top_changes_collapses_same_repo_churn():
+    from analyzers.change_analyst import analyze_diffs
+    from analyzers.event_correlation import aggregate_distribution
+
+    def change(tag):
+        return {
+            "type": "tag_disappeared",
+            "namespace": "library",
+            "repository": "nginx",
+            "tag": tag,
+            "previous": ["sha256:111"],
+            "current": None,
+            "previous_observation_id": "obs-prev",
+            "current_observation_id": "obs-cur",
+            "previous_observed_at": "2026-09-01",
+            "previous_hash": "sha256:prev",
+            "current_hash": "sha256:cur",
+            "previous_chain": "sha256:pc",
+            "current_chain": "sha256:cc",
+            "tags_present": ["latest", tag],
+            "observed_at": "2026-10-01",
+            "first_detected_at": "2026-10-01",
+        }
+
+    # Production path: sweep aggregates before the report ever sees diffs.
+    findings = aggregate_distribution(
+        analyze_diffs([change("1.0"), change("2.0"), change("3.0")])
+    )
+    assert len(findings) == 1
+    md = build_report("2026-09", [], sweep_findings=findings)
+    top = md.split("## Top Changes")[1].split("## OpenPulse Reference")[0]
+    assert top.count("disappeared from library/nginx") == 1
+    assert "3 tags disappeared from library/nginx" in top
+
+
 def test_top_changes_deterministic_ties():
     kwargs = {"impact": "REVIEW", "significance": "low", "detection_method": "x"}
     items_ab = [_item("b", [_distribution(**kwargs)]), _item("a", [_distribution(**kwargs)])]
