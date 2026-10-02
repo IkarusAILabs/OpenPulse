@@ -20,6 +20,13 @@ Rules today:
   `tag_appeared`/`tag_digest_changed`/`latest_moved` → `WATCH`,
   `repo_missing` → `REVIEW`, `repo_restored` → `INFORMATIONAL`.
 
+Every lifecycle and distribution finding is machine-scoped and dated:
+`scope` (`kind` + `versions`/`artifacts` — see Finding scope below),
+`lifecycle_state` (`EFFECTIVE`/`UPCOMING`), `effective_at`,
+`observed_at`, and — for registry findings — `significance`
+(low/medium/high) assessed from the observation itself, never from
+assumed customer usage (`analyzers/change_analyst.py`).
+
 Registry findings label `detection_method`: `registry_observation`
 for direct probe/diff facts, `namespace_heuristic` for the
 legacy-namespace pattern rule (discovery aid, never authoritative
@@ -30,6 +37,105 @@ heuristics) and `observation_evidence` — the immutable observation
 identity (ids, content/chain hashes, timestamps, exact diff fact)
 behind the claim. Weak evidence caps report placement at REVIEW and
 can never become ACTION_REQUIRED, however precise the match.
+
+## Finding scope (`scope.kind` + id lists)
+
+Analysts narrow applicability beyond "the project" with a
+machine-readable `scope` block (`analyzers/change_analyst.py`,
+`analyzers/lifecycle_events.py:_scope`):
+
+- `kind: "version"` + `versions` — specific release cycles (EOL/EOS
+  findings from `analyze_endoflife`).
+- `kind: "artifact"` + `artifacts` — concrete references such as
+  `docker.io/ns/repo:tag` (registry observations from
+  `analyze_registries`/`analyze_diffs`).
+- `kind: "project"` + empty `versions` — project-wide, nothing more
+  specific claimed (archive findings, distribution-model moves).
+- `kind: "package"` / `kind: "registry"` — accepted by the
+  normalizer in `analyzers/lifecycle_events.py` (packages and
+  registries lists) for producers that narrow to those levels.
+
+`core/risk/impact.py:_scoped` counts a finding as scoped only for
+`kind` in (version, artifact, package, registry) with a non-empty id
+list — a `kind: "project"` scope never counts as scoped. Report
+renderers show the scope lists verbatim
+(`analyzers/report_analyst.py`).
+
+## Lifecycle states and per-field timestamps
+
+Temporal roles are never conflated (`core/leadtime.py`):
+
+- `effective_at` (or `event_date`) — when the change applies. EOL
+  findings set it from the endoflife.date date; diff findings use the
+  observation time (`analyzers/change_analyst.py`).
+- `first_detected_at` — our first trustworthy detection. Inherited
+  from the predecessor observation by `core/observations/base.py`
+  and resolved by `core/observations/sweep.py:first_detected_at_for`;
+  re-observations never stand in for discovery.
+- `observed_at` — when the analyst ran (analysis time).
+
+`lifecycle_state` (`STATE_EFFECTIVE`/`STATE_UPCOMING`,
+`analyzers/change_analyst.py`): EFFECTIVE means already applies —
+past EOL dates, ended support, observations; UPCOMING means announced
+but not yet effective — EOL within `EOL_WARN_DAYS` (180). Impact
+eligibility branches on it: an EFFECTIVE + scoped EOL may be
+ACTION-framed, an UPCOMING EOL is WATCH, and one with no usable
+scope/state stays REVIEW at most (`core/risk/impact.py:_public_change`).
+
+## Significance levels
+
+Registry findings carry `significance` — low/medium/high — assessed
+from the observation itself (`DIFF_RULES` and `analyze_registries` in
+`analyzers/change_analyst.py`): a moved `latest` digest or an
+appeared tag is routine churn (low); a vanished versioned tag is a
+high-significance candidate that still needs usage context; a
+vanished repository is also high (impact stays REVIEW — never
+automatic action). Significance measures how much the
+distribution changed, never whether a deployment is affected — only
+high significance plus `distribution_model_change` opens ACTION
+framing in `core/risk/impact.py:_public_change`.
+
+## Assessment vocabulary and eligibility (`core/risk/impact.py`)
+
+An analyst `impact` is a proposal made without customer context.
+`evaluate_impact` decides what a finding *is eligible for* in a
+report — assessment (what kind of claim) and eligibility (where it
+may appear) are decided together; a proposal never travels straight
+to placement:
+
+- `PROJECT_SIGNAL` — something exists; unscoped or unconfirmed.
+  Example: a security finding without established dependency impact,
+  or an unclassified change (`_public_security`, `_public_change`).
+- `PROJECT_CHANGE` — a scoped ecosystem change: what changed, with
+  versions/artifacts/dates. Never customer impact. Example: an EOL
+  effective for scoped versions, an archived upstream, a registry
+  disappearance (`_public_change`).
+- `AFFECTS_DEPENDENCY` — a linked inventory entry matches. Only
+  produced on the dependency path (`_with_context`), when a
+  correlation verdict in AFFECTS_ARTIFACT/VERSION/PACKAGE is
+  established for a dependency in scope.
+- `ACTION_REQUIRED` — affected + effective + strong confidence
+  (CONFIRMED/CORROBORATED). Only here does EOL (or any change) become
+  action for *your* software (`_with_context`).
+
+Eligibility ladder for report placement: `INFORMATIONAL < WATCH <
+REVIEW < ACTION` (`_ELIGIBILITY`). Central rule: `EOL detected` never
+equals ACTION_REQUIRED — without a dependency inventory, lifecycle
+findings are at most PROJECT_CHANGE (`evaluate_impact`).
+
+## Report eligibility (`reports/generate.py`)
+
+The monthly report computes public-context eligibility fresh for
+every finding — it is never stored on the finding
+(`reports/generate.py:_eligibility` -> `evaluate_impact`). Narrative
+content includes findings whose eligibility is above INFORMATIONAL;
+"Changes Requiring Attention" lists ACTION-eligible findings only
+(`build_report`). Finding cards show assessment and scope, never the
+raw analyst `impact` proposal. The lifecycle posture view
+(`reports/lifecycle.py`) applies its own status ladder (EOL / UPCOMING /
+SUPPORT-ENDED / OK / NO-DATA) rather than reusing `finding_to_event`;
+both keep analyst proposals out of placement decisions. Analysts propose;
+`core/risk/impact.py` disposes.
 
 ## Security Analyst (`analyzers/security_analyst.py`)
 
