@@ -181,24 +181,84 @@ def _scope_line(finding: dict[str, Any]) -> str:
     return str(scope.get("kind", "project"))
 
 
-def _timing_line(finding: dict[str, Any]) -> str:
-    """Effective date + warning window. Silence when nothing is known."""
+def _announced_line(finding: dict[str, Any]) -> str:
+    """Upstream announcement date with provenance. Published is shown
+    only as an unconfirmed fallback; scan/analysis dates are never
+    substituted in."""
+    announced = finding.get("announced_at")
+    if announced:
+        provenance = str(finding.get("announcement_provenance") or "official")
+        return f"Announcement: {str(announced)[:10]} ({provenance})"
+    published = finding.get("published")
+    if published:
+        return (
+            f"Announcement: Unknown (published {str(published)[:10]} on record, "
+            "provenance unconfirmed)"
+        )
+    return "Announcement: Unknown"
+
+
+def _effective_line(finding: dict[str, Any]) -> str:
+    """Effective date or Unknown — never inferred."""
     from datetime import date
 
-    from core.leadtime import finding_lead_time, parse_day
+    from core.leadtime import parse_day
 
     effective = parse_day(finding.get("effective_at") or finding.get("event_date"))
+    if effective is None:
+        return "Effective: Unknown"
+    if effective > date.today():
+        return f"Effective: {effective} (upcoming)"
+    return f"Effective: {effective} (already effective)"
+
+
+def _detected_line(finding: dict[str, Any]) -> str:
+    """First OpenPulse detection, or Unknown. Re-observations never
+    stand in for discovery."""
+    detected = finding.get("first_detected_at")
+    if detected:
+        return f"First detected by OpenPulse: {str(detected)[:10]}"
+    return "First detected by OpenPulse: Unknown"
+
+
+def _verified_line(finding: dict[str, Any]) -> str:
+    """Most recent verification, or Unknown."""
+    verified = finding.get("last_observed_at") or finding.get("observed_at")
+    if verified:
+        return f"Last verified: {str(verified)[:10]}"
+    return "Last verified: Unknown"
+
+
+def _timing_line(finding: dict[str, Any]) -> str | None:
+    """Detection lead time before the effective date, plus the
+    announcement-to-detection gap when both ends are known.
+
+    Returns None when the metric cannot be computed — never a number
+    from missing or incompatible dates. Background findings keep their
+    label so old news never reads as current.
+
+    Note: "detection lead time" deliberately replaces the older
+    "warning window" wording — it measures detection-to-effect, not a
+    promise about customer impact (no customer-impact validation yet).
+    """
+    from core.freshness import is_background
+    from core.leadtime import finding_lead_time, parse_day
+
     days, detected, eff = finding_lead_time(finding)
-    if days is not None and detected and eff:
-        return (
-            f"Effective {eff} · Warning window: {days} days "
-            f"(Detected {detected} → Effective {eff})"
-        )
-    if effective is not None:
-        if effective > date.today():
-            return f"Effective {effective} (upcoming; first detection unrecorded)"
-        return f"Effective {effective} (already effective)"
-    return "Effective date unknown"
+    if days is None or not detected or not eff:
+        return None
+    background = " (background: outside 12-month research window)" if is_background(finding) else ""
+    lines = [
+        f"Detection lead time before effective date: {days} days "
+        f"(first detected {detected} → effective {eff}){background}"
+    ]
+    announced = parse_day(finding.get("announced_at"))
+    first = parse_day(finding.get("first_detected_at"))
+    if announced is not None and first is not None:
+        gap = (first - announced).days
+        if gap >= 0:
+            lines.append(f"Announcement → detection: {gap} days ({announced} → {first})")
+    return "\n".join(lines)
 
 
 def _why_line(finding: dict[str, Any]) -> str:
@@ -250,8 +310,22 @@ def render_finding_card(
         lines.append(f"Sources: {', '.join(sources)}")
         lines.append("")
     lines += [
-        f"Timing: {_timing_line(finding)}",
+        _announced_line(finding),
         "",
+        _effective_line(finding),
+        "",
+        _detected_line(finding),
+        "",
+        _verified_line(finding),
+        "",
+        f"Status: {finding.get('_freshness', 'UNKNOWN_DATE')}",
+        "",
+    ]
+    timing = _timing_line(finding)
+    if timing:
+        lines.append(timing)
+        lines.append("")
+    lines += [
         f"Why it matters: {_why_line(finding)}",
         "",
         f"Investigate: {recommended_investigation(finding, category)}",
@@ -259,11 +333,14 @@ def render_finding_card(
     refs = [r for r in (finding.get("_refs") or []) if r]
     if refs:
         lines.append("")
-        lines.append("Evidence:")
-        shown = refs if max_refs is None else refs[:max_refs]
-        lines += [f"- {ref}" for ref in shown]
-        if max_refs is not None and len(refs) > max_refs:
-            lines.append(f"- (+{len(refs) - max_refs} more in the appendix)")
+        lines.append(f"Source: {refs[0]}")
+        if len(refs) > 1:
+            lines.append("Evidence:")
+            shown = refs[1:] if max_refs is None else refs[1 : max_refs + 1]
+            lines += [f"- {ref}" for ref in shown]
+            extra = len(refs) - 1 - len(shown)
+            if extra > 0:
+                lines.append(f"- (+{extra} more in the appendix)")
     return "\n".join(lines)
 
 

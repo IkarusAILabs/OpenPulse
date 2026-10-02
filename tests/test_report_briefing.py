@@ -125,8 +125,9 @@ def test_top_changes_collapses_same_repo_churn():
     )
     assert len(findings) == 1
     md = build_report("2026-09", [], sweep_findings=findings)
-    top = md.split("## Top Changes")[1].split("## OpenPulse Reference")[0]
-    assert top.count("disappeared from library/nginx") == 1
+    top = md.split("## Top Changes")[1].split("## OpenPulse Discovery of the Month")[0]
+    cards = [line for line in top.splitlines() if line.startswith("### ")]
+    assert len(cards) == 1
     assert "3 tags disappeared from library/nginx" in top
 
 
@@ -143,7 +144,7 @@ def test_top_changes_deterministic_ties():
 
 def test_reference_discovery_when_suitable_finding_exists():
     md = build_report("2026-09", [_item("db", [_eol()])], sweep_findings=[_distribution()])
-    section = md.split("## OpenPulse Reference Discovery")[1].split("## Changes Requiring")[0]
+    section = md.split("## OpenPulse Discovery of the Month")[1].split("## Changes Requiring")[0]
     assert "OpenPulse detects upstream changes and connects them to dependency identity." in md
     for block in (
         "WHAT CHANGED",
@@ -161,7 +162,7 @@ def test_reference_discovery_when_suitable_finding_exists():
 
 def test_reference_discovery_omitted_without_suitable_finding():
     md = build_report("2026-09", [_item("db", [_eol()])])
-    assert "## OpenPulse Reference Discovery" not in md
+    assert "## OpenPulse Discovery of the Month" not in md
 
 
 def test_no_implementation_metadata_rendered():
@@ -193,8 +194,10 @@ def test_upcoming_warning_window_uses_first_detection():
         first_detected_at=detected,
     )
     md = build_report("2026-09", [_item("db", [finding])])
-    upcoming = md.split("## Upcoming Changes")[1].split("## Category Overview")[0]
-    assert f"Detected {detected} → Effective {future} (Warning window: 73 days)" in upcoming
+    upcoming = md.split("## Upcoming Changes")[1].split("## Changes by Category")[0]
+    assert "73 days until effective" in upcoming
+    assert "Announced: Unknown" in upcoming
+    assert "OpenPulse first detected" in upcoming
 
 
 def test_public_customer_boundary_rendered():
@@ -209,10 +212,10 @@ def test_public_customer_boundary_rendered():
 def test_lifecycle_appendix_remains_available():
     md = build_report("2026-09", [_item("db", [_eol()])])
     appendix = md.split("## Appendix")[1]
-    assert "### A. All project findings" in appendix
+    assert "### B. All current findings" in appendix
     assert "db 5.0 is end-of-life" in appendix
-    assert "### B. Source references" in appendix
-    assert "### C. Data gaps and limitations" in appendix
+    assert "### C. Source references" in appendix
+    assert "### D. Data gaps and limitations" in appendix
     # Category table keeps lifecycle visible without dominating.
     assert "| Lifecycle | 1 | 1 |" in md
 

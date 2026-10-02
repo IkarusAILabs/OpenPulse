@@ -178,6 +178,10 @@ def demo_bitnami():
 
     event = _load_event("data/fixtures/bitnami/event.json")
     violations = gate(event)
+    _echo(
+        "(Historical replay: recorded August 2025 distribution event; "
+        "live registry state may have moved on.)"
+    )
     _echo(f"event: {event.id} [{event.event_type.value}]")
     _echo(f"confidence={event.confidence.value} impact={event.impact.value}")
     _echo(f"gate: {'PASS' if not violations else violations}")
@@ -250,13 +254,25 @@ def observe(namespace, repository, store):
     help="Run live distribution sweep first and include its findings",
 )
 @click.option("--store", default=".openpulse/observations", help="History root for --with-sweep")
-def report(month, projects, raw_bundle_dir, out, since, include_related, with_sweep, store):
+@click.option(
+    "--metadata-out",
+    default="",
+    help="Metadata JSON path (default: <out> with .meta.json extension)",
+)
+def report(
+    month, projects, raw_bundle_dir, out, since, include_related, with_sweep, store, metadata_out
+):
     """Monthly OSS Dependency Risk Report over seed projects."""
     import json as _json
     from pathlib import Path as _Path
 
     from core.entities.catalog import load_catalog
-    from reports.generate import build_report, collect_project
+    from reports.generate import (
+        build_report,
+        build_report_metadata,
+        collect_project,
+        prepare_report,
+    )
 
     slugs = [s.strip() for s in projects.split(",") if s.strip()] or [
         e["slug"] for e in load_catalog()
@@ -311,6 +327,22 @@ def report(month, projects, raw_bundle_dir, out, since, include_related, with_sw
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
     _echo(f"wrote {destination} ({len(items)} projects)")
+    prepared = prepare_report(
+        items,
+        sweep_findings,
+        since=since or None,
+        include_related=include_related,
+    )
+    metadata = build_report_metadata(
+        month,
+        items,
+        prepared["pairs"],
+        prepared["historical"],
+        sweep_included=bool(with_sweep),
+    )
+    meta_destination = metadata_out or (str(destination).removesuffix(".md") + ".meta.json")
+    _Path(meta_destination).write_text(_json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    _echo(f"wrote {meta_destination}")
 
 
 @cli.command(name="lifecycle-report")

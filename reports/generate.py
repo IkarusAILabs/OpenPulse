@@ -14,6 +14,7 @@ its incompleteness explicitly.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from analyzers import change_analyst, security_analyst
@@ -25,6 +26,12 @@ from analyzers.report_analyst import (
     render_finding_card,
 )
 from core.entities.catalog import project_context
+from core.freshness import (
+    MAIN_REPORT_STATES,
+    UNKNOWN_DATE,
+    classify,
+    is_background,
+)
 from core.pulse import compute_pulse
 from core.risk.impact import evaluate_impact
 from core.risk.metrics import finding_source_distribution
@@ -125,16 +132,17 @@ def _change_class(finding: dict[str, Any]) -> str:
     return "Project signals"
 
 
-#: Briefing categories, fixed order — non-lifecycle first so lifecycle
-#: volume never visually dominates the report.
+#: Briefing categories, fixed order — public report groups meaningful
+#: findings without letting lifecycle volume dominate. Security leads
+#: because it is the most time-critical; lifecycle never first.
 CATEGORY_ORDER = (
-    "Distribution",
     "Security",
-    "License",
     "Lifecycle",
-    "Support",
-    "Ownership",
+    "Distribution",
     "Repository",
+    "Support",
+    "License",
+    "Ownership",
     "Other",
 )
 
@@ -160,33 +168,63 @@ def category_of(finding: dict[str, Any]) -> str:
     return "Other"
 
 
-_CATEGORY_RANK = {name: rank for rank, name in enumerate(CATEGORY_ORDER)}
+#: Ranking order is separate from display order: Top Changes leads
+#: with non-lifecycle work, so Lifecycle ranks last here even though
+#: the Changes-by-Category table lists Security first.
+_RANK_CATEGORY = {
+    "Security": 0,
+    "Distribution": 1,
+    "License": 2,
+    "Support": 3,
+    "Ownership": 4,
+    "Repository": 5,
+    "Other": 6,
+    "Lifecycle": 7,
+}
 _ELIGIBILITY_RANK = {"ACTION": 0, "REVIEW": 1, "WATCH": 2}
 _CONFIDENCE_RANK = {"CONFIRMED": 0, "CORROBORATED": 1, "EMERGING": 2, "UNVERIFIED": 3}
+_STATUS_RANK = {
+    "NEW": 0,
+    "UPCOMING": 1,
+    "RECENTLY_UPDATED": 2,
+    "ACTIVE": 3,
+    "UNKNOWN_DATE": 4,
+    "EXPIRED": 5,
+}
 
 #: Top-changes shortlist size.
 _TOP_N = 10
 
 
-def _has_future_effective(finding: dict[str, Any]) -> bool:
-    from datetime import date
-
+def _has_future_effective(finding: dict[str, Any], today: date | None = None) -> bool:
     from core.leadtime import parse_day
 
+    today = today or date.today()
     effective = parse_day(finding.get("effective_at") or finding.get("event_date"))
-    return effective is not None and effective > date.today()
+    return effective is not None and effective > today
 
 
-def rank_key(project: str, finding: dict[str, Any]) -> tuple:
+def rank_key(project: str, finding: dict[str, Any], today: date | None = None) -> tuple:
     """Deterministic evidence-aware ranking: non-lifecycle first, then
-    actionability, then confidence, then upcoming effective dates —
-    never raw finding counts. Ties break on project + title."""
+    actionability, then confidence, then freshness status, then upcoming
+    effective dates — never raw finding counts. Ties break on project +
+    title.
+
+    Background findings (effective over 12 months ago) sink below
+    current ones within their bucket: last year's EOL never headlines
+    this month's briefing, but stays narrated with its label.
+    """
+    from core.freshness import classify as _classify
+
     assessment = finding.get("_assessment") or {}
+    status = finding.get("_freshness") or _classify(finding, today=today)[0]
     return (
-        _CATEGORY_RANK.get(category_of(finding), 99),
+        _RANK_CATEGORY.get(category_of(finding), 99),
         _ELIGIBILITY_RANK.get(assessment.get("eligibility", ""), 99),
         _CONFIDENCE_RANK.get(finding_confidence(finding), 99),
+        _STATUS_RANK.get(status, 99),
         0 if _has_future_effective(finding) else 1,
+        1 if is_background(finding) else 0,
         str(project),
         str(finding.get("title", "")),
     )
@@ -207,22 +245,40 @@ def _attach_refs(finding: dict[str, Any]) -> dict[str, Any]:
     return {**finding, "_refs": refs}
 
 
-def build_report(
-    month: str,
+def _month_title(month: str) -> str:
+    """'2026-10' -> 'October 2026'. Raw input passes through unchanged."""
+    try:
+        return date(int(month[:4]), int(month[5:7]), 1).strftime("%B %Y")
+    except (ValueError, IndexError):
+        return month
+
+
+def _in_main_report(finding: dict[str, Any]) -> bool:
+    """Placement rule: freshness states NEW/UPCOMING/ACTIVE/
+    RECENTLY_UPDATED narrate in the main report; EXPIRED findings live
+    in the Historical appendix. UNKNOWN_DATE joins the main report
+    only when REVIEW/ACTION-eligible (benefit of the doubt, stated)."""
+    status = finding.get("_freshness")
+    if status in MAIN_REPORT_STATES:
+        return True
+    if status == UNKNOWN_DATE:
+        return (finding.get("_assessment") or {}).get("eligibility") in ("ACTION", "REVIEW")
+    return False
+
+
+def prepare_report(
     items: list[dict[str, Any]],
+    sweep_findings: list[dict[str, Any]] | None = None,
     since: str | None = None,
     include_related: bool = False,
-    notes: list[str] | None = None,
-    sweep_findings: list[dict[str, Any]] | None = None,
-) -> str:
-    """Ranked markdown. Narrative = eligible findings (eligibility above
-    INFORMATIONAL after recency); actionable = eligibility ACTION only,
-    each with its justification; incompleteness stated explicitly.
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Assess + classify + place findings without rendering.
 
-    `sweep_findings` (distribution discovery output) renders as its own
-    section — cross-project observations don't belong to any single
-    project item, and merging them in would hide their provenance.
+    Shared by `build_report` and metadata/CLI consumers so placement
+    logic lives in exactly one place. Never mutates the caller's items.
     """
+    today = today or date.today()
     held_back = 0
     scoped = []
     for item in items:
@@ -236,7 +292,8 @@ def build_report(
             if assessment["eligibility"] not in _ELIGIBLE:
                 held_back += 1
                 continue
-            assessed.append({**finding, "_assessment": assessment})
+            status, _ = classify(finding, today=today)
+            assessed.append({**finding, "_assessment": assessment, "_freshness": status})
         scoped.append({**item, "findings": assessed})
     assessed_sweep = []
     for finding in sweep_findings or []:
@@ -245,29 +302,78 @@ def build_report(
         assessment = _eligibility(finding)
         if assessment["eligibility"] == "INFORMATIONAL":
             continue
-        assessed_sweep.append(_attach_refs({**finding, "_assessment": assessment}))
+        status, _ = classify(finding, today=today)
+        assessed_sweep.append(
+            _attach_refs({**finding, "_assessment": assessment, "_freshness": status})
+        )
     for item in scoped:
         item["findings"] = [_attach_refs(f) for f in item["findings"]]
     pairs = [(item["project"], finding) for item in scoped for finding in item["findings"]]
     pairs += [("registry sweep", finding) for finding in assessed_sweep]
-    ranked = sorted(pairs, key=lambda pf: rank_key(pf[0], pf[1]))
+    return {
+        "scoped": scoped,
+        "assessed_sweep": assessed_sweep,
+        "held_back": held_back,
+        "pairs": pairs,
+        "main_pairs": [pf for pf in pairs if _in_main_report(pf[1])],
+        "historical": [pf for pf in pairs if not _in_main_report(pf[1])],
+    }
+
+
+def build_report(
+    month: str,
+    items: list[dict[str, Any]],
+    since: str | None = None,
+    include_related: bool = False,
+    notes: list[str] | None = None,
+    sweep_findings: list[dict[str, Any]] | None = None,
+    today: date | None = None,
+) -> str:
+    """Monthly public intelligence briefing — web-frontend-ready markdown.
+
+    Narrative = eligible findings (eligibility above INFORMATIONAL
+    after recency), placed by freshness: current findings narrate in
+    the main report, EXPIRED findings move to the Historical appendix
+    (never deleted). Only evidence- and scope-justified findings
+    appear action-framed, and the report states its incompleteness
+    explicitly.
+
+    `sweep_findings` (distribution discovery output) joins the same
+    ranking — cross-project observations keep the "registry sweep"
+    project label so provenance stays visible. `today` pins all date
+    arithmetic for deterministic tests; defaults to the current date.
+    """
+    today = today or date.today()
+    prepared = prepare_report(items, sweep_findings, since, include_related, today)
+    scoped = prepared["scoped"]
+    assessed_sweep = prepared["assessed_sweep"]
+    held_back = prepared["held_back"]
+    pairs = prepared["pairs"]
+    main_pairs = prepared["main_pairs"]
+    historical = prepared["historical"]
+    ranked = sorted(main_pairs, key=lambda pf: rank_key(pf[0], pf[1], today=today))
     attention = [
         pf for pf in ranked if (pf[1].get("_assessment") or {}).get("eligibility") == "ACTION"
     ]
-    upcoming = _upcoming_changes(pairs)
+    upcoming = _upcoming_changes(main_pairs, today=today)
     material = [
         pf
-        for pf in pairs
+        for pf in main_pairs
         if (pf[1].get("_assessment") or {}).get("eligibility") in ("ACTION", "REVIEW")
     ]
-    discoveries = [pf for pf in pairs if category_of(pf[1]) != "Lifecycle"]
-    confidence_counts = _confidence_counts([f for _, f in pairs])
+    discoveries = [pf for pf in main_pairs if category_of(pf[1]) != "Lifecycle"]
+    confidence_counts = _confidence_counts([f for _, f in main_pairs])
+    background = sum(1 for _, f in pairs if is_background(f))
+    unknown_dates = sum(1 for _, f in main_pairs if (f.get("_freshness") == UNKNOWN_DATE))
     silent = sorted(i["project"] for i in scoped if not i["findings"])
+    month_title = _month_title(month)
 
     lines = [
-        f"# OpenPulse Monthly Intelligence — {month}",
+        "# OpenPulse OSS Dependency Intelligence",
         "",
-        f"Reporting period: {month}.",
+        f"## {month_title}",
+        "",
+        _introduction(month_title, len(scoped), len(material), len(discoveries)),
         "",
         DISCLAIMER,
         "",
@@ -282,8 +388,10 @@ def build_report(
         upcoming=len(upcoming),
         discoveries=len(discoveries),
         confidence_counts=confidence_counts,
+        background=background,
         silent=len(silent),
         held_back=held_back,
+        unknown_dates=unknown_dates,
     )
     lines.append("")
     lines.append("## Top Changes")
@@ -296,9 +404,9 @@ def build_report(
             render_finding_card(project, finding, category_of(finding), number=number, max_refs=3)
         )
         lines.append("")
-    reference = _reference_candidate(pairs)
+    reference = _reference_candidate(main_pairs)
     if reference is not None:
-        lines.append("## OpenPulse Reference Discovery")
+        lines.append("## OpenPulse Discovery of the Month")
         lines.append("")
         lines.append(
             "OpenPulse detects upstream changes and connects them to dependency identity."
@@ -328,18 +436,21 @@ def build_report(
         lines.append("No upcoming changes with trustworthy dates this month.")
         lines.append("")
     for detected, effective, days, project, finding in upcoming:
+        announced = finding.get("announced_at") or "Unknown"
+        first = finding.get("first_detected_at") or detected
+        lines.append(f"- **{project}** — {finding.get('title', 'untitled')}")
         lines.append(
-            f"- **{project}** — {finding.get('title', 'untitled')}: "
-            f"Detected {detected} → Effective {effective} (Warning window: {days} days)"
+            f"  Announced: {announced} · Effective: {effective} · "
+            f"{days} days until effective · OpenPulse first detected: {first}"
         )
     if upcoming:
         lines.append("")
-    lines.append("## Category Overview")
+    lines.append("## Changes by Category")
     lines.append("")
     lines.append("| Category | Changes | Requiring attention |")
     lines.append("|---|---|---|")
     for category in CATEGORY_ORDER:
-        in_category = [pf for pf in pairs if category_of(pf[1]) == category]
+        in_category = [pf for pf in main_pairs if category_of(pf[1]) == category]
         need_attention = sum(
             1 for _, f in in_category if (f.get("_assessment") or {}).get("eligibility") == "ACTION"
         )
@@ -352,11 +463,35 @@ def build_report(
             f"- {level} ({confidence_counts.get(level, 0)}): {CONFIDENCE_MEANINGS[level]}."
         )
     lines.append("")
+    lines.append("## What OpenPulse Watches")
+    lines.append("")
+    lines.append(
+        "OpenPulse watches what can change underneath software dependencies: "
+        "security disclosures, lifecycle and support ends, distribution and "
+        "registry changes, repository archival, license and ownership changes. "
+        "Findings above are grouped by these categories — not by CVE counts or "
+        "EOL tables — because the question is always what changed, not how many "
+        "records a database holds."
+    )
+    lines.append("")
+    lines.append("## Methodology")
+    lines.append("")
+    lines.append(
+        "Findings rest on named sources with content hashes; confidence "
+        "(CONFIRMED / CORROBORATED / EMERGING / UNVERIFIED) follows evidence "
+        "strength, never match precision. Dependency identity is resolved "
+        "before impact is assessed, and unknown scope stays unknown. "
+        "Freshness states (NEW / UPCOMING / ACTIVE / RECENTLY_UPDATED / "
+        "EXPIRED) derive from announcement, effective, detection, and "
+        "verification dates — expired findings move to the Historical "
+        "appendix, never deleted. Full model: `docs/METHODOLOGY.md`."
+    )
+    lines.append("")
     lines.append("## What OpenPulse Added This Month")
     lines.append("")
-    metrics = finding_source_distribution([f for _, f in pairs])
+    metrics = finding_source_distribution([f for _, f in main_pairs])
     lines += _value_section(
-        pairs=pairs,
+        pairs=main_pairs,
         upcoming=upcoming,
         confidence_counts=confidence_counts,
         metrics=metrics,
@@ -379,23 +514,47 @@ def build_report(
     lines.append("")
     lines.append("## Appendix")
     lines.append("")
-    lines.append("### A. All project findings")
+    lines.append("### A. Historical findings")
     lines.append("")
+    if not historical:
+        lines.append("No findings aged into the historical record this month.")
+        lines.append("")
+    for project, finding in sorted(historical, key=lambda pf: (pf[0], str(pf[1].get("title", "")))):
+        announced = finding.get("announced_at") or "Unknown"
+        effective = finding.get("effective_at") or finding.get("event_date") or "Unknown"
+        reasons = (finding.get("_assessment") or {}).get("reasons") or []
+        lines.append(f"- **{project}** — {finding.get('title', 'untitled')}")
+        lines.append(
+            f"  Status: {finding.get('_freshness', 'EXPIRED')} · "
+            f"Announced: {announced} · Effective: {effective}"
+        )
+        if reasons:
+            lines.append(f"  Note: {reasons[0]}")
+    if historical:
+        lines.append("")
+    lines.append("### B. All current findings")
+    lines.append("")
+    current_by_project: dict[str, list[dict[str, Any]]] = {}
+    for item in scoped:
+        current = [f for f in item["findings"] if _in_main_report(f)]
+        if current:
+            current_by_project[item["project"]] = current
     for item in lifecycle_first(sorted(scoped, key=lambda i: i["project"])):
-        if not item["findings"]:
+        if item["project"] not in current_by_project:
             continue
         lines.append(f"#### {item['project']}")
         lines.append("")
-        for finding in item["findings"]:
+        for finding in current_by_project[item["project"]]:
             lines.append(render_finding_card(item["project"], finding, category_of(finding)))
             lines.append("")
-    if assessed_sweep:
+    current_sweep = [f for f in assessed_sweep if _in_main_report(f)]
+    if current_sweep:
         lines.append("#### Catalog-wide registry observations")
         lines.append("")
-        for finding in assessed_sweep:
+        for finding in current_sweep:
             lines.append(render_finding_card("registry sweep", finding, category_of(finding)))
             lines.append("")
-    lines.append("### B. Source references")
+    lines.append("### C. Source references")
     lines.append("")
     distribution = metrics["finding_source_distribution"]
     if distribution:
@@ -410,7 +569,7 @@ def build_report(
         f"(across {metrics['source_count']} recorded source labels)."
     )
     lines.append("")
-    lines.append("### C. Data gaps and limitations")
+    lines.append("### D. Data gaps and limitations")
     lines.append("")
     if silent:
         lines.append(f"No signals observed for: {', '.join(silent)}.")
@@ -425,11 +584,65 @@ def build_report(
         lines.append("No data gaps this month: every monitored project produced narrated findings.")
         lines.append("")
     if notes:
-        lines.append("### D. Notes")
+        lines.append("### E. Notes")
         lines.append("")
         lines += [f"- {note}" for note in notes]
         lines.append("")
     return "\n".join(lines).rstrip()
+
+
+def build_report_metadata(
+    month: str,
+    items: list[dict[str, Any]],
+    pairs: list[tuple[str, dict[str, Any]]],
+    historical: list[tuple[str, dict[str, Any]]],
+    sweep_included: bool,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Machine-readable companion to the Markdown report: counts and
+    provenance for web frontends. No finding content, no infrastructure
+    details — identification and coverage only. Deterministic except
+    `generated_at` (UTC instant of generation)."""
+    from datetime import datetime, timezone
+
+    from core.freshness import recency_days
+
+    try:
+        from importlib.metadata import version as _pkg_version
+
+        openpulse_version = _pkg_version("openpulse")
+    except Exception:
+        openpulse_version = "unknown"
+    today = today or date.today()
+    status_counts: dict[str, int] = {}
+    category_counts: dict[str, int] = {}
+    for _, finding in pairs:
+        status = str(finding.get("_freshness", "UNKNOWN_DATE"))
+        status_counts[status] = status_counts.get(status, 0) + 1
+        category = category_of(finding)
+        category_counts[category] = category_counts.get(category, 0) + 1
+    return {
+        "report_id": f"openpulse-{month}",
+        "reporting_period": month,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "openpulse_version": openpulse_version,
+        "freshness_policy": {
+            "name": "freshness/v1",
+            "recency_days": recency_days(),
+            "research_window_days": 365,
+        },
+        "coverage": {
+            "projects_monitored": len(items),
+            "sweep_included": bool(sweep_included),
+        },
+        "counts": {
+            "narrated_findings": len(pairs),
+            "historical_findings": len(historical),
+            "by_status": status_counts,
+            "by_category": category_counts,
+        },
+        "report_date": str(today),
+    }
 
 
 def _supporting_urls(finding: dict[str, Any]) -> list[str]:
@@ -468,8 +681,10 @@ def _executive_summary(
     upcoming: int,
     discoveries: int,
     confidence_counts: dict[str, int],
+    background: int,
     silent: int,
     held_back: int,
+    unknown_dates: int,
 ) -> list[str]:
     """One-screen value statement + key numbers. Never raw counts alone:
     every number arrives inside a sentence about what it means."""
@@ -509,27 +724,47 @@ def _executive_summary(
             f"{confidence_counts[level]} {level}"
             for level in ("CONFIRMED", "CORROBORATED", "EMERGING", "UNVERIFIED")
         ),
+        f"- Background findings (effective over 12 months ago): {background}",
         "- Data gaps: "
         f"{_n(silent, 'project')} with no signals, {_n(held_back, 'record')} held back",
+        f"- What remains uncertain: {_n(unknown_dates, 'finding carries')} unknown dates, "
+        f"{_n(held_back, 'record was', 'records were')} held back for weak evidence",
     ]
     return lines
 
 
+def _introduction(month_title: str, projects: int, material: int, discoveries: int) -> str:
+    """One paragraph: what changed this month and what teams should know."""
+    if not material:
+        return (
+            f"No material upstream changes were detected across "
+            f"{_n(projects, 'monitored project')} in {month_title}. "
+            "The appendices record coverage and gaps."
+        )
+    return (
+        f"In {month_title}, OpenPulse identified {material} material upstream "
+        f"changes worth a software team's attention, including {discoveries} "
+        "non-lifecycle discoveries no lifecycle database records. "
+        "Every item below names its evidence, its scope, and when it matters — "
+        "and none of it speaks about your environment without a watchlist to prove it."
+    )
+
+
 def _upcoming_changes(
     pairs: list[tuple[str, dict[str, Any]]],
+    today: date | None = None,
 ) -> list[tuple[str, str, int, str, dict[str, Any]]]:
     """(detected, effective, days, project, finding), sorted by effective
     date. Only first-trustworthy-detection windows — never estimates."""
-    from datetime import date
-
     from core.leadtime import finding_lead_time, parse_day
 
+    today = today or date.today()
     upcoming = []
     for project, finding in pairs:
         days, detected, effective = finding_lead_time(finding)
         if days is None or detected is None or effective is None:
             continue
-        if (parse_day(effective) or date.min) <= date.today():
+        if (parse_day(effective) or date.min) <= today:
             continue
         upcoming.append((detected, effective, days, str(project), finding))
     upcoming.sort(key=lambda row: (row[1], row[3], str(row[4].get("title", ""))))
@@ -629,12 +864,34 @@ def _reference_block(project: str, finding: dict[str, Any]) -> list[str]:
         lines.append(f"- content `{evidence.get('content_hash')}`")
     if evidence.get("chain_hash"):
         lines.append(f"- chain `{evidence.get('chain_hash')}`")
-    lines += ["", "WARNING WINDOW", ""]
-    from core.leadtime import finding_lead_time
+    lines += ["", "ANNOUNCED", ""]
+    announced = finding.get("announced_at")
+    if announced:
+        provenance = str(finding.get("announcement_provenance") or "official")
+        lines.append(f"{str(announced)[:10]} ({provenance} upstream publication date).")
+    else:
+        lines.append("Unknown — no trustworthy upstream publication date on record.")
+    lines += ["", "OPENPULSE DETECTION", ""]
+    from core.leadtime import finding_lead_time, parse_day
 
+    first = parse_day(finding.get("first_detected_at"))
+    if first is not None:
+        lines.append(f"First detected by OpenPulse: {first}.")
+        if announced and parse_day(announced) is not None:
+            gap = (first - parse_day(announced)).days
+            if gap >= 0:
+                lines.append(
+                    f"Announcement → detection: {gap} days ({announced} → {first})."
+                )
+    else:
+        lines.append("First detection unrecorded.")
+    lines += ["", "WARNING WINDOW", ""]
     days, detected, effective = finding_lead_time(finding)
     if days is not None and detected and effective:
-        lines.append(f"{days} days (Detected {detected} → Effective {effective}).")
+        lines.append(
+            f"Detection lead time before effective date: {days} days "
+            f"(first detected {detected} → effective {effective})."
+        )
     else:
         lines.append("No trustworthy warning window — first detection unrecorded.")
     return lines

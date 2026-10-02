@@ -220,7 +220,7 @@ def _public_change(
             )
             return _result(PROJECT_CHANGE, ACTION, reasons)
         if state == "UPCOMING":
-            reasons.append("EOL announced but not yet effective: watch")
+            reasons.append("EOL upcoming but not yet effective: watch")
             return _result(PROJECT_CHANGE, WATCH, reasons)
         reasons.append("EOL proposal without usable scope/state: review at most")
         return _result(PROJECT_SIGNAL, REVIEW, reasons)

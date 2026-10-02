@@ -53,6 +53,9 @@ def parse_vulns(package: str, ecosystem: str, payload: dict[str, Any]) -> list[d
                 "id": v.get("id"),
                 "cve_id": cve_id,
                 "summary": v.get("summary"),
+                # Authoritative publication date: feeds announced_at in
+                # correlation (official provenance, never inferred).
+                "published": v.get("published"),
                 "severity": v.get("severity"),
                 "affected": affected,
                 "references": [x.get("url") for x in v.get("references", []) if x.get("url")],

@@ -203,16 +203,26 @@ traces to an evidence URL or named collector output.
 `collect_project` turns one raw bundle into pulse + findings;
 `build_report` ranks them into a decision-support briefing —
 Executive Summary, Top Changes (deterministic evidence-aware rank:
-non-lifecycle first, then actionability, confidence, upcoming
-dates), Reference Discovery, Changes Requiring Attention, Upcoming
-Changes (first-detection warning windows only), Category Overview,
-Evidence Quality, What OpenPulse Added This Month, For Your
-Environment, and an Appendix with every finding, sources, and gaps. Finding cards show
+non-lifecycle first, then actionability, confidence, freshness
+status, upcoming dates; findings effective over 12 months ago sink
+as labeled background, never deleted), Discovery of the Month,
+Changes Requiring Attention, Upcoming Changes (detection lead times
+from first trustworthy detection only), Changes by Category,
+Evidence Quality, What OpenPulse Watches, Methodology, What OpenPulse
+Added This Month, For Your Environment, and an Appendix (Historical
+first, then every current finding, sources, gaps). Finding cards show
 category, evidence confidence (`finding_confidence`: declared
 finding confidence, else strong→CONFIRMED, weak→UNVERIFIED, else
-EMERGING), assessment, scope, timing, a conditional recommended
-investigation, and evidence refs — never `_analyst` or raw impact
-proposals. Recency (`--since`) and relationship
+EMERGING), assessment, scope, announcement (with provenance),
+effective, first-detected and last-verified dates, freshness status,
+a conditional recommended investigation, and evidence refs — never
+`_analyst` or raw impact proposals. Security findings carry
+`announced_at` (earliest authoritative publication date across
+merged entries) with `official` provenance; lifecycle and registry
+findings honestly report announcement Unknown. Placement follows the
+freshness taxonomy (`core/freshness.py:classify`: NEW / UPCOMING /
+ACTIVE / RECENTLY_UPDATED stay in the main narrative; EXPIRED moves
+to Historical). Recency (`--since`) and relationship
 (`--include-related`) filters keep the monthly narrative honest.
 `openpulse report --month YYYY-MM` runs the catalog live or from
 `--raw-bundle-dir` offline bundles. `--with-sweep` feeds live

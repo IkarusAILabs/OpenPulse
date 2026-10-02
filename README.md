@@ -190,16 +190,23 @@ dumps, never claims about your environment without a watchlist.
 - Executive Summary — material changes, attention items, upcoming
   warnings, non-lifecycle discoveries, evidence confidence, data gaps.
 - Top Changes — deterministic evidence-aware ranking (non-lifecycle
-  first, never raw counts).
-- Reference Discovery — the strongest non-lifecycle story, broken
+  first, never raw counts). Every card shows announcement, effective,
+  first-detected and last-verified dates, freshness status, evidence
+  confidence, scope, and a recommended investigation.
+- Discovery of the Month — the strongest non-lifecycle story, broken
   out as WHAT / WHY / HOW DETECTED / AFFECTED / NOT AFFECTED /
-  EVIDENCE / WARNING WINDOW.
-- Changes Requiring Attention, Upcoming Changes (first-detection
-  warning windows only), Category Overview, Evidence Quality.
+  EVIDENCE / ANNOUNCED / DETECTION / WARNING WINDOW.
+- Changes Requiring Attention, Upcoming Changes (detection lead
+  times from first trustworthy detection only), Changes by Category,
+  Evidence Quality, What OpenPulse Watches, Methodology.
 - What OpenPulse Added This Month — value demonstrated from the
   report's own data, ending in the public → watchlist → impact →
   warning progression.
-- Appendix with every finding, sources, and gaps.
+- For Your Environment (public/customer boundary) and an appendix
+  with historical findings, every current finding, sources, and gaps.
+- Machine-readable companion: `report --metadata-out` writes a
+  `.meta.json` sidecar (report ID, period, version, freshness policy,
+  coverage, status/category counts) for web frontends.
 
 **Lifecycle posture** (`openpulse lifecycle-report --month YYYY-MM`):
 
@@ -222,7 +229,7 @@ cli/                # openpulse CLI (validate, pulse, analyze, observe, report, 
 reports/            # generate.py — monthly ranked markdown reports
 data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
 docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
-tests/              # 90+ offline tests (no network in CI)
+tests/              # 330+ offline tests (no network in CI)
 ```
 
 The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this repo — the OSS intelligence core stays independent.

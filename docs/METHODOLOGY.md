@@ -150,6 +150,75 @@ effective (applies). Lead times are never averaged, ranked, or
 marketed: the metric stays instrumented but unclaimed until
 independently measured incidents exist.
 
+## Research window and freshness
+
+OpenPulse researches the last 12 months (`core/freshness.py`).
+Freshness derives from the effective date, never the observation
+date: a 2024 EOL re-observed today is background knowledge
+(`BACKGROUND`), not news. Findings effective over a year ago sink in
+rankings and carry the background label, but stay narrated with full
+evidence — freshness demotes and labels, never deletes. Unknown
+effective dates are `UNKNOWN` freshness, never assumed old.
+Reports segment background explicitly so monthly briefings cannot
+present last year's changes as this month's.
+
+## Date semantics
+
+Five temporal roles, never substituted for one another
+(`core/freshness.py:_finding_dates`, `core/leadtime.py`):
+
+- Announced — when the upstream project publicly communicated the
+  change. Used only with provenance: `official` (NVD/CVE
+  publication, OSV publication, KEV catalog addition, GitHub release
+  publication) or `unknown`. Inferred dates are marked inferred with
+  their provenance retained; without a trustworthy date the report
+  shows "Announcement: Unknown" — dates are never fabricated from
+  file times, commit dates, scan dates, or report generation dates.
+- Effective — when the change takes (or took) effect.
+- First detected — when OpenPulse first observed sufficient
+  evidence. Re-observations never stand in.
+- Last verified — when OpenPulse most recently confirmed the
+  evidence (`last_observed_at`, else `observed_at`).
+- Reported — the reporting period that included the finding.
+
+## Freshness policy (`core/freshness.py`)
+
+Event-temporal classification is deterministic date arithmetic —
+no LLM, no heuristics beyond the documented rules:
+
+- `UPCOMING` — effective date in the future. Announcement age never
+  hides a future consequence.
+- `NEW` — announced within the recency window and not yet past effect.
+- `RECENTLY_UPDATED` — old announcement with a recent first
+  detection or verification: the update is treated as new intelligence.
+- `ACTIVE` — ongoing dateless conditions, recently verified.
+- `EXPIRED` — effective date past with no recent update; moves to
+  the Historical appendix, never deleted.
+- `UNKNOWN_DATE` — no dates at all; narrates only when
+  REVIEW/ACTION-eligible.
+
+The recency window defaults to 90 days (`OPENPULSE_REPORT_FRESHNESS_DAYS`
+overrides): three monthly reporting cycles, matching typical OSS
+disclosure-to-impact spans. Effective-date rules always take
+precedence over the window; a 365-day research window backstops
+unknown-announcement cases.
+
+## Public/internal/debug information boundary
+
+Monthly Markdown reports are website-facing. Every report field is
+classified:
+
+| Class | Content | Examples |
+|---|---|---|
+| PUBLIC | Evidence, sources, dates with provenance, scope, assessment vocabulary, confidence | finding titles, summaries, references, observation/content/chain hashes, `Announced/Effective/First detected/Last verified/Status` lines |
+| INTERNAL | Trust machinery legible only with codebase context | analyst names, impact proposals, parser versions, match methods, `_refs`, evidence-link internals, lifecycle states, store paths |
+| DEBUG | Diagnostics, never rendered | tracebacks, raw payloads, lock files, credentials (never collected) |
+
+`tests/test_public_report.py` enforces the boundary by token scan.
+Assessment and eligibility labels (`PROJECT_CHANGE`, `ACTION`,
+`REVIEW`, `WATCH`) are PUBLIC domain vocabulary, defined in the
+report Methodology section — not cryptic codes.
+
 ## Registry observations
 
 What the registry exposed at time T: repository state, tag→digest

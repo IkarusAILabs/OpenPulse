@@ -103,14 +103,16 @@ Required sections:
 
 1. Executive Summary
 2. Top Changes
-3. OpenPulse Reference Discovery
+3. OpenPulse Discovery of the Month
 4. Changes Requiring Attention
-5. Upcoming Changes / Warning Windows
-6. Category Overview
+5. Upcoming Changes (detection lead times, first-detection only)
+6. Changes by Category
 7. Evidence Quality
 8. What OpenPulse Added This Month
-9. For Your Environment
-10. Detailed Appendix
+9. What OpenPulse Watches
+10. Methodology (public summary + link)
+11. For Your Environment
+12. Detailed Appendix (Historical first)
 
  companion: the Lifecycle Posture view (deadlines soonest-first,
 recent ends, coverage gaps, planning items, full matrix appendix).

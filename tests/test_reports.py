@@ -46,7 +46,7 @@ def test_report_groups_and_counts():
     assert "## Top Changes" in md
     assert "| Lifecycle | 2 | 0 |" in md
     assert "Public report findings describe OSS ecosystem changes" in md
-    assert "c-proj" not in md.split("### C. Data gaps")[0]
+    assert "c-proj" not in md.split("### D. Data gaps")[0]
     assert "c-proj" in md  # named as having no signals
     assert md.index("## Top Changes") < md.index("## Changes Requiring Attention")
 
@@ -120,12 +120,12 @@ def test_report_source_and_gap_sections():
             )
         ],
     )
-    assert "### B. Source references" in md
+    assert "### C. Source references" in md
     assert "NVD" in md and "OSV" in md
     # NVD + OSV share the vuln-data family: label-listed but not
     # family-corroborated — the report must say so honestly.
     assert "Independent source families observed: 1" in md
-    assert "### C. Data gaps and limitations" in md
+    assert "### D. Data gaps and limitations" in md
 
 
 def test_report_names_evidence():
@@ -190,8 +190,11 @@ def test_report_cli_offline(tmp_path):
     )
     assert result.exit_code == 0, result.output
     text = out.read_text(encoding="utf-8")
-    assert "# OpenPulse Monthly Intelligence — 2026-09" in text
-    assert "#### redis" in text
+    assert "# OpenPulse OSS Dependency Intelligence" in text
+    assert "## September 2026" in text
+    # The 2024 EOL is historical: recorded in the appendix, not headlined.
+    assert "### A. Historical findings" in text
+    assert "redis 6.2 is end-of-life" in text
     # Public/customer boundary travels with every generated report.
     assert "whether it affects YOUR dependencies" in text
 
@@ -363,7 +366,7 @@ def test_report_renders_sweep_section():
     from reports.generate import build_report
 
     md = build_report("2026-09", [], sweep_findings=[_sweep_finding()])
-    assert "## OpenPulse Reference Discovery" in md
+    assert "## OpenPulse Discovery of the Month" in md
     assert "## Top Changes" in md
     assert "docker.io/bitnami/redis:7.2" in md
     assert "https://hub.docker.com/r/bitnami/redis/tags" in md
@@ -373,7 +376,7 @@ def test_report_without_sweep_has_no_section():
     from reports.generate import build_report
 
     md = build_report("2026-09", [])
-    assert "Reference Discovery" not in md
+    assert "Discovery of the Month" not in md
 
 
 def _dated_finding(**kw):
@@ -407,7 +410,10 @@ def test_report_shows_lead_time_for_upcoming_change():
             )
         ],
     )
-    assert "Warning window: 28 days (Detected 2026-09-01 → Effective 2026-09-29)" in md
+    assert (
+        "Detection lead time before effective date: 28 days "
+        "(first detected 2026-09-01 → effective 2026-09-29)" in md
+    )
 
 
 def test_report_silent_lead_time_for_past_or_unknown():
@@ -424,7 +430,7 @@ def test_report_silent_lead_time_for_past_or_unknown():
             _item("unknown", [_dated_finding(observed_at="2026-09-01")]),
         ],
     )
-    assert "Warning window:" not in md
+    assert "Detection lead time" not in md
 
 
 def test_public_report_never_claims_customer_impact():

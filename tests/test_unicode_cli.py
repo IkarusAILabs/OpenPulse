@@ -77,9 +77,11 @@ def test_report_cli_non_utf8_stdout(tmp_path):
     assert out.exit_code == 0, out.output
     _assert_no_glyphs(out.output)
     assert f"wrote {out_path} (1 projects)" in out.output
-    # the report file itself stays UTF-8 and keeps the badge glyph
+    # the report file itself stays UTF-8; the 2024 EOL is historical,
+    # recorded in the appendix rather than headlined as news
     text = out_path.read_text(encoding="utf-8")
-    assert "#### redis" in text
+    assert "### A. Historical findings" in text
+    assert "redis 6.2 is end-of-life" in text
 
 
 @pytest.fixture()

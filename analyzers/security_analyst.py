@@ -126,6 +126,8 @@ def correlate(
                     "version_checked": False,
                     "version_hit": False,
                     "references": [],
+                    "announced_at": None,
+                    "announcement_provenance": "unknown",
                 },
             )
             collector = e.get("collector", "?")
@@ -157,6 +159,14 @@ def correlate(
             for ref in e.get("references", []) or []:
                 if ref and ref not in slot["references"]:
                     slot["references"].append(ref)
+            announced = _announcement_of(e)
+            if announced is not None and (
+                slot["announced_at"] is None or announced < slot["announced_at"]
+            ):
+                # Earliest authoritative date wins: announcement means
+                # first public communication.
+                slot["announced_at"] = announced
+                slot["announcement_provenance"] = "official"
 
     findings = []
     for cid, slot in sorted(merged.items()):
@@ -167,6 +177,26 @@ def correlate(
         )
         findings.append(slot)
     return findings
+
+
+#: Collector keys carrying authoritative publication/disclosure dates.
+#: NVD/CVE publication, OSV publication, KEV catalog addition, GitHub
+#: release publication are upstream statements of "when this became
+#: public" — official provenance, never inferred.
+_ANNOUNCEMENT_KEYS = ("published", "date_added", "date_published", "published_at")
+
+
+def _announcement_of(entry: dict[str, Any]) -> str | None:
+    """Earliest trustworthy announcement day in one raw entry, else None."""
+    from core.leadtime import parse_day
+
+    if not isinstance(entry, dict):
+        return None
+    for key in _ANNOUNCEMENT_KEYS:
+        day = parse_day(entry.get(key))
+        if day is not None:
+            return str(day)
+    return None
 
 
 def _osv_identity(entry: dict[str, Any], names: set[str], pkg: str, eco: str) -> bool:

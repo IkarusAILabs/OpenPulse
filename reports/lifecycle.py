@@ -138,6 +138,14 @@ def build_lifecycle_report(
     upcoming_projects = [s for s in ordered if s.get("upcoming")]
     support_projects = [s for s in ordered if s.get("support_ended")]
     no_data = [s for s in ordered if s.get("status") == STATUS_NO_DATA]
+    from core.freshness import is_background as _is_bg
+
+    background_versions = sum(
+        1
+        for s in ordered
+        for item in s.get("eol", []) or []
+        if _is_bg({"effective_at": item.get("date")}, today)
+    )
     upcoming_rows = []
     for status in ordered:
         for item in status.get("upcoming", []) or []:
@@ -191,6 +199,7 @@ def build_lifecycle_report(
         f"- Projects with an upcoming lifecycle deadline: {len(upcoming_projects)}",
         f"- Projects with ended support: {len(support_projects)}",
         f"- Projects with no lifecycle data: {len(no_data)}",
+        f"- End-of-life versions older than 12 months (background): {background_versions}",
         "",
         "NO-DATA means OpenPulse has no authoritative lifecycle record from "
         "the currently configured lifecycle source. NO-DATA is a coverage "
@@ -316,20 +325,28 @@ def _planning_items(statuses: list[dict[str, Any]], today: date) -> list[str]:
     recent.sort(key=lambda row: (row[0], row[1], row[2]))
     lines = [row[3] for row in upcoming] + [row[3] for row in recent]
     covered = {(row[1], row[2]) for row in recent}
-    remaining = sorted(
-        (project, v["version"])
-        for s in statuses
-        for v in (s.get("eol", []) or [])
-        if (project := str(s.get("project", "")))
-        and (project, str(v["version"])) not in covered
-    )
-    by_project: dict[str, list[str]] = {}
-    for project, version in remaining:
-        by_project.setdefault(project, []).append(str(version))
+    from core.freshness import is_background as _is_background
+
+    by_project: dict[str, list[tuple[str, bool]]] = {}
+    for status in statuses:
+        project = str(status.get("project", ""))
+        for item in status.get("eol", []) or []:
+            version = str(item.get("version"))
+            if (project, version) in covered or not project:
+                continue
+            background = _is_background(
+                {"effective_at": item.get("date")}, today
+            )
+            by_project.setdefault(project, []).append((version, background))
+    current_first, background_last = [], []
     for project in sorted(by_project, key=lambda p: (-len(by_project[p]), p)):
-        versions = ", ".join(by_project[project])
-        lines.append(
+        versions = ", ".join(v for v, _ in by_project[project])
+        entry = (
             f"**{project}** has confirmed end-of-life version(s) ({versions}) — "
             "confirm none remain in your inventory."
         )
-    return lines
+        if all(bg for _, bg in by_project[project]):
+            background_last.append(entry + " (background: effective over 12 months ago)")
+        else:
+            current_first.append(entry)
+    return lines + current_first + background_last
