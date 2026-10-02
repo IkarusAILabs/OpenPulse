@@ -131,9 +131,10 @@ every finding — it is never stored on the finding
 content includes findings whose eligibility is above INFORMATIONAL;
 "Changes Requiring Attention" lists ACTION-eligible findings only
 (`build_report`). Finding cards show assessment and scope, never the
-raw analyst `impact` proposal. The lifecycle posture view gates the
-same way (`analyzers/lifecycle_events.py:finding_to_event` evaluates
-eligibility, defaulting to REVIEW when absent). Analysts propose;
+raw analyst `impact` proposal. The lifecycle posture view
+(`reports/lifecycle.py`) applies its own status ladder (EOL / UPCOMING /
+SUPPORT-ENDED / OK / NO-DATA) rather than reusing `finding_to_event`;
+both keep analyst proposals out of placement decisions. Analysts propose;
 `core/risk/impact.py` disposes.
 
 ## Security Analyst (`analyzers/security_analyst.py`)
