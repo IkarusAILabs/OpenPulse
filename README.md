@@ -264,10 +264,11 @@ Good first issues are labeled [`good first issue`](https://github.com/ikaruscare
 
 ## Contributors
 
-Thank you to everyone moving OpenPulse forward. Our first external
-contributor:
+Thank you to everyone moving OpenPulse forward:
 
 - **[@wufangyong973](https://github.com/wufangyong973)** — grew the canonical project catalog toward OpenPulse 100 (Airflow, Spark, MinIO, Celery, ZooKeeper) in [#11](https://github.com/ikaruscareer/OpenPulse/pull/11). First of many.
+- **[@DYNOSuprovo](https://github.com/DYNOSuprovo)** — ASCII-marker fallback for `openpulse check` on non-UTF-8 consoles in [#14](https://github.com/ikaruscareer/OpenPulse/pull/14) (merged via [#17](https://github.com/ikaruscareer/OpenPulse/pull/17)).
+- **[@choksi2212](https://github.com/choksi2212)** — six good-first-issue contributions: Unicode fallback for every CLI command ([#21](https://github.com/ikaruscareer/OpenPulse/pull/21)), OSV live wiring ([#22](https://github.com/ikaruscareer/OpenPulse/pull/22)), catalog identity metadata for forks/renames/ecosystem mappings ([#23](https://github.com/ikaruscareer/OpenPulse/pull/23)), intelligence-semantics documentation ([#24](https://github.com/ikaruscareer/OpenPulse/pull/24)), SBOM artifact upload ([#25](https://github.com/ikaruscareer/OpenPulse/pull/25)), and the Windows CI runner ([#26](https://github.com/ikaruscareer/OpenPulse/pull/26)).
 
 ## License
 
