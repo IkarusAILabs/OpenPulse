@@ -1,4 +1,4 @@
-# Analysts — Phase 2 (pure functions, deterministic, no network)
+# Analysts — pure functions, deterministic, no network
 
 Four analysts, kept separate on purpose. Each consumes raw collector
 dicts or findings and returns plain data. Only the gate

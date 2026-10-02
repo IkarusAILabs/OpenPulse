@@ -1,5 +1,16 @@
 # OpenPulse Strategic Reset — audit, strategy, and plan
 
+> Status as of 2026-10-02: this document is a preserved point-in-time
+> audit (2026-09-27). Its diagnosis drove the work since, and most of
+> its gaps are now closed: distribution discovery is live (65 registry
+> diffs in the October 2026 sweep), story aggregation covers lifecycle
+> AND distribution, lead-time uses first detection, OSV is wired into
+> live analysis, CI runs Linux + Windows with an archived SBOM, and the
+> monthly report is a decision-support briefing. The Prioritised
+> backlog (§-below items 1–4) is done; item 5 (Pulse dimensions) was
+> superseded. Current direction: `docs/ROADMAP.md` (M1–M8, reset
+> 2026-10-02). What follows is the original audit, unedited.
+
 Date: 2026-09-27. Status: analysis + first code slice (lifecycle story
 aggregation). This document is the §20/§29 audit output. It does not
 replace `docs/ARCHITECTURE_REVIEW.md` (trust architecture, still

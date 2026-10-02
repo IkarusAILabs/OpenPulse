@@ -142,7 +142,7 @@ everything else. We do not compete on EOL record counts.
   REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
   EMERGING).
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
-- **240+ tests**, `ruff` clean, CI green (incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+- **290+ tests**, `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
 ## Quickstart
 
@@ -232,19 +232,25 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | Doc | Content |
 |---|---|
 | `docs/METHODOLOGY.md` | Sources, evidence rules, confidence levels, limitations |
-| `docs/ROADMAP.md` | 12-week MVP: v0.1 → v0.4 milestones |
+| `docs/ROADMAP.md` | M1–M8 milestones, principles, metrics, Next 90 Days |
 | `docs/ANALYSTS.md` | The four analysts and their rules |
 | `docs/ARCHITECTURE_REVIEW.md` | Architecture & security assessment, finding matrix, migration plan |
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
 
 ## Roadmap
 
-- **v0.1 Intelligence Core** ✅ — schema (now 0.4.0), 7 collectors, entity resolution, evidence model
-- **v0.2 OSS Pulse** ✅ — analysts, confidence, Bitnami validation, CLI, and computed Pulse facets (`openpulse pulse` renders worst-wins status + reason per facet)
-- **v0.3 OpenPulse 100** 🔨 in progress — seed at 20, catalog at 32 (growth in [#9](https://github.com/ikaruscareer/OpenPulse/issues/9)); monthly report pipeline working (`openpulse report --month YYYY-MM`)
-- **v0.4 Early Warning** 🔨 in progress — watchlist checks work (`openpulse check --watchlist file --event file`, `--strict` for CI); customer inventory, alerts, weekly digest still to come
+M1 Trusted Intelligence Engine ✅ done (now maintenance) → M2 Real
+Upstream Change Discovery 🔨 active / highest priority → M3 Report
+Product ✅ briefing format live → M4 Intelligence Benchmark 🔨 4 of
+12+ scenarios formalized → M5 Customer Dependency Intelligence (next
+major milestone; watchlist CLI is the preview) → M6 Early Warning
+SaaS → M7 Intelligence Network → M8 AI Dependency Intelligence
+(futures). Full sequence, principles, and metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md)
+(reset 2026-10-02; the old v0.x phase plan is retired).
 
-Deliberately *not* in the MVP: full SAST/SCA duplication, auto-remediation, CI/CD apps, SSO/RBAC, mobile. They don't prove the core hypothesis.
+Deliberately *not* on the roadmap: becoming an EOL database, another
+generic SCA, collector-count vanity, AI reasoning in the trusted
+decision path. They don't prove the core hypothesis.
 
 ## Contributing
 
