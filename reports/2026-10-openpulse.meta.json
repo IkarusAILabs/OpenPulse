@@ -1,0 +1,30 @@
+{
+  "report_id": "openpulse-2026-10",
+  "reporting_period": "2026-10",
+  "generated_at": "2026-10-02T21:40:49+00:00",
+  "openpulse_version": "0.1.0",
+  "freshness_policy": {
+    "name": "freshness/v1",
+    "recency_days": 90,
+    "research_window_days": 365
+  },
+  "coverage": {
+    "projects_monitored": 100,
+    "sweep_included": true
+  },
+  "counts": {
+    "narrated_findings": 260,
+    "historical_findings": 227,
+    "by_status": {
+      "EXPIRED": 227,
+      "UPCOMING": 21,
+      "ACTIVE": 11,
+      "NEW": 1
+    },
+    "by_category": {
+      "Security": 167,
+      "Lifecycle": 93
+    }
+  },
+  "report_date": "2026-10-02"
+}

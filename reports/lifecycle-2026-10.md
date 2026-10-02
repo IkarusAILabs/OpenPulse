@@ -11,6 +11,7 @@ Lifecycle data is one source OpenPulse uses. OpenPulse is not an EOL database. L
 - Projects with an upcoming lifecycle deadline: 30
 - Projects with ended support: 7
 - Projects with no lifecycle data: 41
+- End-of-life versions older than 12 months (background): 761
 
 NO-DATA means OpenPulse has no authoritative lifecycle record from the currently configured lifecycle source. NO-DATA is a coverage limitation, not an OK state — never read it as safe.
 
@@ -18,129 +19,128 @@ NO-DATA means OpenPulse has no authoritative lifecycle record from the currently
 
 | Project | Version | Effective date | Days remaining | Suggested investigation |
 |---|---|---|---|---|
-| envoy | 1.36 | 2026-10-14 | 13 | Check whether you run envoy 1.36; plan migration before end-of-life on 2026-10-14. |
-| pulsar | 4.0 | 2026-10-21 | 20 | Check whether you run pulsar 4.0; plan migration before end-of-life on 2026-10-21. |
-| openssl | 3.4 | 2026-10-22 | 21 | Check whether you run openssl 3.4; plan migration before end-of-life on 2026-10-22. |
-| kubernetes | 1.34 | 2026-10-27 | 26 | Check whether you run kubernetes 1.34; plan migration before end-of-life on 2026-10-27. |
-| consul | 1.22 | 2026-10-31 | 30 | Check whether you run consul 1.22; plan migration before end-of-life on 2026-10-31. |
-| cpython | 3.10 | 2026-10-31 | 30 | Check whether you run cpython 3.10; plan migration before end-of-life on 2026-10-31. |
-| istio | 1.29 | 2026-10-31 | 30 | Check whether you run istio 1.29; plan migration before end-of-life on 2026-10-31. |
-| openssl | 3.6 | 2026-11-01 | 31 | Check whether you run openssl 3.6; plan migration before end-of-life on 2026-11-01. |
-| vitess | 23 | 2026-11-04 | 34 | Check whether you run vitess 23; plan migration before end-of-life on 2026-11-04. |
-| containerd | 2.2 | 2026-11-06 | 36 | Check whether you run containerd 2.2; plan migration before end-of-life on 2026-11-06. |
-| prometheus | 3.15 | 2026-11-06 | 36 | Check whether you run prometheus 3.15; plan migration before end-of-life on 2026-11-06. |
-| postgresql | 14 | 2026-11-12 | 42 | Check whether you run postgresql 14; plan migration before end-of-life on 2026-11-12. |
-| spark | 4.0 | 2026-11-23 | 53 | Check whether you run spark 4.0; plan migration before end-of-life on 2026-11-23. |
-| angular | 20 | 2026-11-28 | 58 | Check whether you run angular 20; plan migration before end-of-life on 2026-11-28. |
-| redis | 8.0 | 2026-12-01 | 61 | Check whether you run redis 8.0; plan migration before end-of-life on 2026-12-01. |
-| numpy | 2.2 | 2026-12-09 | 69 | Check whether you run numpy 2.2; plan migration before end-of-life on 2026-12-09. |
-| istio | 1.30 | 2026-12-31 | 91 | Check whether you run istio 1.30; plan migration before end-of-life on 2026-12-31. |
-| mariadb | 13.0 | 2026-12-31 | 91 | Check whether you run mariadb 13.0; plan migration before end-of-life on 2026-12-31. |
-| php | 8.2 | 2026-12-31 | 91 | Check whether you run php 8.2; plan migration before end-of-life on 2026-12-31. |
-| spring-boot | 4.0 | 2026-12-31 | 91 | Check whether you run spring-boot 4.0; plan migration before end-of-life on 2026-12-31. |
-| haproxy | 3.3 | 2027-01-01 | 92 | Check whether you run haproxy 3.3; plan migration before end-of-life on 2027-01-01. |
-| grafana | 13.0 | 2027-01-09 | 100 | Check whether you run grafana 13.0; plan migration before end-of-life on 2027-01-09. |
-| envoy | 1.37 | 2027-01-13 | 104 | Check whether you run envoy 1.37; plan migration before end-of-life on 2027-01-13. |
-| istio | 1.31 | 2027-02-28 | 150 | Check whether you run istio 1.31; plan migration before end-of-life on 2027-02-28. |
-| kubernetes | 1.35 | 2027-02-28 | 150 | Check whether you run kubernetes 1.35; plan migration before end-of-life on 2027-02-28. |
-| containerd | 2.0 | 2027-03-01 | 151 | Check whether you run containerd 2.0; plan migration before end-of-life on 2027-03-01. |
-| grafana | 13.1 | 2027-03-20 | 170 | Check whether you run grafana 13.1; plan migration before end-of-life on 2027-03-20. |
-| clickhouse | 26.3 | 2027-03-26 | 176 | Check whether you run clickhouse 26.3; plan migration before end-of-life on 2027-03-26. |
-| ruby | 3.3 | 2027-03-31 | 181 | Check whether you run ruby 3.3; plan migration before end-of-life on 2027-03-31. |
-| haproxy | 2.6 | 2027-04-01 | 182 | Check whether you run haproxy 2.6; plan migration before end-of-life on 2027-04-01. |
-| redis | 6.2 | 2027-04-01 | 182 | Check whether you run redis 6.2; plan migration before end-of-life on 2027-04-01. |
-| envoy | 1.38 | 2027-04-23 | 204 | Check whether you run envoy 1.38; plan migration before end-of-life on 2027-04-23. |
-| consul | 1.21 | 2027-04-30 | 211 | Check whether you run consul 1.21; plan migration before end-of-life on 2027-04-30. |
-| django | 6.0 | 2027-04-30 | 211 | Check whether you run django 6.0; plan migration before end-of-life on 2027-04-30. |
-| nodejs | 22 | 2027-04-30 | 211 | Check whether you run nodejs 22; plan migration before end-of-life on 2027-04-30. |
-| vitess | 24 | 2027-04-30 | 211 | Check whether you run vitess 24; plan migration before end-of-life on 2027-04-30. |
-| openssl | 4.0 | 2027-05-14 | 225 | Check whether you run openssl 4.0; plan migration before end-of-life on 2027-05-14. |
-| containerd | 2.4 | 2027-05-16 | 227 | Check whether you run containerd 2.4; plan migration before end-of-life on 2027-05-16. |
-| grafana | 13.2 | 2027-05-18 | 229 | Check whether you run grafana 13.2; plan migration before end-of-life on 2027-05-18. |
-| grafana | 12.4 | 2027-05-24 | 235 | Check whether you run grafana 12.4; plan migration before end-of-life on 2027-05-24. |
-| numpy | 2.3 | 2027-06-08 | 250 | Check whether you run numpy 2.3; plan migration before end-of-life on 2027-06-08. |
-| spark | 4.1 | 2027-06-11 | 253 | Check whether you run spark 4.1; plan migration before end-of-life on 2027-06-11. |
-| kubernetes | 1.36 | 2027-06-28 | 270 | Check whether you run kubernetes 1.36; plan migration before end-of-life on 2027-06-28. |
-| angular | 21 | 2027-06-30 | 272 | Check whether you run angular 21; plan migration before end-of-life on 2027-06-30. |
-| etcd | 3.5 | 2027-07-08 | 280 | Check whether you run etcd 3.5; plan migration before end-of-life on 2027-07-08. |
-| envoy | 1.39 | 2027-07-14 | 286 | Check whether you run envoy 1.39; plan migration before end-of-life on 2027-07-14. |
-| elasticsearch | 8.19 | 2027-07-15 | 287 | Check whether you run elasticsearch 8.19; plan migration before end-of-life on 2027-07-15. |
-| prometheus | 3.13 | 2027-07-31 | 303 | Check whether you run prometheus 3.13; plan migration before end-of-life on 2027-07-31. |
-| spring-boot | 4.1 | 2027-07-31 | 303 | Check whether you run spring-boot 4.1; plan migration before end-of-life on 2027-07-31. |
-| clickhouse | 26.8 | 2027-08-27 | 330 | Check whether you run clickhouse 26.8; plan migration before end-of-life on 2027-08-27. |
-| mongodb | 7.0 | 2027-08-31 | 334 | Check whether you run mongodb 7.0; plan migration before end-of-life on 2027-08-31. |
-| valkey | 8.0 | 2027-09-15 | 349 | Check whether you run valkey 8.0; plan migration before end-of-life on 2027-09-15. |
-| kubernetes | 1.37 | 2027-10-28 | 392 | Check whether you run kubernetes 1.37; plan migration before end-of-life on 2027-10-28. |
-| cpython | 3.11 | 2027-10-31 | 395 | Check whether you run cpython 3.11; plan migration before end-of-life on 2027-10-31. |
-| postgresql | 15 | 2027-11-11 | 406 | Check whether you run postgresql 15; plan migration before end-of-life on 2027-11-11. |
-| spark | 3.5 | 2027-11-30 | 425 | Check whether you run spark 3.5; plan migration before end-of-life on 2027-11-30. |
-| numpy | 2.4 | 2027-12-21 | 446 | Check whether you run numpy 2.4; plan migration before end-of-life on 2027-12-21. |
-| django | 6.1 | 2027-12-31 | 456 | Check whether you run django 6.1; plan migration before end-of-life on 2027-12-31. |
-| php | 8.3 | 2027-12-31 | 456 | Check whether you run php 8.3; plan migration before end-of-life on 2027-12-31. |
-| spark | 4.2 | 2028-01-11 | 467 | Check whether you run spark 4.2; plan migration before end-of-life on 2028-01-11. |
-| mariadb | 10.11 | 2028-02-16 | 503 | Check whether you run mariadb 10.11; plan migration before end-of-life on 2028-02-16. |
-| ruby | 3.4 | 2028-03-31 | 547 | Check whether you run ruby 3.4; plan migration before end-of-life on 2028-03-31. |
-| haproxy | 2.8 | 2028-04-01 | 548 | Check whether you run haproxy 2.8; plan migration before end-of-life on 2028-04-01. |
-| consul | 2.0 | 2028-04-30 | 577 | Check whether you run consul 2.0; plan migration before end-of-life on 2028-04-30. |
-| containerd | 2.3 | 2028-04-30 | 577 | Check whether you run containerd 2.3; plan migration before end-of-life on 2028-04-30. |
-| django | 5.2 | 2028-04-30 | 577 | Check whether you run django 5.2; plan migration before end-of-life on 2028-04-30. |
-| nodejs | 24 | 2028-04-30 | 577 | Check whether you run nodejs 24; plan migration before end-of-life on 2028-04-30. |
-| mariadb | 11.8 | 2028-06-04 | 612 | Check whether you run mariadb 11.8; plan migration before end-of-life on 2028-06-04. |
-| neo4j | 5.26 | 2028-06-06 | 614 | Check whether you run neo4j 5.26; plan migration before end-of-life on 2028-06-06. |
-| numpy | 2.5 | 2028-06-22 | 630 | Check whether you run numpy 2.5; plan migration before end-of-life on 2028-06-22. |
-| angular | 22 | 2028-06-30 | 638 | Check whether you run angular 22; plan migration before end-of-life on 2028-06-30. |
-| valkey | 9.0 | 2028-10-21 | 751 | Check whether you run valkey 9.0; plan migration before end-of-life on 2028-10-21. |
-| cpython | 3.12 | 2028-10-31 | 761 | Check whether you run cpython 3.12; plan migration before end-of-life on 2028-10-31. |
-| postgresql | 16 | 2028-11-09 | 770 | Check whether you run postgresql 16; plan migration before end-of-life on 2028-11-09. |
-| php | 8.4 | 2028-12-31 | 822 | Check whether you run php 8.4; plan migration before end-of-life on 2028-12-31. |
-| ruby | 4.0 | 2029-03-31 | 912 | Check whether you run ruby 4.0; plan migration before end-of-life on 2029-03-31. |
-| haproxy | 3.0 | 2029-04-01 | 913 | Check whether you run haproxy 3.0; plan migration before end-of-life on 2029-04-01. |
-| valkey | 7.2 | 2029-04-16 | 928 | Check whether you run valkey 7.2; plan migration before end-of-life on 2029-04-16. |
-| nodejs | 26 | 2029-04-30 | 942 | Check whether you run nodejs 26; plan migration before end-of-life on 2029-04-30. |
-| mariadb | 11.4 | 2029-05-29 | 971 | Check whether you run mariadb 11.4; plan migration before end-of-life on 2029-05-29. |
-| mariadb | 12.3 | 2029-06-12 | 985 | Check whether you run mariadb 12.3; plan migration before end-of-life on 2029-06-12. |
-| cpython | 3.13 | 2029-10-31 | 1126 | Check whether you run cpython 3.13; plan migration before end-of-life on 2029-10-31. |
-| mongodb | 8.0 | 2029-10-31 | 1126 | Check whether you run mongodb 8.0; plan migration before end-of-life on 2029-10-31. |
-| mongodb | 8.3 | 2029-10-31 | 1126 | Check whether you run mongodb 8.3; plan migration before end-of-life on 2029-10-31. |
-| postgresql | 17 | 2029-11-08 | 1134 | Check whether you run postgresql 17; plan migration before end-of-life on 2029-11-08. |
-| redis | 7.2 | 2029-12-01 | 1157 | Check whether you run redis 7.2; plan migration before end-of-life on 2029-12-01. |
-| redis | 7.4 | 2029-12-01 | 1157 | Check whether you run redis 7.4; plan migration before end-of-life on 2029-12-01. |
-| php | 8.5 | 2029-12-31 | 1187 | Check whether you run php 8.5; plan migration before end-of-life on 2029-12-31. |
-| valkey | 8.1 | 2030-03-31 | 1277 | Check whether you run valkey 8.1; plan migration before end-of-life on 2030-03-31. |
-| haproxy | 3.2 | 2030-04-01 | 1278 | Check whether you run haproxy 3.2; plan migration before end-of-life on 2030-04-01. |
-| openssl | 3.5 | 2030-04-08 | 1285 | Check whether you run openssl 3.5; plan migration before end-of-life on 2030-04-08. |
-| redis | 8.2 | 2030-09-01 | 1431 | Check whether you run redis 8.2; plan migration before end-of-life on 2030-09-01. |
-| cpython | 3.14 | 2030-10-31 | 1491 | Check whether you run cpython 3.14; plan migration before end-of-life on 2030-10-31. |
-| postgresql | 18 | 2030-11-14 | 1505 | Check whether you run postgresql 18; plan migration before end-of-life on 2030-11-14. |
-| haproxy | 3.4 | 2031-04-01 | 1643 | Check whether you run haproxy 3.4; plan migration before end-of-life on 2031-04-01. |
-| valkey | 9.1 | 2031-05-19 | 1691 | Check whether you run valkey 9.1; plan migration before end-of-life on 2031-05-19. |
-| mongodb | 9.0 | 2031-10-31 | 1856 | Check whether you run mongodb 9.0; plan migration before end-of-life on 2031-10-31. |
-| mysql | 8.4 | 2032-04-30 | 2038 | Check whether you run mysql 8.4; plan migration before end-of-life on 2032-04-30. |
-| mysql | 9.7 | 2034-04-30 | 2768 | Check whether you run mysql 9.7; plan migration before end-of-life on 2034-04-30. |
+| envoy | 1.36 | 2026-10-14 | 12 | Check whether you run envoy 1.36; plan migration before end-of-life on 2026-10-14. |
+| pulsar | 4.0 | 2026-10-21 | 19 | Check whether you run pulsar 4.0; plan migration before end-of-life on 2026-10-21. |
+| openssl | 3.4 | 2026-10-22 | 20 | Check whether you run openssl 3.4; plan migration before end-of-life on 2026-10-22. |
+| kubernetes | 1.34 | 2026-10-27 | 25 | Check whether you run kubernetes 1.34; plan migration before end-of-life on 2026-10-27. |
+| consul | 1.22 | 2026-10-31 | 29 | Check whether you run consul 1.22; plan migration before end-of-life on 2026-10-31. |
+| istio | 1.29 | 2026-10-31 | 29 | Check whether you run istio 1.29; plan migration before end-of-life on 2026-10-31. |
+| openssl | 3.6 | 2026-11-01 | 30 | Check whether you run openssl 3.6; plan migration before end-of-life on 2026-11-01. |
+| vitess | 23 | 2026-11-04 | 33 | Check whether you run vitess 23; plan migration before end-of-life on 2026-11-04. |
+| containerd | 2.2 | 2026-11-06 | 35 | Check whether you run containerd 2.2; plan migration before end-of-life on 2026-11-06. |
+| prometheus | 3.15 | 2026-11-06 | 35 | Check whether you run prometheus 3.15; plan migration before end-of-life on 2026-11-06. |
+| postgresql | 14 | 2026-11-12 | 41 | Check whether you run postgresql 14; plan migration before end-of-life on 2026-11-12. |
+| spark | 4.0 | 2026-11-23 | 52 | Check whether you run spark 4.0; plan migration before end-of-life on 2026-11-23. |
+| angular | 20 | 2026-11-28 | 57 | Check whether you run angular 20; plan migration before end-of-life on 2026-11-28. |
+| redis | 8.0 | 2026-12-01 | 60 | Check whether you run redis 8.0; plan migration before end-of-life on 2026-12-01. |
+| numpy | 2.2 | 2026-12-09 | 68 | Check whether you run numpy 2.2; plan migration before end-of-life on 2026-12-09. |
+| istio | 1.30 | 2026-12-31 | 90 | Check whether you run istio 1.30; plan migration before end-of-life on 2026-12-31. |
+| mariadb | 13.0 | 2026-12-31 | 90 | Check whether you run mariadb 13.0; plan migration before end-of-life on 2026-12-31. |
+| php | 8.2 | 2026-12-31 | 90 | Check whether you run php 8.2; plan migration before end-of-life on 2026-12-31. |
+| spring-boot | 4.0 | 2026-12-31 | 90 | Check whether you run spring-boot 4.0; plan migration before end-of-life on 2026-12-31. |
+| haproxy | 3.3 | 2027-01-01 | 91 | Check whether you run haproxy 3.3; plan migration before end-of-life on 2027-01-01. |
+| grafana | 13.0 | 2027-01-09 | 99 | Check whether you run grafana 13.0; plan migration before end-of-life on 2027-01-09. |
+| envoy | 1.37 | 2027-01-13 | 103 | Check whether you run envoy 1.37; plan migration before end-of-life on 2027-01-13. |
+| istio | 1.31 | 2027-02-28 | 149 | Check whether you run istio 1.31; plan migration before end-of-life on 2027-02-28. |
+| kubernetes | 1.35 | 2027-02-28 | 149 | Check whether you run kubernetes 1.35; plan migration before end-of-life on 2027-02-28. |
+| containerd | 2.0 | 2027-03-01 | 150 | Check whether you run containerd 2.0; plan migration before end-of-life on 2027-03-01. |
+| grafana | 13.1 | 2027-03-20 | 169 | Check whether you run grafana 13.1; plan migration before end-of-life on 2027-03-20. |
+| clickhouse | 26.3 | 2027-03-26 | 175 | Check whether you run clickhouse 26.3; plan migration before end-of-life on 2027-03-26. |
+| ruby | 3.3 | 2027-03-31 | 180 | Check whether you run ruby 3.3; plan migration before end-of-life on 2027-03-31. |
+| haproxy | 2.6 | 2027-04-01 | 181 | Check whether you run haproxy 2.6; plan migration before end-of-life on 2027-04-01. |
+| redis | 6.2 | 2027-04-01 | 181 | Check whether you run redis 6.2; plan migration before end-of-life on 2027-04-01. |
+| envoy | 1.38 | 2027-04-23 | 203 | Check whether you run envoy 1.38; plan migration before end-of-life on 2027-04-23. |
+| consul | 1.21 | 2027-04-30 | 210 | Check whether you run consul 1.21; plan migration before end-of-life on 2027-04-30. |
+| django | 6.0 | 2027-04-30 | 210 | Check whether you run django 6.0; plan migration before end-of-life on 2027-04-30. |
+| nodejs | 22 | 2027-04-30 | 210 | Check whether you run nodejs 22; plan migration before end-of-life on 2027-04-30. |
+| vitess | 24 | 2027-04-30 | 210 | Check whether you run vitess 24; plan migration before end-of-life on 2027-04-30. |
+| openssl | 4.0 | 2027-05-14 | 224 | Check whether you run openssl 4.0; plan migration before end-of-life on 2027-05-14. |
+| containerd | 2.4 | 2027-05-16 | 226 | Check whether you run containerd 2.4; plan migration before end-of-life on 2027-05-16. |
+| grafana | 13.2 | 2027-05-18 | 228 | Check whether you run grafana 13.2; plan migration before end-of-life on 2027-05-18. |
+| grafana | 12.4 | 2027-05-24 | 234 | Check whether you run grafana 12.4; plan migration before end-of-life on 2027-05-24. |
+| numpy | 2.3 | 2027-06-08 | 249 | Check whether you run numpy 2.3; plan migration before end-of-life on 2027-06-08. |
+| spark | 4.1 | 2027-06-11 | 252 | Check whether you run spark 4.1; plan migration before end-of-life on 2027-06-11. |
+| kubernetes | 1.36 | 2027-06-28 | 269 | Check whether you run kubernetes 1.36; plan migration before end-of-life on 2027-06-28. |
+| angular | 21 | 2027-06-30 | 271 | Check whether you run angular 21; plan migration before end-of-life on 2027-06-30. |
+| etcd | 3.5 | 2027-07-08 | 279 | Check whether you run etcd 3.5; plan migration before end-of-life on 2027-07-08. |
+| envoy | 1.39 | 2027-07-14 | 285 | Check whether you run envoy 1.39; plan migration before end-of-life on 2027-07-14. |
+| elasticsearch | 8.19 | 2027-07-15 | 286 | Check whether you run elasticsearch 8.19; plan migration before end-of-life on 2027-07-15. |
+| prometheus | 3.13 | 2027-07-31 | 302 | Check whether you run prometheus 3.13; plan migration before end-of-life on 2027-07-31. |
+| spring-boot | 4.1 | 2027-07-31 | 302 | Check whether you run spring-boot 4.1; plan migration before end-of-life on 2027-07-31. |
+| clickhouse | 26.8 | 2027-08-27 | 329 | Check whether you run clickhouse 26.8; plan migration before end-of-life on 2027-08-27. |
+| mongodb | 7.0 | 2027-08-31 | 333 | Check whether you run mongodb 7.0; plan migration before end-of-life on 2027-08-31. |
+| valkey | 8.0 | 2027-09-15 | 348 | Check whether you run valkey 8.0; plan migration before end-of-life on 2027-09-15. |
+| kubernetes | 1.37 | 2027-10-28 | 391 | Check whether you run kubernetes 1.37; plan migration before end-of-life on 2027-10-28. |
+| cpython | 3.11 | 2027-10-31 | 394 | Check whether you run cpython 3.11; plan migration before end-of-life on 2027-10-31. |
+| postgresql | 15 | 2027-11-11 | 405 | Check whether you run postgresql 15; plan migration before end-of-life on 2027-11-11. |
+| spark | 3.5 | 2027-11-30 | 424 | Check whether you run spark 3.5; plan migration before end-of-life on 2027-11-30. |
+| numpy | 2.4 | 2027-12-21 | 445 | Check whether you run numpy 2.4; plan migration before end-of-life on 2027-12-21. |
+| django | 6.1 | 2027-12-31 | 455 | Check whether you run django 6.1; plan migration before end-of-life on 2027-12-31. |
+| php | 8.3 | 2027-12-31 | 455 | Check whether you run php 8.3; plan migration before end-of-life on 2027-12-31. |
+| spark | 4.2 | 2028-01-11 | 466 | Check whether you run spark 4.2; plan migration before end-of-life on 2028-01-11. |
+| mariadb | 10.11 | 2028-02-16 | 502 | Check whether you run mariadb 10.11; plan migration before end-of-life on 2028-02-16. |
+| ruby | 3.4 | 2028-03-31 | 546 | Check whether you run ruby 3.4; plan migration before end-of-life on 2028-03-31. |
+| haproxy | 2.8 | 2028-04-01 | 547 | Check whether you run haproxy 2.8; plan migration before end-of-life on 2028-04-01. |
+| consul | 2.0 | 2028-04-30 | 576 | Check whether you run consul 2.0; plan migration before end-of-life on 2028-04-30. |
+| containerd | 2.3 | 2028-04-30 | 576 | Check whether you run containerd 2.3; plan migration before end-of-life on 2028-04-30. |
+| django | 5.2 | 2028-04-30 | 576 | Check whether you run django 5.2; plan migration before end-of-life on 2028-04-30. |
+| nodejs | 24 | 2028-04-30 | 576 | Check whether you run nodejs 24; plan migration before end-of-life on 2028-04-30. |
+| mariadb | 11.8 | 2028-06-04 | 611 | Check whether you run mariadb 11.8; plan migration before end-of-life on 2028-06-04. |
+| neo4j | 5.26 | 2028-06-06 | 613 | Check whether you run neo4j 5.26; plan migration before end-of-life on 2028-06-06. |
+| numpy | 2.5 | 2028-06-22 | 629 | Check whether you run numpy 2.5; plan migration before end-of-life on 2028-06-22. |
+| angular | 22 | 2028-06-30 | 637 | Check whether you run angular 22; plan migration before end-of-life on 2028-06-30. |
+| valkey | 9.0 | 2028-10-21 | 750 | Check whether you run valkey 9.0; plan migration before end-of-life on 2028-10-21. |
+| cpython | 3.12 | 2028-10-31 | 760 | Check whether you run cpython 3.12; plan migration before end-of-life on 2028-10-31. |
+| postgresql | 16 | 2028-11-09 | 769 | Check whether you run postgresql 16; plan migration before end-of-life on 2028-11-09. |
+| php | 8.4 | 2028-12-31 | 821 | Check whether you run php 8.4; plan migration before end-of-life on 2028-12-31. |
+| ruby | 4.0 | 2029-03-31 | 911 | Check whether you run ruby 4.0; plan migration before end-of-life on 2029-03-31. |
+| haproxy | 3.0 | 2029-04-01 | 912 | Check whether you run haproxy 3.0; plan migration before end-of-life on 2029-04-01. |
+| valkey | 7.2 | 2029-04-16 | 927 | Check whether you run valkey 7.2; plan migration before end-of-life on 2029-04-16. |
+| nodejs | 26 | 2029-04-30 | 941 | Check whether you run nodejs 26; plan migration before end-of-life on 2029-04-30. |
+| mariadb | 11.4 | 2029-05-29 | 970 | Check whether you run mariadb 11.4; plan migration before end-of-life on 2029-05-29. |
+| mariadb | 12.3 | 2029-06-12 | 984 | Check whether you run mariadb 12.3; plan migration before end-of-life on 2029-06-12. |
+| cpython | 3.13 | 2029-10-31 | 1125 | Check whether you run cpython 3.13; plan migration before end-of-life on 2029-10-31. |
+| mongodb | 8.0 | 2029-10-31 | 1125 | Check whether you run mongodb 8.0; plan migration before end-of-life on 2029-10-31. |
+| mongodb | 8.3 | 2029-10-31 | 1125 | Check whether you run mongodb 8.3; plan migration before end-of-life on 2029-10-31. |
+| postgresql | 17 | 2029-11-08 | 1133 | Check whether you run postgresql 17; plan migration before end-of-life on 2029-11-08. |
+| redis | 7.2 | 2029-12-01 | 1156 | Check whether you run redis 7.2; plan migration before end-of-life on 2029-12-01. |
+| redis | 7.4 | 2029-12-01 | 1156 | Check whether you run redis 7.4; plan migration before end-of-life on 2029-12-01. |
+| php | 8.5 | 2029-12-31 | 1186 | Check whether you run php 8.5; plan migration before end-of-life on 2029-12-31. |
+| valkey | 8.1 | 2030-03-31 | 1276 | Check whether you run valkey 8.1; plan migration before end-of-life on 2030-03-31. |
+| haproxy | 3.2 | 2030-04-01 | 1277 | Check whether you run haproxy 3.2; plan migration before end-of-life on 2030-04-01. |
+| openssl | 3.5 | 2030-04-08 | 1284 | Check whether you run openssl 3.5; plan migration before end-of-life on 2030-04-08. |
+| redis | 8.2 | 2030-09-01 | 1430 | Check whether you run redis 8.2; plan migration before end-of-life on 2030-09-01. |
+| cpython | 3.14 | 2030-10-31 | 1490 | Check whether you run cpython 3.14; plan migration before end-of-life on 2030-10-31. |
+| postgresql | 18 | 2030-11-14 | 1504 | Check whether you run postgresql 18; plan migration before end-of-life on 2030-11-14. |
+| haproxy | 3.4 | 2031-04-01 | 1642 | Check whether you run haproxy 3.4; plan migration before end-of-life on 2031-04-01. |
+| valkey | 9.1 | 2031-05-19 | 1690 | Check whether you run valkey 9.1; plan migration before end-of-life on 2031-05-19. |
+| mongodb | 9.0 | 2031-10-31 | 1855 | Check whether you run mongodb 9.0; plan migration before end-of-life on 2031-10-31. |
+| mysql | 8.4 | 2032-04-30 | 2037 | Check whether you run mysql 8.4; plan migration before end-of-life on 2032-04-30. |
+| mysql | 9.7 | 2034-04-30 | 2767 | Check whether you run mysql 9.7; plan migration before end-of-life on 2034-04-30. |
 
 ## Recently Ended
 
-- **prometheus** 3.14 reached end-of-life 1 days ago. Check whether you still run it; migrate or arrange extended support.
-- **pulsar** 4.2 reached end-of-life 7 days ago. Check whether you still run it; migrate or arrange extended support.
-- **clickhouse** 26.6 reached end-of-life 10 days ago. Check whether you still run it; migrate or arrange extended support.
-- **neo4j** 2026.08 reached end-of-life 10 days ago. Check whether you still run it; migrate or arrange extended support.
-- **neo4j** 2026.07 reached end-of-life 21 days ago. Check whether you still run it; migrate or arrange extended support.
-- **openssl** 3.0 reached end-of-life 24 days ago. Check whether you still run it; migrate or arrange extended support.
-- **traefik** 2.11 reached end-of-life 24 days ago. Check whether you still run it; migrate or arrange extended support.
-- **containerd** 1.7 reached end-of-life 30 days ago. Check whether you still run it; migrate or arrange extended support.
-- **clickhouse** 25.8 reached end-of-life 33 days ago. Check whether you still run it; migrate or arrange extended support.
-- **clickhouse** 26.5 reached end-of-life 35 days ago. Check whether you still run it; migrate or arrange extended support.
-- **terraform** 1.14 reached end-of-life 36 days ago. Check whether you still run it; migrate or arrange extended support.
-- **kyverno** 1.16 reached end-of-life 42 days ago. Check whether you still run it; migrate or arrange extended support.
-- **rust** 1.97 reached end-of-life 42 days ago. Check whether you still run it; migrate or arrange extended support.
-- **go** 1.25 reached end-of-life 43 days ago. Check whether you still run it; migrate or arrange extended support.
-- **grafana** 12.3 reached end-of-life 43 days ago. Check whether you still run it; migrate or arrange extended support.
-- **numpy** 2.1 reached end-of-life 43 days ago. Check whether you still run it; migrate or arrange extended support.
-- **traefik** 3.6 reached end-of-life 46 days ago. Check whether you still run it; migrate or arrange extended support.
-- **argocd** 3.2 reached end-of-life 58 days ago. Check whether you still run it; migrate or arrange extended support.
-- **elasticsearch** 9.3 reached end-of-life 58 days ago. Check whether you still run it; migrate or arrange extended support.
-- **mongodb** 8.2 reached end-of-life 62 days ago. Check whether you still run it; migrate or arrange extended support.
-- (+134 more in the appendix)
+- **cpython** 3.10 reached end-of-life 1 days ago. Check whether you still run it; migrate or arrange extended support.
+- **containerd** 1.7 reached end-of-life 2 days ago. Check whether you still run it; migrate or arrange extended support.
+- **prometheus** 3.14 reached end-of-life 2 days ago. Check whether you still run it; migrate or arrange extended support.
+- **pulsar** 4.2 reached end-of-life 8 days ago. Check whether you still run it; migrate or arrange extended support.
+- **clickhouse** 26.6 reached end-of-life 11 days ago. Check whether you still run it; migrate or arrange extended support.
+- **neo4j** 2026.08 reached end-of-life 11 days ago. Check whether you still run it; migrate or arrange extended support.
+- **neo4j** 2026.07 reached end-of-life 22 days ago. Check whether you still run it; migrate or arrange extended support.
+- **openssl** 3.0 reached end-of-life 25 days ago. Check whether you still run it; migrate or arrange extended support.
+- **traefik** 2.11 reached end-of-life 25 days ago. Check whether you still run it; migrate or arrange extended support.
+- **clickhouse** 25.8 reached end-of-life 34 days ago. Check whether you still run it; migrate or arrange extended support.
+- **clickhouse** 26.5 reached end-of-life 36 days ago. Check whether you still run it; migrate or arrange extended support.
+- **terraform** 1.14 reached end-of-life 37 days ago. Check whether you still run it; migrate or arrange extended support.
+- **kyverno** 1.16 reached end-of-life 43 days ago. Check whether you still run it; migrate or arrange extended support.
+- **rust** 1.97 reached end-of-life 43 days ago. Check whether you still run it; migrate or arrange extended support.
+- **go** 1.25 reached end-of-life 44 days ago. Check whether you still run it; migrate or arrange extended support.
+- **grafana** 12.3 reached end-of-life 44 days ago. Check whether you still run it; migrate or arrange extended support.
+- **numpy** 2.1 reached end-of-life 44 days ago. Check whether you still run it; migrate or arrange extended support.
+- **traefik** 3.6 reached end-of-life 47 days ago. Check whether you still run it; migrate or arrange extended support.
+- **argocd** 3.2 reached end-of-life 59 days ago. Check whether you still run it; migrate or arrange extended support.
+- **elasticsearch** 9.3 reached end-of-life 59 days ago. Check whether you still run it; migrate or arrange extended support.
+- (+135 more in the appendix)
 
 ## Lifecycle Coverage Gaps
 
@@ -153,16 +153,16 @@ Absence of lifecycle data is a coverage limitation, not an OK state. These proje
 
 ## Top Lifecycle Planning Items
 
-1. **envoy** 1.36 EOL in 13 days (2026-10-14) — check inventory and plan migration.
-2. **pulsar** 4.0 EOL in 20 days (2026-10-21) — check inventory and plan migration.
-3. **openssl** 3.4 EOL in 21 days (2026-10-22) — check inventory and plan migration.
-4. **kubernetes** 1.34 EOL in 26 days (2026-10-27) — check inventory and plan migration.
-5. **consul** 1.22 EOL in 30 days (2026-10-31) — check inventory and plan migration.
-6. **cpython** 3.10 EOL in 30 days (2026-10-31) — check inventory and plan migration.
-7. **istio** 1.29 EOL in 30 days (2026-10-31) — check inventory and plan migration.
-8. **openssl** 3.6 EOL in 31 days (2026-11-01) — check inventory and plan migration.
-9. **vitess** 23 EOL in 34 days (2026-11-04) — check inventory and plan migration.
-10. **containerd** 2.2 EOL in 36 days (2026-11-06) — check inventory and plan migration.
+1. **envoy** 1.36 EOL in 12 days (2026-10-14) — check inventory and plan migration.
+2. **pulsar** 4.0 EOL in 19 days (2026-10-21) — check inventory and plan migration.
+3. **openssl** 3.4 EOL in 20 days (2026-10-22) — check inventory and plan migration.
+4. **kubernetes** 1.34 EOL in 25 days (2026-10-27) — check inventory and plan migration.
+5. **consul** 1.22 EOL in 29 days (2026-10-31) — check inventory and plan migration.
+6. **istio** 1.29 EOL in 29 days (2026-10-31) — check inventory and plan migration.
+7. **openssl** 3.6 EOL in 30 days (2026-11-01) — check inventory and plan migration.
+8. **vitess** 23 EOL in 33 days (2026-11-04) — check inventory and plan migration.
+9. **containerd** 2.2 EOL in 35 days (2026-11-06) — check inventory and plan migration.
+10. **prometheus** 3.15 EOL in 35 days (2026-11-06) — check inventory and plan migration.
 
 ## Appendix — Full Lifecycle Coverage Matrix
 
@@ -183,11 +183,11 @@ Absence of lifecycle data is a coverage limitation, not an OK state. These proje
 | clickhouse | EOL | clickhouse 26.8 EOL 2027-08-27; clickhouse 26.6 is end-of-life (2026-09-21); clickhouse 26.5 is end-of-life (2026-08-27); clickhouse 26.4 is end-of-life (2026-07-22); clickhouse 26.3 EOL 2027-03-26; clickhouse 26.2 is end-of-life (2026-05-21); clickhouse 26.1 is end-of-life (2026-05-05); clickhouse 25.12 is end-of-life (2026-03-26); clickhouse 25.11 is end-of-life (2026-02-27); clickhouse 25.10 is end-of-life (2026-01-30); clickhouse 25.9 is end-of-life (2025-12-18); clickhouse 25.8 is end-of-life (2026-08-29); clickhouse 25.7 is end-of-life (2025-11-01); clickhouse 25.6 is end-of-life (2025-09-27); clickhouse 25.5 is end-of-life (2025-08-29); clickhouse 25.4 is end-of-life (2025-07-29); clickhouse 25.3 is end-of-life (2026-03-20); clickhouse 25.2 is end-of-life (2025-05-22); clickhouse 25.1 is end-of-life (2025-04-22) |
 | cockroach | NO-DATA | lifecycle collection failed (HTTPStatusError: Redirect response '301 Moved Permanently' for url 'https://endoflife.date/api/cockroach.json' Redirect location: '/api/cockroachdb.json' For more information check: https://developer.) |
 | consul | EOL | consul 2.0 EOL 2028-04-30; consul 1.22 EOL 2026-10-31; consul 1.21 EOL 2027-04-30; consul 1.20 is end-of-life (2026-05-24); consul 1.19 is end-of-life (2025-10-27); consul 1.18 is end-of-life (2026-04-30); consul 1.17 is end-of-life (2024-10-14); consul 1.16 is end-of-life (2024-06-12); consul 1.15 is end-of-life (2025-04-30); consul 1.14 is end-of-life (2023-11-03); consul 1.13 is end-of-life (2023-06-26); consul 1.12 is end-of-life (2023-02-23); consul 1.11 is end-of-life (2022-11-15); consul 1.10 is end-of-life (2022-08-09); consul 1.9 is end-of-life (2022-04-19); consul 1.8 is end-of-life (2021-12-14); consul 1.7 is end-of-life (2021-06-22); consul 1.6 is end-of-life (2020-11-24) |
-| containerd | EOL | containerd 2.4 EOL 2027-05-16; containerd 2.3 EOL 2028-04-30; containerd 2.2 EOL 2026-11-06; containerd 2.1 is end-of-life (2026-07-03); containerd 2.0 EOL 2027-03-01; containerd 1.7 is end-of-life (2026-09-01); containerd 1.6 is end-of-life (2025-08-23); containerd 1.5 is end-of-life (2023-02-28); containerd 1.4 is end-of-life (2022-03-03); containerd 1.3 is end-of-life (2021-03-04); containerd 1.2 is end-of-life (2020-10-15); containerd 1.1 is end-of-life (2019-10-23); containerd 1.0 is end-of-life (2018-12-05) |
+| containerd | EOL | containerd 2.4 EOL 2027-05-16; containerd 2.3 EOL 2028-04-30; containerd 2.2 EOL 2026-11-06; containerd 2.1 is end-of-life (2026-07-03); containerd 2.0 EOL 2027-03-01; containerd 1.7 is end-of-life (2026-09-30); containerd 1.6 is end-of-life (2025-08-23); containerd 1.5 is end-of-life (2023-02-28); containerd 1.4 is end-of-life (2022-03-03); containerd 1.3 is end-of-life (2021-03-04); containerd 1.2 is end-of-life (2020-10-15); containerd 1.1 is end-of-life (2019-10-23); containerd 1.0 is end-of-life (2018-12-05) |
 | coredns | NO-DATA | not on endoflife.date |
 | cosign | NO-DATA | not on endoflife.date |
 | couchdb | EOL | apache-couchdb 3.3 is end-of-life (2025-05-05); apache-couchdb 3.2 is end-of-life (2024-09-20) |
-| cpython | EOL | python 3.14 EOL 2030-10-31; python 3.13 EOL 2029-10-31; python 3.12 EOL 2028-10-31; python 3.11 EOL 2027-10-31; python 3.10 EOL 2026-10-31; python 3.9 is end-of-life (2025-10-31); python 3.8 is end-of-life (2024-10-07); python 3.7 is end-of-life (2023-06-27); python 3.6 is end-of-life (2021-12-23); python 3.5 is end-of-life (2020-09-30); python 3.4 is end-of-life (2019-03-18); python 3.3 is end-of-life (2017-09-29); python 3.2 is end-of-life (2016-02-20); python 2.7 is end-of-life (2020-01-01); python 3.1 is end-of-life (2012-04-09); python 3.0 is end-of-life (2009-06-27); python 2.6 is end-of-life (2013-10-29) |
+| cpython | EOL | python 3.14 EOL 2030-10-31; python 3.13 EOL 2029-10-31; python 3.12 EOL 2028-10-31; python 3.11 EOL 2027-10-31; python 3.10 is end-of-life (2026-10-01); python 3.9 is end-of-life (2025-10-31); python 3.8 is end-of-life (2024-10-07); python 3.7 is end-of-life (2023-06-27); python 3.6 is end-of-life (2021-12-23); python 3.5 is end-of-life (2020-09-30); python 3.4 is end-of-life (2019-03-18); python 3.3 is end-of-life (2017-09-29); python 3.2 is end-of-life (2016-02-20); python 2.7 is end-of-life (2020-01-01); python 3.1 is end-of-life (2012-04-09); python 3.0 is end-of-life (2009-06-27); python 2.6 is end-of-life (2013-10-29) |
 | crio | NO-DATA | not on endoflife.date |
 | crossplane | NO-DATA | not on endoflife.date |
 | django | EOL | django 6.1 EOL 2027-12-31; django 6.0 EOL 2027-04-30; django 5.2 EOL 2028-04-30; django 5.1 is end-of-life (2025-12-03); django 5.0 is end-of-life (2025-04-02); django 4.2 is end-of-life (2026-04-07); django 4.1 is end-of-life (2023-12-01); django 4.0 is end-of-life (2023-04-01); django 3.2 is end-of-life (2024-04-01); django 3.1 is end-of-life (2021-12-07); django 3.0 is end-of-life (2021-04-06); django 2.2 is end-of-life (2022-04-11); django 2.1 is end-of-life (2019-12-02); django 2.0 is end-of-life (2019-04-01); django 1.11 is end-of-life (2020-04-01); django 1.10 is end-of-life (2017-12-02); django 1.9 is end-of-life (2017-04-04); django 1.8 is end-of-life (2018-04-01); django 1.7 is end-of-life (2015-12-01); django 1.6 is end-of-life (2015-04-01); django 1.5 is end-of-life (2014-09-02); django 1.4 is end-of-life (2015-10-01); django 1.3 is end-of-life (2013-02-26) |
