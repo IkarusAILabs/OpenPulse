@@ -63,17 +63,17 @@ def validate(event, strict):
     from core.evidence.policy import gate
 
     violations = gate(e)
-    click.echo(
+    _echo(
         f"OK {e.id} [{e.event_type.value}] confidence={e.confidence.value} impact={e.impact.value}"
     )
     if violations:
-        click.echo("GATE VIOLATIONS:")
+        _echo("GATE VIOLATIONS:")
         for v in violations:
-            click.echo(f"  - {v}")
+            _echo(f"  - {v}")
         if strict:
             raise SystemExit(1)
     else:
-        click.echo("gate: PASS")
+        _echo("gate: PASS")
 
 
 @cli.command()
@@ -96,7 +96,7 @@ def pulse(project, show_signals, raw_bundle):
     findings += security_analyst.correlate(raw, project_context(slug))
     metas = [e for e in raw.get("github_meta", []) if e.get("kind") == "repo_meta"]
     activity = {"releases": raw.get("github", []), "repo_meta": metas[0] if metas else None}
-    click.echo(format_pulse(compute_pulse(slug, findings=findings, activity=activity)))
+    _echo(format_pulse(compute_pulse(slug, findings=findings, activity=activity)))
 
 
 def _live_bundle(slug):
@@ -145,12 +145,12 @@ def analyze(project, raw_bundle, project_version):
     slug = resolve_project(project)
     if raw_bundle:
         raw = _load_json(raw_bundle)
-        click.echo(f"bundle: {raw_bundle}")
+        _echo(f"bundle: {raw_bundle}")
     else:
         raw = _live_bundle(slug)
         for name, entries in raw.items():
             problems = [e for e in entries if e.get("error") or e.get("skipped")]
-            click.echo(f"collector {name}: {len(entries)} records ({len(problems)} error/skipped)")
+            _echo(f"collector {name}: {len(entries)} records ({len(problems)} error/skipped)")
     change = change_analyst.analyze(raw)
     from core.entities.catalog import project_context
 
@@ -158,13 +158,13 @@ def analyze(project, raw_bundle, project_version):
     if project_version:
         context["version"] = project_version
     security = security_analyst.correlate(raw, context)
-    click.echo(f"\n## Change findings ({len(change)})")
+    _echo(f"\n## Change findings ({len(change)})")
     for finding in change:
-        click.echo("\n" + report_analyst.render_finding_md(finding))
-    click.echo(f"\n## Security findings ({len(security)})")
+        _echo("\n" + report_analyst.render_finding_md(finding))
+    _echo(f"\n## Security findings ({len(security)})")
     for finding in security[:10]:
-        click.echo("\n" + report_analyst.render_finding_md(finding))
-    click.echo("\nnote: findings are proposals — Evidence Analyst + gate decide events.")
+        _echo("\n" + report_analyst.render_finding_md(finding))
+    _echo("\nnote: findings are proposals — Evidence Analyst + gate decide events.")
 
 
 @cli.command(name="demo-bitnami")
@@ -175,9 +175,9 @@ def demo_bitnami():
 
     event = _load_event("data/fixtures/bitnami/event.json")
     violations = gate(event)
-    click.echo(f"event: {event.id} [{event.event_type.value}]")
-    click.echo(f"confidence={event.confidence.value} impact={event.impact.value}")
-    click.echo(f"gate: {'PASS' if not violations else violations}")
+    _echo(f"event: {event.id} [{event.event_type.value}]")
+    _echo(f"confidence={event.confidence.value} impact={event.impact.value}")
+    _echo(f"gate: {'PASS' if not violations else violations}")
     watchlist = [
         "docker.io/bitnami/redis:7.2",
         "docker.io/bitnami/postgresql:16",
@@ -186,12 +186,12 @@ def demo_bitnami():
         "postgres:16",
         "nginx:latest",
     ]
-    click.echo("\n## Impact on sample watchlist")
+    _echo("\n## Impact on sample watchlist")
     for ref in watchlist:
         result = event_affects_ref(event, ref)
         icon = "🚨" if result["affected"] else "✅"
-        click.echo(f"{icon} {ref}: [{result['relationship']}] {result['detail']}")
-    click.echo("\n" + report_analyst.render_event_md(event))
+        _echo(f"{icon} {ref}: [{result['relationship']}] {result['detail']}")
+    _echo("\n" + report_analyst.render_event_md(event))
 
 
 @cli.command()
@@ -205,29 +205,29 @@ def observe(namespace, repository, store):
 
     probe = RegistryCollector().check_image(namespace, repository)
     if probe.get("error"):
-        click.echo(f"error: {probe.get('safe_message')} (category={probe.get('category')})")
+        _echo(f"error: {probe.get('safe_message')} (category={probe.get('category')})")
         raise SystemExit(1)
     result = observe_repository("docker.io", namespace, repository, probe, store_root=store)
     if result["error"] is not None:
-        click.echo(
+        _echo(
             f"error: {result['error'].get('safe_message')} "
             f"(category={result['error'].get('category')})"
         )
         raise SystemExit(1)
-    click.echo(f"saved: {result['saved_path']}")
+    _echo(f"saved: {result['saved_path']}")
     if result["history_status"] == "GENESIS":
-        click.echo("baseline recorded — no previous observation, no change claims.")
+        _echo("baseline recorded — no previous observation, no change claims.")
         return
     if not result["changes"]:
-        click.echo("no changes since last observation.")
+        _echo("no changes since last observation.")
         return
     for change in result["changes"]:
-        click.echo(
+        _echo(
             f"- {change['type']}: {change.get('tag') or ''} "
             f"{change.get('previous')} -> {change.get('current')}"
         )
     for finding in change_analyst.analyze_diffs(result["changes"]):
-        click.echo("\n" + report_analyst.render_finding_md(finding))
+        _echo("\n" + report_analyst.render_finding_md(finding))
 
 
 @cli.command()
@@ -267,7 +267,7 @@ def report(month, projects, raw_bundle_dir, out, since, include_related, with_sw
                 raw = _json.loads(bundle.read_text(encoding="utf-8"))
         if raw is None:
             if raw_bundle_dir:
-                click.echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
+                _echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
                 continue
             raw = _live_bundle(slug)
         items.append(collect_project(slug, raw))
@@ -282,11 +282,11 @@ def report(month, projects, raw_bundle_dir, out, since, include_related, with_sw
         catalog = _load_catalog()
         wanted = set(slugs)
         selected = [e for e in catalog if e.get("slug") in wanted]
-        click.echo("running distribution sweep...")
+        _echo("running distribution sweep...")
         sweep_findings = sweep_catalog(selected, RegistryCollector().check_image, store_root=store)[
             "findings"
         ]
-        click.echo(f"sweep findings: {len(sweep_findings)}")
+        _echo(f"sweep findings: {len(sweep_findings)}")
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."
@@ -307,7 +307,7 @@ def report(month, projects, raw_bundle_dir, out, since, include_related, with_sw
     )
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
-    click.echo(f"wrote {destination} ({len(items)} projects)")
+    _echo(f"wrote {destination} ({len(items)} projects)")
 
 
 @cli.command(name="lifecycle-report")
@@ -340,7 +340,7 @@ def lifecycle_report(month, projects, raw_bundle_dir, out):
                 raw = _json.loads(bundle.read_text(encoding="utf-8"))
         if raw is None:
             if raw_bundle_dir:
-                click.echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
+                _echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
                 continue
             if live_collector is None:
                 from collectors.endoflife.collector import EndoflifeCollector
@@ -351,7 +351,7 @@ def lifecycle_report(month, projects, raw_bundle_dir, out):
     markdown = build_lifecycle_report(month, statuses)
     destination = out or f"reports/lifecycle-{month}.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
-    click.echo(f"wrote {destination} ({len(statuses)} projects)")
+    _echo(f"wrote {destination} ({len(statuses)} projects)")
 
 
 def _load_yaml(path: str) -> dict:
@@ -384,6 +384,13 @@ _GLYPH_FALLBACKS = {
     "ℹ️": "[related]",
     "ℹ": "[related]",
     "❓": "[unknown]",
+    # facet status symbols (core.pulse.SYMBOL)
+    "🟢": "[ok]",
+    "🟡": "[watch]",
+    "🟠": "[review]",
+    "🔴": "[action]",
+    # impact badges (analyzers.report_analyst.BADGE) + the unknown-impact dot
+    "⚪": "[unknown]",
 }
 
 
@@ -419,9 +426,10 @@ def _safe_text(text: Any, stream: Any = None) -> str:
 
 
 def _echo(msg: Any = "", **kwargs: Any) -> None:
-    """Echo helper falling back to ASCII markers when stdout cannot encode glyphs."""
+    """Echo helper falling back to ASCII markers when the stream cannot encode glyphs."""
     file = kwargs.get("file")
-    click.echo(_safe_text(msg, stream=file), **kwargs)
+    stream = file or (sys.stderr if kwargs.get("err") else sys.stdout)
+    click.echo(_safe_text(msg, stream=stream), **kwargs)
 
 
 @cli.command()
@@ -542,24 +550,24 @@ def sweep(store, projects, out):
     catalog = load_catalog()
     slugs = [s.strip() for s in projects.split(",") if s.strip()] or None
     targets = sweep_targets(catalog)
-    click.echo(f"probing {len(targets)} catalog images...")
+    _echo(f"probing {len(targets)} catalog images...")
     collector = RegistryCollector()
     result = sweep_catalog(catalog, collector.check_image, store_root=store, slugs=slugs)
-    click.echo(
+    _echo(
         f"observations: {len(result['observations'])}, "
         f"changes: {len(result['changes'])}, "
         f"findings: {len(result['findings'])}, "
         f"errors: {len(result['errors'])}"
     )
     for finding in result["findings"]:
-        click.echo(f"- [{finding['impact']}] {finding['title']}")
+        _echo(f"- [{finding['impact']}] {finding['title']}")
     for error in result["errors"]:
-        click.echo(f"! {error.get('slug')}: {error.get('safe_message')}")
+        _echo(f"! {error.get('slug')}: {error.get('safe_message')}")
     if not result["changes"]:
-        click.echo("no changes since last observations (first sightings are baselines).")
+        _echo("no changes since last observations (first sightings are baselines).")
     if out:
         import json as _json
         from pathlib import Path as _Path
 
         _Path(out).write_text(_json.dumps(result["findings"], indent=2), encoding="utf-8")
-        click.echo(f"wrote {out}")
+        _echo(f"wrote {out}")
