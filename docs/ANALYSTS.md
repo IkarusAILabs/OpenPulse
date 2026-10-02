@@ -45,6 +45,12 @@ KEV flag, reference union — plus `relationship`, `match_method`,
   (keyword-only NVD hits land here and cap at `REVIEW`).
 - `UNKNOWN` — no score and no identity signal.
 
+Live `analyze` queries OSV for catalog entries that declare an `osv`
+`(package, ecosystem)` mapping (`data/canonical_projects.yaml`). OSV
+records are keyed by their CVE alias (`GHSA-*`/`PYSEC-*` primary ids
+carry `aliases`); records without a CVE alias cannot merge into the
+CVE-keyed slots and are ignored by correlation.
+
 CPE matching is normalized-exact only: token overlap (`spring` vs
 `spring-shell`) is never identity. Impact: KEV + AFFECTS →
 `CRITICAL`; KEV alone → `REVIEW`; AFFECTS_VERSION ≥ 7 / AFFECTS_PACKAGE

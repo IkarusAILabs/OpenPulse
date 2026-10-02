@@ -38,6 +38,9 @@
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
   docker_images: [docker.io/library/redis]
+  osv:
+    package: redis
+    ecosystem: PyPI
   identity:
     status: VERIFIED
     source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
@@ -141,12 +144,18 @@
   website: https://www.djangoproject.com
   aliases: [django]
   docker_images: []
+  osv:
+    package: django
+    ecosystem: PyPI
 - slug: fastapi
   display_name: FastAPI
   github: fastapi/fastapi
   website: https://fastapi.tiangolo.com
   aliases: [fastapi]
   docker_images: []
+  osv:
+    package: fastapi
+    ecosystem: PyPI
 - slug: pytorch
   display_name: PyTorch
   github: pytorch/pytorch

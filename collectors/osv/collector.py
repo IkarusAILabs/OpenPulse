@@ -41,12 +41,17 @@ def parse_vulns(package: str, ecosystem: str, payload: dict[str, Any]) -> list[d
                     "versions": (a.get("versions", []) or [])[:50],
                 }
             )
+        cve_id = next(
+            (str(a) for a in v.get("aliases", []) or [] if str(a).upper().startswith("CVE-")),
+            None,
+        )
         out.append(
             {
                 "collector": "osv",
                 "package": package,
                 "ecosystem": ecosystem,
                 "id": v.get("id"),
+                "cve_id": cve_id,
                 "summary": v.get("summary"),
                 "severity": v.get("severity"),
                 "affected": affected,
