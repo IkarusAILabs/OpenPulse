@@ -97,8 +97,13 @@ def test_parser_change_rebaselines_instead_of_diffing(tmp_path):
     assert result["error"] is None
     assert result["history_status"] == "REBASELINED"
     assert result["changes"] == []
-    # Chain continues (linked), history stays verifiable.
+    # Chain continues (linked), history stays verifiable — verified in
+    # CHAIN order, never filename order: identical timestamps sort
+    # arbitrarily, and only links define history order.
+    from core.observations.chain import order_history
     from core.observations.registry import verify_registry_history
 
     history = load_all("docker.io", "demo", "app", root=tmp_path)
-    assert verify_registry_history(history)["status"] == "VALID"
+    ordered, chain_ok = order_history(history)
+    assert chain_ok
+    assert verify_registry_history(ordered)["status"] == "VALID"

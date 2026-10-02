@@ -90,7 +90,12 @@ def verify_registry_observation(record: dict, previous_link: str | None = None) 
 
 
 def verify_registry_history(records: list[dict]) -> dict:
-    """Content + chain verification over oldest->newest stored records."""
+    """Content + chain verification over oldest->newest stored records.
+
+    Records MUST be in chain order (see ``order_history``) — filename
+    order is not chain order when timestamps collide, and verifying in
+    the wrong order reports BROKEN for a healthy history.
+    """
     from core.observations.chain import (
         BROKEN as _BROKEN,
     )

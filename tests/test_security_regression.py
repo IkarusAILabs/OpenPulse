@@ -177,8 +177,12 @@ def test_duplicate_observations_no_changes(tmp_path):
     rerun = sweep_catalog(_catalog(), _probe(["latest", "1.0"]), store_root=tmp_path)
     assert rerun["changes"] == []
     assert rerun["errors"] == []
+    from core.observations.chain import order_history
+
     records = load_all("docker.io", "demo", "app", root=tmp_path)
-    assert verify_registry_history(records)["status"] == "VALID"
+    ordered, chain_ok = order_history(records)
+    assert chain_ok
+    assert verify_registry_history(ordered)["status"] == "VALID"
 
 
 def test_concurrent_writes_all_land(tmp_path):
