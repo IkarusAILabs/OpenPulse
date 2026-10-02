@@ -49,6 +49,31 @@ def test_catalog_identity_metadata_optional():
         assert block.get("reviewed_at"), slug
     assert identity_block_for_slug("redis", catalog)["status"] == "VERIFIED"
     assert identity_block_for_slug("spring-boot", catalog)["status"] == "REVIEW_REQUIRED"
+    # Entries reviewed on 2026-10-02 (issue #15): forks, renames,
+    # ecosystem mappings, and namespace collisions.
+    verified = (
+        "jaeger",
+        "clickhouse",
+        "itext",
+        "mariadb",
+        "redpanda",
+        "valkey",
+        "nodejs",
+        "cpython",
+        "pytorch",
+        "transformers",
+    )
+    review_required = ("vue", "angular", "junit", "flux", "linkerd", "go", "nats")
+    for slug in verified + review_required:
+        block = identity_block_for_slug(slug, catalog)
+        assert block.get("source"), slug
+        assert block.get("reviewed_at"), slug
+        assert block.get("maintainer"), slug
+        assert block.get("confidence") in ("high", "medium", "low"), slug
+    for slug in verified:
+        assert identity_block_for_slug(slug, catalog)["status"] == VERIFIED, slug
+    for slug in review_required:
+        assert identity_block_for_slug(slug, catalog)["status"] == REVIEW_REQUIRED, slug
     # Unreviewed entries simply lack identity metadata — never assumed reviewed.
     assert identity_block_for_slug("django", catalog) == {}
     assert "identity" not in by_slug["django"]
