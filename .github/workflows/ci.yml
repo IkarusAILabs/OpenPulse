@@ -9,6 +9,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # `run:` defaults to PowerShell on windows-latest, which breaks
+        # bash idioms used below (`&&` toolchain chaining, `cp`/`cmp`,
+        # `> /dev/null`). Git Bash ships on every runner image, so pin
+        # the whole job to bash and keep the steps OS-agnostic.
+        shell: bash
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
