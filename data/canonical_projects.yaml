@@ -10,10 +10,15 @@
 #   their impact attribution: depending on docker.io/bitnami/redis means
 #   depending on the Bitnami stack, not on upstream Redis.
 # - Optional identity metadata (security-critical, prioritize ambiguous
-#   aliases): `identity_source` (why this slug maps these names),
-#   `reviewed_at` (YYYY-MM-DD), `maintainer` (who reviewed), `confidence`
-#   (high/medium/low). Absent metadata means unreviewed — never assume
-#   reviewed.
+#   aliases) lives in a formal `identity:` block: `status`
+#   (VERIFIED | REVIEW_REQUIRED | UNVERIFIED), `source` (why this slug
+#   maps these names), `reviewed_at` (YYYY-MM-DD), `maintainer` (who
+#   reviewed), `confidence` (high/medium/low), `note` (optional caveats).
+#   The trust model consumes `status` (core/entities/identity.py):
+#   REVIEW_REQUIRED/UNVERIFIED mappings cap verdict confidence. Absent
+#   metadata means unreviewed — never assume reviewed. The legacy flat
+#   keys (`identity_source` etc.) are still read for back-compat but
+#   should not be copied.
 - slug: bitnami
   display_name: Bitnami catalog
   github: bitnami/containers
@@ -38,6 +43,9 @@
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
   docker_images: [docker.io/library/redis]
+  osv:
+    package: redis
+    ecosystem: PyPI
   identity:
     status: VERIFIED
     source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
@@ -75,6 +83,12 @@
   website: https://nodejs.org
   aliases: [nodejs, node, docker.io/library/node]
   docker_images: [docker.io/library/node]
+  identity:
+    status: VERIFIED
+    source: "nodejs/node is the Node.js runtime repo and node is its binary and docker.io/library/node image name"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
 - slug: openssl
   display_name: OpenSSL
   github: openssl/openssl
@@ -141,18 +155,31 @@
   website: https://www.djangoproject.com
   aliases: [django]
   docker_images: []
+  osv:
+    package: django
+    ecosystem: PyPI
 - slug: fastapi
   display_name: FastAPI
   github: fastapi/fastapi
   website: https://fastapi.tiangolo.com
   aliases: [fastapi]
   docker_images: []
+  osv:
+    package: fastapi
+    ecosystem: PyPI
 - slug: pytorch
   display_name: PyTorch
   github: pytorch/pytorch
   website: https://pytorch.org
   aliases: [pytorch, torch]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "pytorch/pytorch is the project repo and torch is the PyPI distribution name for it"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "torch on PyPI (2.14.1) is published by the PyTorch project"
 - slug: langchain
   display_name: LangChain
   github: langchain-ai/langchain
@@ -239,6 +266,13 @@
   website: https://valkey.io
   aliases: [valkey]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "valkey-io/valkey is the Linux Foundation fork of Redis 7.2 maintained as its own project at valkey.io"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "fork of redis maintained by the Linux Foundation; distinct from the redis slug"
 - slug: memcached
   display_name: Memcached
   github: memcached/memcached
@@ -305,6 +339,13 @@
   website: https://linkerd.io
   aliases: [linkerd]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "linkerd/linkerd2 is the current service-mesh repo and linkerd is the product name"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "linkerd/linkerd is the archived 1.x generation, a different major line"
 - slug: calico
   display_name: Project Calico
   github: projectcalico/calico
@@ -350,12 +391,26 @@
   website: https://nats.io
   aliases: [nats, nats-server]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "nats-io/nats-server is the NATS server repo this slug maps"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "'nats' often names the whole ecosystem (clients, JetStream), not just the server; PyPI 'nats' is a client library"
 - slug: clickhouse
   display_name: ClickHouse
   github: ClickHouse/ClickHouse
   website: https://clickhouse.com
   aliases: [clickhouse]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "ClickHouse/ClickHouse is the canonical repo since the move out of the yandex org; GitHub redirects the old yandex/ClickHouse path"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "repo moved from the yandex org to the ClickHouse org; the old org path still resolves"
 - slug: loki
   display_name: Loki
   github: grafana/loki
@@ -368,6 +423,12 @@
   website: https://www.jaegertracing.io
   aliases: [jaeger, jaegertracing]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "jaegertracing is the CNCF GitHub org for Jaeger and jaeger is the project's own name"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
 - slug: vitess
   display_name: Vitess
   github: vitessio/vitess
@@ -413,6 +474,13 @@
   endoflife: python
   aliases: [cpython, python]
   docker_images: [docker.io/library/python]
+  identity:
+    status: VERIFIED
+    source: "python here means the CPython implementation (python/cpython, docker.io/library/python, endoflife.date product python)"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "other Python implementations (PyPy, MicroPython) are distinct projects"
 - slug: php
   display_name: PHP
   github: php/php-src
@@ -431,6 +499,13 @@
   website: https://go.dev
   aliases: [go, golang]
   docker_images: [docker.io/library/golang]
+  identity:
+    status: REVIEW_REQUIRED
+    source: "golang/go is the Go language repo; go is its own name and golang is the ecosystem alias"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "'go' is a namespace collision risk: PyPI has an unrelated 'go' package (a cd helper)"
 - slug: rust
   display_name: Rust
   github: rust-lang/rust
@@ -456,6 +531,13 @@
   website: https://junit.org
   aliases: [junit, junit5]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "junit-team/junit5 is the repo behind the JUnit 5 line (org.junit.jupiter) that this slug tracks"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "Maven coordinate junit:junit is JUnit 4, a different major line from the mapped repo"
 - slug: ansible
   display_name: Ansible
   github: ansible/ansible
@@ -480,12 +562,26 @@
   website: https://vuejs.org
   aliases: [vue, vuejs/vue, vuejs/core]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "the slug maps the npm name vue to vuejs/core (Vue 3), which is where the vue package is published from"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "vuejs/vue is the Vue 2 repo and shares the npm history; Vue 2 and Vue 3 are different major lines"
 - slug: angular
   display_name: Angular
   github: angular/angular
   website: https://angular.dev
   aliases: [angular]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "angular/angular is the modern Angular framework repo and angular is its project name"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "npm package 'angular' (1.8.x) is AngularJS, an earlier project that shares the name; this slug tracks the modern framework"
 - slug: webpack
   display_name: webpack
   github: webpack/webpack
@@ -546,6 +642,13 @@
   website: https://huggingface.co
   aliases: [transformers, huggingface-transformers]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "huggingface/transformers is the project repo and transformers is its PyPI distribution name"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "transformers on PyPI (5.18.0) is published by Hugging Face"
 - slug: tensorflow
   display_name: TensorFlow
   github: tensorflow/tensorflow
@@ -582,6 +685,13 @@
   website: https://fluxcd.io
   aliases: [flux, fluxcd]
   docker_images: []
+  identity:
+    status: REVIEW_REQUIRED
+    source: "fluxcd/flux2 is the current Flux repo; flux and fluxcd are the names users write for it"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: medium
+    note: "fluxcd/flux (v1) is archived with flux2 as successor; the org name also covers non-Flux repos"
 - slug: jenkins
   display_name: Jenkins
   github: jenkinsci/jenkins
@@ -607,12 +717,26 @@
   website: https://redpanda.com
   aliases: [redpanda]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "redpanda-data/redpanda is the only Redpanda repo; Redpanda is an independent streaming platform, not an Apache Kafka distribution"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "Kafka-API-compatible but a distinct product; kafka-ecosystem events do not apply to it"
 - slug: mariadb
   display_name: MariaDB
   github: mariadb/server
   website: https://mariadb.org
   aliases: [mariadb]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "mariadb/server is the MariaDB Server repo; MariaDB is a community fork of MySQL maintained as a distinct project"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "fork of MySQL, but a separate product from the mysql slug"
 - slug: cockroach
   display_name: CockroachDB
   github: cockroachdb/cockroach
@@ -649,3 +773,10 @@
   website: https://itextpdf.com
   aliases: [itext, itext7, itext-java, itext-core, com.itextpdf/itext-core, com.itextpdf/kernel]
   docker_images: []
+  identity:
+    status: VERIFIED
+    source: "com.itextpdf is the Maven groupId for iText and itext/itext-java is the current repo name (itext/itext7 redirects there)"
+    reviewed_at: "2026-10-02"
+    maintainer: choksi2212
+    confidence: high
+    note: "com.itextpdf/kernel and com.itextpdf/itext-core are Maven coordinates of the same library"

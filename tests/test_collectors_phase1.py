@@ -112,3 +112,96 @@ def test_kev_filter_no_match():
     from collectors.kev.collector import filter_catalog
 
     assert filter_catalog(_kev_catalog(), "nosuchproject") == []
+
+
+def _osv_payload():
+    return {
+        "vulns": [
+            {
+                "id": "GHSA-24wv-mv5m-xv4h",
+                "aliases": ["CVE-2023-28858", "PYSEC-2023-45"],
+                "summary": "Redis vulnerability via crafted Lua scripts",
+                "severity": [{"type": "CVSS_V3", "score": 7.2}],
+                "affected": [
+                    {
+                        "package": {"name": "redis", "ecosystem": "PyPI"},
+                        "ranges": [
+                            {
+                                "type": "ECOSYSTEM",
+                                "events": [{"fixed": "4.5.4"}],
+                            }
+                        ],
+                    }
+                ],
+                "references": [{"url": "https://example.com/ghsa"}],
+            }
+        ]
+    }
+
+
+def test_osv_parse_extracts_cve_id_from_aliases():
+    from collectors.osv.collector import parse_vulns
+
+    out = parse_vulns("redis", "PyPI", _osv_payload())
+    assert len(out) == 1
+    # Live OSV PyPI records key on GHSA/PYSEC ids; correlate() only merges
+    # entries carrying a CVE id, so the first CVE alias must surface.
+    assert out[0]["id"] == "GHSA-24wv-mv5m-xv4h"
+    assert out[0]["cve_id"] == "CVE-2023-28858"
+    assert out[0]["package"] == "redis"
+    assert out[0]["ecosystem"] == "PyPI"
+
+
+def test_osv_parse_without_cve_alias():
+    from collectors.osv.collector import parse_vulns
+
+    payload = {
+        "vulns": [
+            {
+                "id": "GHSA-nope-nope-nope",
+                "aliases": ["PYSEC-2023-99"],
+                "affected": [{"package": {"name": "redis", "ecosystem": "PyPI"}, "ranges": []}],
+            }
+        ]
+    }
+    out = parse_vulns("redis", "PyPI", payload)
+    assert out[0]["cve_id"] is None
+
+
+def test_osv_map_from_catalog():
+    from core.entities.catalog import load_catalog, osv_map
+
+    mapping = osv_map(load_catalog())
+    # Catalog entries with a verified (package, ecosystem) pair only.
+    assert mapping["redis"] == ("redis", "PyPI")
+    assert mapping["django"] == ("django", "PyPI")
+    assert mapping["fastapi"] == ("fastapi", "PyPI")
+    # Entries without an osv block are absent, never guessed.
+    assert "bitnami" not in mapping
+    assert "kafka" not in mapping
+
+
+def test_osv_live_findings_are_affects_package():
+    from analyzers.security_analyst import correlate
+    from collectors.osv.collector import parse_vulns
+    from core.entities.catalog import project_context
+
+    entries = parse_vulns("redis", "PyPI", _osv_payload())
+    findings = correlate({"osv": entries}, project_context("redis"))
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["cve_id"] == "CVE-2023-28858"
+    assert finding["relationship"] == "AFFECTS_PACKAGE"
+    assert finding["match_method"] == "osv_package"
+    assert finding["sources"] == ["osv"]
+    assert "osv:PyPI/redis" in finding["identity_evidence"]
+
+
+def test_osv_skips_unmapped_slug():
+    from collectors.osv.collector import OSVCollector
+
+    collector = OSVCollector({})
+    out = collector.collect("kafka")
+    assert len(out) == 1
+    assert out[0].get("skipped")
+    assert out[0]["collector"] == "osv"

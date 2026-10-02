@@ -40,6 +40,25 @@ def endoflife_map(catalog: list[dict[str, Any]] | None = None) -> dict[str, str]
     }
 
 
+def osv_map(catalog: list[dict[str, Any]] | None = None) -> dict[str, tuple[str, str]]:
+    """slug -> (package, ecosystem) for entries that declare an `osv` block.
+
+    Only entries with a verified (package, ecosystem) mapping belong here —
+    OSV queries are package-scoped, so a wrong mapping would poison
+    identity evidence downstream.
+    """
+    out: dict[str, tuple[str, str]] = {}
+    for e in catalog if catalog is not None else load_catalog():
+        block = e.get("osv")
+        if not (e.get("slug") and isinstance(block, dict)):
+            continue
+        package = block.get("package")
+        ecosystem = block.get("ecosystem")
+        if package and ecosystem:
+            out[str(e["slug"])] = (str(package), str(ecosystem))
+    return out
+
+
 def purl_for(kind: str, namespace: str, name: str, version: str | None = None) -> str:
     """Minimal Package-URL builder (https://github.com/package-url/purl-spec)."""
     base = {
