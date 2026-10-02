@@ -76,6 +76,17 @@ def test_repo_missing_and_restored():
     assert diff_observations(_obs(missing=True), _obs())[0].type == "repo_restored"
 
 
+def test_truncated_observations_withhold_diffs():
+    """A partial tag set has no comparable basis: diffing it against a
+    full one manufactures disappearances. Withheld, never guessed."""
+    from core.observations.registry import diff_observations
+
+    full = _obs(tags={"latest": ["sha256:AAA"], "7.2.0": ["sha256:111"]})
+    partial = _obs(tags={"latest": ["sha256:AAA"]}, truncated=True)
+    assert diff_observations(full, partial) == []
+    assert diff_observations(partial, full) == []
+
+
 def test_store_roundtrip(tmp_path):
     from core.observations.store import load_previous, save_observation
 

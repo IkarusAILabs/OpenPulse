@@ -9,9 +9,17 @@ import httpx
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
+#: Hub pagination: 100 tags per page, up to this many pages. Observations
+#: must capture the full tag set — a first-page-only window turns recency
+#: churn into phantom disappearances (a tag bumped out of the window is
+#: not a removal). The observation tag cap in registry.py bounds memory.
+#: When pages run out before `next` clears, the probe is marked
+#: truncated and diffs against it are withheld (incomparable basis).
+_MAX_TAG_PAGES = 30
+
 
 def docker_hub_url(namespace: str, repo: str) -> str:
-    return f"https://hub.docker.com/v2/repositories/{namespace}/{repo}/tags?page_size=5"
+    return f"https://hub.docker.com/v2/repositories/{namespace}/{repo}/tags?page_size=100"
 
 
 def parse_tags(namespace: str, repo: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -43,16 +51,37 @@ class RegistryCollector(BaseCollector):
 
     def check_image(self, namespace: str, repo: str) -> dict[str, Any]:
         try:
-            r = httpx.get(docker_hub_url(namespace, repo), timeout=self.timeout)
-            if r.status_code == 404:
-                return {
-                    "collector": "registries",
-                    "namespace": namespace,
-                    "repo": repo,
-                    "missing": True,
-                }
-            r.raise_for_status()
-            return parse_tags(namespace, repo, r.json())
+            results: list[dict[str, Any]] = []
+            count: int | None = None
+            url: str | None = docker_hub_url(namespace, repo)
+            pages = 0
+            truncated = False
+            while url is not None and pages < _MAX_TAG_PAGES:
+                r = httpx.get(url, timeout=self.timeout)
+                if r.status_code == 404:
+                    return {
+                        "collector": "registries",
+                        "namespace": namespace,
+                        "repo": repo,
+                        "missing": True,
+                    }
+                r.raise_for_status()
+                payload = r.json()
+                if not isinstance(payload, dict):
+                    raise ValueError("registry response is not a mapping")
+                if count is None:
+                    count = payload.get("count")
+                entries = payload.get("results", [])
+                if not isinstance(entries, list):
+                    raise ValueError("registry results are not a list")
+                results.extend(e for e in entries if isinstance(e, dict))
+                url = payload.get("next")
+                pages += 1
+            if url is not None:
+                truncated = True
+            probe = parse_tags(namespace, repo, {"results": results, "count": count})
+            probe["truncated"] = truncated
+            return probe
         except Exception as e:
             return as_error("registries", e, namespace=namespace, repo=repo)
 

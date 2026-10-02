@@ -263,7 +263,15 @@ def analyze_registries(
 def analyze_github_meta(
     entries: list[dict[str, Any]], today: date | None = None
 ) -> list[dict[str, Any]]:
-    """Repository metadata rules: archived repos, license visibility."""
+    """Repository metadata rules: archived repos, license visibility,
+    ownership drift.
+
+    Ownership drift compares the queried path (`repo`) with the API's
+    actual path (`full_name`): a changed owner means the project moved
+    (transfer or org rename) and recorded identity may be stale. A
+    same-owner rename is routine and stays silent; archived findings
+    still fire independently.
+    """
     today = today or date.today()
     findings = []
     for e in entries:
@@ -290,7 +298,46 @@ def analyze_github_meta(
                     "supporting": [e],
                 }
             )
+        drift = _ownership_drift(e)
+        if drift is not None:
+            old, new = drift
+            findings.append(
+                {
+                    "analyst": "change",
+                    "event_type": "OWNERSHIP_CHANGE",
+                    "signal": "ownership",
+                    "title": f"{old} moved to {new} on GitHub",
+                    "summary": f"Repository ownership changed from {old.split('/')[0]} "
+                    f"to {new.split('/')[0]}. Recorded identity may be stale; "
+                    "verify package registries and docs followed the move.",
+                    "impact": "REVIEW",
+                    "observed_at": str(today),
+                    "effective_at": None,
+                    "lifecycle_state": STATE_EFFECTIVE,
+                    "significance": "medium",
+                    "detection_method": "repository_observation",
+                    "evidence_strength": EVIDENCE_MODERATE,
+                    "scope": {"kind": "project", "versions": []},
+                    "affected_versions": ["*"],
+                    "affected_artifacts": [],
+                    "supporting": [e],
+                }
+            )
     return findings
+
+
+def _ownership_drift(entry: dict[str, Any]) -> tuple[str, str] | None:
+    """(queried, actual) when the owner changed; None otherwise (including
+    same-owner renames and missing actual paths). Case-insensitive."""
+    queried = str(entry.get("repo") or "").strip()
+    actual = str(entry.get("full_name") or "").strip()
+    if not queried or not actual or "/" not in queried or "/" not in actual:
+        return None
+    if queried.lower() == actual.lower():
+        return None
+    if queried.split("/")[0].lower() == actual.split("/")[0].lower():
+        return None  # same-owner rename: routine, stays silent
+    return (queried, actual)
 
 
 #: Diff type -> (event_type, impact, significance, template).
@@ -387,8 +434,7 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
                     "chain_hash": c.get("current_chain"),
                     "parser_version": c.get("parser_version"),
                     "previous_observation_id": c.get("previous_observation_id"),
-                    "previous_observation_hash": c.get("previous_chain")
-                    or c.get("previous_hash"),
+                    "previous_observation_hash": c.get("previous_chain") or c.get("previous_hash"),
                     "previous_observed_at": c.get("previous_observed_at"),
                     "previous_content_hash": c.get("previous_hash"),
                     "fact": {

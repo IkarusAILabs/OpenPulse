@@ -64,3 +64,41 @@ def test_errors_recorded_not_raised(tmp_path):
     assert len(result["errors"]) == 1
     assert result["errors"][0]["slug"] == "demo"
     assert result["observations"] == []
+
+
+def test_parser_change_rebaselines_instead_of_diffing(tmp_path):
+    """A stored history from older probe semantics is a new baseline,
+    not a diff source: windowed tag samples must never diff against
+    full tag sets."""
+    from core.observations.registry import RegistryObservation
+    from core.observations.store import load_all, save_observation
+    from core.observations.sweep import observe_repository
+
+    legacy = (
+        RegistryObservation(
+            namespace="demo",
+            repository="app",
+            tags={"latest": ["sha256:latest"], "1.0": ["sha256:1.0"]},
+            parser_version="openpulse-parsers/0.4.0",
+        )
+        .seal()
+        .link(None)
+    )
+    save_observation(legacy.model_dump(mode="json"), root=tmp_path)
+    probe = {
+        "collector": "registries",
+        "registry": "docker.io",
+        "namespace": "demo",
+        "repo": "app",
+        "digests": {"latest": ["sha256:latest"], "1.0": ["sha256:1.0"]},
+        "count": 2,
+    }
+    result = observe_repository("docker.io", "demo", "app", probe, store_root=tmp_path)
+    assert result["error"] is None
+    assert result["history_status"] == "REBASELINED"
+    assert result["changes"] == []
+    # Chain continues (linked), history stays verifiable.
+    from core.observations.registry import verify_registry_history
+
+    history = load_all("docker.io", "demo", "app", root=tmp_path)
+    assert verify_registry_history(history)["status"] == "VALID"

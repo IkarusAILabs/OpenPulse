@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from analyzers.change_analyst import analyze_diffs
-from analyzers.event_correlation import aggregate_distribution
+from analyzers.event_correlation import aggregate_distribution, split_moves
 from collectors.errors import as_error, safe_message
 from core.observations.chain import BROKEN, GENESIS_PREVIOUS, link_hash_for, order_history
 from core.observations.registry import (
@@ -289,6 +289,19 @@ def _observe_locked(
             "error": as_error("registries", exc, namespace=namespace, repo=repository),
         }
     if previous is None:
+        baseline_status = "GENESIS"
+        rebased = False
+    elif previous.parser_version != current.parser_version:
+        # Probe semantics changed under a stored history (e.g. windowed
+        # tag samples vs full tag sets): the bytes chain continues, but
+        # diffing across incomparable semantics would manufacture
+        # changes. Re-baseline explicitly instead.
+        baseline_status = "REBASELINED"
+        rebased = True
+    else:
+        baseline_status = ""
+        rebased = False
+    if previous is None or rebased:
         saved = save_observation(current.model_dump(mode="json"), root=store_root)
         write_tip(
             repo_dir(store_root, registry, namespace, repository),
@@ -296,7 +309,7 @@ def _observe_locked(
         )
         return {
             "observation": current.model_dump(mode="json"),
-            "history_status": "GENESIS",
+            "history_status": baseline_status,
             "changes": [],
             "saved_path": str(saved),
             "error": None,
@@ -384,7 +397,8 @@ def sweep_catalog(
         if result["observation"] is not None:
             observations.append(result["observation"])
         changes += result["changes"]
-    findings = aggregate_distribution(analyze_diffs(changes))
+    moves, remaining = split_moves(changes)
+    findings = aggregate_distribution(analyze_diffs(remaining)) + moves
     return {
         "observations": observations,
         "changes": changes,

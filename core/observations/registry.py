@@ -28,6 +28,10 @@ class RegistryObservation(ObservationBase):
     )
     tag_count: int | None = None
     missing: bool = False
+    truncated: bool = Field(
+        default=False,
+        description="Probe hit the page cap: tag set may be partial, diffs withheld",
+    )
 
     def integrity_body(self) -> dict:
         return {
@@ -195,12 +199,20 @@ def to_observation(probe: dict, observed_at: datetime | None = None) -> Registry
         tags=tags,
         tag_count=probe.get("count"),
         missing=bool(probe.get("missing")),
+        truncated=bool(probe.get("truncated")),
     ).seal()
 
 
 def diff_observations(prev: RegistryObservation | None, curr: RegistryObservation) -> list[Change]:
-    """Compare two observations. No previous observation -> baseline -> no changes."""
+    """Compare two observations. No previous observation -> baseline -> no changes.
+
+    A truncated observation (probe hit the page cap) has no comparable
+    basis on its truncated side: diffing a partial tag set against a
+    full one manufactures disappearances. Withheld, never guessed.
+    """
     if prev is None:
+        return []
+    if prev.truncated or curr.truncated:
         return []
     if prev.content_hash == curr.content_hash and prev.missing == curr.missing:
         return []

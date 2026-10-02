@@ -36,6 +36,9 @@ def parse_repo(repo: str, payload: dict[str, Any]) -> dict[str, Any]:
         "collector": "github",
         "kind": "repo_meta",
         "repo": repo,
+        # Actual path from the API response: renames/transfers answer
+        # here, not in the queried path. The analyst compares the two.
+        "full_name": payload.get("full_name"),
         "archived": bool(payload.get("archived")),
         "pushed_at": payload.get("pushed_at"),
         "default_branch": payload.get("default_branch"),

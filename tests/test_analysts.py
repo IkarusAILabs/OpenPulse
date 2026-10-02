@@ -286,3 +286,41 @@ def test_match_bitnami_vs_upstream():
     # Upstream images are a different stack — must NOT match.
     assert event_affects_ref(event, "docker.io/redis:7.2")["affected"] is False
     assert event_affects_ref(event, "postgres:16")["affected"] is False
+
+
+def _repo_meta(repo, full_name=None, archived=False):
+    return {
+        "collector": "github",
+        "kind": "repo_meta",
+        "repo": repo,
+        "full_name": full_name if full_name is not None else repo,
+        "archived": archived,
+        "pushed_at": "2026-01-01",
+    }
+
+
+def test_ownership_transfer_detected():
+    from analyzers.change_analyst import analyze_github_meta
+
+    out = analyze_github_meta([_repo_meta("oldorg/app", full_name="neworg/app")])
+    assert len(out) == 1
+    finding = out[0]
+    assert finding["event_type"] == "OWNERSHIP_CHANGE"
+    assert finding["impact"] == "REVIEW"
+    assert finding["evidence_strength"] == "moderate"
+    assert "oldorg/app moved to neworg/app" in finding["title"]
+
+
+def test_same_owner_rename_stays_silent():
+    from analyzers.change_analyst import analyze_github_meta
+
+    assert analyze_github_meta([_repo_meta("org/old", full_name="org/new")]) == []
+    assert analyze_github_meta([_repo_meta("org/app", full_name="ORG/APP")]) == []
+    assert analyze_github_meta([_repo_meta("org/app")]) == []
+
+
+def test_archived_and_transferred_both_fire():
+    from analyzers.change_analyst import analyze_github_meta
+
+    out = analyze_github_meta([_repo_meta("oldorg/app", full_name="neworg/app", archived=True)])
+    assert {f["event_type"] for f in out} == {"PROJECT_ARCHIVED", "OWNERSHIP_CHANGE"}

@@ -160,3 +160,55 @@ def test_singleton_and_heuristic_pass_through():
     assert len(out) == 2
     assert out[0]["title"].startswith("Tag `1.0` disappeared")
     assert out[1] == heuristic
+
+
+def _move_change(direction, namespace, tag="7.2", repo="redis"):
+    return {
+        "type": direction,
+        "namespace": namespace,
+        "repository": repo,
+        "tag": tag,
+        "previous": ["sha256:111"] if direction == "tag_disappeared" else None,
+        "current": ["sha256:111"] if direction == "tag_appeared" else None,
+        "previous_observation_id": "obs-prev",
+        "current_observation_id": "obs-cur",
+        "previous_observed_at": "2026-09-01",
+        "previous_hash": "sha256:prev",
+        "current_hash": "sha256:cur",
+        "previous_chain": "sha256:pc",
+        "current_chain": "sha256:cc",
+        "observed_at": "2026-10-01",
+        "first_detected_at": "2026-10-01",
+    }
+
+
+def test_namespace_move_pairs_into_one_story():
+    from analyzers.event_correlation import split_moves
+
+    changes = [
+        _move_change("tag_disappeared", "bitnami"),
+        _move_change("tag_appeared", "bitnamilegacy"),
+        _move_change("tag_disappeared", "library", tag="1.0", repo="nginx"),
+    ]
+    moves, remaining = split_moves(changes)
+    assert len(moves) == 1
+    move = moves[0]
+    assert move["title"] == "`7.2` moved from bitnami to bitnamilegacy (redis)"
+    assert move["impact"] == "REVIEW"
+    assert move["evidence_strength"] == "moderate"
+    assert len(move["affected_artifacts"]) == 2
+    assert move["observation_evidence"]["fact"]["type"] == "tag_moved"
+    assert len(remaining) == 1
+    assert remaining[0]["tag"] == "1.0"
+
+
+def test_same_namespace_pairs_never_move():
+    from analyzers.event_correlation import split_moves
+
+    changes = [
+        _move_change("tag_disappeared", "demo"),
+        _move_change("tag_appeared", "demo"),
+    ]
+    moves, remaining = split_moves(changes)
+    assert moves == []
+    assert len(remaining) == 2

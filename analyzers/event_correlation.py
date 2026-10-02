@@ -124,8 +124,11 @@ def _story(event_type: str, group: list[dict[str, Any]]) -> dict[str, Any]:
             observed.append(str(seen))
     impacts = [_RANK.get(str(f.get("impact", "")).upper(), 0) for f in group]
     impact = next(
-        (name for name, rank in sorted(_RANK.items(), key=lambda kv: -kv[1])
-         if rank == max(impacts)),
+        (
+            name
+            for name, rank in sorted(_RANK.items(), key=lambda kv: -kv[1])
+            if rank == max(impacts)
+        ),
         "INFORMATIONAL",
     )
     state = _STATE.get((event_type, impact), event_type)
@@ -240,9 +243,7 @@ def aggregate_distribution(findings: list[dict[str, Any]]) -> list[dict[str, Any
     return out
 
 
-def _distribution_story(
-    image: str, direction: str, group: list[dict[str, Any]]
-) -> dict[str, Any]:
+def _distribution_story(image: str, direction: str, group: list[dict[str, Any]]) -> dict[str, Any]:
     """One card for N same-repo/same-direction diffs. Nothing dropped:
     every tag, digest, scope ref, supporting change, and reference
     unions into the story; observation ids match (one observation pair
@@ -265,7 +266,7 @@ def _distribution_story(
                     "first_detected_at": finding.get("first_detected_at"),
                 }
             )
-        for ref in ((finding.get("scope") or {}).get("artifacts") or []):
+        for ref in (finding.get("scope") or {}).get("artifacts") or []:
             if str(ref) not in refs:
                 refs.append(str(ref))
         for artifact in finding.get("affected_artifacts", []) or []:
@@ -328,3 +329,114 @@ def _distribution_story(
         "stories_merged": len(group),
     }
     return story
+
+
+def split_moves(
+    changes: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Namespace moves out of raw diff changes.
+
+    A tag disappearing from namespace A while the same tag appears in
+    namespace B (same repository, same sweep) is one migration event,
+    not two independent findings: returns (move_findings, remaining).
+    Move findings carry both sides' observation identity. Unpaired
+    changes pass through untouched. Pure function.
+    """
+    disappeared: dict[tuple[str, str], dict[str, Any]] = {}
+    appeared: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    others: list[dict[str, Any]] = []
+    for change in changes:
+        if not isinstance(change, dict):
+            continue
+        ctype, repo, tag = (
+            str(change.get("type") or ""),
+            str(change.get("repository") or ""),
+            change.get("tag"),
+        )
+        if ctype == "tag_disappeared" and repo and tag is not None:
+            disappeared[(repo, str(tag))] = change
+        elif ctype == "tag_appeared" and repo and tag is not None:
+            appeared.setdefault((repo, str(tag)), []).append(change)
+        else:
+            others.append(change)
+    consumed: set[int] = set()
+    moves = []
+    for key in sorted(set(disappeared) & set(appeared)):
+        gone = disappeared[key]
+        for seen in appeared[key]:
+            if str(seen.get("namespace") or "") == str(gone.get("namespace") or ""):
+                continue
+            moves.append(_move_finding(gone, seen))
+            consumed.add(id(gone))
+            consumed.add(id(seen))
+            break
+    remaining = [c for c in others if id(c) not in consumed]
+    for key, change in disappeared.items():
+        if id(change) not in consumed:
+            remaining.append(change)
+    for key, group in appeared.items():
+        for change in group:
+            if id(change) not in consumed:
+                remaining.append(change)
+    return moves, remaining
+
+
+def _move_finding(gone: dict[str, Any], seen: dict[str, Any]) -> dict[str, Any]:
+    """One migration story from a disappeared/appeared pair."""
+    repo = str(gone.get("repository") or "")
+    tag = str(gone.get("tag") or "")
+    ns_from, ns_to = str(gone.get("namespace") or ""), str(seen.get("namespace") or "")
+    observed = str(seen.get("observed_at") or gone.get("observed_at") or "")
+    firsts = [str(v) for v in (gone.get("first_detected_at"), seen.get("first_detected_at")) if v]
+    ref_from = f"docker.io/{ns_from}/{repo}:{tag}"
+    ref_to = f"docker.io/{ns_to}/{repo}:{tag}"
+    return {
+        "analyst": "change",
+        "event_type": "DISTRIBUTION_CHANGE",
+        "signal": "distribution",
+        "title": f"`{tag}` moved from {ns_from} to {ns_to} ({repo})",
+        "summary": f"Tag `{tag}` disappeared from {ns_from}/{repo} and appeared in "
+        f"{ns_to}/{repo} in the same observation window — a distribution move, "
+        "not two independent changes.",
+        "impact": "REVIEW",
+        "significance": "medium",
+        "detection_method": "registry_observation",
+        "evidence_strength": "moderate",
+        "observed_at": observed,
+        "first_detected_at": min(firsts) if firsts else None,
+        "effective_at": observed,
+        "lifecycle_state": "EFFECTIVE",
+        "scope": {"kind": "artifact", "artifacts": [ref_from, ref_to]},
+        "affected_versions": ["*"],
+        "affected_artifacts": [
+            {"kind": "docker-image", "ref": ref_from},
+            {"kind": "docker-image", "ref": ref_to},
+        ],
+        "references": [
+            f"https://hub.docker.com/r/{ns_from}/{repo}/tags",
+            f"https://hub.docker.com/r/{ns_to}/{repo}/tags",
+        ],
+        "observation_evidence": {
+            "observation_id": seen.get("current_observation_id"),
+            "source": "docker-hub",
+            "source_url": f"https://hub.docker.com/r/{ns_to}/{repo}/tags",
+            "observed_at": observed,
+            "content_hash": seen.get("current_hash"),
+            "chain_hash": seen.get("current_chain"),
+            "parser_version": seen.get("parser_version"),
+            "previous_observation_id": gone.get("previous_observation_id"),
+            "previous_observation_hash": gone.get("previous_chain") or gone.get("previous_hash"),
+            "previous_observed_at": gone.get("previous_observed_at"),
+            "previous_content_hash": gone.get("previous_hash"),
+            "fact": {
+                "type": "tag_moved",
+                "image": f"docker.io/{repo}",
+                "tag": tag,
+                "from_namespace": ns_from,
+                "to_namespace": ns_to,
+                "previous_digests": gone.get("previous"),
+                "current_digests": seen.get("current"),
+            },
+        },
+        "supporting": [gone, seen],
+    }

@@ -63,3 +63,70 @@ def test_github_token_header():
     authed = GitHubCollector({"x": "y/z"}, token="secret")
     assert authed._headers()["Authorization"] == "Bearer secret"
     assert "Authorization" not in GitHubCollector()._headers()
+
+
+def _paged_response(results, next_url=None, count=None, url="https://hub.docker.com/v2/x"):
+    import httpx
+
+    payload = {"results": results, "count": count if count is not None else len(results)}
+    if next_url:
+        payload["next"] = next_url
+    return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+
+def _tag(name):
+    return {"name": name, "images": [{"digest": f"sha256:{name}"}]}
+
+
+def test_check_image_paginates_full_tag_set(monkeypatch):
+    import httpx
+
+    from collectors.registries import docker as docker_module
+
+    calls = []
+
+    def fake_get(url, timeout=None):
+        calls.append(url)
+        if "page=2" in url:
+            return _paged_response([_tag("old")])
+        return _paged_response([_tag("latest"), _tag("1.0")], next_url="https://x?page=2")
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    out = docker_module.RegistryCollector().check_image("demo", "app")
+    assert out.get("error") is None
+    assert set(out["digests"]) == {"latest", "1.0", "old"}
+    assert len(calls) == 2
+    assert "page_size=100" in calls[0]
+
+
+def test_check_image_stops_at_page_cap(monkeypatch):
+    import httpx
+
+    from collectors.registries import docker as docker_module
+    from collectors.registries.docker import _MAX_TAG_PAGES
+
+    calls = []
+
+    def fake_get(url, timeout=None):
+        calls.append(url)
+        return _paged_response([_tag(f"t{len(calls)}")], next_url="https://x?page=more")
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    out = docker_module.RegistryCollector().check_image("demo", "app")
+    assert out.get("error") is None
+    assert len(calls) == _MAX_TAG_PAGES
+    assert len(out["digests"]) == _MAX_TAG_PAGES
+
+
+def test_check_image_malformed_pages_are_errors(monkeypatch):
+    import httpx
+
+    from collectors.registries import docker as docker_module
+
+    def fake_get(url, timeout=None):
+        return httpx.Response(200, json=["not", "a", "mapping"], request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    out = docker_module.RegistryCollector().check_image("demo", "app")
+    assert out.get("error") is True
+    assert out.get("category") == "parse"

@@ -493,8 +493,11 @@ def test_s_chain_hash_deterministic_golden():
     assert dumped["content_hash"] == (
         "sha256:b086f50a28f0a03bc3c043203e437da6fc7334bbbeb626a0a16f5e8076185e86"
     )
+    # Chain advances with the parser version (0.4.2: full tag-set probes,
+    # truncated-probe guard); content is parser-independent and stays put.
+    assert dumped["parser_version"] == "openpulse-parsers/0.4.2"
     assert dumped["chain_hash"] == (
-        "sha256:ce055409a073e7e47ab9a6f296e3194d02ae0803053e2159b8563baf4bff2c12"
+        "sha256:07ebea9931edaebfd322b1a71d1c4f2727a9548d0fa3355d77f65a368aef1c36"
     )
     assert dumped["observation_id"] == "docker-hub:docker.io/demo/app:b086f50a28f0"
 

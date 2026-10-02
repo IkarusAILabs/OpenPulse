@@ -16,6 +16,9 @@ Rules today:
 - Any repo serving latest-only tags → `DISTRIBUTION_CHANGE` / `WATCH`.
 - Missing repo → `REGISTRY_CHANGE` / `REVIEW`.
 - Archived GitHub repo (via `fetch_repo_meta`) → `PROJECT_ARCHIVED` / `ACTION`.
+- Repository ownership drift: API `full_name` owner differs from the
+  queried path → `OWNERSHIP_CHANGE` / `REVIEW` (moderate). Same-owner
+  renames stay silent; archived repos still fire independently.
 - Observation diffs (`analyze_diffs`): `tag_disappeared` → `REVIEW`,
   `tag_appeared`/`tag_digest_changed`/`latest_moved` → `WATCH`,
   `repo_missing` → `REVIEW`, `repo_restored` → `INFORMATIONAL`.
@@ -242,11 +245,18 @@ from an explicit `today`, so renders stay deterministic.
 `sweep_targets` lists every probeable catalog image (registry/namespace/
 repo triples only — bare namespaces are skipped, never guessed).
 `sweep_catalog` probes (injected function, offline-testable), persists
-sealed observations, diffs against history, emits distribution
-findings, and aggregates same-repo/same-direction diffs into one
-story (`aggregate_distribution` — one pruning event, one card).
-First sightings are baselines. `openpulse sweep` wires the
-live Docker Hub probe with `--projects` filter and `--out` findings.
+sealed observations, diffs against history, pairs cross-namespace
+appear/disappear tags into migration stories (`split_moves` — one
+move, not two findings), emits distribution findings, and aggregates
+same-repo/same-direction diffs into one story
+(`aggregate_distribution` — one pruning event, one card).
+Probes paginate the full tag set (`page_size=100`, up to 30 pages);
+a page-capped probe is marked `truncated` and diffs against it are
+withheld. A stored history from older probe semantics is re-baselined,
+never diffed (parser-version guard). First sightings are baselines.
+`openpulse sweep` wires the live Docker Hub probe with `--projects`
+filter and `--out` findings. Discovery acceptance ledger:
+`docs/DISCOVERIES.md`.
 
 ## Golden scenarios (`tests/test_golden.py`)
 
