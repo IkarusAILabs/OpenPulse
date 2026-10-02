@@ -22,6 +22,12 @@ jobs:
       # of exactly what the lock pins (serial number derives from the lock,
       # so identical locks produce identical SBOMs).
       - run: python scripts/gen_sbom.py && python -m json.tool sbom.json > /dev/null
+      # Threat: nondeterministic SBOM — regenerating must reproduce the file
+      # byte for byte, so the archived artifact is provably the reviewed
+      # lock set and can be regenerated from requirements.lock alone.
+      - run: cp sbom.json "$RUNNER_TEMP/sbom-first.json" && python scripts/gen_sbom.py && cmp sbom.json "$RUNNER_TEMP/sbom-first.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: {name: openpulse-sbom, path: sbom.json, if-no-files-found: error}
       # Threat: broken packaging — the console script and key entry points
       # must import and respond after a real install.
       - run: openpulse --help && python -c "import cli.main, core.notify, core.observations.sweep"
