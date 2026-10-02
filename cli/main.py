@@ -107,21 +107,24 @@ def _live_bundle(slug):
     from collectors.github.collector import GitHubCollector
     from collectors.kev.collector import KEVCollector
     from collectors.nvd.collector import NVDCollector
+    from collectors.osv.collector import OSVCollector
     from collectors.registries.docker import RegistryCollector
     from collectors.registries.reference import bitnami_distribution_probes
-    from core.entities.catalog import endoflife_map, load_catalog
+    from core.entities.catalog import endoflife_map, load_catalog, osv_map
 
     token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
     repo_map = {e["slug"]: e["github"] for e in load_catalog() if e.get("github")}
     github = GitHubCollector(repo_map, token=token)
     registries = RegistryCollector()
     endoflife = EndoflifeCollector(endoflife_map())
+    osv = OSVCollector(osv_map())
     return {
         "endoflife": endoflife.collect(slug),
         "github": github.collect(slug),
         "github_meta": [github.fetch_repo_meta(slug)],
         "nvd": NVDCollector().collect(slug),
         "kev": KEVCollector().collect(slug),
+        "osv": osv.collect(slug),
         # Bitnami is a rehearsed reference scenario, not generic acquisition.
         "registries": bitnami_distribution_probes(registries)
         if slug == "bitnami"
