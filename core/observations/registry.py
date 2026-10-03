@@ -32,6 +32,12 @@ class RegistryObservation(ObservationBase):
         default=False,
         description="Probe hit the page cap: tag set may be partial, diffs withheld",
     )
+    digests_partial: bool = Field(
+        default=False,
+        description="Names are complete (v2 protocol) but digests only cover the "
+        "Hub recency window: digest-change diffs are withheld. Like truncated, "
+        "an acquisition-completeness fact: outside the content hash.",
+    )
 
     def integrity_body(self) -> dict:
         return {
@@ -205,6 +211,7 @@ def to_observation(probe: dict, observed_at: datetime | None = None) -> Registry
         tag_count=probe.get("count"),
         missing=bool(probe.get("missing")),
         truncated=bool(probe.get("truncated")),
+        digests_partial=bool(probe.get("digests_partial")),
     ).seal()
 
 
@@ -263,6 +270,13 @@ def diff_observations(prev: RegistryObservation | None, curr: RegistryObservatio
         )
     for tag in sorted(set(prev_tags) & set(curr_tags)):
         if prev_tags[tag] != curr_tags[tag]:
+            # An empty digest list means "present, digest not carried by
+            # this acquisition path" — the v2 name list says nothing about
+            # digests. A window edge moving between probes would otherwise
+            # manufacture a tag_digest_changed (or latest_moved) out of
+            # pure acquisition churn. Withheld, never guessed.
+            if not prev_tags[tag] or not curr_tags[tag]:
+                continue
             changes.append(
                 Change(
                     type="latest_moved" if tag == "latest" else "tag_digest_changed",

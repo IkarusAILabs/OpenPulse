@@ -11,7 +11,7 @@ import hashlib
 import json
 from typing import Any
 
-PARSER_VERSION = "openpulse-parsers/0.4.2"
+PARSER_VERSION = "openpulse-parsers/0.4.3"
 
 
 def hash_content(payload: Any) -> str:
