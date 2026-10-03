@@ -9,8 +9,9 @@ verification status and reproduction. Curated-only entries are
 marked and never counted. A case that cannot replay is removed,
 not argued for.
 
-Acceptance status: **NOT MET — 2 of 5 verified.** The gap and the
-path to close it are recorded below, not hidden.
+Acceptance status: **NOT MET — 2 of 5 verified.** The pruning
+candidates were probed 2026-10-03 and killed (see Cases 3–5); the
+gap and the path to close it are recorded below, not hidden.
 
 ## Case 1 — minio/minio archived ✅ VERIFIED
 
@@ -58,7 +59,7 @@ path to close it are recorded below, not hidden.
   The model-change finding now fires for the recorded probe shapes,
   so this split is producer-derived, not just analyst-confirmed.
 
-## Cases 3–5 — registry pruning (nginx / python / mongo) ⏳ PENDING RE-VERIFICATION
+## Cases 3–5 — registry pruning (nginx / python / mongo) ❌ KILLED (wrong-window artifacts)
 
 - Observed 2026-10-01: tag disappearances (nginx `1.30-alpine*`,
   python `3.12-slim*`/`3.10-slim*`, mongo `8.3-noble*`, postgres
@@ -68,11 +69,33 @@ path to close it are recorded below, not hidden.
   (`page_size=5`, first page only) — a tag bumped out of the window
   is indistinguishable from a removal. Formalizing window-era diffs
   as removals would fabricate confidence.
-- Path to verification: full-set probes (shipped: `page_size=100` +
-  pagination, parser `0.4.1`→`0.4.2`) against current Hub state.
-  Blocked 2026-10-02 by Hub `403` rate limiting. Confirm-or-kill per
-  tag on quota reset: absent from the full set confirms removal
-  (case accepted); present kills the case (record the kill here).
+- Kill verification 2026-10-03: every candidate tag is present in the
+  current sets. All ten of ten per-tag lookups on the Hub API
+  (`/v2/repositories/library/<repo>/tags/<tag>`) returned `200` with
+  `tag_status: active`; the v2 registry protocol full lists
+  (`auth.docker.io` pull token → `registry-1.docker.io/v2/library/
+  <repo>/tags/list`, one response, no pagination) show
+  nginx 1,339 tags (Hub `count` 1,339), python 3,974 (3,974),
+  mongo 3,670 (3,670), postgres 1,427 (1,427) — and every candidate
+  (nginx `1.30-alpine3.24`, `1.30.5-alpine3.24`, `1.30.5-alpine`;
+  python `3.11.16-slim-trixie`, `3.12-slim-trixie`, `3.12-slim`,
+  `3.12.14-slim-trixie`; mongo `8.3-noble`, `8.3.11-noble`; postgres
+  `19beta4-bookworm`) is in its list.
+- Verdict: wrong-window artifacts, not removals. Killed per the
+  confirm-or-kill rule — recorded, not silently dropped.
+- Corroboration: python `3.12-slim-trixie`/`3.12-slim` and mongo
+  `8.3-noble`/`8.3.11-noble` were re-pushed 2026-10-02
+  (`tag_last_pushed` 2026-10-02T02:08Z / 06:08Z), i.e. active
+  recency churn — exactly what a 5-tag window mistakes for removal.
+- Acquisition note: the prescribed `check_image` full-set probe could
+  not complete for any of these repos — Hub now rejects anonymous
+  pagination past ~offset 500 with
+  `403 "pagination offset too large for anonymous requests"` while
+  `x-ratelimit-remaining` sits untouched at 160/180, so the
+  collector's 30-page walk is structurally `truncated` for repos this
+  large. Presence verdicts do not need the full window, so the kills
+  stand on the per-tag + v2-list evidence above. The acquisition gap
+  itself is filed as #36.
 
 ## Anti-case — the 5-tag window flaw (caught, fixed)
 
@@ -99,8 +122,10 @@ pipeline must not be able to claim more than its acquisition supports.
 
 ## What closes acceptance
 
-1. Hub quota reset → confirm-or-kill the three pruning cases (accept
-   confirmations, record kills).
+1. ~~Confirm-or-kill the three pruning cases~~ — done 2026-10-03,
+   all three killed (Cases 3–5). Remaining path: replacements for the
+   killed slots, and #36 (Hub anonymous pagination cap) resolved so
+   full-set probes are possible again for large repos.
 2. One live firing from the armed detectors (move or ownership).
 3. Version-aware latest-only rule flipping the Bitnami gap test —
    CLOSED: `parse_tags` is version-aware and the flipped test
