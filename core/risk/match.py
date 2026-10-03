@@ -4,6 +4,10 @@ Conservative by construction:
 - Exact artifact triple equality → AFFECTS_ARTIFACT.
 - Populated event scope narrows everything else: a dependency outside
   an explicit scope is NOT_AFFECTED, not UNKNOWN.
+- Version scopes belong to the event's project: a tag that merely
+  collides with a scope version of a different project
+  (docker.io/bitnami/redis:6.2 vs an upstream redis EOL) is
+  identity-excluded, never an AFFECTS_VERSION claim.
 - Bare project-slug equality is contextual (AFFECTS_PROJECT) and never
   means affected on its own.
 - No scope at all → legacy fallback (artifact, then project context).
@@ -105,6 +109,22 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
                 "via": None,
                 "relationship": "RELATED",
                 "detail": f"{ref} carries no comparable version for scope {scope['versions']}",
+            }
+        slug = resolve_project(ref)
+        if slug != event.project_slug:
+            # A version scope belongs to the event's project. A tag that
+            # merely collides with a scope version of a different project
+            # is identity-excluded: docker.io/bitnami/redis:6.2 must not
+            # inherit an upstream redis EOL, and docker.io/postgres:6.2
+            # must not match anything by tag alone.
+            return {
+                "affected": False,
+                "via": None,
+                "relationship": "NOT_AFFECTED",
+                "detail": (
+                    f"{ref} resolves to project {slug}, not {event.project_slug}; "
+                    f"version scope {scope['versions']} excludes it"
+                ),
             }
         for version in scope["versions"]:
             if compare(tag, str(version)) == 0:

@@ -133,7 +133,8 @@ matrix suite). Required coverage:
 - iText ✅ (formalized)
 - MinIO ✅ (formalized)
 - Django ✅ (formalized)
-- Redis, PostgreSQL, Kubernetes, cert-manager, Kafka, Grafana,
+- Redis ✅ (formalized)
+- PostgreSQL, Kubernetes, cert-manager, Kafka, Grafana,
   Terraform (to formalise)
 - at least one AI/ML project (to formalise)
 
