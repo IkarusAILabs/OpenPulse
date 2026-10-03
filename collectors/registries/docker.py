@@ -45,9 +45,11 @@ def _is_version_like(tag: str) -> bool:
 
     Generic, product-agnostic: any digit run qualifies (``7.2.0``,
     ``3.12-slim``, ``19beta4-bookworm``). Digest tags and attestation
-    sidecars are never version-like no matter what they contain.
+    sidecars are never version-like no matter what they contain. The
+    prefix/suffix checks are case-folded: Hub tags are lowercase by
+    convention, but the guard costs one line.
     """
-    if tag.startswith(_DIGEST_OR_ATTESTATION_PREFIX) or _is_attestation_suffix(tag):
+    if tag.lower().startswith(_DIGEST_OR_ATTESTATION_PREFIX) or _is_attestation_suffix(tag):
         return False
     return any(ch.isdigit() for ch in tag)
 
