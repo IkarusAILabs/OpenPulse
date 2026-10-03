@@ -7,6 +7,7 @@ a lifecycle database alone could never pass.
 """
 
 import json
+from datetime import date
 
 from core.risk.check import check_dependency
 from core.schema.models import OSSEvent
@@ -84,3 +85,68 @@ def test_golden_five_questions_answered():
         assert event.confidence.value in ("CONFIRMED", "CORROBORATED")  # how sure
         md = render_event_md(event)
         assert "Recommendation" in md and "Evidence" in md  # what to do
+
+
+def test_golden_redis_eol_pins_and_namespaces():
+    """Redis 6.2 EOL: version truth across two pins, plus the
+    docker.io/redis vs docker.io/bitnami/redis attribution split,
+    end to end from the offline raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed — cycle 6.2 reached EOL, scoped to that cycle only;
+    Q2 evidence — the bridged event passes the claim gate, dated
+       effective 2024-01-01, single secondary source so EMERGING;
+    Q3 identity — upstream and bitnami images resolve to different
+       projects (redis vs bitnami-redis-stack);
+    Q4 what dependency — docker.io/redis:6.2 is the affected pin;
+    Q5 which versions/artifacts — 6.2 pin affected, 8.0 pin not, and
+       the bitnami image carrying the same tag is not;
+    Q6 when it matters — effective 2024-01-01, already in force;
+    Q7 investigate — the verdict reason names the scope version;
+    Q8 why OpenPulse — an EOL database row cannot tell the two images
+       apart on the same tag; identity resolution + version scope can.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/redis/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 9, 26)
+
+    # Q1 -- what changed: one lifecycle finding, scoped to cycle 6.2.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["6.2"]}
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    event = finding_to_event(findings[0], "redis", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2024, 1, 1) for e in event.evidences)
+
+    # Q3 -- identity: two redis images, two different projects.
+    assert event.project_slug == "redis"
+    assert resolve_project("docker.io/redis:6.2") == "redis"
+    assert resolve_project("docker.io/bitnami/redis:6.2") == "bitnami-redis-stack"
+
+    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
+    upstream_old = check_dependency({"kind": "image", "ref": "docker.io/redis:6.2"}, [event])
+    upstream_new = check_dependency({"kind": "image", "ref": "docker.io/redis:8.0"}, [event])
+    bitnami_old = check_dependency({"kind": "image", "ref": "docker.io/bitnami/redis:6.2"}, [event])
+    assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
+    assert upstream_old.confidence == "EMERGING"
+    assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2024-01-01"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "6.2" in upstream_old.reason
+
+    # Q8 -- why OpenPulse: same tag, different project, different verdict
+    # -- a plain EOL record cannot make this call.
+    assert upstream_old.reason != bitnami_old.reason
+    assert "bitnami-redis-stack" in bitnami_old.reason
