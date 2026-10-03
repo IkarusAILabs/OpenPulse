@@ -183,7 +183,8 @@ not database exports: ranked findings with evidence confidence,
 scope, timing, and a recommended investigation — never raw CVE/EOL
 dumps, never claims about your environment without a watchlist.
 
-![October 2026 monthly intelligence briefing](docs/screenshot-report.png)
+![October 2026 monthly intelligence briefing]
+<img width="1552" height="832" alt="OpenPulse_Report_Summary" src="https://github.com/user-attachments/assets/a1bcbf0d-c842-4c84-9060-5e4095fb2ba5" />
 
 **Monthly intelligence** (`openpulse report --month YYYY-MM [--with-sweep]`):
 
