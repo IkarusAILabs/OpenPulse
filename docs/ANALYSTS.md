@@ -260,9 +260,16 @@ appear/disappear tags into migration stories (`split_moves` — one
 move, not two findings), emits distribution findings, and aggregates
 same-repo/same-direction diffs into one story
 (`aggregate_distribution` — one pruning event, one card).
-Probes paginate the full tag set (`page_size=100`, up to 30 pages);
-a page-capped probe is marked `truncated` and diffs against it are
-withheld. A stored history from older probe semantics is re-baselined,
+Probes paginate the Hub tag set (`page_size=100`, up to 30 pages);
+when the walk stops short — Hub's anonymous offset wall (issue #36)
+or the page cap — the registry v2 protocol supplies the complete
+tag-name list (`auth.docker.io` pull token -> `registry-1.docker.io`
+`/v2/<repo>/tags/list`, one response, no pagination). Rescued names
+carry no digests, so the probe is `digests_partial` (names complete,
+digests window-only) and digest-change diffs are withheld; if the v2
+path is unavailable the probe stays `truncated` and all diffs
+against it are withheld. A stored history from older probe semantics
+is re-baselined,
 never diffed (parser-version guard). First sightings are baselines.
 `openpulse sweep` wires the live Docker Hub probe with `--projects`
 filter and `--out` findings. Discovery acceptance ledger:
