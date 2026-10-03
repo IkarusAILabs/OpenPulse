@@ -49,11 +49,15 @@ gap and the path to close it are recorded below, not hidden.
   first-detection tracking applies to diffs, not to this split).
 - Effective date: unrecorded (the move predates observation history).
 - Scope: artifact namespace.
-- Known detector gap (locked by
-  `test_bitnami_digest_mainline_gap_locked`): the `latest_only`
-  namespace heuristic does not fire on digest-tagged mainlines, so no
-  producer derives this split yet. A version-aware rule is follow-up
-  work — it must flip that test, not sneak past it.
+- Detector gap closed (was locked by
+  `test_bitnami_digest_mainline_gap_locked`, now flipped to
+  `test_bitnami_digest_mainline_gap_closed`): the `latest_only`
+  probe flag is version-aware — a mainline serving only `latest`
+  plus digest/attestation tags (`sha256-*`, `*.sig`, `*.att`,
+  `-metadata`) counts as latest-only, any version-like tag
+  disqualifies it (`collectors/registries/docker.py:parse_tags`).
+  The model-change finding now fires for the recorded probe shapes,
+  so this split is producer-derived, not just analyst-confirmed.
 
 ## Cases 3–5 — registry pruning (nginx / python / mongo) ❌ KILLED (wrong-window artifacts)
 
@@ -123,6 +127,9 @@ pipeline must not be able to claim more than its acquisition supports.
    killed slots, and #36 (Hub anonymous pagination cap) resolved so
    full-set probes are possible again for large repos.
 2. One live firing from the armed detectors (move or ownership).
-3. Version-aware latest-only rule flipping the Bitnami gap test.
+3. Version-aware latest-only rule flipping the Bitnami gap test —
+   CLOSED: `parse_tags` is version-aware and the flipped test
+   (`test_bitnami_digest_mainline_gap_closed`) plus a no-false-positive
+   test on versioned mainlines lock it. Case 2 is now producer-derived.
 
 Then: 5 verified cases, M2 acceptance met, M4 benchmark fed.

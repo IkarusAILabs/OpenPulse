@@ -57,6 +57,48 @@ def test_registry_parse_latest_only():
     assert out2["has_versioned_tags"] is True
 
 
+def test_parse_tags_version_aware_flags():
+    """The latest-only flags come from a version-aware predicate, not
+    from "any tag that isn't latest" (docs/DISCOVERIES.md case 2):
+    `_is_version_like` counts a numeric version component anywhere in
+    the tag, and excludes distribution machinery first. The split test
+    in test_discoveries.py references this one for the flag shapes.
+    """
+    from collectors.registries.docker import _is_version_like, parse_tags
+
+    # Versioned: any digit run qualifies, wherever it sits.
+    assert _is_version_like("7.2.0") is True
+    assert _is_version_like("3.12-slim") is True
+    assert _is_version_like("1.30-alpine3.24") is True
+    assert _is_version_like("19beta4-bookworm") is True
+
+    # Machinery is never version-like, digits or not.
+    assert _is_version_like("latest") is False
+    assert _is_version_like("sha256-29f3b4b8b7c4") is False
+    assert _is_version_like("SHA256-29f3b4b8b7c4") is False  # case-folded guard
+    assert _is_version_like("latest.sig") is False
+    assert _is_version_like("latest.att") is False
+    assert _is_version_like("latest-metadata") is False
+
+    # parse_tags derives its flags from that predicate: a machinery-only
+    # mainline stays latest-only, a single version tag breaks it.
+    machinery_only = parse_tags(
+        "bitnami",
+        "redis",
+        {"count": 3, "results": [{"name": "latest"}, {"name": "sha256-1234"}, {"name": "v2.sig"}]},
+    )
+    assert machinery_only["has_versioned_tags"] is False
+    assert machinery_only["latest_only"] is True
+
+    versioned = parse_tags(
+        "bitnami",
+        "redis",
+        {"count": 2, "results": [{"name": "latest"}, {"name": "3.12-slim"}]},
+    )
+    assert versioned["has_versioned_tags"] is True
+    assert versioned["latest_only"] is False
+
+
 def test_github_token_header():
     from collectors.github.collector import GitHubCollector
 

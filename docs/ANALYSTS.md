@@ -14,6 +14,13 @@ Rules today:
 - Registry probes showing Bitnami mainline latest-only + legacy holding
   versioned tags → `DISTRIBUTION_CHANGE` / `ACTION`.
 - Any repo serving latest-only tags → `DISTRIBUTION_CHANGE` / `WATCH`.
+  "Latest-only" is version-aware (`parse_tags`): a mainline whose
+  every tag is `latest` or distribution machinery (`sha256-*` digest
+  tags, `*.sig`/`*.att`/`-metadata` sidecars) is latest-only; any
+  version-like tag disqualifies it. So a digest-tagged mainline
+  next to a legacy namespace holding the versioned tags fires the
+  split rule above — the Bitnami scenario is now derived, not just
+  recorded.
 - Missing repo → `REGISTRY_CHANGE` / `REVIEW`.
 - Archived GitHub repo (via `fetch_repo_meta`) → `PROJECT_ARCHIVED` / `ACTION`.
 - Repository ownership drift: API `full_name` owner differs from the

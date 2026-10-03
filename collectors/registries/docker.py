@@ -37,6 +37,37 @@ def _is_offset_wall(r: httpx.Response) -> bool:
         return False
     return _HUB_OFFSET_WALL_MARKER in r.text
 
+#: A tag is *version-like* when it carries a numeric version component
+#: anywhere in it (``7.2.0``, ``3.12-slim``, ``1.30-alpine3.24``). These
+#: are the tags a pinned reference can resolve against. Everything else
+#: a namespace serves alongside ``latest`` without carrying a version —
+#: digest tags (``sha256-*``), attestation sidecars (``*.sig``,
+#: ``*.att``, ``*-metadata``) — is distribution machinery, not a
+#: versioned distribution. Counting those as "versioned tags" kept the
+#: latest-only rule blind to mainlines that serve only machinery
+#: (docs/DISCOVERIES.md case 2): a namespace whose every tag is either
+#: ``latest`` or machinery pins nothing, whatever the machinery volume.
+_DIGEST_OR_ATTESTATION_PREFIX = ("sha256-",)
+
+
+def _is_attestation_suffix(tag: str) -> bool:
+    lower = tag.lower()
+    return lower.endswith(".sig") or lower.endswith(".att") or lower.endswith("-metadata")
+
+
+def _is_version_like(tag: str) -> bool:
+    """True when the tag carries a numeric version component.
+
+    Generic, product-agnostic: any digit run qualifies (``7.2.0``,
+    ``3.12-slim``, ``19beta4-bookworm``). Digest tags and attestation
+    sidecars are never version-like no matter what they contain. The
+    prefix/suffix checks are case-folded: Hub tags are lowercase by
+    convention, but the guard costs one line.
+    """
+    if tag.lower().startswith(_DIGEST_OR_ATTESTATION_PREFIX) or _is_attestation_suffix(tag):
+        return False
+    return any(ch.isdigit() for ch in tag)
+
 
 def parse_tags(namespace: str, repo: str, payload: dict[str, Any]) -> dict[str, Any]:
     tags = [t.get("name") for t in payload.get("results", [])]
@@ -54,8 +85,9 @@ def parse_tags(namespace: str, repo: str, payload: dict[str, Any]) -> dict[str, 
         "tags_sample": tags,
         "digests": digests,
         "count": payload.get("count"),
-        "has_versioned_tags": any(t != "latest" for t in tags),
-        "latest_only": bool(tags) and all(t == "latest" for t in tags),
+        "has_versioned_tags": any(_is_version_like(t) for t in tags),
+        "latest_only": bool(tags)
+        and all(t == "latest" or not _is_version_like(t) for t in tags),
     }
 
 
@@ -161,8 +193,13 @@ class RegistryCollector(BaseCollector):
                     probe["count"] = len(known)
                     # Recompute on the complete name set — the Hub
                     # window is no longer the basis for these flags.
-                    probe["has_versioned_tags"] = any(t != "latest" for t in names)
-                    probe["latest_only"] = bool(names) and all(t == "latest" for t in names)
+                    # Same version-aware predicate as parse_tags: digest
+                    # and attestation machinery must not count as a
+                    # versioned distribution here either.
+                    probe["has_versioned_tags"] = any(_is_version_like(t) for t in names)
+                    probe["latest_only"] = bool(names) and all(
+                        t == "latest" or not _is_version_like(t) for t in names
+                    )
                     probe["truncated"] = False
                     probe["digests_partial"] = True
                     return probe
