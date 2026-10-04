@@ -493,7 +493,13 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     "--sbom",
     "sbom",
     type=click.Path(exists=True),
-    help="CycloneDX SBOM (JSON, spec 1.4/1.5) — composable with --watchlist",
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) — composable with --watchlist/--spdx",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
 )
 @click.option(
     "--event",
@@ -533,6 +539,7 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
 def check(
     watchlist,
     sbom,
+    spdx,
     events,
     raw_bundle_dir,
     strict,
@@ -548,8 +555,8 @@ def check(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom:
-        raise click.ClickException("check needs --watchlist and/or --sbom")
+    if not watchlist and not sbom and not spdx:
+        raise click.ClickException("check needs --watchlist, --sbom and/or --spdx")
     deps: list[Any] = []
     if watchlist:
         try:
@@ -578,6 +585,27 @@ def check(
         # that yields only skips still explains itself instead of dying
         # with a bare "nothing checkable" error.
         for line in skipped:
+            _echo(f"! skipped: {line}")
+    if spdx:
+        from core.sbom_reader import read_spdx
+
+        try:
+            spdx_deps, spdx_skipped = read_spdx(spdx)
+        except json.JSONDecodeError as e:
+            # Same ordering rule as --sbom: JSONDecodeError SUBCLASSES
+            # ValueError, so it must be caught first or its branch is
+            # dead code and the specific message is lost.
+            raise click.ClickException(f"{spdx} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{spdx}: {e}")
+        # Echo discipline mirrors --sbom: skip reasons first, then the
+        # summary; the empty-deps guard still sees the final dep list.
+        if spdx_deps:
+            _echo(f"spdx: {len(spdx_deps)} mapped package(s), {len(spdx_skipped)} skipped")
+            deps = [*deps, *spdx_deps]
+        elif spdx_skipped:
+            _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SBOM")
+        for line in spdx_skipped:
             _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
     bundles = {}

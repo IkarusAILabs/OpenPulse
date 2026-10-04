@@ -1,14 +1,18 @@
-"""CycloneDX SBOM reader — SBOM components become checkable dependencies.
+"""SBOM readers — SBOM entries become checkable dependencies.
 
-Feeds the existing watchlist path (`core.risk.check.check_dependency`)
-without touching matching semantics: components normalize into the
-same dep shapes the watchlist uses (`{kind: image, ref}` for
-`pkg:docker/...`, `{kind: package, package, ecosystem, version}` for
-the four purl types with an unambiguous mapping). Everything else is
-skipped and recorded — never guessed.
+Two document formats, one identity core: CycloneDX JSON (spec
+1.4/1.5 `components[]`) and SPDX 2.x JSON (`packages[]`). Both
+normalize into the same dep shapes the watchlist uses (`{kind:
+image, ref}` for `pkg:docker/...`, `{kind: package, package,
+ecosystem, version}` for the four purl types with an unambiguous
+mapping) and feed the existing watchlist path
+(`core.risk.check.check_dependency`) without touching matching
+semantics. Everything else is skipped and recorded — never guessed.
 
-CycloneDX JSON, spec 1.4/1.5 `components[]` only. No new
-dependencies; no network.
+Both formats carry identity as a Package-URL (`purl`), so one purl
+parser and one purl->dep mapping serve the two readers; the format
+layers only decide where to find the purl. No new dependencies; no
+network.
 """
 
 from __future__ import annotations
@@ -141,18 +145,108 @@ def load_sbom_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]
     return deps, skipped
 
 
-def read_sbom(path: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Load + validate a CycloneDX JSON file from disk.
+def _read_bounded_json(path: str, label: str) -> dict[str, Any]:
+    """Size-bounded JSON read shared by every SBOM format.
 
-    Reads are size-bounded (``MAX_SBOM_BYTES``), same policy as the
-    CLI's other input files - the cap is larger because SBOMs are
-    legitimately multi-MB, not because reads are unbounded.
+    Same policy as the CLI's other input files - the cap is larger
+    because SBOMs are legitimately multi-MB, not because reads are
+    unbounded. `label` names the input kind in the refusal message.
     """
     import os
 
     size = os.path.getsize(path)
     if size > MAX_SBOM_BYTES:
-        raise ValueError(f"sbom is {size} bytes (limit {MAX_SBOM_BYTES})")
+        raise ValueError(f"{label} is {size} bytes (limit {MAX_SBOM_BYTES})")
     with open(path, encoding="utf-8") as f:
-        doc = json.load(f)
+        return json.load(f)
+
+
+def read_sbom(path: str) -> tuple[list[dict[str, Any]], list[str]]:
+    """Load + validate a CycloneDX JSON file from disk."""
+    doc = _read_bounded_json(path, "sbom")
     return load_sbom_doc(doc)
+
+
+def _purl_locators(package: dict[str, Any]) -> list[str]:
+    """Distinct purl reference locators of one SPDX package, in order.
+
+    SPDX carries identity in `externalRefs` as a
+    `referenceType: purl` locator; other ref kinds (cpe, swh, ...)
+    carry no package identity we can map unambiguously, so they are
+    ignored here rather than guessed from. Duplicate locators
+    collapse; the caller treats >1 distinct locator as ambiguous.
+    """
+    refs = package.get("externalRefs")
+    if not isinstance(refs, list):
+        return []
+    locators: list[str] = []
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        if str(ref.get("referenceType", "")).lower() != "purl":
+            continue
+        locator = ref.get("referenceLocator")
+        if isinstance(locator, str) and locator:
+            locators.append(locator)
+    return list(dict.fromkeys(locators))
+
+
+def load_spdx_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate a parsed SPDX 2.x document into normalized dep entries.
+
+    Returns (dependencies, skipped) — same contract as
+    `load_sbom_doc`: `skipped` records one line per package we
+    refused to guess about, with its locator and reason.
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("spdx must be a mapping")
+    version = doc.get("spdxVersion")
+    if not isinstance(version, str) or not version:
+        raise ValueError("spdx needs a string `spdxVersion`")
+    if not version.startswith("SPDX-2"):
+        # SPDX 3.x is a different serialization (no flat packages[]
+        # with purl externalRefs); accepting it would silently read
+        # zero packages and call the document empty.
+        raise ValueError(
+            f"unsupported spdxVersion `{version}`; SPDX 2.x JSON is the supported shape"
+        )
+    packages = doc.get("packages")
+    if not isinstance(packages, list) or not packages:
+        raise ValueError("spdx needs a non-empty `packages` list")
+    deps: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    for i, package in enumerate(packages):
+        if not isinstance(package, dict):
+            skipped.append(f"package #{i}: not a mapping")
+            continue
+        locators = _purl_locators(package)
+        name = package.get("name")
+        label = str(locators[0] if locators else name if name is not None else i)
+        if not locators:
+            skipped.append(
+                f"package `{label}`: no purl externalRef; "
+                "name/versionInfo fields alone are ambiguous"
+            )
+            continue
+        if len(locators) > 1:
+            skipped.append(
+                f"package `{label}`: {len(locators)} distinct purl refs "
+                f"({', '.join(locators)}) - refusing to pick one"
+            )
+            continue
+        dep, reason = _dep_from_purl(locators[0])
+        if dep is None:
+            skipped.append(f"package `{label}`: {reason}")
+            continue
+        deps.append(dep)
+    return deps, skipped
+
+
+def read_spdx(path: str) -> tuple[list[dict[str, Any]], list[str]]:
+    """Load + validate an SPDX 2.x JSON file from disk.
+
+    Bounded by the same ``MAX_SBOM_BYTES`` cap and mapping through
+    the same purl core as the CycloneDX path.
+    """
+    doc = _read_bounded_json(path, "spdx")
+    return load_spdx_doc(doc)

@@ -1,4 +1,4 @@
-"""CycloneDX SBOM reader tests: purl mapping, skip-and-record, CLI wiring."""
+"""SBOM reader tests: purl mapping, skip-and-record, CLI wiring (CycloneDX + SPDX)."""
 
 import json
 
@@ -10,10 +10,13 @@ from core.sbom_reader import (
     _dep_from_purl,
     _split_purl,
     load_sbom_doc,
+    load_spdx_doc,
     read_sbom,
+    read_spdx,
 )
 
 FIXTURE = "data/fixtures/sbom/cyclonedx.json"
+SPDX_FIXTURE = "data/fixtures/sbom/spdx.json"
 
 
 class TestPurlParsing:
@@ -401,10 +404,330 @@ class TestCheckCliSbom:
     def test_check_requires_at_least_one_input(self):
         out = self._run("--event", "data/fixtures/bitnami/event.json")
         assert out.exit_code != 0
-        assert "needs --watchlist and/or --sbom" in out.output
+        assert "needs --watchlist, --sbom and/or --spdx" in out.output
 
     def test_sbom_digest_output(self):
         out = self._run("--sbom", FIXTURE, "--digest")
         assert out.exit_code == 0, out.output
         assert "sbom: 3 mapped component(s), 1 skipped" in out.output
         assert "! skipped: component" in out.output
+
+
+def _purl_ref(locator):
+    """One SPDX externalRefs entry - the shape every test spells."""
+    return {
+        "referenceCategory": "PACKAGE-MANAGER",
+        "referenceType": "purl",
+        "referenceLocator": locator,
+    }
+
+
+class TestLoadSpdxDoc:
+    def test_fixture_maps_docker_pypi_maven_records_the_rest(self):
+        deps, skipped = read_spdx(SPDX_FIXTURE)
+        assert {"kind": "image", "ref": "bitnami/redis:7.2"} in deps
+        assert {
+            "kind": "package",
+            "package": "django",
+            "ecosystem": "PyPI",
+            "version": "5.0",
+        } in deps
+        assert {
+            "kind": "package",
+            "package": "com.itextpdf:itext-core",
+            "ecosystem": "Maven",
+            "version": "8.0.2",
+        } in deps
+        assert len(deps) == 3
+        # one unmappable purl type, one package with no purl at all
+        assert len(skipped) == 2
+        assert any("composer" in line for line in skipped)
+        assert any("no purl externalRef" in line for line in skipped)
+
+    def test_same_purls_through_both_formats_yield_identical_deps(self):
+        """Convergence rule, pinned: the two readers differ only in
+        where they find the purl - identity and applicability come
+        from one shared core, so identical purls must normalize to
+        identical dep shapes (order included)."""
+        cdx_deps, _ = read_sbom(FIXTURE)
+        spdx_deps, _ = read_spdx(SPDX_FIXTURE)
+        assert cdx_deps == spdx_deps
+
+    def test_non_mapping_package_is_skipped(self):
+        doc = {"spdxVersion": "SPDX-2.3", "packages": ["not-a-mapping"]}
+        deps, skipped = load_spdx_doc(doc)
+        assert deps == []
+        assert skipped == ["package #0: not a mapping"]
+
+    def test_package_without_purl_externalref_is_skipped(self):
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [{"name": "mystery", "versionInfo": "1"}],
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert deps == []
+        assert len(skipped) == 1
+        assert "no purl externalRef" in skipped[0]
+
+    def test_non_purl_external_refs_do_not_count_as_identity(self):
+        """cpe and swh refs carry no identity we can map unambiguously
+        - a package whose externalRefs hold only those must skip, not
+        guess from name/versionInfo."""
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "only-cpe",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "SECURITY",
+                            "referenceType": "cpe23Type",
+                            "referenceLocator": "cpe:2.3:a:example:lib:1.0:*:*:*:*:*:*:*",
+                        }
+                    ],
+                }
+            ],
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert deps == []
+        assert "no purl externalRef" in skipped[0]
+
+    def test_two_distinct_purl_refs_refuse_to_pick_one(self):
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "two-roots",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:pypi/django@5.0",
+                        },
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:pypi/flask@3.0",
+                        },
+                    ],
+                }
+            ],
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert deps == []
+        assert len(skipped) == 1
+        assert "2 distinct purl refs" in skipped[0]
+        assert "refusing to pick one" in skipped[0]
+
+    def test_duplicate_purl_refs_collapse_to_one(self):
+        """The same locator twice (a real SPDX export artifact) is one
+        identity, not an ambiguity."""
+        locator = {
+            "referenceCategory": "PACKAGE-MANAGER",
+            "referenceType": "purl",
+            "referenceLocator": "pkg:pypi/django@5.0",
+        }
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [{"name": "django", "externalRefs": [locator, dict(locator)]}],
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert len(deps) == 1 and not skipped
+        assert deps[0]["package"] == "django"
+
+    def test_reference_type_match_is_case_insensitive(self):
+        """Tooling exports spell the type field inconsistently (purl,
+        PURL); the spec meaning is the token, not the casing."""
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "django",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "PURL",
+                            "referenceLocator": "pkg:pypi/django@5.0",
+                        }
+                    ],
+                }
+            ],
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert len(deps) == 1 and not skipped
+
+    def test_invalid_documents_raise_value_error(self):
+        with pytest.raises(ValueError, match="mapping"):
+            load_spdx_doc(["not-a-mapping-doc"])
+        with pytest.raises(ValueError, match="spdxVersion"):
+            load_spdx_doc({"packages": [{"name": "x"}]})
+        with pytest.raises(ValueError, match="non-empty"):
+            load_spdx_doc({"spdxVersion": "SPDX-2.3", "packages": []})
+
+    def test_spdx_3x_is_refused_not_misread_as_empty(self):
+        """SPDX 3.x is a different serialization (no flat packages
+        list with purl externalRefs). Accepting it would silently
+        read zero packages and call the document empty - refuse."""
+        doc = {"spdxVersion": "SPDX-3.0", "packages": [{"name": "shape-changed"}]}
+        with pytest.raises(ValueError, match="SPDX 2.x JSON is the supported shape"):
+            load_spdx_doc(doc)
+
+    def test_purl_is_read_only_from_packages_not_the_document_root(self):
+        """Guard the seam: identity lives in packages externalRefs - a
+        purl sitting anywhere else (document root here) must not leak
+        into the dep list."""
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [{"name": "mystery", "versionInfo": "1"}],
+            "purl": "pkg:pypi/django@5.0",
+        }
+        deps, skipped = load_spdx_doc(doc)
+        assert deps == []
+        assert len(skipped) == 1
+
+
+class TestCheckCliSpdx:
+    def _run(self, *args):
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        return CliRunner().invoke(cli, ["check", *args])
+
+    def test_spdx_only_run_produces_watchlist_verdicts(self):
+        out = self._run("--spdx", SPDX_FIXTURE, "--event", "data/fixtures/bitnami/event.json")
+        assert out.exit_code == 0, out.output
+        assert "spdx: 3 mapped package(s), 2 skipped" in out.output
+        assert "! skipped: package" in out.output
+        assert "pkg:composer/symfony/http-foundation@7.0" in out.output
+        assert "bitnami/redis:7.2: AFFECTED" in out.output
+        assert "django" in out.output
+        # same honest-verdict discipline as the CycloneDX path: the
+        # bitnami event says nothing about itext, so UNKNOWN.
+        assert "com.itextpdf:itext-core==8.0.2: UNKNOWN" in out.output
+        assert "1/3 dependencies affected" in out.output
+
+    def test_spdx_composes_with_watchlist_and_sbom(self):
+        out = self._run(
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--sbom",
+            FIXTURE,
+            "--spdx",
+            SPDX_FIXTURE,
+            "--event",
+            "data/fixtures/bitnami/event.json",
+        )
+        assert out.exit_code == 0, out.output
+        # 3 watchlist deps + 3 mapped sbom deps + 3 mapped spdx deps
+        # = 9 checkable entries; bitnami/redis:7.2 appears in all
+        # three inputs and matches the event artifact scope each
+        # time, so exactly 3 of 9 are affected.
+        assert "sbom: 3 mapped component(s), 1 skipped" in out.output
+        assert "spdx: 3 mapped package(s), 2 skipped" in out.output
+        assert "3/9 dependencies affected" in out.output
+
+    def test_spdx_strict_fires_when_affected(self):
+        out = self._run(
+            "--spdx", SPDX_FIXTURE, "--event", "data/fixtures/bitnami/event.json", "--strict"
+        )
+        assert out.exit_code == 1
+
+    def test_spdx_all_skipped_reports_nothing_checkable(self, tmp_path):
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "s",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:composer/symfony/http-foundation@7.0",
+                        }
+                    ],
+                }
+            ],
+        }
+        path = tmp_path / "spdx.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        out = self._run("--spdx", str(path), "--event", "data/fixtures/bitnami/event.json")
+        assert out.exit_code != 0
+        assert "0 mapped" in out.output
+        assert "no checkable dependencies" in out.output
+
+    def test_spdx_all_skip_echoes_reasons_before_dying(self, tmp_path):
+        """Same echo discipline as --sbom: an SPDX yielding only skips
+        must explain itself before the nothing-checkable guard kills
+        the run."""
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {"name": "bare", "versionInfo": "1"},
+                {
+                    "name": "s",
+                    "externalRefs": [
+                        {
+                            "referenceCategory": "PACKAGE-MANAGER",
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:maven/itext-core@8.0.2",
+                        }
+                    ],
+                },
+            ],
+        }
+        path = tmp_path / "spdx.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        out = self._run("--spdx", str(path), "--event", "data/fixtures/bitnami/event.json")
+        assert out.exit_code != 0
+        output = out.output
+        # skip reasons precede the nothing-checkable error
+        reasons_pos = output.find("! skipped:")
+        guard_pos = output.find("no checkable dependencies")
+        assert reasons_pos != -1 and guard_pos != -1
+        assert reasons_pos < guard_pos, output
+        assert "bare" in output
+        assert "no purl externalRef" in output
+        assert "no maven groupId namespace" in output
+
+    def test_spdx_invalid_json_reports_the_parse_error(self, tmp_path):
+        path = tmp_path / "spdx.json"
+        path.write_text("{not json", encoding="utf-8")
+        out = self._run("--spdx", str(path), "--event", "data/fixtures/bitnami/event.json")
+        assert out.exit_code != 0
+        assert "is not valid JSON" in out.output
+
+    def test_spdx_size_cap_rejects_huge_files(self, tmp_path, monkeypatch):
+        """Same bounded-read policy as --sbom; over the cap -> clean
+        ValueError naming the input kind."""
+        from core import sbom_reader
+
+        doc = {"spdxVersion": "SPDX-2.3", "packages": [{"name": "m"}]}
+        path = tmp_path / "spdx.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        monkeypatch.setattr(sbom_reader, "MAX_SBOM_BYTES", 10)
+        with pytest.raises(ValueError) as excinfo:
+            read_spdx(str(path))
+        assert "spdx is" in str(excinfo.value)
+        assert "limit 10" in str(excinfo.value)
+
+    def test_spdx_under_cap_still_loads(self, tmp_path):
+        doc = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "django",
+                    "externalRefs": [_purl_ref("pkg:pypi/django@5.0")],
+                }
+            ],
+        }
+        path = tmp_path / "spdx.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        deps, skipped = read_spdx(str(path))
+        assert len(deps) == 1 and not skipped
+
+    def test_spdx_digest_output(self):
+        out = self._run("--spdx", SPDX_FIXTURE, "--digest")
+        assert out.exit_code == 0, out.output
+        assert "spdx: 3 mapped package(s), 2 skipped" in out.output
+        assert "! skipped: package" in out.output
