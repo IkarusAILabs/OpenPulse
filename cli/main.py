@@ -530,7 +530,17 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     is_flag=True,
     help="Opt in to plain-http webhooks (https is required by default)",
 )
-def check(watchlist, sbom, events, raw_bundle_dir, strict, digest, webhook, webhook_allow_http):
+def check(
+    watchlist,
+    sbom,
+    events,
+    raw_bundle_dir,
+    strict,
+    ledger_root,
+    digest,
+    webhook,
+    webhook_allow_http,
+):
     """Dependency Early Warning: evaluate a watchlist against events."""
     import json as _json
     from pathlib import Path as _Path
