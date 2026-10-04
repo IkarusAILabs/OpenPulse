@@ -227,3 +227,83 @@ def test_golden_postgresql_eol_pins_and_namespaces():
     # -- a plain EOL record cannot make this call.
     assert upstream_old.reason != bitnami_old.reason
     assert "bitnami-postgresql" in bitnami_old.reason
+
+
+def test_golden_kubernetes_eol_pins_and_skew():
+    """Kubernetes 1.31 EOL: version truth across two pins, plus the
+    skew-policy timing question, end to end from the offline
+    raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 1.31 reached EOL, scoped to that cycle
+       only; the 1.37 cycle (EOL 2027-10-28) stays silent;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2025-11-11, single secondary source so EMERGING;
+    Q3 identity -- kubernetes, k8s and Kubernetes all resolve to the
+       kubernetes project; docker.io/bitnami/kubernetes is its own
+       bitnami-kubernetes project;
+    Q4 what dependency -- kubernetes==1.31 is the affected pin;
+    Q5 which versions/artifacts -- 1.31 pin affected, 1.37 pin not,
+       and the bitnami-packaged control-plane image on the same tag
+       is not;
+    Q6 when it matters -- effective 2025-11-11, already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- Kubernetes supports roughly four minors in
+       flight and clusters routinely run N-2 or older, so a bare
+       EOL row cannot tell a pinned 1.31 apart from the supported
+       pin; version scope plus identity resolution can.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/kubernetes/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 9, 26)
+
+    # Q1 -- what changed: one EOL finding, scoped to cycle 1.31.
+    # The 1.37 cycle (EOL 2027) is far out, so it yields no finding.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["1.31"]}
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    event = finding_to_event(findings[0], "kubernetes", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2025, 11, 11) for e in event.evidences)
+
+    # Q3 -- identity: alias and case spellings resolve; bitnami is a
+    # different project.
+    assert event.project_slug == "kubernetes"
+    for spelling in ("kubernetes", "k8s", "Kubernetes"):
+        assert resolve_project(spelling) == "kubernetes", spelling
+    assert resolve_project("docker.io/bitnami/kubernetes") == "bitnami-kubernetes"
+
+    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
+    pinned_old = check_dependency(
+        {"kind": "package", "package": "kubernetes", "ecosystem": "", "version": "1.31"}, [event]
+    )
+    pinned_new = check_dependency(
+        {"kind": "package", "package": "kubernetes", "ecosystem": "", "version": "1.37"}, [event]
+    )
+    bitnami_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnami/kubernetes:1.31"}, [event]
+    )
+    assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
+    assert pinned_old.confidence == "EMERGING"
+    assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2025-11-11"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "1.31" in pinned_old.reason
+
+    # Q8 -- why OpenPulse: the bitnami image on the same tag is
+    # excluded by project identity, and the supported pin by version
+    # scope -- two calls an EOL database row cannot make.
+    assert pinned_old.reason != bitnami_old.reason
+    assert "bitnami-kubernetes" in bitnami_old.reason
