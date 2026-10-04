@@ -1,212 +1,178 @@
-# OpenPulse Roadmap — reset 2026-10-02 (supersedes the 2026-09-27 sequence)
+# OpenPulse Roadmap — re-baselined 2026-10-04 for the Ikarus AI Labs research programme
 
-Status: schema 0.4.0, 292 tests, catalog at 100, CI on Linux + Windows,
-deterministic SBOM archived. The 2026-09 phases are retired below, not
-because they failed, but because the implementation outgrew them.
+> OpenPulse is the Software Ecosystem Evidence Plane within the Ikarus AI Labs research programme on Evidence-Based Assurance for AI-Mediated Software Change.
+>
+> OpenPulse investigates how software organisations can establish trustworthy evidence about changes occurring in the open-source ecosystem, determine whether those changes apply to their dependencies, and provide timely, explainable warnings.
+>
+> SafeAI independently investigates the Agent Authority Evidence Plane: what authority an AI agent can potentially exercise and how that authority changes.
+>
+> A future research direction is to connect these evidence planes and investigate whether combined evidence can improve decisions about AI-mediated software changes.
 
-## Product thesis
+Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
+
+Status: schema 0.4.0, 409 tests, catalog at 100, CI on Linux + Windows, deterministic SBOM archived, v0.5.0 released. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+
+Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
+
+## Product thesis (kept)
 
 OpenPulse is:
 
-“OSS Dependency Intelligence that detects upstream changes and warns
-you before they become problems for your software.”
+“OSS Dependency Intelligence that detects upstream changes and warns you before they become problems for your software.”
 
 Core product loop:
 
-UPSTREAM CHANGE → EVIDENCE → IDENTITY → CORRELATION →
-DEPENDENCY IMPACT → WARNING WINDOW → ACTION
+```text
+UPSTREAM CHANGE
+      ↓
+EVIDENCE
+      ↓
+IDENTITY
+      ↓
+APPLICABILITY
+      ↓
+DEPENDENCY IMPACT
+      ↓
+WARNING WINDOW
+      ↓
+ACTION
+```
 
 Positioning: “Watch what can change underneath your software.”
 
-The strategic question for the next phase is:
+The roadmap continues to reject: becoming an EOL database, becoming a generic SCA, collector-count vanity, opaque risk scores, and AI reasoning in the trusted decision path.
 
-“Can OpenPulse repeatedly discover meaningful upstream changes that a
-conventional lifecycle database, vulnerability database or SCA
-workflow may not surface, prove them with evidence, correctly identify
-affected dependencies, and provide useful warning?”
+## Where OpenPulse sits in the research programme
 
-## M1 — Trusted Intelligence Engine
-STATUS: DONE
+Ikarus AI Labs investigates how organisations can make AI-mediated software changes observable, explainable and accountable, across four planes: Agent Authority Evidence (SafeAI), Software Ecosystem / Dependency Evidence (OpenPulse), Assurance Policy / Decision, and Human Accountability. OpenPulse is the primary implementation of the **Software Ecosystem Evidence Plane**. Its question is:
 
-Shipped and tested:
+> **What is changing in the software ecosystem, what evidence establishes the change, and does that evidence apply to a dependency?**
 
-- intelligence schema (0.4.0: taxonomy, confidence, evidence, claims, scope)
-- evidence and provenance (content hashes, parser versions, veto gate)
-- source authority tiers and source-family independence
-- confidence semantics, with match strength vs evidence strength separated
-- identity resolution and identity trust states (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
-- version applicability (OSV ranges, NVD CPE ranges, KEV strength)
-- registry observations: hash-chained, tamper-evident, concurrency-safe
-- event correlation (lifecycle and distribution story aggregation)
-- lead-time semantics (effective minus first trustworthy detection, never estimated)
-- dependency matching with explicit NOT_AFFECTED (never UNKNOWN by default)
-- CI/security controls (ruff, pytest, pip-audit, CodeQL, SHA-pinned actions,
-  lock-drift check, deterministic SBOM archived, secret tripwire, Linux + Windows)
+Do NOT merge SafeAI and OpenPulse into one product. Do NOT turn OpenPulse into a generic AI-security scanner. OpenPulse stays a rigorous, evidence-based dependency intelligence system that can eventually participate in an assurance decision when software changes are AI-mediated.
 
-This milestone is now maintenance/hardening, not active feature
-development. Do not add architectural complexity without a concrete
-requirement.
+The core evidence model:
+
+```text
+SOURCE SIGNAL
+      ↓
+OBSERVED CHANGE
+      ↓
+IDENTITY
+      ↓
+APPLICABILITY
+      ↓
+DEPENDENCY IMPACT
+      ↓
+ASSESSMENT
+      ↓
+RECOMMENDATION
+```
+
+Kept as research assets, not slogans:
+
+```text
+RELATED ≠ AFFECTED
+AFFECTS_PROJECT ≠ AFFECTS_VERSION
+UNKNOWN ≠ NOT_AFFECTED
+MATCH STRENGTH ≠ EVIDENCE STRENGTH
+OBSERVATION ≠ CLAIM ≠ EVENT
+```
+
+## Conceptual layers (durable research architecture)
+
+Beyond the chronological milestones, the pipeline is ten layers. New work should name the layer it extends; work that fits no layer is suspect.
+
+1. **Observe** — upstream signals and registry observations.
+2. **Establish Evidence** — source authority, provenance, independence, confidence.
+3. **Resolve Identity** — project, package, artifact, distribution, registry identity.
+4. **Establish Applicability** — version and artifact matching.
+5. **Assess Impact** — affected / not affected / unknown.
+6. **Establish Time** — announced / detected / verified / effective.
+7. **Warn** — warning windows and early detection.
+8. **Integrate Dependency Context** — SBOMs, manifests, lockfiles, image inventories.
+9. **AI-Mediated Change** — dependency intelligence for agent-selected software changes.
+10. **Assurance Research** — combined OpenPulse + SafeAI evidence experiments.
+
+## M1 — Trusted Software Ecosystem Evidence
+STATUS: DONE / MAINTENANCE
+
+The evidence foundation. Existing architecture is strong; do not expand it without a concrete requirement:
+
+- evidence schema, provenance, source authority, source-family independence
+- identity trust (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
+- version applicability, explicit NOT_AFFECTED
+- confidence model with match strength vs evidence strength separated
+- registry observations, tamper-evident observation history
+- first-detection semantics, deterministic reports
+- security hardening (SSRF policy, redaction, lock-drift check, secret tripwire)
 
 ## M2 — Real Upstream Change Discovery
 STATUS: ACTIVE / HIGHEST PRIORITY
 
-Objective: automatically discover meaningful non-lifecycle changes.
-These are the changes lifecycle databases never record and SCA
-workflows only notice after breakage — distribution moves, removals,
-ownership and support-model shifts. They are the differentiation; a
-roadmap that lets lifecycle volume dominate them has failed.
-
-Priorities, in order:
-
-1. Distribution intelligence (who ships what, where, under which namespace)
-2. Registry changes (tag appearance/disappearance, digest moves, removals)
-3. Repository/archive changes
-4. Ownership/maintainer changes
-5. Support-model changes
-6. License changes
-7. Breaking-change signals
-8. Package/distribution removal
-9. Major release/migration signals
-
-Do not define success as number of collectors. One standing discovery
-mechanism that fires repeatedly beats five collectors that never do.
-
-Acceptance criterion: at least 5 reproducible real-world
-non-lifecycle discoveries automatically detected and converted into
-OpenPulse evidence-backed intelligence. For every accepted case
-demonstrate: what changed, why it matters, affected
-artifact/package, evidence, confidence, first detection, effective
-date, applicable scope. No curated-only example counts as a
-successful discovery. Fixtures may be used for regression tests, but
-the milestone requires automatically discovered cases.
-
-Current position (honest): the distribution sweep fires live — the
-October 2026 run surfaced 65 registry diffs in one pass (nginx,
-python, mongo tag pruning) with chain-verified observation identity —
-but none are yet formalized into the acceptance set. Formalization,
-not mechanism, is the work.
+Objective: repeatedly discover meaningful non-lifecycle changes with enough evidence to survive independent validation — distribution, registry, repository/archive, maintainer/ownership, support-model, license, breaking changes, package/distribution removal, migration signals. Not more signals: the October 2026 sweep proved mechanisms fire (65 diffs, since killed as window artifacts per `docs/DISCOVERIES.md`), but M2 acceptance (5 verified reproducible cases; currently 2 of 5) is unmet. Formalization and verification, not mechanism, is the work.
 
 ## M3 — Intelligence Report Product
 STATUS: ACTIVE
 
-The monthly report is a product surface. It must communicate:
+The monthly briefing is a product surface (Executive Summary through Historical appendix, plus the `.meta.json` machine companion and the Lifecycle Posture view). Keep it ahead of the intelligence it carries; no new sections without a reader need. Lifecycle stays one category, never the product.
 
-- What changed?
-- Why does it matter?
-- What did OpenPulse discover?
-- Who may be affected?
-- What evidence supports it?
-- When does it matter?
-- What should be investigated?
+## M4 — Software Ecosystem Intelligence Benchmark
+STATUS: VALIDATION (5 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis)
 
-Required sections:
+A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: PostgreSQL, Kubernetes, cert-manager, Kafka, Grafana, Terraform, one AI/ML project.
 
-1. Executive Summary
-2. Top Changes
-3. OpenPulse Discovery of the Month
-4. Changes Requiring Attention
-5. Upcoming Changes (detection lead times, first-detection only)
-6. Changes by Category
-7. Evidence Quality
-8. What OpenPulse Added This Month
-9. What OpenPulse Watches
-10. Methodology (public summary + link)
-11. For Your Environment
-12. Detailed Appendix (Historical first)
-
- companion: the Lifecycle Posture view (deadlines soonest-first,
-recent ends, coverage gaps, planning items, full matrix appendix).
-
-Reports must not read as EOL catalogues. Lifecycle is one
-intelligence category, not the product itself. The report must
-visibly demonstrate the OpenPulse value proposition using real
-discoveries. Do not fabricate metrics. Do not claim customer impact
-in public intelligence.
-
-## M4 — Intelligence Benchmark
-STATUS: BUILD / VALIDATION
-
-Formalize 10–15 golden scenarios (`tests/test_golden.py` and the
-matrix suite). Required coverage:
-
-- Bitnami ✅ (formalized)
-- iText ✅ (formalized)
-- MinIO ✅ (formalized)
-- Django ✅ (formalized)
-- Redis ✅ (formalized)
-- PostgreSQL, Kubernetes, cert-manager, Kafka, Grafana,
-  Terraform (to formalise)
-- at least one AI/ML project (to formalise)
-
-Each scenario must answer:
-
-1. What changed?
-2. What evidence proves it?
-3. What identity is involved?
-4. What dependency is affected?
-5. What versions/artifacts are affected?
-6. When does it matter?
-7. What should the customer investigate?
-8. Why is this not merely a lifecycle/SCA database record?
-
-Each scenario must include a “why OpenPulse?” assertion — the
-differentiation the scenario proves.
-
-## M5 — Customer Dependency Intelligence
+## M5 — Dependency Context & Impact Intelligence
 STATUS: NEXT MAJOR PRODUCT MILESTONE
 
-Public intelligence answers “what is changing in OSS?” — necessary
-but not commercial. The commercial question is “does this affect MY
-software?”, and only dependency context can answer it. That is why
-customer impact is the key next step: everything in M1–M4 is built to
-feed it.
+```text
+CUSTOMER DEPENDENCY
+        ↓
+CANONICAL IDENTITY
+        ↓
+OPENPULSE INTELLIGENCE
+        ↓
+APPLICABILITY
+        ↓
+IMPACT
+        ↓
+EVIDENCE
+        ↓
+ACTION
+```
 
-Inputs: YAML watchlist, SBOM, package manifests, lockfiles, container
-image inventories, GitHub repositories.
-
-Output per dependency: affected dependency, not affected, unknown —
-each with evidence, identity, applicability, confidence, timing, and
-recommended investigation.
-
-Customer flow: customer dependency → canonical identity → OpenPulse
-intelligence → applicability → impact → evidence → action.
-
-The watchlist CLI (`openpulse check`) is the local-first preview of
-this milestone. Build toward this rather than building generic SCA
-functionality.
+Shipped: YAML watchlists, CycloneDX SBOM input (`core/sbom_reader.py`), verdicts (AFFECTED / NOT_AFFECTED / UNKNOWN with identity, evidence, applicability, confidence, timing, recommendation). Missing: package manifests, lockfiles, image inventories, GitHub repositories as inputs. All inputs must converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing.
 
 ## M6 — Early Warning SaaS
 STATUS: FUTURE
 
-Capabilities: continuous monitoring, alerts, digest,
-email/Slack/webhooks, dependency dashboards, warning deadlines,
-first-detection history, event timeline, CI/PR checks.
-
-Commercial question: “What is changing in MY software?”
-
-Do not publish average lead-time metrics until there are
-independently verified customer-impact cases.
+Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing. Commercial question stays: “What is changing in MY software?”
 
 ## M7 — Intelligence Network
 STATUS: FUTURE
 
-Potential: emerging signals, community observations, confidence
-progression, cross-source triangulation, long-term event history,
-anonymized cross-customer intelligence.
+Emerging signals, community observations, confidence progression, cross-source triangulation, long-term history, anonymized cross-customer intelligence. Only start when customer monitoring is working.
 
-Only start when customer monitoring is working.
+## M8 — AI-Mediated Dependency Intelligence
+STATUS: RESEARCH (integration direction, not a product feature)
 
-## M8 — AI Dependency Intelligence
-STATUS: STRATEGIC / FUTURE
+Research question: how should dependency intelligence change when AI agents increasingly select, introduce, upgrade and remove software dependencies? OpenPulse contributes dependency intelligence + applicability + evidence + temporal context; SafeAI contributes agent authority + change + authority evidence. Do NOT put an AI agent in the trusted decision path; study the evidence question first.
 
-Use the SafeAI/OpenPulse relationship:
+## M9 — Evidence-Based Assurance for AI-Mediated Software Change
+STATUS: RESEARCH / FUTURE (flagship experiment, hypothesised)
 
-- SafeAI: “What can this AI agent do?”
-- OpenPulse: “What does the software it creates depend on?”
+Can agent-authority evidence and dependency evidence be combined into safer, more explainable decisions? Compare dependency-only (OpenPulse) vs authority-only (SafeAI) vs combined evidence (+ deterministic policy) on: unsafe changes detected, false positives/negatives, unnecessary reviews, decision explainability, evidence completeness, unknown conditions, reproducibility, human decision effort. None of this is proven; the experiment is the point.
 
-Do not turn OpenPulse into an AI-agent security product. Use AI as a
-dependency provenance/selection context only after core dependency
-intelligence is proven.
+## SafeAI / OpenPulse boundary (not blurred)
+
+- SafeAI answers: what authority does this AI agent have, what changed, and what evidence supports that conclusion?
+- OpenPulse answers: what is changing in the software ecosystem, what evidence establishes the change, and does it affect this dependency?
+- A future assurance layer answers: should the AI-mediated software change be allowed?
+
+The future system combines evidence rather than duplicating either product. Interchange stays a boundary, not a runtime: OpenPulse exports dependency identity, context, upstream event, applicability, confidence, evidence, temporal information, recommendation; SafeAI exports agent identity, authority, changed authority, dependency references, policy context, evidence. A future policy layer combines the two. No coupled runtime before the contract exists.
+
+## Public/internal evidence boundary (research principle)
+
+Retain and formalise: observation ≠ claim ≠ event; public intelligence ≠ customer intelligence. Public intelligence must never imply customer impact without dependency evidence; an upstream event is not evidence that a specific dependency is affected. Enforced in code by the eligibility gate and in tests by the public-boundary suite.
 
 ## Roadmap principles
 
@@ -223,35 +189,32 @@ intelligence is proven.
 11. Reports are a product experience, not an implementation dump.
 12. Do not add AI reasoning to the trusted decision path.
 13. Avoid architecture expansion when the existing pipeline is sufficient.
+14. Hypotheses are labelled as such; validated claims cite their evidence.
 
 ## Roadmap metrics
 
-Do NOT use these as primary success metrics: number of projects
-monitored, number of collectors, number of findings, number of
-lifecycle records. They measure activity, not intelligence.
+Banned as primary success metrics: projects monitored, collectors, findings, lifecycle records. Research metrics instead: identity precision/recall, applicability precision/recall, false-impact and false-clear rates, unknown rate, weak-evidence holdback rate, evidence completeness, temporal accuracy, first-detection accuracy, automatically discovered and verified events, customer-confirmed affected events. Do not market these until the methodology is stable.
 
-Internal validation metrics instead: automatically discovered
-non-lifecycle events, verified evidence-backed events,
-identity-resolution accuracy, applicability accuracy, false-impact
-rate, held-back weak findings, customer-confirmed affected events,
-first-detection timestamps, verified early-warning cases.
+## Research artefacts per milestone
 
-Do not market these metrics until the methodology is stable.
+Every major milestone produces at least one of: benchmark, dataset, schema, evidence contract, case study, reproducibility package, technical report, academic paper, reference implementation. This is what makes OpenPulse a research instrument, not a prototype.
+
+## Item dispositions (reconciled 2026-10-04)
+
+- DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
+- ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
+- VALIDATION: M4 at 5 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
+- NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
+- FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
+- REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
+- OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
 
 ## Next 90 Days
 
-1. Real non-lifecycle discovery — formalize the M2 acceptance set
-   from live sweep output (nginx/python/mongo-class pruning events
-   are the first candidates); add repository/archive-change detection.
-2. Report/productization — keep the monthly briefing ahead of the
-   intelligence it carries; no new sections without a reader need.
-3. Golden benchmark — formalize Redis, PostgreSQL, Kubernetes,
-   cert-manager, Kafka; start Grafana/Terraform/AI-ML.
-4. Customer dependency ingestion — SBOM/lockfile/manifest readers
-   feeding the existing verdict engine (no new matching semantics).
-5. Early-warning prototype — first-detection history persisted per
-   entity so warning windows survive across runs (watchlist-scoped).
+1. Real non-lifecycle discovery — close the M2 acceptance set (confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings).
+2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
+3. Golden benchmark — PostgreSQL, Kubernetes, cert-manager, Kafka; start Grafana/Terraform/AI-ML.
+4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.
+5. Early-warning prototype — watchlist-scoped first-detection history already durable; add verified lead-time cases.
 
-Do not add unrelated features. This roadmap exists to stop OpenPulse
-from becoming a feature-rich data aggregator and instead drive it
-toward a defensible dependency-intelligence product.
+Do not add unrelated features. This roadmap exists to stop OpenPulse from becoming a feature-rich data aggregator and instead drive it toward a defensible dependency-intelligence product and a credible research instrument.
