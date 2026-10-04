@@ -39,13 +39,23 @@ def _tag(name):
 
 def _v2_calls(monkeypatch, full_names, hub_pages, v2_status=200):
     """Wire the Hub walk to hub_pages, the v2 path to full_names."""
+    from urllib.parse import urlsplit
+
     calls = {"hub": [], "v2": []}
 
+    def _host(url):
+        try:
+            return urlsplit(url).hostname or ""
+        except ValueError:
+            return ""
+
     def fake_get(url, params=None, headers=None, timeout=None):
-        if url.startswith("https://auth.docker.io"):
+        # Exact host matching (never substring checks): a crafted URL
+        # merely containing a trusted hostname must not route here.
+        if _host(url) == "auth.docker.io":
             calls["v2"].append("auth")
             return httpx.Response(200, json={"token": "tok"}, request=httpx.Request("GET", url))
-        if "registry-1.docker.io" in url:
+        if _host(url) == "registry-1.docker.io":
             calls["v2"].append(url)
             if v2_status == 404:
                 return httpx.Response(404, request=httpx.Request("GET", url))
@@ -101,7 +111,10 @@ def test_offset_wall_with_v2_down_stays_truncated(monkeypatch):
 def test_page_cap_triggers_v2_rescue_too(monkeypatch):
     from collectors.registries.docker import _MAX_TAG_PAGES, RegistryCollector
 
-    hub_pages = [_hub_page([_tag("w" + str(i))], next_url="more") for i in range(_MAX_TAG_PAGES)]
+    hub_pages = [
+        _hub_page([_tag("w" + str(i))], next_url="https://hub.docker.com/v2/x?page=more")
+        for i in range(_MAX_TAG_PAGES)
+    ]
     calls = _v2_calls(monkeypatch, ["w0", "rescued"], hub_pages)
     out = RegistryCollector().check_image("demo", "app")
     assert out.get("error") is None
@@ -125,6 +138,30 @@ def test_small_repo_never_consults_v2(monkeypatch):
     assert "digests_partial" not in out
     assert set(out["digests"]) == {"latest", "1.0"}
     assert out["count"] == 2
+
+
+def test_hijacked_next_page_stops_the_walk(monkeypatch):
+    """A Hub response pointing `next` off-host must not send the
+    collector there: the walk stops and the probe is marked truncated
+    (incomparable basis) instead of following a response-driven URL."""
+    import httpx
+
+    from collectors.registries.docker import RegistryCollector
+
+    evil_next = "https://evil.example.com/v2/x?x=registry-1.docker.io"
+    hub_pages = [_hub_page([_tag("latest")], next_url=evil_next)]
+    requested = []
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        requested.append(url)
+        return hub_pages.pop(0)
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    out = RegistryCollector().check_image("demo", "app")
+    assert out.get("error") is None
+    assert all("evil.example.com" not in url for url in requested)
+    assert out["truncated"] is True
+    assert set(out["digests"]) == {"latest"}
 
 
 def test_rescued_probe_seals_with_partial_flag(monkeypatch):
