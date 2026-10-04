@@ -1,0 +1,36 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "kubernetes",
+      "cycle": "1.31",
+      "eol": "2025-11-11",
+      "support": "2025-08-28",
+      "latest": "1.31.14",
+      "latestReleaseDate": "2025-11-11"
+    },
+    {
+      "collector": "endoflife",
+      "product": "kubernetes",
+      "cycle": "1.37",
+      "eol": "2027-10-28",
+      "support": "2027-08-28",
+      "latest": "1.37.1",
+      "latestReleaseDate": "2026-09-23"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "kubernetes/kubernetes",
+      "archived": false,
+      "pushed_at": "2026-09-25T00:00:00Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}
