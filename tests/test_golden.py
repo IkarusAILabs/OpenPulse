@@ -150,3 +150,80 @@ def test_golden_redis_eol_pins_and_namespaces():
     # -- a plain EOL record cannot make this call.
     assert upstream_old.reason != bitnami_old.reason
     assert "bitnami-redis-stack" in bitnami_old.reason
+
+
+def test_golden_postgresql_eol_pins_and_namespaces():
+    """PostgreSQL 13 EOL: version truth across two pins, plus the
+    alias breadth (postgres/postgresql/library spellings) and the
+    docker.io/bitnami/postgresql tag-collision exclusion, end to end
+    from the offline raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 13 reached EOL, scoped to that cycle only;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2025-11-13, single secondary source so EMERGING;
+    Q3 identity -- postgres, postgresql, docker.io/postgres and
+       docker.io/library/postgres all resolve to postgresql, while
+       docker.io/bitnami/postgresql is its own project;
+    Q4 what dependency -- docker.io/postgres:13 is the affected pin;
+    Q5 which versions/artifacts -- 13 pin affected, 17 pin not, and
+       the bitnami image carrying the same tag is not;
+    Q6 when it matters -- effective 2025-11-13, already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- an EOL database row cannot tell the two images
+       apart on the same tag; identity resolution + version scope can.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/postgresql/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 9, 26)
+
+    # Q1 -- what changed: one lifecycle finding, scoped to cycle 13.
+    # The 17 cycle (EOL 2029) is far out, so it yields no finding.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["13"]}
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    event = finding_to_event(findings[0], "postgresql", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2025, 11, 13) for e in event.evidences)
+
+    # Q3 -- identity: four upstream spellings, one project; bitnami is
+    # a different one.
+    assert event.project_slug == "postgresql"
+    for spelling in (
+        "postgres",
+        "postgresql",
+        "docker.io/postgres:13",
+        "docker.io/library/postgres:13",
+    ):
+        assert resolve_project(spelling) == "postgresql", spelling
+    assert resolve_project("docker.io/bitnami/postgresql:13") == "bitnami-postgresql"
+
+    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
+    upstream_old = check_dependency({"kind": "image", "ref": "docker.io/postgres:13"}, [event])
+    upstream_new = check_dependency({"kind": "image", "ref": "docker.io/postgres:17"}, [event])
+    bitnami_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnami/postgresql:13"}, [event]
+    )
+    assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
+    assert upstream_old.confidence == "EMERGING"
+    assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2025-11-13"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "13" in upstream_old.reason
+
+    # Q8 -- why OpenPulse: same tag, different project, different verdict
+    # -- a plain EOL record cannot make this call.
+    assert upstream_old.reason != bitnami_old.reason
+    assert "bitnami-postgresql" in bitnami_old.reason

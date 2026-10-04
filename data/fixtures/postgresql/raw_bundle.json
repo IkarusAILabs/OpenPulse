@@ -1,0 +1,36 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "postgresql",
+      "cycle": "13",
+      "eol": "2025-11-13",
+      "support": null,
+      "latest": "13.23",
+      "latestReleaseDate": "2025-11-10"
+    },
+    {
+      "collector": "endoflife",
+      "product": "postgresql",
+      "cycle": "17",
+      "eol": "2029-11-08",
+      "support": null,
+      "latest": "17.11",
+      "latestReleaseDate": "2026-08-10"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "postgres/postgres",
+      "archived": false,
+      "pushed_at": "2026-09-20T00:00:00Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}
