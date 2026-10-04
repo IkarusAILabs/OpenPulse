@@ -131,7 +131,7 @@ def test_check_image_paginates_full_tag_set(monkeypatch):
         calls.append(url)
         if "page=2" in url:
             return _paged_response([_tag("old")])
-        return _paged_response([_tag("latest"), _tag("1.0")], next_url="https://x?page=2")
+        return _paged_response([_tag("latest"), _tag("1.0")], next_url="https://hub.docker.com/v2/x?page=2")
 
     monkeypatch.setattr(httpx, "get", fake_get)
     out = docker_module.RegistryCollector().check_image("demo", "app")
@@ -151,7 +151,7 @@ def test_check_image_stops_at_page_cap(monkeypatch):
 
     def fake_get(url, timeout=None):
         calls.append(url)
-        return _paged_response([_tag(f"t{len(calls)}")], next_url="https://x?page=more")
+        return _paged_response([_tag(f"t{len(calls)}")], next_url="https://hub.docker.com/v2/x?page=more")
 
     monkeypatch.setattr(httpx, "get", fake_get)
     out = docker_module.RegistryCollector().check_image("demo", "app")
