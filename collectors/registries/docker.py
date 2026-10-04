@@ -31,6 +31,26 @@ def docker_hub_url(namespace: str, repo: str) -> str:
     return f"https://hub.docker.com/v2/repositories/{namespace}/{repo}/tags?page_size=100"
 
 
+def _same_host_next(claimed_next: Any) -> str | None:
+    """Follow a Hub `next` page only when it stays on the Hub host.
+
+    The `next` URL comes from the response body: following it blindly
+    lets a response steer anonymous requests anywhere. An off-host
+    `next` ends the walk (the probe is marked truncated downstream) —
+    never followed, never raised.
+    """
+    from urllib.parse import urlsplit
+
+    if not isinstance(claimed_next, str) or not claimed_next:
+        return None
+    try:
+        if (urlsplit(claimed_next).hostname or "") != "hub.docker.com":
+            return None
+    except ValueError:
+        return None
+    return claimed_next
+
+
 def _is_offset_wall(r: httpx.Response) -> bool:
     """403 + the offset marker = the anonymous pagination wall, not a quota."""
     if r.status_code != 403:
@@ -141,6 +161,7 @@ class RegistryCollector(BaseCollector):
             url: str | None = docker_hub_url(namespace, repo)
             pages = 0
             truncated = False
+            rejected_next = False
             while url is not None and pages < _MAX_TAG_PAGES:
                 r = httpx.get(url, timeout=self.timeout)
                 if r.status_code == 404:
@@ -166,9 +187,21 @@ class RegistryCollector(BaseCollector):
                 if not isinstance(entries, list):
                     raise ValueError("registry results are not a list")
                 results.extend(e for e in entries if isinstance(e, dict))
-                url = payload.get("next")
+                claimed = payload.get("next")
+                if claimed is not None:
+                    pinned = _same_host_next(claimed)
+                    if pinned is None:
+                        # Response steered pagination off the Hub host
+                        # (or nowhere parseable): stop and mark the set
+                        # partial. A missing `next` is the only clean end.
+                        rejected_next = True
+                        url = None
+                    else:
+                        url = pinned
+                else:
+                    url = None
                 pages += 1
-            if url is not None:
+            if url is not None or rejected_next:
                 truncated = True
             probe = parse_tags(namespace, repo, {"results": results, "count": count})
             if truncated:
