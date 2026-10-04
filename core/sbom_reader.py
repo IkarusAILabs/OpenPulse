@@ -17,6 +17,15 @@ import json
 import urllib.parse
 from typing import Any
 
+#: Size cap for SBOM files. Real CycloneDX documents routinely run
+#: multi-MB (a few hundred components with licenses/hashes), so the
+#: 1MB `MAX_INPUT_BYTES` event limit would reject honest SBOMs. 50MB
+#: keeps the bounded-read policy - no unbounded file into memory -
+#: while covering the realistic corpus; over that, the tool refuses
+#: with a clean error naming the cap.
+MAX_SBOM_BYTES = 50 * 1024 * 1024
+
+
 #: purl type -> OSV ecosystem (the casing `analyzers.security_analyst`
 #: and the fixtures already use). Only unambiguous mappings live here;
 #: an unknown type is a skip-and-record, never a guess.
@@ -81,7 +90,18 @@ def _dep_from_purl(purl: str) -> tuple[dict[str, Any] | None, str | None]:
     ecosystem = _PURL_ECOSYSTEMS.get(purl_type)
     if ecosystem is None:
         return None, f"purl type `{purl_type}` has no unambiguous ecosystem mapping"
-    package = f"{namespace}/{name}" if namespace else name
+    if purl_type == "maven":
+        # Maven identity is the `groupId:artifactId` coordinate pair -
+        # the form OSV and CVE records spell (`com.itextpdf:itext-core`).
+        # The purl's namespace/name split carries the same two terms,
+        # so rebuilding the canonical colon form is a mechanical
+        # re-spelling, never a guess. Slash form would silently never
+        # correlate against OSV/NVD entries.
+        if not namespace:
+            return None, f"purl `{purl}` has no maven groupId namespace"
+        package = f"{namespace}:{name}"
+    else:
+        package = f"{namespace}/{name}" if namespace else name
     dep: dict[str, Any] = {"kind": "package", "package": package, "ecosystem": ecosystem}
     if parts["version"]:
         dep["version"] = parts["version"]
@@ -122,7 +142,17 @@ def load_sbom_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]
 
 
 def read_sbom(path: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Load + validate a CycloneDX JSON file from disk."""
+    """Load + validate a CycloneDX JSON file from disk.
+
+    Reads are size-bounded (``MAX_SBOM_BYTES``), same policy as the
+    CLI's other input files - the cap is larger because SBOMs are
+    legitimately multi-MB, not because reads are unbounded.
+    """
+    import os
+
+    size = os.path.getsize(path)
+    if size > MAX_SBOM_BYTES:
+        raise ValueError(f"sbom is {size} bytes (limit {MAX_SBOM_BYTES})")
     with open(path, encoding="utf-8") as f:
         doc = json.load(f)
     return load_sbom_doc(doc)

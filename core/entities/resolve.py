@@ -62,12 +62,42 @@ def _bitnami_rule(normalized: str) -> str | None:
     return None
 
 
+def _maven_purl_spelling(ref: str) -> str | None:
+    """`groupId:artifactId` -> `groupId/artifactId`, else None.
+
+    Maven coordinates join their two identity terms with a colon; the
+    catalog lists the purl (slash) spelling because its format forbids
+    colons (hygiene rule). Only a bare coordinate qualifies - no path
+    segments. A docker `name:tag` also has a single colon, but its
+    re-spelling (`name/tag`) never matches a curated alias, so the
+    fallback is harmless there.
+    """
+    if ":" in ref and "/" not in ref:
+        return ref.replace(":", "/")
+    return None
+
+
+def _catalog_hit(raw: str, normalized: str, mapping: dict[str, str]) -> str | None:
+    """Catalog slug for one ref: direct lookup, then maven re-spelling.
+
+    The maven fallback runs on the RAW ref, not the normalized one:
+    tag stripping eats everything from the colon, leaving only the
+    groupId, which is not a catalogued identity by itself.
+    """
+    if normalized in mapping:
+        return mapping[normalized]
+    purl = _maven_purl_spelling(raw.strip().lower())
+    if purl is not None:
+        return mapping.get(purl)
+    return None
+
+
 def resolve_project(ref: str) -> str:
     """Return canonical slug for a package/artifact ref."""
     n = normalize_ref(ref)
     if n in EXPLICIT_ALIASES:
         return EXPLICIT_ALIASES[n]
-    catalog_hit = _catalog_map().get(n)
+    catalog_hit = _catalog_hit(str(ref), n, _catalog_map())
     if catalog_hit:
         return catalog_hit
     return _bitnami_rule(n) or n

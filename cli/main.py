@@ -527,15 +527,23 @@ def check(watchlist, sbom, events, raw_bundle_dir, strict, digest, webhook, webh
 
         try:
             sbom_deps, skipped = read_sbom(sbom)
+        except json.JSONDecodeError as e:
+            # Must precede the ValueError handler: JSONDecodeError
+            # SUBCLASSES ValueError, so the reverse order makes this
+            # branch dead code and loses the specific message.
+            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
         except ValueError as e:
             raise click.ClickException(f"{sbom}: {e}")
-        except json.JSONDecodeError as e:
-            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
         if sbom_deps:
             _echo(f"sbom: {len(sbom_deps)} mapped component(s), {len(skipped)} skipped")
             deps = [*deps, *sbom_deps]
         elif skipped:
             _echo(f"sbom: 0 mapped, {len(skipped)} skipped — nothing checkable in this SBOM")
+        # Skip reasons echo BEFORE the empty-deps guard below: an SBOM
+        # that yields only skips still explains itself instead of dying
+        # with a bare "nothing checkable" error.
+        for line in skipped:
+            _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -549,9 +557,6 @@ def check(watchlist, sbom, events, raw_bundle_dir, strict, digest, webhook, webh
     if not deps:
         raise click.ClickException("no checkable dependencies (watchlist/SBOM yielded nothing)")
     affected = 0
-    # Skipped SBOM components are reported, never silently dropped.
-    for line in skipped:
-        _echo(f"! skipped: {line}")
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
     results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
