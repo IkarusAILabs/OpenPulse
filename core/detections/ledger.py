@@ -13,7 +13,10 @@ content hashes - NOT a second storage model):
 - Layout: ``{root}/{project}/{key}.json`` - one file per detected
   fact, keyed by stable entity identity (project slug + finding
   class + subject + scope), value = earliest detection timestamp +
-  content hash of the fact identity.
+  content hash over identity AND the sighting dates, verified on
+  every read (``verify_entry``): a post-write edit of ``first_seen``
+  breaks the hash and the entry degrades to unknown - the integrity
+  claim above is enforced, not aspirational.
 - Earliest evidence wins: a re-detection never moves ``first_seen``
   later. Clock skew is absorbed the same way: a skewed-later stamp
   cannot overwrite an earlier one; a skewed-earlier stamp IS taken
@@ -61,6 +64,15 @@ _LOCK_WAIT_SECONDS = 30.0
 LIFECYCLE = "lifecycle"
 SECURITY = "security"
 
+#: Event types whose findings describe a *durable* lifecycle fact -
+#: re-detectable across runs, and the ledger is what makes their first
+#: detection survive the process. Distribution/registry changes keep
+#: their own durable first-detection via observation history diffs.
+#: Single source of truth: the writer (``check.detections_from_verdicts``)
+#: and the reader (``reports._ledger_fact``) MUST key identically, so
+#: the set lives here, next to the identity contract it defines.
+LIFECYCLE_EVENT_TYPES = frozenset({"EOL", "EOS", "DEPRECATION", "SUPPORT_CHANGE"})
+
 
 def _safe(part: str) -> str:
     """Filesystem-safe path segment. Dots alone (`..`) never survive:
@@ -89,14 +101,38 @@ def _lock_path(directory: Path) -> Path:
     return directory / ".ledger-lock"
 
 
-def fact_content_hash(project: str, finding_class: str, subject: str, scope: list[str]) -> str:
-    """SHA-256 over the canonical identity of one detected fact.
+def _identity_terms(project: str, finding_class: str, subject: str, scope: list[str]) -> list[str]:
+    """Canonical identity of one detected fact, ONE normalization.
 
-    Independent of timestamps and formatting so the same fact from
-    different runs (or sources) hashes identically.
+    Project/class/subject keep their case (they are identifiers, not
+    free text); scope terms are trimmed and lowercased (version
+    strings differ only in casing/whitespace between sources). Both
+    the ledger key and the content hash run over this exact list, so
+    the hash written at record time is the hash checked on read -
+    the integrity claim in the module docstring stays honest.
+    """
+    terms = [str(project), str(finding_class), str(subject)]
+    terms += sorted(str(s).strip().lower() for s in (scope or []))
+    return terms
+
+
+def _entry_content_hash(
+    project: str,
+    finding_class: str,
+    subject: str,
+    scope: list[str],
+    first_seen: str,
+    last_seen: str,
+) -> str:
+    """SHA-256 over one ledger entry's full content.
+
+    Covers identity AND both sighting timestamps: a post-write edit
+    of ``first_seen`` (the date every consumer trusts) breaks the
+    hash, so verification on read catches it. Recomputed at every
+    write, so legitimate earliest-wins merges always re-pin it.
     """
     material = json.dumps(
-        [str(project), str(finding_class), str(subject), sorted(str(s) for s in scope)],
+        _identity_terms(project, finding_class, subject, scope) + [str(first_seen), str(last_seen)],
         separators=(",", ":"),
     )
     return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
@@ -111,9 +147,31 @@ def fact_key(project: str, finding_class: str, subject: str, scope: list[str]) -
     lifecycle cycle produce the same key, so a re-report cannot
     split the history.
     """
-    terms = [str(project), str(finding_class), str(subject)]
-    terms += sorted(str(s).strip().lower() for s in scope)
-    return hashlib.sha256("|".join(terms).encode("utf-8")).hexdigest()
+    joined = "|".join(_identity_terms(project, finding_class, subject, scope))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
+
+
+def verify_entry(entry: dict[str, Any]) -> bool:
+    """True when one loaded ledger entry is internally consistent.
+
+    The content hash recorded at write time must match a hash
+    recomputed over the entry's own fields - identity AND the
+    first/last sighting dates a consumer would trust. A mismatch
+    means the file was edited after the fact: the entry degrades to
+    unknown/fresh - never trusted for a detection claim, never an
+    exception.
+    """
+    if not isinstance(entry, dict):
+        return False
+    expected = _entry_content_hash(
+        str(entry.get("project") or ""),
+        str(entry.get("finding_class") or ""),
+        str(entry.get("subject") or ""),
+        [str(s) for s in entry.get("scope") or []],
+        str(entry.get("first_seen") or ""),
+        str(entry.get("last_seen") or ""),
+    )
+    return str(entry.get("content_hash") or "") == expected
 
 
 @contextlib.contextmanager
@@ -213,6 +271,10 @@ def record_detection(
     path = _key_file(directory, key)
     with ledger_lock(root, project):
         existing = _try_load(path)
+        if existing is not None and not verify_entry(existing):
+            # Tampered entry: no honest merge is possible from it.
+            # Degrade to unknown - write fresh, exactly like absence.
+            existing = None
         if existing is None:
             entry = {
                 "project": str(project),
@@ -221,7 +283,9 @@ def record_detection(
                 "scope": sorted(str(s) for s in scope),
                 "first_seen": stamp,
                 "last_seen": stamp,
-                "content_hash": fact_content_hash(project, finding_class, subject, scope),
+                "content_hash": _entry_content_hash(
+                    project, finding_class, subject, scope, stamp, stamp
+                ),
             }
             _write_atomic(path, entry)
             return {**entry, "recorded_now": True}
@@ -246,7 +310,9 @@ def record_detection(
             "scope": sorted(str(s) for s in scope),
             "first_seen": first_seen,
             "last_seen": last_seen,
-            "content_hash": fact_content_hash(project, finding_class, subject, scope),
+            "content_hash": _entry_content_hash(
+                project, finding_class, subject, scope, first_seen, last_seen
+            ),
         }
         _write_atomic(path, entry)
     return {**entry, "recorded_now": False}
@@ -263,7 +329,8 @@ def first_seen(
     directory = _project_dir(root, project)
     path = _key_file(directory, fact_key(project, finding_class, subject, list(scope or [])))
     entry = _try_load(path)
-    if entry is None:
+    if entry is None or not verify_entry(entry):
+        # Absent or tampered (hash mismatch) - both mean no claim.
         return None
     value = entry.get("first_seen")
     return str(value) if value else None

@@ -20,6 +20,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
+from core.detections import ledger
 from core.entities.identity import resolution_trust
 from core.entities.resolve import resolve_project
 from core.risk.match import event_affects_ref
@@ -304,9 +305,7 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
     affected = relationship in _AFFECTED
     match_strength = _MATCH_STRENGTH.get(relationship, "none")
     evidence_confidence = str(top.get("evidence_confidence") or "UNVERIFIED")
-    confidence = _weaker(
-        _MATCH_CEILING.get(relationship, "UNVERIFIED"), evidence_confidence
-    )
+    confidence = _weaker(_MATCH_CEILING.get(relationship, "UNVERIFIED"), evidence_confidence)
     identity_status = str(top.get("identity_status") or "VERIFIED")
     via_artifact_exact = str(top.get("match_method") or "") == "event_scope:artifact"
     capped_identity = False
@@ -419,11 +418,9 @@ def check_watchlist(
     return [check_dependency(dep, events, bundles) for dep in deps]
 
 
-#: Event types whose findings describe a *durable* lifecycle fact -
-#: re-detectable across runs, and the ledger is what makes their first
-#: detection survive the process. Distribution/registry changes keep
-#: their own durable first-detection via observation history diffs.
-_LIFECYCLE_EVENT_TYPES = frozenset({"EOL", "EOS", "DEPRECATION", "SUPPORT_CHANGE"})
+#: Durable lifecycle fact types: one set, owned by the ledger (the
+#: identity contract), so the writer and the reader can never diverge.
+_LIFECYCLE_EVENT_TYPES = ledger.LIFECYCLE_EVENT_TYPES
 
 #: Relationships asserting the dependency is implicated: the only
 #: ones that start (or continue) a durable detection record.
@@ -448,8 +445,6 @@ def detections_from_verdicts(
     detection worth remembering, and UNKNOWN means no evidence.
     Never invents: causes without a usable identity are skipped.
     """
-    from core.detections import ledger
-
     events_by_id = {e.id: e for e in events or []}
     facts: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, tuple[str, ...]]] = set()

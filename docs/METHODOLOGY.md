@@ -161,10 +161,12 @@ stable identity — (project, class, subject, scope) where lifecycle
 facts use (project, `EOL`/`EOS`/`DEPRECATION`, sorted cycle versions)
 and security facts use (project, CVE id). The store reuses the
 observation-history trust model: atomic writes (temp + rename),
-per-project locks with stale reclaim, and content hashes over the
-fact identity. No hash chain: an entry is a standalone
-earliest-witness record, so its own content hash meets the
-integrity need, and absence — deleted or never written — is
+per-project locks with stale reclaim, and content hashes over
+identity and the sighting dates, verified on every read so an
+edited entry degrades to unknown instead of being trusted. No hash
+chain: an entry is a standalone earliest-witness record, so its own
+content hash meets the integrity need, and absence — deleted or
+never written — is
 indistinguishable from never-detected, which is exactly the
 "unknown means unknown" rule. Earliest evidence wins, including
 under clock skew: a later stamp never overwrites, an earlier

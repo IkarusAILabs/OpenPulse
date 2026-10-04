@@ -606,3 +606,221 @@ def test_report_existing_first_detected_at_is_never_overwritten(tmp_path):
     )
     assert "OpenPulse first detected: 2026-09-01" in markdown
     assert "OpenPulse first detected: 2026-07-01" not in markdown
+
+
+# ---------------------------------------------------------------------------
+# Review fixes: story propagation, SUPPORT_CHANGE parity, CLI resilience,
+# entry verification on read
+# ---------------------------------------------------------------------------
+
+
+def test_story_merge_keeps_earliest_first_detected():
+    """Merged lifecycle stories keep the group's earliest detection.
+
+    Regression for the review finding: ``_story`` dropped
+    ``first_detected_at``, so ledger-filled lifecycle findings lost
+    their dates at the aggregation step and upcoming computations
+    fell back to unknown.
+    """
+    from analyzers.event_correlation import aggregate_lifecycle
+
+    def eol(cycle, first):
+        return {
+            "analyst": "change",
+            "event_type": "EOL",
+            "impact": "REVIEW",
+            "title": f"Django {cycle} EOL approaching",
+            "affected_versions": [cycle],
+            "event_date": "2026-12-15",
+            "first_detected_at": first,
+            "supporting": [{"collector": "endoflife", "product": "django"}],
+        }
+
+    stories = aggregate_lifecycle([eol("4.2", "2026-07-01"), eol("5.0", "2026-08-15")])
+    assert len(stories) == 1
+    assert stories[0]["first_detected_at"] == "2026-07-01", stories[0]
+
+
+def test_story_merge_without_dates_makes_no_detection_claim():
+    """No member carries a date -> the story claims none (unknown)."""
+    from analyzers.event_correlation import aggregate_lifecycle
+
+    def eol(cycle):
+        return {
+            "analyst": "change",
+            "event_type": "EOL",
+            "impact": "REVIEW",
+            "title": f"Django {cycle} EOL approaching",
+            "affected_versions": [cycle],
+            "event_date": "2026-12-15",
+            "supporting": [{"collector": "endoflife", "product": "django"}],
+        }
+
+    stories = aggregate_lifecycle([eol("4.2"), eol("5.0")])
+    assert len(stories) == 1
+    assert "first_detected_at" not in stories[0]
+
+
+def test_support_change_is_a_durable_lifecycle_fact(tmp_path):
+    """Write/read parity: SUPPORT_CHANGE records on check AND reads back.
+
+    Regression for the review finding: ``_ledger_fact`` omitted
+    SUPPORT_CHANGE while the check side recorded it - a written fact
+    the report could never look up (write-without-read).
+    """
+    from reports.generate import _ledger_fact
+
+    # A SUPPORT_CHANGE event built from the checked-in django-eol
+    # fixture (same shape, one field changed) - no new fixture file.
+    payload = json.load(open("data/fixtures/django-eol/event.json"))
+    payload["id"] = "evt-django-support-001"
+    payload["event_type"] = "SUPPORT_CHANGE"
+    event = OSSEvent(**payload)
+
+    # Writer side: a SUPPORT_CHANGE verdict must yield a lifecycle fact.
+    dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+    result = check_dependency(dep, [event])
+    facts = detections_from_verdicts([result], [event])
+    support = [f for f in facts if f["subject"] == "SUPPORT_CHANGE"]
+    assert support, "writer must emit a SUPPORT_CHANGE fact"
+    assert support[0]["finding_class"] == ledger.LIFECYCLE
+    assert support[0]["scope"] == ["4.2"]
+
+    # Reader side: a SUPPORT_CHANGE finding must map to the same fact.
+    finding = {
+        "event_type": "SUPPORT_CHANGE",
+        "scope": {"kind": "version", "versions": ["4.2"]},
+        "affected_versions": ["4.2"],
+    }
+    fact = _ledger_fact(finding)
+    assert fact is not None, "reader must map SUPPORT_CHANGE findings"
+    assert fact == (ledger.LIFECYCLE, "SUPPORT_CHANGE", ["4.2"])
+
+    # End-to-end parity: record via the writer identity, read via the
+    # reader identity - same key, or the report can never find it.
+    root = tmp_path / "ledger"
+    recorded = ledger.record_detection(
+        support[0]["project"],
+        fact[0],
+        fact[1],
+        fact[2],
+        detected_at="2026-07-01T00:00:00+00:00",
+        root=root,
+    )
+    assert recorded["recorded_now"] is True
+    assert (
+        ledger.first_seen(support[0]["project"], fact[0], fact[1], fact[2], root=root)
+        == "2026-07-01T00:00:00+00:00"
+    )
+
+
+def test_tampered_entry_degrades_to_unknown_and_fresh_write(root):
+    """Content hash is verified on READ, not just written at record time.
+
+    A JSON-valid edit of ``first_seen`` must not be trusted for a
+    detection claim; the entry degrades to unknown on read, and a
+    re-detection rewrites it fresh (earliest-wins never applies to
+    untrusted data).
+    """
+    ledger.record_detection(
+        "django",
+        "lifecycle",
+        "EOL",
+        ["4.2"],
+        detected_at="2026-07-01T00:00:00+00:00",
+        root=root,
+    )
+    path = root / "django" / (ledger.fact_key("django", "lifecycle", "EOL", ["4.2"]) + ".json")
+    entry = json.loads(path.read_text(encoding="utf-8"))
+    entry["first_seen"] = "2020-01-01T00:00:00+00:00"  # JSON-valid tamper
+    path.write_text(json.dumps(entry, indent=2, sort_keys=True), encoding="utf-8")
+
+    # Read: tampered -> unknown, never the fabricated 2020 date.
+    assert ledger.first_seen("django", "lifecycle", "EOL", ["4.2"], root=root) is None
+
+    # Re-detection: untrusted data merges nothing - writes fresh.
+    fresh = ledger.record_detection(
+        "django",
+        "lifecycle",
+        "EOL",
+        ["4.2"],
+        detected_at="2026-09-01T00:00:00+00:00",
+        root=root,
+    )
+    assert fresh["recorded_now"] is True
+    assert fresh["first_seen"] == "2026-09-01T00:00:00+00:00"
+
+
+def test_verify_entry_pins_key_and_hash_normalization(root):
+    """fact_key and fact_content_hash normalize identically.
+
+    A scope recorded with different case/whitespace must verify fine
+    (same normalized identity); an edited scope must fail (the hash
+    covers it). Pins the identity contract the docstring claims.
+    """
+    ledger.record_detection(
+        "django",
+        "lifecycle",
+        "EOL",
+        ["4.2"],
+        detected_at="2026-07-01T00:00:00+00:00",
+        root=root,
+    )
+    path = root / "django" / (ledger.fact_key("django", "lifecycle", "EOL", ["4.2"]) + ".json")
+    entry = json.loads(path.read_text(encoding="utf-8"))
+    assert ledger.verify_entry(entry) is True
+
+    # Same fact recorded with noisy scope -> same key, hash verifies.
+    again = ledger.record_detection(
+        "django",
+        "lifecycle",
+        "EOL",
+        ["  4.2  "],
+        detected_at="2026-08-01T00:00:00+00:00",
+        root=root,
+    )
+    assert again["recorded_now"] is False
+    assert again["first_seen"] == "2026-07-01T00:00:00+00:00"
+
+    # Edited scope -> hash mismatch -> untrusted.
+    entry["scope"] = ["4.2", "5.0"]
+    assert ledger.verify_entry(entry) is False
+
+
+def test_check_cli_ledger_busy_never_crashes_the_run(tmp_path, monkeypatch):
+    """A busy ledger lock degrades the run, never a traceback.
+
+    Cron reliability: acquisition must not crash the command - warn
+    on stderr and continue without ledger enrichment.
+    """
+    from click.testing import CliRunner
+
+    from cli.main import cli as _cli
+    from core.detections import ledger as ledger_mod
+
+    watchlist = _write_watchlist(tmp_path)
+    ledger_root = tmp_path / "ledger"
+    (ledger_root / "django").mkdir(parents=True)
+    # A fresh lock held by someone else: acquisition times out
+    # (stale reclaim disabled so the holder looks alive).
+    (ledger_root / "django" / ".ledger-lock").write_text("holder", encoding="utf-8")
+    monkeypatch.setattr(ledger_mod, "_LOCK_WAIT_SECONDS", 0.05)
+    monkeypatch.setattr(ledger_mod, "_LOCK_STALE_SECONDS", 10_000.0)
+
+    out = CliRunner().invoke(
+        _cli,
+        [
+            "check",
+            "--watchlist",
+            str(watchlist),
+            "--event",
+            "data/fixtures/django-eol/event.json",
+            "--ledger",
+            str(ledger_root),
+        ],
+    )
+    assert out.exit_code == 0, (out.output, out.exception)
+    assert "django==4.2: AFFECTED" in out.output
+    assert "ledger busy" in out.output
+    # No claim was made: degraded to per-run behavior.
+    assert "first detected" not in out.output

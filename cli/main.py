@@ -554,42 +554,52 @@ def check(
     results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
+    # Acquisition is best-effort BY DESIGN: the ledger is an
+    # enrichment, never a prerequisite - a busy lock must degrade the
+    # run to today's no-ledger output, not crash the command a cron
+    # schedule depends on.
     if ledger_root:
         from core.detections.ledger import first_seen, record_detection
         from core.risk.check import detections_from_verdicts
 
-        for fact in detections_from_verdicts(results, loaded_events):
-            record_detection(
-                fact["project"],
-                fact["finding_class"],
-                fact["subject"],
-                scope=fact["scope"],
-                root=ledger_root,
-            )
-        for result in results:
-            # Earliest across ALL of this verdict's recorded facts, not
-            # the first recorded fact: a dependency can carry a fresh
-            # lifecycle cause and a security record detected days earlier
-            # (lifecycle causes are appended before security ones), and
-            # the reported first detection must be the earliest of them.
-            earliest = min(
-                (
-                    seen
-                    for fact in detections_from_verdicts([result], loaded_events)
-                    if (
-                        seen := first_seen(
-                            fact["project"],
-                            fact["finding_class"],
-                            fact["subject"],
-                            scope=fact["scope"],
-                            root=ledger_root,
+        try:
+            for fact in detections_from_verdicts(results, loaded_events):
+                record_detection(
+                    fact["project"],
+                    fact["finding_class"],
+                    fact["subject"],
+                    scope=fact["scope"],
+                    root=ledger_root,
+                )
+        except TimeoutError:
+            _echo("ledger busy - detections not recorded this run", err=True)
+        else:
+            for result in results:
+                # Earliest across ALL of this verdict's recorded facts, not
+                # the first recorded fact: a dependency can carry a fresh
+                # lifecycle cause and a security record detected days earlier
+                # (lifecycle causes are appended before security ones), and
+                # the reported first detection must be the earliest of them.
+                # Reads are lock-free (atomic file reads), so they cannot
+                # hit the busy lock the writes just passed.
+                earliest = min(
+                    (
+                        seen
+                        for fact in detections_from_verdicts([result], loaded_events)
+                        if (
+                            seen := first_seen(
+                                fact["project"],
+                                fact["finding_class"],
+                                fact["subject"],
+                                scope=fact["scope"],
+                                root=ledger_root,
+                            )
                         )
-                    )
-                ),
-                default=None,
-            )
-            if earliest:
-                result.first_detected = str(earliest)[:10]
+                    ),
+                    default=None,
+                )
+                if earliest:
+                    result.first_detected = str(earliest)[:10]
     if digest or webhook:
         from analyzers.report_analyst import render_check_digest
 

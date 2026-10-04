@@ -277,13 +277,13 @@ def _ledger_fact(finding: dict[str, Any]) -> tuple[str, list[str]] | None:
     durable first-detection through observation history, never the
     ledger.
     """
-    from core.detections.ledger import LIFECYCLE, SECURITY
+    from core.detections.ledger import LIFECYCLE, LIFECYCLE_EVENT_TYPES, SECURITY
 
     cve = finding.get("cve_id")
     if cve:
         return (SECURITY, str(cve), [])
     event_type = str(finding.get("event_type") or "")
-    if event_type in ("EOL", "EOS", "DEPRECATION"):
+    if event_type in LIFECYCLE_EVENT_TYPES:
         scope = finding.get("scope") or {}
         versions = [str(v) for v in scope.get("versions") or []] or [
             str(v) for v in finding.get("affected_versions") or []
