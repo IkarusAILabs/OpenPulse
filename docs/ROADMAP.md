@@ -117,9 +117,9 @@ STATUS: ACTIVE
 The monthly briefing is a product surface (Executive Summary through Historical appendix, plus the `.meta.json` machine companion and the Lifecycle Posture view). Keep it ahead of the intelligence it carries; no new sections without a reader need. Lifecycle stays one category, never the product.
 
 ## M4 — Software Ecosystem Intelligence Benchmark
-STATUS: VALIDATION (5 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis)
+STATUS: VALIDATION (6 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL)
 
-A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: PostgreSQL, Kubernetes, cert-manager, Kafka, Grafana, Terraform, one AI/ML project.
+A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: Kubernetes, cert-manager, Kafka, Grafana, Terraform, one AI/ML project.
 
 ## M5 — Dependency Context & Impact Intelligence
 STATUS: NEXT MAJOR PRODUCT MILESTONE
@@ -203,7 +203,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
 - ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
-- VALIDATION: M4 at 5 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
+- VALIDATION: M4 at 6 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
 - NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
@@ -213,7 +213,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 1. Real non-lifecycle discovery — close the M2 acceptance set (confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings).
 2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
-3. Golden benchmark — PostgreSQL, Kubernetes, cert-manager, Kafka; start Grafana/Terraform/AI-ML.
+3. Golden benchmark — Kubernetes, cert-manager, Kafka; start Grafana/Terraform/AI-ML.
 4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.
 5. Early-warning prototype — watchlist-scoped first-detection history already durable; add verified lead-time cases.
 
