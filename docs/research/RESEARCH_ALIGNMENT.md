@@ -40,7 +40,7 @@ Collectors (GitHub, OSV, NVD, CVE, KEV, endoflife.date, registries; all degrade 
 
 ## Benchmark strategy (M4, validation in progress)
 
-6 of 10–15 golden scenarios formalized (Bitnami, iText, MinIO, Django, Redis, PostgreSQL). Each answers eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) plus a “why OpenPulse?” assertion. Planned: Kubernetes, cert-manager, Kafka, Grafana, Terraform, one AI/ML project — each also answering the applicability metrics (precision/recall, false-impact/clear rates) as the benchmark matures from scenarios into measurements.
+7 of 10–15 golden scenarios formalized (Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes). Each answers eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) plus a “why OpenPulse?” assertion. Planned: cert-manager, Kafka, Grafana, Terraform, one AI/ML project — each also answering the applicability metrics (precision/recall, false-impact/clear rates) as the benchmark matures from scenarios into measurements.
 
 ## AI-mediated dependency research (M8 direction, M9 experiment)
 
