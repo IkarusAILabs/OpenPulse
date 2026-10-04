@@ -1,14 +1,16 @@
-# OpenPulse — OSS Dependency Intelligence
+# OpenPulse — Software Ecosystem Intelligence
 
-[![ci](https://github.com/ikaruscareer/OpenPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/ikaruscareer/OpenPulse/actions/workflows/ci.yml)
+[![ci](https://github.com/IkarusAILabs/OpenPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/IkarusAILabs/OpenPulse/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)
 
 > **Watch what can change underneath your software.**
 >
-> OpenPulse is OSS Dependency Intelligence that detects upstream changes and warns you before they become problems for your software.
+> OpenPulse is an evidence-first intelligence system that discovers meaningful changes in the open-source software ecosystem, establishes their identity and applicability, and produces machine-readable evidence about their potential impact on software dependencies.
 >
 > From *"What is happening in open source?"* to *"What is happening to MY software?"*
+
+OpenPulse is the **Software Ecosystem Evidence Plane** of the [Ikarus AI Labs research programme](https://ikaruslabs.net/research) on Evidence-Based Assurance for AI-Mediated Software Change — not an EOL monitor, not an AI security product.
 
 <img width="1024" height="1024" alt="OpenPulse" src="https://github.com/user-attachments/assets/f7e4b9c9-6f7c-49fa-8950-a5d1594829b7" />
 
@@ -21,11 +23,11 @@ So instead of another giant list of things happening in open source, OpenPulse a
 
 ## Know Your Agent. Know Your Dependencies.
 
-OpenPulse is part of an AI-era security story by [Ikarus Career](https://github.com/ikaruscareer):
+OpenPulse is part of the [Ikarus AI Labs](https://ikaruslabs.net) research programme. SafeAI and OpenPulse are intentionally separate instruments — combined-model claims stay out of this repo until the joint experiment runs:
 
 | Question | Project | Answer |
 |---|---|---|
-| What can this AI agent do? | [SafeAI](https://github.com/ikaruscareer/SafeAI) — **KYA, Know Your Agent** | Agent capabilities, prompt risks, tool permissions |
+| What can this AI agent do? | [SafeAI](https://github.com/IkarusAILabs/SafeAI) — **KYA, Know Your Agent** | Agent capabilities, prompt risks, tool permissions |
 | What does the software it creates depend on? | **OpenPulse — KYD, Know Your Dependencies** | Upstream change intelligence mapped to your dependencies |
 
 AI can introduce dependencies faster than humans can review them. OpenPulse helps you understand what those dependencies depend on — and what happens when the ecosystem underneath them changes. **AI writes code fast. OpenPulse watches what that code depends on.**
@@ -233,7 +235,7 @@ cli/                # openpulse CLI (validate, pulse, analyze, observe, report, 
 reports/            # generate.py — monthly ranked markdown reports
 data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
 docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
-tests/              # 330+ offline tests (no network in CI)
+tests/              # 400+ offline tests (no network in CI)
 ```
 
 The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this repo — the OSS intelligence core stays independent.
@@ -250,14 +252,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 
 ## Roadmap
 
-M1 Trusted Intelligence Engine ✅ done (now maintenance) → M2 Real
-Upstream Change Discovery 🔨 active / highest priority → M3 Report
-Product ✅ briefing format live → M4 Intelligence Benchmark 🔨 4 of
-12+ scenarios formalized → M5 Customer Dependency Intelligence (next
-major milestone; watchlist CLI is the preview) → M6 Early Warning
-SaaS → M7 Intelligence Network → M8 AI Dependency Intelligence
-(futures). Full sequence, principles, and metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md)
-(reset 2026-10-02; the old v0.x phase plan is retired).
+M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery 🔨 active (acceptance: 5 verified cases) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 5 of 10–15 formalized → M5 Dependency Context (SBOM + watchlist shipped; manifests/lockfiles/images next) → M6 Early Warning (ledger shipped; SaaS future) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
 
 Deliberately *not* on the roadmap: becoming an EOL database, another
 generic SCA, collector-count vanity, AI reasoning in the trusted
@@ -277,15 +272,15 @@ ruff check .   # must pass
 pytest -q      # must pass (offline)
 ```
 
-Good first issues are labeled [`good first issue`](https://github.com/ikaruscareer/OpenPulse/labels/good%20first%20issue).
+Good first issues are labeled [`good first issue`](https://github.com/IkarusAILabs/OpenPulse/labels/good%20first%20issue).
 
 ## Contributors
 
 Thank you to everyone moving OpenPulse forward:
 
-- **[@wufangyong973](https://github.com/wufangyong973)** — grew the canonical project catalog toward OpenPulse 100 (Airflow, Spark, MinIO, Celery, ZooKeeper) in [#11](https://github.com/ikaruscareer/OpenPulse/pull/11). First of many.
-- **[@DYNOSuprovo](https://github.com/DYNOSuprovo)** — ASCII-marker fallback for `openpulse check` on non-UTF-8 consoles in [#14](https://github.com/ikaruscareer/OpenPulse/pull/14) (merged via [#17](https://github.com/ikaruscareer/OpenPulse/pull/17)).
-- **[@choksi2212](https://github.com/choksi2212)** — six good-first-issue contributions: Unicode fallback for every CLI command ([#21](https://github.com/ikaruscareer/OpenPulse/pull/21)), OSV live wiring ([#22](https://github.com/ikaruscareer/OpenPulse/pull/22)), catalog identity metadata for forks/renames/ecosystem mappings ([#23](https://github.com/ikaruscareer/OpenPulse/pull/23)), intelligence-semantics documentation ([#24](https://github.com/ikaruscareer/OpenPulse/pull/24)), SBOM artifact upload ([#25](https://github.com/ikaruscareer/OpenPulse/pull/25)), and the Windows CI runner ([#26](https://github.com/ikaruscareer/OpenPulse/pull/26)).
+- **[@wufangyong973](https://github.com/wufangyong973)** — grew the canonical project catalog toward OpenPulse 100 (Airflow, Spark, MinIO, Celery, ZooKeeper) in [#11](https://github.com/IkarusAILabs/OpenPulse/pull/11). First of many.
+- **[@DYNOSuprovo](https://github.com/DYNOSuprovo)** — ASCII-marker fallback for `openpulse check` on non-UTF-8 consoles in [#14](https://github.com/IkarusAILabs/OpenPulse/pull/14) (merged via [#17](https://github.com/IkarusAILabs/OpenPulse/pull/17)).
+- **[@choksi2212](https://github.com/choksi2212)** — six good-first-issue contributions: Unicode fallback for every CLI command ([#21](https://github.com/IkarusAILabs/OpenPulse/pull/21)), OSV live wiring ([#22](https://github.com/IkarusAILabs/OpenPulse/pull/22)), catalog identity metadata for forks/renames/ecosystem mappings ([#23](https://github.com/IkarusAILabs/OpenPulse/pull/23)), intelligence-semantics documentation ([#24](https://github.com/IkarusAILabs/OpenPulse/pull/24)), SBOM artifact upload ([#25](https://github.com/IkarusAILabs/OpenPulse/pull/25)), and the Windows CI runner ([#26](https://github.com/IkarusAILabs/OpenPulse/pull/26)).
 
 ## License
 
