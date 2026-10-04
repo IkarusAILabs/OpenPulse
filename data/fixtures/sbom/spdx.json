@@ -1,0 +1,84 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "fixture-inventory",
+  "creationInfo": {
+    "created": "2026-10-04T00:00:00Z",
+    "creators": [
+      "Tool: openpulse-fixture"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://example.com/spdxdocs/fixture-inventory",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-redis",
+      "name": "redis",
+      "versionInfo": "7.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:docker/bitnami/redis@7.2"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-django",
+      "name": "django",
+      "versionInfo": "5.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:pypi/django@5.0"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-itext",
+      "name": "itext-core",
+      "versionInfo": "8.0.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:maven/com.itextpdf/itext-core@8.0.2"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-symfony",
+      "name": "symfony/http-foundation",
+      "versionInfo": "7.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:composer/symfony/http-foundation@7.0"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-nopurl",
+      "name": "mystery",
+      "versionInfo": "1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": []
+    }
+  ]
+}
