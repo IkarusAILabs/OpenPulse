@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from core.entities.resolve import EXPLICIT_ALIASES, _bitnami_rule, normalize_ref
+from core.entities.resolve import EXPLICIT_ALIASES, _bitnami_rule, _catalog_hit, normalize_ref
 
 IdentityKind = Literal[
     "project", "package", "artifact", "repository", "registry_artifact", "purl", "cpe"
@@ -85,9 +85,7 @@ def identity_block_for_slug(
     return {}
 
 
-def resolution_trust(
-    ref: str, catalog: list[dict[str, Any]] | None = None
-) -> dict[str, Any]:
+def resolution_trust(ref: str, catalog: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """How `ref` resolves: {slug, via, identity_status, detail}.
 
     `via` is explicit | catalog | namespace_rule | self. Only
@@ -105,8 +103,9 @@ def resolution_trust(
             "detail": "curated explicit alias",
         }
     alias_map = catalog_alias_map(catalog if catalog is not None else load_catalog())
-    if normalized in alias_map:
-        slug = alias_map[normalized]
+    hit = _catalog_hit(str(ref), normalized, alias_map)
+    if hit:
+        slug = hit
         block = identity_block_for_slug(slug, catalog)
         return {
             "slug": slug,
