@@ -1,6 +1,6 @@
 # OpenPulse Roadmap — re-baselined 2026-10-04 for the Ikarus AI Labs research programme
 
-> OpenPulse is the Software Ecosystem Evidence Plane within the Ikarus AI Labs research programme on Evidence-Based Assurance for AI-Mediated Software Change.
+> OpenPulse is the Software Ecosystem Evidence Plane within the [Ikarus AI Labs research programme](https://ikaruslabs.net/research) on Evidence-Based Assurance for AI-Mediated Software Change.
 >
 > OpenPulse investigates how software organisations can establish trustworthy evidence about changes occurring in the open-source ecosystem, determine whether those changes apply to their dependencies, and provide timely, explainable warnings.
 >
