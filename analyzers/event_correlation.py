@@ -106,12 +106,19 @@ def _story(event_type: str, group: list[dict[str, Any]]) -> dict[str, Any]:
     scopes: list[str] = []
     significance = "low"
     observed: list[str] = []
+    firsts: list[str] = []
     for finding in group:
         versions += [v for v in _versions(finding) if v not in versions]
         links += [u for u in _links(finding) if u not in links]
         date = finding.get("event_date")
         if date:
             dates.append(str(date))
+        # Durable first detections (ledger/observation history) must
+        # survive the merge: the story's first detection is the
+        # earliest of its members', never dropped back to unknown.
+        first = finding.get("first_detected_at")
+        if first:
+            firsts.append(str(first))
         scope = finding.get("scope") or {}
         for version in scope.get("versions", []) or []:
             if str(version) not in scopes:
@@ -148,6 +155,8 @@ def _story(event_type: str, group: list[dict[str, Any]]) -> dict[str, Any]:
         "evidence_links": links,
         "stories_merged": len(group),
     }
+    if firsts:
+        story["first_detected_at"] = min(firsts)
     states = {str(f.get("lifecycle_state") or "") for f in group} - {""}
     if len(states) == 1:
         story["lifecycle_state"] = states.pop()
