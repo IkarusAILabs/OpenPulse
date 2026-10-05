@@ -502,6 +502,13 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
 )
 @click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory (one ref per line, or a YAML list) "
+    "— composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
     "--lockfile",
     "lockfile",
     type=click.Path(exists=True),
@@ -547,6 +554,7 @@ def check(
     watchlist,
     sbom,
     spdx,
+    images,
     lockfile,
     events,
     raw_bundle_dir,
@@ -563,8 +571,10 @@ def check(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx and not lockfile:
-        raise click.ClickException("check needs --watchlist, --sbom, --spdx and/or --lockfile")
+    if not watchlist and not sbom and not spdx and not images and not lockfile:
+        raise click.ClickException(
+            "check needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
+        )
     deps: list[Any] = []
     if watchlist:
         try:
@@ -615,16 +625,29 @@ def check(
             _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SBOM")
         for line in spdx_skipped:
             _echo(f"! skipped: {line}")
+    if images:
+        from core.image_inventory import read_image_inventory
+
+        try:
+            img_deps, img_skipped = read_image_inventory(images)
+        except ValueError as e:
+            raise click.ClickException(f"{images}: {e}")
+        for line in img_skipped:
+            _echo(f"! skipped: {line}")
+        if img_deps:
+            _echo(f"images: {len(img_deps)} image ref(s) from inventory")
+            deps = [*deps, *img_deps]
+        elif img_skipped:
+            _echo(
+                f"images: 0 usable, {len(img_skipped)} skipped — "
+                "nothing checkable in this inventory"
+            )
     if lockfile:
         from core.lockfile_reader import read_lockfile
 
         try:
             lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
         except ValueError as e:
-            # read_lockfile raises ValueError for every refusal shape:
-            # oversize, non-UTF-8, unparseable, unknown format. A JSON
-            # file that parses but lacks `lockfileVersion` lands here too,
-            # with a message naming exactly that.
             raise click.ClickException(f"{lockfile}: {e}")
         label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
         if lock_deps:
@@ -638,9 +661,6 @@ def check(
                 f"lockfile ({label}): 0 pinned, "
                 f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
             )
-        # Same echo discipline as --sbom/--spdx: skip reasons echo
-        # BEFORE the nothing-checkable guard, so an all-skip lockfile
-        # explains itself instead of dying with a bare error.
         for line in lock_skipped:
             _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
@@ -655,7 +675,7 @@ def check(
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
         raise click.ClickException(
-            "no checkable dependencies (watchlist/SBOM/lockfile yielded nothing)"
+            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
         )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,

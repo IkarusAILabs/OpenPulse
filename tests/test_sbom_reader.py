@@ -404,7 +404,7 @@ class TestCheckCliSbom:
     def test_check_requires_at_least_one_input(self):
         out = self._run("--event", "data/fixtures/bitnami/event.json")
         assert out.exit_code != 0
-        assert "needs --watchlist, --sbom, --spdx and/or --lockfile" in out.output
+        assert "needs --watchlist, --sbom, --spdx, --images and/or --lockfile" in out.output
 
     def test_sbom_digest_output(self):
         out = self._run("--sbom", FIXTURE, "--digest")
