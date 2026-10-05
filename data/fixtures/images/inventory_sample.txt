@@ -1,0 +1,5 @@
+# Sample container image inventory — one ref per line.
+docker.io/bitnami/redis:7.2
+docker.io/redis:7.2
+docker.io/redis@sha256:5d1e9f06f4d0d1d1c9eab038e9d6c0a5e1b2c3d4e5f60718293a4b5c6d7e8f9a
+docker.io/redis@sha256:0000000000000000000000000000000000000000000000000000000000000

@@ -51,6 +51,23 @@ def tag_of(ref: str) -> str | None:
     return last.rsplit(":", 1)[-1]
 
 
+def digest_of(ref: str) -> str | None:
+    """Pinned digest, or None when the ref names a tag (or is bare).
+
+    A digest is an immutable content address: it survives a tag move
+    and stays meaningful after a registry prunes the tag. Digest
+    comparison is byte identity — equal digests are the same bytes,
+    different digests are provably different content.
+    """
+    r = str(ref).strip()
+    if "@" not in r:
+        return None
+    digest = r.split("@", 1)[1].strip()
+    if not digest:
+        return None
+    return digest
+
+
 def match_artifact(ref: str, artifact_ref: str) -> bool:
     return split_image_ref(ref) == split_image_ref(artifact_ref)
 
@@ -74,10 +91,66 @@ def _scope(event: OSSEvent) -> dict:
     }
 
 
+def tag_vs_digest_policy(ref: str, artifact_ref: str) -> dict[str, str | bool | None]:
+    """Tag-vs-digest pinning policy for two refs of the same artifact.
+
+    Same-identity precondition: callers reach here only after
+    split_image_ref equality, so both refs name the same
+    registry/namespace/name and only the pinning form can differ.
+
+    - digest vs digest, equal: the same immutable bytes — the only
+      form that is exact artifact identity.
+    - digest vs digest, different: provably different content; the
+      pinned bytes are not the artifact the event names.
+    - digest vs tag (or tag vs digest): the refs agree on the
+      repository but one side pins bytes while the other names a
+      moving pointer. A tag can move onto (or away from) the pinned
+      digest at any time, so this is RELATED with the uncertainty
+      visible — never AFFECTS_ARTIFACT, never NOT_AFFECTED.
+    - tag vs tag: current tag semantics apply unchanged (see
+      event_affects_ref); comparing tags says nothing about bytes.
+
+    The policy, not the volume of code, is the deliverable: a moving
+    tag never reports digest-level certainty.
+    """
+    dep_digest = digest_of(ref)
+    art_digest = digest_of(artifact_ref)
+    if dep_digest is None or art_digest is None:
+        if dep_digest == art_digest:
+            return {}  # tag vs tag: no policy opinion, caller decides
+        return {
+            "affected": False,
+            "via": None,
+            "relationship": "RELATED",
+            "detail": (
+                f"{ref} and {artifact_ref} name the same repository but mix pinning "
+                "forms (digest vs tag); a moving tag never reports digest-level "
+                "certainty"
+            ),
+        }
+    if dep_digest == art_digest:
+        return {}  # equal pinned digests: exact identity, caller reports
+    return {
+        "affected": False,
+        "via": None,
+        "relationship": "NOT_AFFECTED",
+        "detail": (
+            f"{ref} pins digest {dep_digest}, not the bytes the event names "
+            f"({artifact_ref} pins {art_digest})"
+        ),
+    }
+
+
 def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
     """Return {affected, via, relationship, detail} for one dependency ref."""
     for a in event.affected_artifacts:
         if match_artifact(ref, a.ref):
+            policy = tag_vs_digest_policy(ref, a.ref)
+            if policy:
+                # The pinning policy owns the verdict whenever the two
+                # refs mix forms or disagree on bytes: a moving tag
+                # never reports digest-level certainty.
+                return policy
             return {
                 "affected": True,
                 "via": "artifact",
@@ -89,6 +162,9 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
     if kind == "artifact" and scope["artifacts"]:
         for candidate in scope["artifacts"]:
             if match_artifact(ref, candidate):
+                policy = tag_vs_digest_policy(ref, candidate)
+                if policy:
+                    return policy
                 return {
                     "affected": True,
                     "via": "artifact",

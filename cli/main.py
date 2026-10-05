@@ -502,6 +502,13 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
 )
 @click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory (one ref per line, or a YAML list) "
+    "— composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -540,6 +547,7 @@ def check(
     watchlist,
     sbom,
     spdx,
+    images,
     events,
     raw_bundle_dir,
     strict,
@@ -555,8 +563,8 @@ def check(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx:
-        raise click.ClickException("check needs --watchlist, --sbom and/or --spdx")
+    if not watchlist and not sbom and not spdx and not images:
+        raise click.ClickException("check needs --watchlist, --sbom, --spdx and/or --images")
     deps: list[Any] = []
     if watchlist:
         try:
@@ -607,6 +615,26 @@ def check(
             _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SBOM")
         for line in spdx_skipped:
             _echo(f"! skipped: {line}")
+    if images:
+        from core.image_inventory import read_image_inventory
+
+        try:
+            img_deps, img_skipped = read_image_inventory(images)
+        except ValueError as e:
+            raise click.ClickException(f"{images}: {e}")
+        # Echo discipline mirrors --sbom/--spdx: skip reasons first,
+        # then the summary; the empty-deps guard still sees the final
+        # dep list either way.
+        for line in img_skipped:
+            _echo(f"! skipped: {line}")
+        if img_deps:
+            _echo(f"images: {len(img_deps)} image ref(s) from inventory")
+            deps = [*deps, *img_deps]
+        elif img_skipped:
+            _echo(
+                f"images: 0 usable, {len(img_skipped)} skipped — "
+                "nothing checkable in this inventory"
+            )
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -618,7 +646,9 @@ def check(
             if bundle.exists():
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
-        raise click.ClickException("no checkable dependencies (watchlist/SBOM yielded nothing)")
+        raise click.ClickException(
+            "no checkable dependencies (watchlist/SBOM/inventory yielded nothing)"
+        )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.

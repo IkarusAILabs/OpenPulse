@@ -273,6 +273,33 @@ Diffs are candidate changes with explicit evidence strength
 evidence caps report placement at REVIEW and can never become
 ACTION_REQUIRED, however precise the dependency match.
 
+## Image inventories and the tag-vs-digest pinning policy
+
+Container image inventories (`openpulse check --images`, one ref per
+line or a simple YAML list) are a deployment-side input: the refs a
+team actually runs. Entries map through the same identity semantics
+as watchlist refs (`split_image_ref`/`tag_of` in `core/risk/match.py`)
+and produce identical verdicts to the same refs via `--watchlist`
+— there is no second matching engine.
+
+Identity is digest-aware while inventories name tags, so pinning
+forms carry an explicit policy (`tag_vs_digest_policy`):
+
+- **Pinned digests match exactly.** Two refs that pin the same
+  digest are the same immutable bytes — AFFECTS_ARTIFACT, the only
+  form of exact artifact identity besides tag equality.
+- **Different digests are provably different content.** NOT_AFFECTED:
+  the pinned bytes are not the artifact the event names.
+- **A digest on one side and a tag on the other is RELATED, never
+  AFFECTS_ARTIFACT and never NOT_AFFECTED.** The refs agree on the
+  repository, but a tag can move onto (or away from) the pinned
+  digest at any time; the uncertainty is reported, not resolved.
+- **Tags match by current registry-scope semantics** (`match.py`),
+  unchanged; comparing tags says nothing about bytes.
+
+A moving tag never reports digest-level certainty — enforced by
+tests (`tests/test_image_inventory.py`), not just documented.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not
