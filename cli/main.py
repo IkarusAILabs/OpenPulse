@@ -502,6 +502,13 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
 )
 @click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock) — pinned entries only, "
+    "composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -540,6 +547,7 @@ def check(
     watchlist,
     sbom,
     spdx,
+    lockfile,
     events,
     raw_bundle_dir,
     strict,
@@ -555,8 +563,8 @@ def check(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx:
-        raise click.ClickException("check needs --watchlist, --sbom and/or --spdx")
+    if not watchlist and not sbom and not spdx and not lockfile:
+        raise click.ClickException("check needs --watchlist, --sbom, --spdx and/or --lockfile")
     deps: list[Any] = []
     if watchlist:
         try:
@@ -607,6 +615,34 @@ def check(
             _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SBOM")
         for line in spdx_skipped:
             _echo(f"! skipped: {line}")
+    if lockfile:
+        from core.lockfile_reader import read_lockfile
+
+        try:
+            lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
+        except ValueError as e:
+            # read_lockfile raises ValueError for every refusal shape:
+            # oversize, non-UTF-8, unparseable, unknown format. A JSON
+            # file that parses but lacks `lockfileVersion` lands here too,
+            # with a message naming exactly that.
+            raise click.ClickException(f"{lockfile}: {e}")
+        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
+        if lock_deps:
+            _echo(
+                f"lockfile ({label}): {len(lock_deps)} pinned package(s), "
+                f"{len(lock_skipped)} skipped"
+            )
+            deps = [*deps, *lock_deps]
+        elif lock_skipped:
+            _echo(
+                f"lockfile ({label}): 0 pinned, "
+                f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
+            )
+        # Same echo discipline as --sbom/--spdx: skip reasons echo
+        # BEFORE the nothing-checkable guard, so an all-skip lockfile
+        # explains itself instead of dying with a bare error.
+        for line in lock_skipped:
+            _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -618,7 +654,9 @@ def check(
             if bundle.exists():
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
-        raise click.ClickException("no checkable dependencies (watchlist/SBOM yielded nothing)")
+        raise click.ClickException(
+            "no checkable dependencies (watchlist/SBOM/lockfile yielded nothing)"
+        )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.

@@ -29,7 +29,7 @@ Purpose: turn public intelligence into customer answers without building generic
 
 - [DONE] YAML watchlist path (`openpulse check`) and CycloneDX SBOM input (`core/sbom_reader.py`) converging on `check_dependency` verdicts.
 - [NEXT] SPDX input alongside CycloneDX, same convergence rule (reuse identity/applicability semantics or do not ship). Purpose: M5 input breadth without a second engine.
-- [NEXT] Lockfile readers (package-lock, poetry.lock, Cargo.lock — one format at a time, pinned-version truth only). Purpose: exact-version applicability, the highest-precision M5 input.
+- [DONE] Lockfile readers (package-lock, poetry.lock, Cargo.lock — pinned-version truth only; `core/lockfile_reader.py`, skip-and-record discipline, `--lockfile` composable with watchlist/SBOM). Purpose: exact-version applicability, the highest-precision M5 input.
 - [NEXT] Container image inventory input (image:tag lists → artifact matching). Purpose: closes the loop with distribution intelligence (M2→M5).
 - [DEFERRED] GitHub-repository ingestion (dependency files at a ref). Purpose: real, but auth/permissions/rate-limit design belongs with customer monitoring, not local CLI.
 
