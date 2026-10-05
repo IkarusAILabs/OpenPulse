@@ -1,6 +1,6 @@
-# Implementation Backlog — P0–P3 (with item dispositions)
+# Implementation Backlog — P0–P3, P5 (with item dispositions)
 
-Scope: work that moves roadmap acceptance, in priority order. Every item states its research or product purpose. Speculative functionality is out; anything here must be buildable against the current pipeline (`collectors/` → `analyzers/` → `core/evidence` → `reports/`, 409 tests green).
+Scope: work that moves roadmap acceptance, in priority order. Every item states its research or product purpose. Speculative functionality is out; anything here must be buildable against the current pipeline (`collectors/` → `analyzers/` → `core/evidence` → `reports/`, 445 tests green).
 
 Item states: DONE, ACTIVE, NEXT, DEFERRED, REMOVED. Dispositions at the bottom record what was removed, merged, deferred, downgraded, or left for validation.
 
@@ -41,6 +41,14 @@ Purpose: turn scenarios into measurements (precision/recall, false-impact/clear 
 - [NEXT] Grafana, Terraform, one AI/ML project (the AI/ML case doubles as the M8 entry point). Purpose: close M4 coverage including agent-selected software.
 - [NEXT] Benchmark harness reporting per-scenario applicability outcomes (affected/not/unknown vs expected) as a reproducibility package. Purpose: first step from scenarios to the research metrics the roadmap promises.
 - [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL six green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
+
+## P5 — Evidence Contract (attestation precursor)
+
+Purpose: machine-readable dependency intelligence another system can consume without understanding OpenPulse internals — the prerequisite for any SafeAI interchange (M9).
+
+- [DONE] Evidence contract minimal schema (`core/attestation.py`): event context, identity (with trust status), scope, affected dependency, applicability basis (match strength + method), assessment, confidence, evidence references with source authority, the four temporal roles, recommendation, unknowns, limitations, provenance (OpenPulse version, schema version, generation timestamp, content hash). Every field documents its current source; convergence, not invention. Builder is a pure function over (event, verdict[, finding]); round-trip dump→validate→byte-identical is test-pinned; the content hash covers the evidence body only (clock-independent), so the same logical document always hashes identically.
+- [PLANNED, marked in schema, never populated] `signature`, `signing_key_id`, `trust_root` — keys, signatures, and trust roots are a separate, later issue. The contract is NOT a signature format and NOT a policy decision: consumers decide what to do with the assessment.
+- [NEXT] First external consumer validation (M9 experiment design only — no coupled runtime before the contract has a consumer).
 
 ## Dispositions
 
