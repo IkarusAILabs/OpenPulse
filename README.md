@@ -143,7 +143,7 @@ everything else. We do not compete on EOL record counts.
   Bitnami-namespace rules, and identity trust (VERIFIED /
   REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
   EMERGING).
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists and CycloneDX or SPDX SBOMs (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, and npm/poetry/Cargo lockfiles (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
 - **290+ tests**, `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
 ## Quickstart
@@ -176,6 +176,10 @@ openpulse check --sbom data/fixtures/sbom/cyclonedx.json --event data/fixtures/b
 
    # SPDX 2.x SBOMs work the same way, and compose with both
 openpulse check --spdx data/fixtures/sbom/spdx.json --event data/fixtures/bitnami/event.json
+
+   # lockfiles too: package-lock.json, poetry.lock or Cargo.lock (pinned entries only,
+   # unpinned/workspace entries are skipped with reasons, never range-guessed)
+openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
 
 # 7. Run the test suite
 pytest -q
