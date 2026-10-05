@@ -507,6 +507,11 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     type=click.Path(exists=True),
     help="Container image inventory (one ref per line, or a YAML list) "
     "— composable with --watchlist/--sbom/--spdx",
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock) — pinned entries only, "
+    "composable with --watchlist/--sbom/--spdx",
 )
 @click.option(
     "--event",
@@ -548,6 +553,7 @@ def check(
     sbom,
     spdx,
     images,
+    lockfile,
     events,
     raw_bundle_dir,
     strict,
@@ -563,8 +569,8 @@ def check(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx and not images:
-        raise click.ClickException("check needs --watchlist, --sbom, --spdx and/or --images")
+    if not watchlist and not sbom and not spdx and not images and not lockfile:
+        raise click.ClickException("check needs --watchlist, --sbom, --spdx, --images and/or --lockfile")
     deps: list[Any] = []
     if watchlist:
         try:
@@ -622,9 +628,6 @@ def check(
             img_deps, img_skipped = read_image_inventory(images)
         except ValueError as e:
             raise click.ClickException(f"{images}: {e}")
-        # Echo discipline mirrors --sbom/--spdx: skip reasons first,
-        # then the summary; the empty-deps guard still sees the final
-        # dep list either way.
         for line in img_skipped:
             _echo(f"! skipped: {line}")
         if img_deps:
@@ -635,6 +638,27 @@ def check(
                 f"images: 0 usable, {len(img_skipped)} skipped — "
                 "nothing checkable in this inventory"
             )
+    if lockfile:
+        from core.lockfile_reader import read_lockfile
+
+        try:
+            lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
+        except ValueError as e:
+            raise click.ClickException(f"{lockfile}: {e}")
+        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
+        if lock_deps:
+            _echo(
+                f"lockfile ({label}): {len(lock_deps)} pinned package(s), "
+                f"{len(lock_skipped)} skipped"
+            )
+            deps = [*deps, *lock_deps]
+        elif lock_skipped:
+            _echo(
+                f"lockfile ({label}): 0 pinned, "
+                f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
+            )
+        for line in lock_skipped:
+            _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -647,7 +671,11 @@ def check(
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
         raise click.ClickException(
+<<<<<<< HEAD
             "no checkable dependencies (watchlist/SBOM/inventory yielded nothing)"
+=======
+            "no checkable dependencies (watchlist/SBOM/lockfile yielded nothing)"
+>>>>>>> origin/main
         )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
