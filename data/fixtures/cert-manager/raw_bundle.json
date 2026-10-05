@@ -1,0 +1,45 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "cert-manager",
+      "cycle": "1.19",
+      "eol": "2026-07-08",
+      "support": null,
+      "latest": "1.19.6",
+      "latestReleaseDate": "2026-06-25"
+    },
+    {
+      "collector": "endoflife",
+      "product": "cert-manager",
+      "cycle": "1.18",
+      "eol": "2026-03-10",
+      "support": null,
+      "latest": "1.18.6",
+      "latestReleaseDate": "2026-02-24"
+    },
+    {
+      "collector": "endoflife",
+      "product": "cert-manager",
+      "cycle": "1.21",
+      "eol": false,
+      "support": null,
+      "latest": "1.21.2",
+      "latestReleaseDate": "2026-09-10"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "cert-manager/cert-manager",
+      "archived": false,
+      "pushed_at": "2026-09-26T00:00:00Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}
