@@ -507,6 +507,8 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     type=click.Path(exists=True),
     help="Container image inventory (one ref per line, or a YAML list) "
     "— composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
     "--lockfile",
     "lockfile",
     type=click.Path(exists=True),
@@ -570,7 +572,9 @@ def check(
     from core.risk.check import check_dependency, load_watchlist_doc
 
     if not watchlist and not sbom and not spdx and not images and not lockfile:
-        raise click.ClickException("check needs --watchlist, --sbom, --spdx, --images and/or --lockfile")
+        raise click.ClickException(
+            "check needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
+        )
     deps: list[Any] = []
     if watchlist:
         try:
@@ -671,11 +675,7 @@ def check(
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
         raise click.ClickException(
-<<<<<<< HEAD
-            "no checkable dependencies (watchlist/SBOM/inventory yielded nothing)"
-=======
-            "no checkable dependencies (watchlist/SBOM/lockfile yielded nothing)"
->>>>>>> origin/main
+            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
         )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
