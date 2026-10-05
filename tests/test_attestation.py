@@ -1,9 +1,11 @@
 """Evidence contract tests (issue #53): convergence, round-trip, honesty."""
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import core.attestation as attestation
 from core.attestation import (
     CONTRACT_SCHEMA_VERSION,
     PLANNED_FIELDS,
@@ -176,8 +178,26 @@ def test_unknown_relationship_stated(django_event):
     assert "relationship unknown: no applicable evidence" in contract.unknowns.unknowns
 
 
-def test_deterministic_body_hash(django_event, django_dep):
+class _SteppedClock:
+    """datetime stand-in whose now() advances one day per call, so two
+    builds can never land on the same instant. The wall clock cannot be
+    relied on to move between two consecutive calls: on Windows
+    datetime.now() ticks at ~15.6 ms and two builds a few microseconds
+    apart got the same timestamp, which flaked this test on CI
+    (test (windows-latest), run 37341685684)."""
+
+    _calls = 0
+
+    @classmethod
+    def now(cls, tz=None):
+        cls._calls += 1
+        base = datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=cls._calls)
+        return base if tz is timezone.utc or tz is None else base.astimezone(tz)
+
+
+def test_deterministic_body_hash(django_event, django_dep, monkeypatch):
     """Same inputs -> same content hash, despite different build clocks."""
+    monkeypatch.setattr(attestation, "datetime", _SteppedClock)
     a = _check(django_event, django_dep)
     b = _check(django_event, django_dep)
     assert a.provenance.generation_timestamp != b.provenance.generation_timestamp
