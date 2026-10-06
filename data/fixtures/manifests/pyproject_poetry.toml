@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "sample-service"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "4.2"
+celery = "^5.4.0"
+boto3 = { version = "=1.34.90" }
+local-tool = { path = "../local-tool" }
+git-dep = { git = "https://example.com/git-dep", version = "1.0.0" }
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.poetry.dev-dependencies]
+mypy = "1.11.0"
