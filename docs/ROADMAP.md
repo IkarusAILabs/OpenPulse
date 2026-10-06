@@ -145,7 +145,7 @@ Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), c
 ## M6 — Early Warning SaaS
 STATUS: FUTURE
 
-Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing. Commercial question stays: “What is changing in MY software?”
+Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
 
 ## M7 — Intelligence Network
 STATUS: FUTURE
