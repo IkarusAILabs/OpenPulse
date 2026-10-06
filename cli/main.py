@@ -485,6 +485,133 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     click.echo(_safe_text(msg, stream=stream), **kwargs)
 
 
+def _load_check_inputs(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    events,
+    raw_bundle_dir,
+):
+    """Shared input loading for check and digest (one path, not two).
+
+    Loads watchlist/SBOM/SPDX/images/lockfile deps + events +
+    offline bundles with the exact per-input echo discipline and
+    skip-reason reporting the check command established: same
+    errors, same messages, same composable semantics. Both commands
+    stay in lockstep: a new input flag joins HERE, not in a copy.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.entities.resolve import resolve_project as _resolve
+    from core.risk.check import load_watchlist_doc
+
+    if not watchlist and not sbom and not spdx and not images and not lockfile:
+        raise click.ClickException(
+            "check needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
+        )
+    deps: list[Any] = []
+    if watchlist:
+        try:
+            deps = load_watchlist_doc(_load_yaml(watchlist))
+        except ValueError as e:
+            raise click.ClickException(f"{watchlist}: {e}")
+    skipped: list[str] = []
+    if sbom:
+        from core.sbom_reader import read_sbom
+
+        try:
+            sbom_deps, skipped = read_sbom(sbom)
+        except json.JSONDecodeError as e:
+            # Must precede the ValueError handler: JSONDecodeError
+            # SUBCLASSES ValueError, so the reverse order makes this
+            # branch dead code and loses the specific message.
+            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{sbom}: {e}")
+        if sbom_deps:
+            _echo(f"sbom: {len(sbom_deps)} mapped component(s), {len(skipped)} skipped")
+            deps = [*deps, *sbom_deps]
+        elif skipped:
+            _echo(f"sbom: 0 mapped, {len(skipped)} skipped — nothing checkable in this SBOM")
+        for line in skipped:
+            _echo(f"! skipped: {line}")
+    if spdx:
+        from core.sbom_reader import read_spdx
+
+        try:
+            spdx_deps, spdx_skipped = read_spdx(spdx)
+        except json.JSONDecodeError as e:
+            # Same ordering rule as --sbom: JSONDecodeError SUBCLASSES
+            # ValueError, so it must be caught first or its branch is
+            # dead code and the specific message is lost.
+            raise click.ClickException(f"{spdx} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{spdx}: {e}")
+        if spdx_deps:
+            _echo(f"spdx: {len(spdx_deps)} mapped package(s), {len(spdx_skipped)} skipped")
+            deps = [*deps, *spdx_deps]
+        elif spdx_skipped:
+            _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SPDX")
+        for line in spdx_skipped:
+            _echo(f"! skipped: {line}")
+    if images:
+        from core.image_inventory import read_image_inventory
+
+        try:
+            img_deps, img_skipped = read_image_inventory(images)
+        except ValueError as e:
+            raise click.ClickException(f"{images}: {e}")
+        for line in img_skipped:
+            _echo(f"! skipped: {line}")
+        if img_deps:
+            _echo(f"images: {len(img_deps)} image ref(s) from inventory")
+            deps = [*deps, *img_deps]
+        elif img_skipped:
+            _echo(
+                f"images: 0 usable, {len(img_skipped)} skipped — "
+                "nothing checkable in this inventory"
+            )
+    if lockfile:
+        from core.lockfile_reader import read_lockfile
+
+        try:
+            lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
+        except ValueError as e:
+            raise click.ClickException(f"{lockfile}: {e}")
+        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
+        if lock_deps:
+            _echo(
+                f"lockfile ({label}): {len(lock_deps)} pinned package(s), "
+                f"{len(lock_skipped)} skipped"
+            )
+            deps = [*deps, *lock_deps]
+        elif lock_skipped:
+            _echo(
+                f"lockfile ({label}): 0 pinned, "
+                f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
+            )
+        for line in lock_skipped:
+            _echo(f"! skipped: {line}")
+    loaded_events = [_load_event(path) for path in events]
+    bundles = {}
+    if raw_bundle_dir:
+        for dep in deps:
+            if dep["kind"] != "package":
+                continue
+            slug = _resolve(dep["package"])
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+    if not deps:
+        raise click.ClickException(
+            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
+        )
+    return deps, loaded_events, bundles
+
+
 @cli.command()
 @click.option(
     "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
@@ -565,118 +692,11 @@ def check(
     webhook_allow_http,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
-    import json as _json
-    from pathlib import Path as _Path
+    from core.risk.check import check_dependency
 
-    from core.entities.resolve import resolve_project as _resolve
-    from core.risk.check import check_dependency, load_watchlist_doc
-
-    if not watchlist and not sbom and not spdx and not images and not lockfile:
-        raise click.ClickException(
-            "check needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
-        )
-    deps: list[Any] = []
-    if watchlist:
-        try:
-            deps = load_watchlist_doc(_load_yaml(watchlist))
-        except ValueError as e:
-            raise click.ClickException(f"{watchlist}: {e}")
-    skipped: list[str] = []
-    if sbom:
-        from core.sbom_reader import read_sbom
-
-        try:
-            sbom_deps, skipped = read_sbom(sbom)
-        except json.JSONDecodeError as e:
-            # Must precede the ValueError handler: JSONDecodeError
-            # SUBCLASSES ValueError, so the reverse order makes this
-            # branch dead code and loses the specific message.
-            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
-        except ValueError as e:
-            raise click.ClickException(f"{sbom}: {e}")
-        if sbom_deps:
-            _echo(f"sbom: {len(sbom_deps)} mapped component(s), {len(skipped)} skipped")
-            deps = [*deps, *sbom_deps]
-        elif skipped:
-            _echo(f"sbom: 0 mapped, {len(skipped)} skipped — nothing checkable in this SBOM")
-        # Skip reasons echo BEFORE the empty-deps guard below: an SBOM
-        # that yields only skips still explains itself instead of dying
-        # with a bare "nothing checkable" error.
-        for line in skipped:
-            _echo(f"! skipped: {line}")
-    if spdx:
-        from core.sbom_reader import read_spdx
-
-        try:
-            spdx_deps, spdx_skipped = read_spdx(spdx)
-        except json.JSONDecodeError as e:
-            # Same ordering rule as --sbom: JSONDecodeError SUBCLASSES
-            # ValueError, so it must be caught first or its branch is
-            # dead code and the specific message is lost.
-            raise click.ClickException(f"{spdx} is not valid JSON: {e}")
-        except ValueError as e:
-            raise click.ClickException(f"{spdx}: {e}")
-        # Echo discipline mirrors --sbom: skip reasons first, then the
-        # summary; the empty-deps guard still sees the final dep list.
-        if spdx_deps:
-            _echo(f"spdx: {len(spdx_deps)} mapped package(s), {len(spdx_skipped)} skipped")
-            deps = [*deps, *spdx_deps]
-        elif spdx_skipped:
-            _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SBOM")
-        for line in spdx_skipped:
-            _echo(f"! skipped: {line}")
-    if images:
-        from core.image_inventory import read_image_inventory
-
-        try:
-            img_deps, img_skipped = read_image_inventory(images)
-        except ValueError as e:
-            raise click.ClickException(f"{images}: {e}")
-        for line in img_skipped:
-            _echo(f"! skipped: {line}")
-        if img_deps:
-            _echo(f"images: {len(img_deps)} image ref(s) from inventory")
-            deps = [*deps, *img_deps]
-        elif img_skipped:
-            _echo(
-                f"images: 0 usable, {len(img_skipped)} skipped — "
-                "nothing checkable in this inventory"
-            )
-    if lockfile:
-        from core.lockfile_reader import read_lockfile
-
-        try:
-            lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
-        except ValueError as e:
-            raise click.ClickException(f"{lockfile}: {e}")
-        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
-        if lock_deps:
-            _echo(
-                f"lockfile ({label}): {len(lock_deps)} pinned package(s), "
-                f"{len(lock_skipped)} skipped"
-            )
-            deps = [*deps, *lock_deps]
-        elif lock_skipped:
-            _echo(
-                f"lockfile ({label}): 0 pinned, "
-                f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
-            )
-        for line in lock_skipped:
-            _echo(f"! skipped: {line}")
-    loaded_events = [_load_event(path) for path in events]
-    bundles = {}
-    if raw_bundle_dir:
-        for dep in deps:
-            if dep["kind"] != "package":
-                continue
-            slug = _resolve(dep["package"])
-            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
-            if bundle.exists():
-                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
-    if not deps:
-        raise click.ClickException(
-            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
-        )
+    deps, loaded_events, bundles = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, events, raw_bundle_dir
+    )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
@@ -775,6 +795,104 @@ def check(
 
     if strict and strict_affected(results):
         raise SystemExit(1)
+
+
+@cli.command()
+@click.option(
+    "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
+)
+@click.option(
+    "--sbom",
+    "sbom",
+    type=click.Path(exists=True),
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) — composable with --watchlist/--spdx",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
+)
+@click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory — composable with all other inputs",
+)
+@click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock) — pinned entries only, "
+    "composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Intelligence event JSON (repeatable)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for security correlation",
+)
+@click.option(
+    "--window-days",
+    default=90,
+    show_default=True,
+    help="Warning window: keep changes effective within N days of today",
+)
+@click.option(
+    "--output",
+    "output",
+    type=click.Choice(["md", "json"]),
+    default="md",
+    show_default=True,
+    help="Briefing format: markdown (human) or JSON (machine)",
+)
+@click.option(
+    "--ledger",
+    "ledger_root",
+    default=".openpulse/detections",
+    show_default=True,
+    help="Durable first-detection ledger root (read-only; `openpulse check` records)",
+)
+def digest(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    events,
+    raw_bundle_dir,
+    window_days,
+    output,
+    ledger_root,
+):
+    """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
+    from core.digest import build_digest, render_digest_md
+    from core.risk.check import check_dependency
+
+    if ledger_root == "":
+        ledger_root = None  # read digests without a ledger: no lead-time claims
+    deps, loaded_events, bundles = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, events, raw_bundle_dir
+    )
+    if not loaded_events:
+        raise click.ClickException(
+            "digest needs at least one --event: deadlines come from event"
+            " evidence, not from the ledger alone"
+        )
+    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    built = build_digest(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    if output == "json":
+        import json as _json
+
+        _echo(_json.dumps(built, indent=2))
+        return
+    _echo(render_digest_md(built))
 
 
 @cli.command()
