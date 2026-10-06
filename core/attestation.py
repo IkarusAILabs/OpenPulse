@@ -27,7 +27,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.evidence.provenance import hash_content
-from core.leadtime import parse_day
+from core.leadtime import event_effective_day, parse_day
 from core.schema.models import OSSEvent
 
 #: Bump when the contract's field set or semantics change.
@@ -346,12 +346,8 @@ def _dates_block(event: OSSEvent, verdict: Any, finding: dict[str, Any] | None) 
         if day is not None:
             announced = str(day)
             break
-    effective: str | None = None
-    for e in event.evidences:
-        day = parse_day(e.effective_date)
-        if day is not None:
-            effective = str(day)
-            break
+    effective_day = event_effective_day(event)
+    effective: str | None = str(effective_day) if effective_day is not None else None
     first_detected = getattr(verdict, "first_detected", None)
     first_detected = str(first_detected) if first_detected else None
     last_verified: str | None = None

@@ -117,9 +117,9 @@ STATUS: ACTIVE
 The monthly briefing is a product surface (Executive Summary through Historical appendix, plus the `.meta.json` machine companion and the Lifecycle Posture view). Keep it ahead of the intelligence it carries; no new sections without a reader need. Lifecycle stays one category, never the product.
 
 ## M4 — Software Ecosystem Intelligence Benchmark
-STATUS: VALIDATION (6 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL)
+STATUS: VALIDATION (9 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager)
 
-A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: cert-manager, Kafka, Grafana, Terraform, one AI/ML project.
+A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: Grafana, Terraform, one AI/ML project.
 
 ## M5 — Dependency Context & Impact Intelligence
 STATUS: NEXT MAJOR PRODUCT MILESTONE
@@ -203,7 +203,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
 - ACTIVE: M2 acceptance set (4/5; capa and etcd ownership moves formalized with live fixtures), the namespace-move detector still awaiting a live firing.
-- VALIDATION: M4 at 7 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
+- VALIDATION: M4 at 9 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
 - NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).

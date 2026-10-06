@@ -309,6 +309,185 @@ def test_golden_kubernetes_eol_pins_and_skew():
     assert "bitnami-kubernetes" in bitnami_old.reason
 
 
+def test_golden_kafka_eol_pins_and_namespaces():
+    """Kafka 3.8 EOL: version truth across two pins, plus the
+    packaged-image identity split, end to end from the offline
+    raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 3.8 reached EOL, scoped to that cycle
+       only; the 4.3 cycle (no announced date yet) stays silent;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2024-11-06, single secondary source so EMERGING;
+    Q3 identity -- kafka and apache/kafka resolve to the kafka
+       project; the bitnami-packaged image and the confluent
+       distribution are their own projects;
+    Q4 what dependency -- kafka==3.8 is the affected pin;
+    Q5 which versions/artifacts -- 3.8 pin affected, 4.3 pin not,
+       and the bitnami image carrying the same cycle tag is not;
+    Q6 when it matters -- effective 2024-11-06, already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- the endoflife.date row carries no support
+       date at all for 3.8, and a plain EOL record cannot tell the
+       apache pin from the confluent or bitnami packaged images on
+       the same cycle; version scope plus identity resolution can.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/kafka/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 9, 26)
+
+    # Q1 -- what changed: one EOL finding, scoped to cycle 3.8.
+    # The 4.3 cycle has no announced date, so it yields no finding.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["3.8"]}
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    event = finding_to_event(findings[0], "kafka", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2024, 11, 6) for e in event.evidences)
+
+    # Q3 -- identity: project spellings resolve; packaged images do not.
+    assert event.project_slug == "kafka"
+    for spelling in ("kafka", "apache/kafka"):
+        assert resolve_project(spelling) == "kafka", spelling
+    assert resolve_project("docker.io/bitnami/kafka:3.8.1") == "bitnami-kafka"
+    assert resolve_project("docker.io/confluentinc/cp-kafka:3.8") != "kafka"
+
+    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
+    pinned_old = check_dependency(
+        {"kind": "package", "package": "kafka", "ecosystem": "", "version": "3.8"}, [event]
+    )
+    pinned_new = check_dependency(
+        {"kind": "package", "package": "kafka", "ecosystem": "", "version": "4.3"}, [event]
+    )
+    bitnami_cycle = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnami/kafka:3.8"}, [event]
+    )
+    bitnami_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnami/kafka:3.8.1"}, [event]
+    )
+    assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
+    assert pinned_old.confidence == "EMERGING"
+    assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_cycle.affected, bitnami_cycle.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2024-11-06"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "3.8" in pinned_old.reason
+
+    # Q8 -- why OpenPulse: the same cycle, three identities, three
+    # verdicts -- a plain EOL record cannot make this call, and the
+    # 3.8 row carries no support date to reason from either.
+    assert pinned_old.reason != bitnami_old.reason
+    assert "bitnami-kafka" in bitnami_old.reason
+    # The cycle-tag exclusion is the load-bearing one: the tag equals
+    # the scope version exactly, so only identity resolution can
+    # exclude it -- with the project binding dropped the control run
+    # turns it AFFECTS_VERSION.
+    assert "bitnami-kafka" in bitnami_cycle.reason
+    assert all(e.get("support") is None for e in raw["endoflife"])
+
+
+def test_golden_cert_manager_eol_pins_and_namespaces():
+    """cert-manager 1.19 and 1.18 EOL: version truth across three
+    pins and two effective cycles, plus the bitnami tag-collision
+    exclusion, end to end from the offline raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycles 1.19 and 1.18 reached EOL, each
+       scoped to its own cycle; the 1.21 cycle (no announced date
+       yet) stays silent;
+    Q2 evidence -- both bridged events pass the claim gate, dated
+       effective 2026-07-08 and 2026-03-10, single secondary source
+       so EMERGING;
+    Q3 identity -- cert-manager resolves to the cert-manager
+       project; the bitnami-packaged image on the same cycle tag is
+       its own project;
+    Q4 what dependency -- cert-manager==1.19 and cert-manager==1.18
+       are the affected pins;
+    Q5 which versions/artifacts -- 1.19 and 1.18 pins affected
+       against their own cycles, 1.21 pin not affected, a 1.18 pin
+       checked against the 1.19 event is not affected, and the
+       bitnami image carrying the 1.18 tag is not affected either;
+    Q6 when it matters -- effective 2026-07-08 and 2026-03-10,
+       both already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- an EOL database row cannot tell the
+       upstream pin from the packaged image on the same tag, and
+       cannot keep the two EOL'd cycles apart in one check; scope
+       binding plus identity resolution can.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/cert-manager/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 9, 26)
+
+    # Q1 -- what changed: two EOL findings, one per effective cycle.
+    # The 1.21 cycle has no announced date, so it yields no finding.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert [f["scope"]["versions"] for f in findings] == [["1.19"], ["1.18"]]
+    assert all(f["lifecycle_state"] == "EFFECTIVE" for f in findings)
+
+    by_cycle = {f["scope"]["versions"][0]: f for f in findings}
+    event_19 = finding_to_event(by_cycle["1.19"], "cert-manager", today=today)
+    event_18 = finding_to_event(by_cycle["1.18"], "cert-manager", today=today)
+
+    # Q2 -- evidence: claim gate accepts both; dated, single-source EMERGING.
+    assert gate(event_19) == []
+    assert gate(event_18) == []
+    assert any(e.effective_date == date(2026, 7, 8) for e in event_19.evidences)
+    assert any(e.effective_date == date(2026, 3, 10) for e in event_18.evidences)
+
+    # Q3 -- identity: project spelling resolves; bitnami does not.
+    assert event_19.project_slug == "cert-manager"
+    assert resolve_project("cert-manager") == "cert-manager"
+    assert resolve_project("docker.io/bitnami/cert-manager:1.18") == "bitnami-cert-manager"
+
+    # Q4 + Q5 -- dependency verdicts: version truth, cross-cycle
+    # exclusion, and attribution.
+    pin = {"kind": "package", "package": "cert-manager", "ecosystem": ""}
+    pinned_19 = check_dependency({**pin, "version": "1.19"}, [event_19])
+    pinned_18 = check_dependency({**pin, "version": "1.18"}, [event_18])
+    pinned_21 = check_dependency({**pin, "version": "1.21"}, [event_19])
+    cross_cycle = check_dependency({**pin, "version": "1.18"}, [event_19])
+    bitnami_18 = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnami/cert-manager:1.18"}, [event_18]
+    )
+    assert (pinned_19.affected, pinned_19.relationship) == (True, "AFFECTS_VERSION")
+    assert pinned_19.confidence == "EMERGING"
+    assert (pinned_18.affected, pinned_18.relationship) == (True, "AFFECTS_VERSION")
+    assert (pinned_21.affected, pinned_21.relationship) == (False, "NOT_AFFECTED")
+    assert (cross_cycle.affected, cross_cycle.relationship) == (False, "NOT_AFFECTED")
+    assert (bitnami_18.affected, bitnami_18.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: both effective in the past, in force now.
+    assert by_cycle["1.19"]["effective_at"] == "2026-07-08"
+    assert by_cycle["1.18"]["effective_at"] == "2026-03-10"
+
+    # Q7 -- investigate: the reasons name their scope versions.
+    assert "1.19" in pinned_19.reason
+    assert "1.18" in pinned_18.reason
+
+    # Q8 -- why OpenPulse: two effective cycles and a packaged image
+    # on the same tag -- one EOL row cannot separate any of them.
+    assert pinned_18.reason != cross_cycle.reason
+    assert pinned_18.reason != bitnami_18.reason
+    assert "bitnami-cert-manager" in bitnami_18.reason
+
+
 def test_golden_capa_ownership_move():
     """Mandiant acquired the FireEye products business in 2021 and
     moved capa to mandiant/capa: a recorded fireeye/capa reference
