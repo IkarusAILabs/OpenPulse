@@ -1,6 +1,11 @@
 import json
 from click.testing import CliRunner
-from core.evidence_contract import CONTRACT_VERSION, build_v1_contract, load_schema, validate_v1_contract, verify_v1_content_hash
+from core.evidence_contract import (
+    CONTRACT_VERSION,
+    build_v1_contract,
+    validate_v1_contract,
+    verify_v1_content_hash,
+)
 from core.risk.check import check_dependency
 from core.schema.models import OSSEvent
 
