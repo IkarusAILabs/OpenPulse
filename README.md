@@ -168,6 +168,9 @@ openpulse observe --namespace bitnami --repo redis
 # 5. Generate the monthly report (offline bundles or live collectors)
 openpulse report --month 2026-09 --raw-bundle-dir path/to/bundles
 
+# Emit versioned evidence contracts for machine consumers
+openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+
 # 6. Check your watchlist against an event (Early Warning preview)
 openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
 
@@ -188,7 +191,10 @@ openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixt
    # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
-# 7. Run the test suite
+# 7. Emit a machine-readable evidence contract (JSONL)
+openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+
+# 8. Run the test suite
 pytest -q
 ```
 
