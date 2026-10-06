@@ -203,8 +203,8 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
 - ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
-- VALIDATION: M4 at 9 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
-- NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
+- VALIDATION: M4 at 9 scenarios; dependency inputs converging on one verdict engine; per-entity ledger already shipped, SaaS surfaces absent.
+- NEXT: watchlist→SBOM→manifest ingestion sequence; evidence contract v1 external-consumer validation (see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
