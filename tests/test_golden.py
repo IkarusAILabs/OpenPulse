@@ -307,3 +307,166 @@ def test_golden_kubernetes_eol_pins_and_skew():
     # scope -- two calls an EOL database row cannot make.
     assert pinned_old.reason != bitnami_old.reason
     assert "bitnami-kubernetes" in bitnami_old.reason
+
+
+def test_golden_capa_ownership_move():
+    """Mandiant acquired the FireEye products business in 2021 and
+    moved capa to mandiant/capa: a recorded fireeye/capa reference
+    now names a redirect, not a first-party source. End to end from
+    the offline raw-bundle fixture (repo_meta probed live 2026-10-06).
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from fireeye/capa to
+       mandiant/capa; the queried path no longer names the owner;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source (the repository itself) so EMERGING;
+    Q3 identity -- github.com/fireeye/capa and
+       github.com/mandiant/capa are different repository identities;
+       the moved-from path is the one whose recorded references went
+       stale;
+    Q4 what dependency -- a go.mod/remote-style github.com/fireeye/capa
+       source reference is the affected dependency;
+    Q5 which versions/artifacts -- the old path is affected (it names
+       a redirect), the new path is not (UNKNOWN, not a match), and a
+       bare package pin stays contextual (AFFECTS_PROJECT);
+    Q6 when it matters -- the move already happened; the stale
+       reference is in force now, nothing is upcoming;
+    Q7 investigate -- the finding names both paths, states the drift,
+       and the verdict reason names the affected artifact;
+    Q8 why OpenPulse -- an EOL/CVE database has no slot for "your
+       recorded source path changed owner"; ownership drift is a
+       repository-identity fact only the meta-vs-recorded-path
+       comparison can catch.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/capa-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 6)
+
+    # Q1 -- what changed: one ownership finding, project-scoped,
+    # naming the moved repository as the affected artifact.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["detection_method"] == "repository_observation"
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/fireeye/capa"}
+    ]
+
+    event = finding_to_event(findings[0], "capa", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; single primary source so
+    # EMERGING, never CONFIRMED off one observation.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+    assert [e.source.authority for e in event.evidences] == ["secondary"]
+
+    # Q3 -- identity: moved-from and moved-to paths are distinct
+    # repository identities; only the old path is the stale one.
+    assert event.project_slug == "capa"
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/fireeye/capa"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/mandiant/capa"}, [event])
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+
+    # Q4 + Q5 -- dependency verdicts: the old path is the affected
+    # dependency; the new path and a bare package pin are not impact.
+    package_pin = check_dependency(
+        {"kind": "package", "package": "capa", "ecosystem": "", "version": None}, [event]
+    )
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert old_ref.confidence == "EMERGING"
+
+    # Q6 -- when: the move already happened; nothing is upcoming.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "fireeye/capa" in findings[0]["title"]
+    assert "mandiant/capa" in findings[0]["title"]
+    assert "github.com/fireeye/capa" in old_ref.reason
+    assert "verify" in findings[0]["summary"]
+
+    # Q8 -- why OpenPulse: ownership drift is a repository-identity
+    # fact, not a lifecycle row; review-framed, never auto-action.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_etcd_namespace_move():
+    """etcd moved from coreos/etcd to etcd-io/etcd when CoreOS wound
+    down (transfer to the etcd-io org, 2018): a recorded
+    github.com/coreos/etcd require or remote now names a redirect.
+    End to end from the offline raw-bundle fixture (repo_meta probed
+    live 2026-10-06). Proves the same detector on a second real move:
+    the rule is not capa-shaped.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from coreos/etcd to
+       etcd-io/etcd;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source so EMERGING;
+    Q3 identity -- github.com/coreos/etcd and
+       github.com/etcd-io/etcd are distinct repository identities;
+       the recorded old path is the stale one;
+    Q4 what dependency -- a github.com/coreos/etcd source reference
+       (go.mod require, git remote) is the affected dependency;
+    Q5 which versions/artifacts -- old path affected, new path
+       UNKNOWN, bare package pin contextual;
+    Q6 when it matters -- the move already happened; stale
+       references are in force now;
+    Q7 investigate -- the finding names both paths and the verdict
+       reason names the affected artifact;
+    Q8 why OpenPulse -- namespace moves are upstream-identity facts
+       no dependency database records; the meta-vs-recorded-path
+       comparison is the only signal.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/etcd-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 6)
+
+    # Q1 -- what changed: one ownership finding, project-scoped.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/coreos/etcd"}
+    ]
+
+    event = finding_to_event(findings[0], "etcd", today=today)
+
+    # Q2 -- evidence: claim gate accepts it, single-source EMERGING.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts.
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/coreos/etcd"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/etcd-io/etcd"}, [event])
+    package_pin = check_dependency(
+        {"kind": "package", "package": "etcd", "ecosystem": "", "version": None}, [event]
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+
+    # Q6 -- when: the move already happened.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "coreos/etcd" in findings[0]["title"]
+    assert "etcd-io/etcd" in findings[0]["title"]
+    assert "github.com/coreos/etcd" in old_ref.reason
+
+    # Q8 -- why OpenPulse: namespace moves are upstream-identity facts.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason

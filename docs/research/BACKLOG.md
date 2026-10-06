@@ -8,7 +8,7 @@ Item states: DONE, ACTIVE, NEXT, DEFERRED, REMOVED. Dispositions at the bottom r
 
 Purpose: the trust model is the product; regressions here invalidate everything above.
 
-- [ACTIVE] M2 acceptance set: confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings (`docs/DISCOVERIES.md`). Purpose: prove repeatable discovery.
+- [ACTIVE] M2 acceptance set: ownership moves formalized from live firings (capa, etcd — `docs/DISCOVERIES.md` Cases 6-7); one more verified case and a live namespace-move pair remain. Purpose: prove repeatable discovery.
 - [ACTIVE] Parser-version discipline: every acquisition-semantics change bumps `core/evidence/provenance.py:PARSER_VERSION` and re-baselines history (`core/observations/sweep.py` guard). Purpose: histories must never silently compare incomparable semantics.
 - [NEXT] OSV/CVE/NVD published-date coverage audit: which findings still lack `announced_at`, and whether any authoritative source is untapped. Purpose: temporal accuracy (roadmap metric).
 - [NEXT] `first_seen` backfill policy for lifecycle findings predating the ledger: document whether (and how) historical first detection may ever be reconstructed — default stays "unknown means unknown". Purpose: protect the no-estimation rule.

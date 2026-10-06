@@ -319,7 +319,22 @@ def analyze_github_meta(
                     "evidence_strength": EVIDENCE_MODERATE,
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [],
+                    # The moved repository is the affected thing: every
+                    # recorded reference to the old path -- go.mod
+                    # requires, docs, CI checkout URLs -- now names a
+                    # redirect, not a first-party source. The ref is
+                    # scheme-free because that is the form manifests
+                    # and remotes record, and because normalize_ref
+                    # strips at the first colon: a scheme would
+                    # collapse the ref and make every https URL match
+                    # every other one. Naming the old path satisfies
+                    # the gate's OWNERSHIP_CHANGE requirement that the
+                    # finding state what moved -- and keeps the
+                    # destination path a non-match, which is the whole
+                    # discrimination this event exists to make.
+                    "affected_artifacts": [
+                        {"kind": "source-repository", "ref": f"github.com/{old}"}
+                    ],
                     "supporting": [e],
                 }
             )
