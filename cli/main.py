@@ -1,4 +1,4 @@
-"""openpulse CLI — validate + pulse + analyze + demo-bitnami."""
+"""openpulse CLI — validate + pulse + analyze + demo-bitnami + check + attest."""
 
 import json
 import sys
@@ -775,6 +775,165 @@ def check(
 
     if strict and strict_affected(results):
         raise SystemExit(1)
+
+
+@cli.command()
+@click.option(
+    "--watchlist",
+    required=False,
+    type=click.Path(exists=True),
+    help="Watchlist YAML file",
+)
+@click.option(
+    "--sbom",
+    "sbom",
+    type=click.Path(exists=True),
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) - composable with the other sources",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) - composable with the other sources",
+)
+@click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory (one ref per line or a YAML list)",
+)
+@click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock), pinned entries only",
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    required=True,
+    help="Intelligence event JSON (repeatable; at least one required)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for version checks",
+)
+@click.option(
+    "--output",
+    "output",
+    default="",
+    type=click.Path(),
+    help="Write JSONL here (default: stdout)",
+)
+def attest(watchlist, sbom, spdx, images, lockfile, events, raw_bundle_dir, output):
+    """Emit one evidence-contract v1 document per dependency × event pair.
+
+    JSONL: one schema-valid contract per line, so stdout stays
+    pipeable; progress chatter goes to stderr. Each document is
+    independently verifiable: provenance.content_hash recomputes from
+    the content alone (docs/EVIDENCE_CONTRACT.md).
+    """
+    NL = chr(10)
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.evidence_contract import build_v1_contract, validate_v1_contract
+    from core.risk.check import check_dependency, load_watchlist_doc
+
+    if not watchlist and not sbom and not spdx and not images and not lockfile:
+        raise click.ClickException(
+            "attest needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
+        )
+    deps: list[Any] = []
+    if watchlist:
+        try:
+            deps = load_watchlist_doc(_load_yaml(watchlist))
+        except ValueError as e:
+            raise click.ClickException(f"{watchlist}: {e}")
+    if sbom:
+        from core.sbom_reader import read_sbom
+
+        try:
+            sbom_deps, _ = read_sbom(sbom)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{sbom}: {e}")
+        if sbom_deps:
+            _echo(f"sbom: {len(sbom_deps)} mapped component(s)", err=True)
+            deps = [*deps, *sbom_deps]
+    if spdx:
+        from core.sbom_reader import read_spdx
+
+        try:
+            spdx_deps, _ = read_spdx(spdx)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"{spdx} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{spdx}: {e}")
+        if spdx_deps:
+            _echo(f"spdx: {len(spdx_deps)} mapped package(s)", err=True)
+            deps = [*deps, *spdx_deps]
+    if images:
+        from core.image_inventory import read_image_inventory
+
+        try:
+            img_deps, _ = read_image_inventory(images)
+        except ValueError as e:
+            raise click.ClickException(f"{images}: {e}")
+        if img_deps:
+            _echo(f"images: {len(img_deps)} image ref(s)", err=True)
+            deps = [*deps, *img_deps]
+    if lockfile:
+        from core.lockfile_reader import read_lockfile
+
+        try:
+            lock_deps, _, lock_format = read_lockfile(lockfile)
+        except ValueError as e:
+            raise click.ClickException(f"{lockfile}: {e}")
+        if lock_deps:
+            _echo(f"lockfile ({lock_format}): {len(lock_deps)} pinned package(s)", err=True)
+            deps = [*deps, *lock_deps]
+    if not deps:
+        raise click.ClickException(
+            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
+        )
+    loaded_events = [_load_event(path) for path in events]
+    bundles = {}
+    if raw_bundle_dir:
+        from core.entities.resolve import resolve_project as _resolve
+
+        for dep in deps:
+            if dep["kind"] != "package":
+                continue
+            slug = _resolve(dep["package"])
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+    # One contract per dependency x event: the attested pair is the
+    # unit of consumption, not the combined verdict over all events.
+    lines: list[str] = []
+    for dep in deps:
+        for event in loaded_events:
+            verdict = check_dependency(dep, [event], bundles)
+            doc = build_v1_contract(event, verdict)
+            problems = validate_v1_contract(doc)
+            if problems:
+                # A document OpenPulse itself cannot validate must
+                # never reach a consumer: fail loudly, emit nothing.
+                raise SystemExit(
+                    f"internal error: contract for {dep} vs {event.id} failed schema: {problems}"
+                )
+            lines.append(_json.dumps(doc, sort_keys=True))
+    if output:
+        _Path(output).write_text(NL.join(lines) + NL, encoding="utf-8")
+        _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)
+    else:
+        for line in lines:
+            click.echo(line)
 
 
 @cli.command()

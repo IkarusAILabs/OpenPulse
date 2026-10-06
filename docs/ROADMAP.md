@@ -204,7 +204,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
 - ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
 - VALIDATION: M4 at 7 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
-- NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
+- NEXT: watchlist→SBOM→manifest ingestion sequence; evidence contract v1 shipped (schemas/evidence-contract/v1, see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
@@ -212,7 +212,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 ## Next 90 Days
 
 1. Real non-lifecycle discovery — close the M2 acceptance set (confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings).
-2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
+2. Report/productization — briefing stays ahead of the intelligence; evidence contract v1 shipped (docs/EVIDENCE_CONTRACT.md).
 3. Golden benchmark — cert-manager, Kafka; start Grafana/Terraform/AI-ML.
 4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.
 5. Early-warning prototype — watchlist-scoped first-detection history already durable; add verified lead-time cases.

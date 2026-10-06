@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openpulse.dev/schemas/evidence-contract/v1/schema.json",
+  "title": "OpenPulse Evidence Contract v1",
+  "description": "Content contract for machine consumers of OpenPulse verdicts: what OpenPulse established about one dependency against one upstream event, with provenance. Not a signature format: signature/signing_key_id/trust_root are planned fields, always null in v1.",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "const": "1.0.0",
+      "description": "Semver of this contract shape (docs/EVIDENCE_CONTRACT.md versioning policy)."
+    },
+    "event_context": {
+      "type": "object",
+      "description": "The upstream event the verdict was established against.",
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "description": "source: OSSEvent.id"},
+        "event_type": {"$ref": "#/$defs/event_type"},
+        "project_slug": {"type": "string", "description": "source: OSSEvent.project_slug"},
+        "title": {"type": "string", "description": "source: OSSEvent.title"},
+        "confidence": {"$ref": "#/$defs/confidence"},
+        "impact": {"$ref": "#/$defs/impact"}
+      },
+      "required": ["id", "event_type", "project_slug", "title", "confidence", "impact"],
+      "additionalProperties": false
+    },
+    "identity": {
+      "type": "object",
+      "description": "Identity of the affected entity and how much trust its mapping earned.",
+      "properties": {
+        "dependency": {"type": "string", "description": "source: verdict.dependency (core/risk/check.py)"},
+        "identity_status": {"$ref": "#/$defs/identity_status"},
+        "identity_via": {
+          "anyOf": [
+            {"type": "null"},
+            {"enum": ["explicit", "catalog", "namespace_rule", "self", "exact-artifact"]}
+          ],
+          "description": "source: winning cause identity_via (core/entities/identity.py resolution paths)"
+        }
+      },
+      "required": ["dependency", "identity_status", "identity_via"],
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "description": "What the event scope says, verbatim. Absent scope meant project-wide.",
+      "properties": {
+        "kind": {"$ref": "#/$defs/scope_kind"},
+        "versions": {"type": "array", "items": {"type": "string"}, "description": "source: OSSEvent.scope.versions"},
+        "artifacts": {"type": "array", "items": {"type": "string"}, "description": "source: OSSEvent.scope.artifacts"},
+        "packages": {"type": "array", "items": {"type": "string"}, "description": "source: OSSEvent.scope.packages"},
+        "registries": {"type": "array", "items": {"type": "string"}, "description": "source: OSSEvent.scope.registries"}
+      },
+      "required": ["kind", "versions", "artifacts", "packages", "registries"],
+      "additionalProperties": false
+    },
+    "affected_dependency": {
+      "type": "object",
+      "description": "The dependency the verdict is about and how it matched.",
+      "properties": {
+        "label": {"type": "string", "description": "source: verdict.dependency"},
+        "relationship": {"$ref": "#/$defs/relationship"},
+        "affected": {"type": "boolean", "description": "true only for ARTIFACT/VERSION/PACKAGE; source: verdict.affected"},
+        "match_strength": {"$ref": "#/$defs/match_strength"},
+        "match_method": {
+          "anyOf": [{"type": "null"}, {"type": "string", "minLength": 1}],
+          "description": "source: verdict.match_method (winning cause)"
+        }
+      },
+      "required": ["label", "relationship", "affected", "match_strength", "match_method"],
+      "additionalProperties": false
+    },
+    "assessment": {
+      "type": "object",
+      "description": "What OpenPulse concluded and how strongly.",
+      "properties": {
+        "relationship": {"$ref": "#/$defs/relationship"},
+        "affected": {"type": "boolean", "description": "source: verdict.affected"},
+        "confidence": {"$ref": "#/$defs/confidence"},
+        "match_strength": {"$ref": "#/$defs/match_strength"},
+        "evidence_confidence": {"$ref": "#/$defs/confidence"},
+        "reason": {"type": "string", "description": "source: verdict.reason, verbatim"}
+      },
+      "required": ["relationship", "affected", "confidence", "match_strength", "evidence_confidence", "reason"],
+      "additionalProperties": false
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Supporting evidence sources behind the event claim.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_name": {"type": "string", "description": "source: OSSEvent.evidences[i].source.name"},
+          "url": {"type": "string", "format": "uri", "description": "source: OSSEvent.evidences[i].source.url"},
+          "authority": {"type": "string", "description": "source: OSSEvent.evidences[i].source.authority (intended: official | primary | secondary | tertiary)"},
+          "fetched_at": {"type": "string", "format": "date-time", "description": "source: OSSEvent.evidences[i].source.fetched_at"},
+          "relation": {"$ref": "#/$defs/relation"},
+          "excerpt": {"type": "string", "maxLength": 2000, "description": "source: OSSEvent.evidences[i].excerpt"}
+        },
+        "required": ["source_name", "url", "authority", "fetched_at", "relation", "excerpt"],
+        "additionalProperties": false
+      }
+    },
+    "temporal": {
+      "type": "object",
+      "description": "The four temporal roles, parsed. null means unknown, never a guess.",
+      "properties": {
+        "announcement_date": {"anyOf": [{"type": "null"}, {"type": "string", "format": "date"}], "description": "source: event evidence announcement_date via core.leadtime.parse_day"},
+        "effective_date": {"anyOf": [{"type": "null"}, {"type": "string", "format": "date"}], "description": "source: event evidence effective_date via core.leadtime.parse_day"},
+        "first_detected": {"anyOf": [{"type": "null"}, {"type": "string", "format": "date"}], "description": "source: verdict.first_detected (durable detection ledger); null = unknown"},
+        "last_verified": {"anyOf": [{"type": "null"}, {"type": "string", "format": "date"}], "description": "source: finding last_observed_at/observed_at; null = unknown"}
+      },
+      "required": ["announcement_date", "effective_date", "first_detected", "last_verified"],
+      "additionalProperties": false
+    },
+    "unknowns": {
+      "type": "object",
+      "description": "What the contract does NOT establish - unknown stays unknown.",
+      "properties": {
+        "unknowns": {"type": "array", "items": {"type": "string"}, "description": "source: derived from the verdict (missing dates, UNKNOWN relationship)"},
+        "limitations": {"type": "array", "items": {"type": "string"}, "description": "source: derived from identity trust (capped confidence is stated, never silent)"}
+      },
+      "required": ["unknowns", "limitations"],
+      "additionalProperties": false
+    },
+    "recommendation": {
+      "type": "object",
+      "description": "One conditional next step, in report vocabulary.",
+      "properties": {
+        "text": {"type": "string", "description": "source: analyzers/report_analyst.py ADVICE keyed by event impact; conditional wording only"}
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Who generated this document, when, and its integrity digest.",
+      "properties": {
+        "openpulse_version": {"type": "string", "description": "source: installed package version (importlib.metadata, same fallback as reports/generate.py)"},
+        "contract_version": {"const": "1.0.0", "description": "same as the top-level contract_version"},
+        "generation_timestamp": {"type": "string", "format": "date-time", "description": "source: UTC now at build time; pinned during content_hash computation"},
+        "event_id": {"type": "string", "description": "source: OSSEvent.id (the event this document carries)"},
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "sha256 over canonical JSON of every top-level field with content_hash and generation_timestamp pinned to placeholders; same logical content -> same hash"
+        }
+      },
+      "required": ["openpulse_version", "contract_version", "generation_timestamp", "event_id", "content_hash"],
+      "additionalProperties": false
+    },
+    "signature": {
+      "const": null,
+      "deprecated": true,
+      "description": "planned: cryptographic signature over content_hash (out of scope per issue #53); always null in v1"
+    },
+    "signing_key_id": {
+      "const": null,
+      "deprecated": true,
+      "description": "planned: key identifier for the above signature; always null in v1"
+    },
+    "trust_root": {
+      "const": null,
+      "deprecated": true,
+      "description": "planned: where the signing key is anchored; always null in v1"
+    }
+  },
+  "required": [
+    "contract_version",
+    "event_context",
+    "identity",
+    "scope",
+    "affected_dependency",
+    "assessment",
+    "evidence_refs",
+    "temporal",
+    "unknowns",
+    "recommendation",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "event_type": {
+      "enum": [
+        "SECURITY", "EOL", "EOS", "LICENSE_CHANGE", "SUPPORT_CHANGE",
+        "DISTRIBUTION_CHANGE", "REGISTRY_CHANGE", "OWNERSHIP_CHANGE",
+        "MAINTAINER_CHANGE", "DEPRECATION", "BREAKING_CHANGE", "MAJOR_RELEASE",
+        "PROJECT_ARCHIVED", "OTHER_CRITICAL"
+      ],
+      "description": "source: core/schema/enums.py EventType (frozen since Phase 0)"
+    },
+    "confidence": {
+      "enum": ["CONFIRMED", "CORROBORATED", "EMERGING", "UNVERIFIED"],
+      "description": "source: core/schema/enums.py Confidence"
+    },
+    "impact": {
+      "enum": ["INFORMATIONAL", "WATCH", "REVIEW", "ACTION", "CRITICAL"],
+      "description": "source: core/schema/enums.py Impact"
+    },
+    "identity_status": {
+      "enum": ["VERIFIED", "REVIEW_REQUIRED", "UNVERIFIED"],
+      "description": "source: core/entities/identity.py VALID_STATUSES"
+    },
+    "scope_kind": {
+      "enum": ["project", "package", "artifact", "version", "registry"],
+      "description": "source: core/schema/models.py Scope.kind literal"
+    },
+    "relationship": {
+      "enum": [
+        "AFFECTS_ARTIFACT", "AFFECTS_VERSION", "AFFECTS_PACKAGE",
+        "NOT_AFFECTED", "RELATED", "AFFECTS_PROJECT", "UNKNOWN"
+      ],
+      "description": "source: core/risk/check.py decision matrix (_RANK keys)"
+    },
+    "match_strength": {
+      "enum": ["exact", "scoped", "exclusion", "contextual", "none"],
+      "description": "source: core/risk/check.py _MATCH_STRENGTH values"
+    },
+    "relation": {
+      "enum": ["supports", "context", "contradicts"],
+      "description": "source: core/schema/models.py Evidence.relation literal"
+    }
+  }
+}
