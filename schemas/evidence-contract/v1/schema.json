@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openpulse.dev/schemas/evidence-contract/v1/schema.json",
+  "title": "OpenPulse Evidence Contract v1",
+  "description": "Content contract for machine consumers of OpenPulse verdicts.",
+  "type": "object",
+  "properties": {
+    "contract_version": {"const":"1.0.0"},
+    "event_context": {"type":"object","properties":{"id":{"type":"string","minLength":1},"event_type":{"$ref":"#/$defs/event_type"},"project_slug":{"type":"string"},"title":{"type":"string"},"confidence":{"$ref":"#/$defs/confidence"},"impact":{"$ref":"#/$defs/impact"}},"required":["id","event_type","project_slug","title","confidence","impact"],"additionalProperties":false},
+    "identity": {"type":"object","properties":{"dependency":{"type":"string"},"identity_status":{"$ref":"#/$defs/identity_status"},"identity_via":{"anyOf":[{"type":"null"},{"enum":["explicit","catalog","namespace_rule","self","exact-artifact"]}]}},"required":["dependency","identity_status","identity_via"],"additionalProperties":false},
+    "scope": {"type":"object","properties":{"kind":{"$ref":"#/$defs/scope_kind"},"versions":{"type":"array","items":{"type":"string"}},"artifacts":{"type":"array","items":{"type":"string"}},"packages":{"type":"array","items":{"type":"string"}},"registries":{"type":"array","items":{"type":"string"}}},"required":["kind","versions","artifacts","packages","registries"],"additionalProperties":false},
+    "affected_dependency": {"type":"object","properties":{"label":{"type":"string"},"relationship":{"$ref":"#/$defs/relationship"},"affected":{"type":"boolean"},"match_strength":{"$ref":"#/$defs/match_strength"},"match_method":{"anyOf":[{"type":"null"},{"type":"string","minLength":1}]}},"required":["label","relationship","affected","match_strength","match_method"],"additionalProperties":false},
+    "assessment": {"type":"object","properties":{"relationship":{"$ref":"#/$defs/relationship"},"affected":{"type":"boolean"},"confidence":{"$ref":"#/$defs/confidence"},"match_strength":{"$ref":"#/$defs/match_strength"},"evidence_confidence":{"$ref":"#/$defs/confidence"},"reason":{"type":"string"}},"required":["relationship","affected","confidence","match_strength","evidence_confidence","reason"],"additionalProperties":false},
+    "evidence_refs": {"type":"array","minItems":1,"items":{"type":"object","properties":{"source_name":{"type":"string"},"url":{"type":"string","format":"uri"},"authority":{"type":"string"},"fetched_at":{"type":"string","format":"date-time"},"relation":{"$ref":"#/$defs/relation"},"excerpt":{"type":"string","maxLength":2000}},"required":["source_name","url","authority","fetched_at","relation","excerpt"],"additionalProperties":false}},
+    "temporal": {"type":"object","properties":{"announcement_date":{"anyOf":[{"type":"null"},{"type":"string","format":"date"}]},"effective_date":{"anyOf":[{"type":"null"},{"type":"string","format":"date"}]},"first_detected":{"anyOf":[{"type":"null"},{"type":"string","format":"date"}]},"last_verified":{"anyOf":[{"type":"null"},{"type":"string","format":"date"}]}},"required":["announcement_date","effective_date","first_detected","last_verified"],"additionalProperties":false},
+    "unknowns": {"type":"object","properties":{"unknowns":{"type":"array","items":{"type":"string"}},"limitations":{"type":"array","items":{"type":"string"}}},"required":["unknowns","limitations"],"additionalProperties":false},
+    "recommendation": {"type":"object","properties":{"text":{"type":"string"}},"required":["text"],"additionalProperties":false},
+    "provenance": {"type":"object","properties":{"openpulse_version":{"type":"string"},"contract_version":{"const":"1.0.0"},"generation_timestamp":{"type":"string","format":"date-time"},"event_id":{"type":"string"},"content_hash":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}},"required":["openpulse_version","contract_version","generation_timestamp","event_id","content_hash"],"additionalProperties":false},
+    "signature":{"const":null,"deprecated":true},"signing_key_id":{"const":null,"deprecated":true},"trust_root":{"const":null,"deprecated":true}
+  },
+  "required":["contract_version","event_context","identity","scope","affected_dependency","assessment","evidence_refs","temporal","unknowns","recommendation","provenance"],
+  "additionalProperties":false,
+  "$defs":{
+    "event_type":{"enum":["SECURITY","EOL","EOS","LICENSE_CHANGE","SUPPORT_CHANGE","DISTRIBUTION_CHANGE","REGISTRY_CHANGE","OWNERSHIP_CHANGE","MAINTAINER_CHANGE","DEPRECATION","BREAKING_CHANGE","MAJOR_RELEASE","PROJECT_ARCHIVED","OTHER_CRITICAL"]},
+    "confidence":{"enum":["CONFIRMED","CORROBORATED","EMERGING","UNVERIFIED"]},
+    "impact":{"enum":["INFORMATIONAL","WATCH","REVIEW","ACTION","CRITICAL"]},
+    "identity_status":{"enum":["VERIFIED","REVIEW_REQUIRED","UNVERIFIED"]},
+    "scope_kind":{"enum":["project","package","artifact","version","registry"]},
+    "relationship":{"enum":["AFFECTS_ARTIFACT","AFFECTS_VERSION","AFFECTS_PACKAGE","NOT_AFFECTED","RELATED","AFFECTS_PROJECT","UNKNOWN"]},
+    "match_strength":{"enum":["exact","scoped","exclusion","contextual","none"]},
+    "relation":{"enum":["supports","context","contradicts"]}
+  }
+}
