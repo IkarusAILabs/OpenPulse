@@ -25,7 +25,12 @@ Rules today:
 - Archived GitHub repo (via `fetch_repo_meta`) → `PROJECT_ARCHIVED` / `ACTION`.
 - Repository ownership drift: API `full_name` owner differs from the
   queried path → `OWNERSHIP_CHANGE` / `REVIEW` (moderate). Same-owner
-  renames stay silent; archived repos still fire independently.
+  renames stay silent; archived repos still fire independently. The
+  finding names the moved-from repository path as its affected
+  artifact (source-repository kind), so a recorded go.mod require or
+  remote resolves AFFECTS_ARTIFACT while the moved-to path does not
+  match at all — verified live on the capa and etcd moves (see
+  `docs/DISCOVERIES.md` Cases 6–7).
 - Observation diffs (`analyze_diffs`): `tag_disappeared` → `REVIEW`,
   `tag_appeared`/`tag_digest_changed`/`latest_moved` → `WATCH`,
   `repo_missing` → `REVIEW`, `repo_restored` → `INFORMATIONAL`.
