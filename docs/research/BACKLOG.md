@@ -38,10 +38,10 @@ Purpose: turn public intelligence into customer answers without building generic
 
 Purpose: turn scenarios into measurements (precision/recall, false-impact/clear rates).
 
-- [ACTIVE] Formalize cert-manager, Kafka (M4 list order). Purpose: benchmark coverage toward 10.
+- [DONE] Kafka and cert-manager goldens formalized (M4): two EOL cycles each verified against live endoflife.date rows and packaged-image identity. Purpose: benchmark coverage toward 10 — now at 9.
 - [NEXT] Grafana, Terraform, one AI/ML project (the AI/ML case doubles as the M8 entry point). Purpose: close M4 coverage including agent-selected software.
 - [NEXT] Benchmark harness reporting per-scenario applicability outcomes (affected/not/unknown vs expected) as a reproducibility package. Purpose: first step from scenarios to the research metrics the roadmap promises.
-- [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL six green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
+- [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL/Kubernetes/Kafka/cert-manager nine green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
 
 ## P5 — Evidence Contract (attestation precursor)
 
