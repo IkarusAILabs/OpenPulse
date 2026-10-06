@@ -1,0 +1,8 @@
+# core dependencies
+django==4.2
+celery[redis]==5.4.0 ; python_version >= "3.8"
+boto3==1.34.90 # via deployment lock
+requests>=2.31.0
+flask
+--index-url https://pypi.example.com/proxy
+-r requirements-dev.txt

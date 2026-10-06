@@ -491,6 +491,7 @@ def _load_check_inputs(
     spdx,
     images,
     lockfile,
+    manifest,
     events,
     raw_bundle_dir,
 ):
@@ -508,9 +509,9 @@ def _load_check_inputs(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx and not images and not lockfile:
+    if not watchlist and not sbom and not spdx and not images and not lockfile and not manifest:
         raise click.ClickException(
-            "check needs --watchlist, --sbom, --spdx, --images and/or --lockfile"
+            "check needs --watchlist, --sbom, --spdx, --images, --lockfile and/or --manifest"
         )
     deps: list[Any] = []
     if watchlist:
@@ -595,6 +596,33 @@ def _load_check_inputs(
             )
         for line in lock_skipped:
             _echo(f"! skipped: {line}")
+    if manifest:
+        from core.manifest_reader import read_manifest
+
+        try:
+            man_deps, man_skipped, man_format = read_manifest(manifest)
+        except ValueError as e:
+            raise click.ClickException(f"{manifest}: {e}")
+        label = {
+            "requirements": "requirements.txt",
+            "pyproject": "pyproject.toml",
+            "pom": "pom.xml",
+            "go": "go.mod",
+            "cargo": "Cargo.toml",
+        }[man_format]
+        if man_deps:
+            _echo(
+                f"manifest ({label}): {len(man_deps)} pinned package(s), "
+                f"{len(man_skipped)} skipped"
+            )
+            deps = [*deps, *man_deps]
+        elif man_skipped:
+            _echo(
+                f"manifest ({label}): 0 pinned, "
+                f"{len(man_skipped)} skipped — nothing checkable in this manifest"
+            )
+        for line in man_skipped:
+            _echo(f"! skipped: {line}")
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -607,7 +635,7 @@ def _load_check_inputs(
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
     if not deps:
         raise click.ClickException(
-            "no checkable dependencies (watchlist/SBOM/lockfile/images yielded nothing)"
+            "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
         )
     return deps, loaded_events, bundles
 

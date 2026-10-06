@@ -140,7 +140,7 @@ EVIDENCE
 ACTION
 ```
 
-Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), verdicts (AFFECTED / NOT_AFFECTED / UNKNOWN with identity, evidence, applicability, confidence, timing, recommendation). Missing: package manifests, GitHub repositories as inputs. All inputs must converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing.
+Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), verdicts (AFFECTED / NOT_AFFECTED / UNKNOWN with identity, evidence, applicability, confidence, timing, recommendation). Missing: GitHub repositories as inputs (package manifests shipped in `core/manifest_reader.py`). All inputs must converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing.
 
 ## M6 — Early Warning SaaS
 STATUS: FUTURE
