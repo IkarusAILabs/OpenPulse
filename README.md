@@ -143,7 +143,7 @@ everything else. We do not compete on EOL record counts.
   Bitnami-namespace rules, and identity trust (VERIFIED /
   REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
   EMERGING).
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, and npm/poetry/Cargo lockfiles (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, and requirements/pyproject/pom/go.mod/Cargo manifests (digest + webhook), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
 - **290+ tests**, `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
 ## Quickstart
@@ -183,6 +183,10 @@ openpulse check --images data/fixtures/images/inventory_sample.txt --event data/
    # lockfiles too: package-lock.json, poetry.lock or Cargo.lock (pinned entries only,
    # unpinned/workspace entries are skipped with reasons, never range-guessed)
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
+
+   # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
+   # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
+openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
 # 7. Run the test suite
 pytest -q
