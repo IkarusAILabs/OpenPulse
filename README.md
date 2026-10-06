@@ -184,8 +184,11 @@ openpulse check --images data/fixtures/images/inventory_sample.txt --event data/
    # unpinned/workspace entries are skipped with reasons, never range-guessed)
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
 
-   # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
-   # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
+    # emit one evidence-contract v1 JSON document per dependency x event pair (JSONL)
+openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+
+    # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
+    # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
 # 7. Run the test suite
