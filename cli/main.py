@@ -671,6 +671,13 @@ def _load_check_inputs(
     "composable with --watchlist/--sbom/--spdx",
 )
 @click.option(
+    "--manifest",
+    "manifest",
+    type=click.Path(exists=True),
+    help="Package manifest (requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml) "
+    "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -711,6 +718,7 @@ def check(
     spdx,
     images,
     lockfile,
+    manifest,
     events,
     raw_bundle_dir,
     strict,
@@ -723,7 +731,7 @@ def check(
     from core.risk.check import check_dependency
 
     deps, loaded_events, bundles = _load_check_inputs(
-        watchlist, sbom, spdx, images, lockfile, events, raw_bundle_dir
+        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
     )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
@@ -855,6 +863,13 @@ def check(
     "composable with --watchlist/--sbom/--spdx",
 )
 @click.option(
+    "--manifest",
+    "manifest",
+    type=click.Path(exists=True),
+    help="Package manifest (requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml) "
+    "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -893,6 +908,7 @@ def digest(
     spdx,
     images,
     lockfile,
+    manifest,
     events,
     raw_bundle_dir,
     window_days,
@@ -906,7 +922,7 @@ def digest(
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
     deps, loaded_events, bundles = _load_check_inputs(
-        watchlist, sbom, spdx, images, lockfile, events, raw_bundle_dir
+        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
     )
     if not loaded_events:
         raise click.ClickException(
