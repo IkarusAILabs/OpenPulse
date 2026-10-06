@@ -1,9 +1,20 @@
+# Dependabot configuration for OpenPulse.
+#
+# NOTE: the pip ecosystem scans recursively and therefore picks up the
+# test-only fixture at data/fixtures/manifests/requirements.txt, which pins
+# django==4.2 on purpose (the golden tests assert an EOL Django pin is
+# AFFECTS_VERSION). Django is not a real OpenPulse dependency (see
+# pyproject.toml), so the `ignore` below silences Dependabot alerts on that
+# fixture-only pin instead of bumping test data.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /
     schedule: {interval: weekly}
     labels: [dependencies]
+    ignore:
+      # Fixture-only pin (data/fixtures/manifests/requirements.txt); not a real dep.
+      - dependency-name: ["django"]
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
