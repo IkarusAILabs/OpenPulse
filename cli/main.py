@@ -940,6 +940,114 @@ def digest(
 
 
 @cli.command()
+@click.option(
+    "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
+)
+@click.option(
+    "--sbom",
+    "sbom",
+    type=click.Path(exists=True),
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) — composable with --watchlist/--spdx",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
+)
+@click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory — composable with all other inputs",
+)
+@click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock) — pinned entries only, "
+    "composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
+    "--manifest",
+    "manifest",
+    type=click.Path(exists=True),
+    help="Package manifest (requirements.txt / pyproject.toml / pom.xml / go.mod / "
+    "Cargo.toml) — pinned entries only, composable with all other inputs",
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Intelligence event JSON (repeatable)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for security correlation",
+)
+@click.option(
+    "--window-days",
+    default=90,
+    show_default=True,
+    help="Warning window: keep changes effective within N days of today",
+)
+@click.option(
+    "--output",
+    "output",
+    type=click.Choice(["md", "json"]),
+    default="md",
+    show_default=True,
+    help="Deadline list format: markdown (human) or JSON (machine)",
+)
+@click.option(
+    "--ledger",
+    "ledger_root",
+    default=".openpulse/detections",
+    show_default=True,
+    help="Durable first-detection ledger root (read-only; `openpulse check` records)",
+)
+def warnings(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    manifest,
+    events,
+    raw_bundle_dir,
+    window_days,
+    output,
+    ledger_root,
+):
+    """M6 Early Warning: ranked warning deadlines - days until each change hits MY dependencies."""
+    from core.risk.check import check_dependency
+    from core.warnings import build_warnings, render_warnings_md
+
+    if ledger_root == "":
+        ledger_root = None  # read deadlines without a ledger: no lead-time claims
+    deps, loaded_events, bundles = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+    )
+    if not loaded_events:
+        raise click.ClickException(
+            "warnings needs at least one --event: deadlines come from event"
+            " evidence, not from the ledger alone"
+        )
+    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    built = build_warnings(
+        results, loaded_events, ledger_root=ledger_root, window_days=window_days
+    )
+    if output == "json":
+        import json as _json
+
+        _echo(_json.dumps(built, indent=2))
+        return
+    _echo(render_warnings_md(built))
+
+
+@cli.command()
 @click.option("--store", default=".openpulse/observations", help="History root directory")
 @click.option(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
