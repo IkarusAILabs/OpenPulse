@@ -940,6 +940,41 @@ def digest(
 
 
 @cli.command()
+@click.option("--watchlist", type=click.Path(exists=True))
+@click.option("--sbom", type=click.Path(exists=True))
+@click.option("--spdx", type=click.Path(exists=True))
+@click.option("--images", type=click.Path(exists=True))
+@click.option("--lockfile", type=click.Path(exists=True))
+@click.option("--manifest", type=click.Path(exists=True))
+@click.option("--event", "events", multiple=True, type=click.Path(exists=True), required=True)
+@click.option("--raw-bundle-dir", type=click.Path(exists=True, file_okay=False))
+@click.option("--output", default="", type=click.Path(), help="Write JSONL here (default: stdout)")
+def attest(watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir, output):
+    """Emit one evidence-contract v1 document per dependency x event pair."""
+    import json as _json
+    from pathlib import Path as _Path
+    from core.evidence_contract import build_v1_contract, validate_v1_contract
+    from core.risk.check import check_dependency
+    deps, loaded_events, bundles = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+    )
+    lines=[]
+    for dep in deps:
+        for event in loaded_events:
+            doc=build_v1_contract(event, check_dependency(dep, [event], bundles))
+            problems=validate_v1_contract(doc)
+            if problems:
+                raise click.ClickException(f"internal error: contract for {dep} vs {event.id} failed validation: {problems}")
+            lines.append(_json.dumps(doc, sort_keys=True))
+    if output:
+        _Path(output).write_text("\n".join(lines)+"\n", encoding="utf-8")
+        _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)
+    else:
+        for line in lines:
+            click.echo(line)
+
+
+@cli.command()
 @click.option("--store", default=".openpulse/observations", help="History root directory")
 @click.option(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
