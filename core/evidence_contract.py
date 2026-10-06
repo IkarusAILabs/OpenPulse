@@ -1,18 +1,23 @@
 """Evidence contract v1: standalone machine-consumable dependency evidence."""
 from __future__ import annotations
-import json,re
+import json
+import re
 from pathlib import Path
+
 from typing import Any
 from core import attestation
 from core.attestation import EvidenceContract
 from core.evidence.provenance import hash_content
 from core.schema.models import OSSEvent
+
 CONTRACT_VERSION="1.0.0"
-SCHEMA_PATH=Path(__file__).resolve().parents[1]/"schemas"/"evidence-contract"/"v1"/"schema.json"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "evidence-contract" / "v1" / "schema.json"
 _V1_RENAME={"contract_schema_version":"contract_version","event":"event_context","evidence_references":"evidence_refs","dates":"temporal"}
 _V1_BODY_FIELDS=("contract_version","event_context","identity","scope","affected_dependency","assessment","evidence_refs","temporal","unknowns","recommendation","provenance")
-def contract_version()->str:return CONTRACT_VERSION
-def load_schema()->dict[str,Any]:return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+def contract_version() -> str:
+    return CONTRACT_VERSION
+def load_schema() -> dict[str, Any]:
+    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 def build_v1_contract(event:OSSEvent,verdict:Any,finding:dict[str,Any]|None=None)->dict[str,Any]:
     doc=_rename_blocks(attestation.build_contract(event,verdict,finding));doc["contract_version"]=CONTRACT_VERSION;_set_content_hash(doc);return doc
 def _rename_blocks(base:EvidenceContract)->dict[str,Any]:
