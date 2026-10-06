@@ -1,0 +1,32 @@
+{
+  "endoflife": [],
+  "github": [
+    {
+      "collector": "github",
+      "repo": "coreos/etcd",
+      "tag": "v3.7.2",
+      "name": "v3.7.2",
+      "published_at": "2026-09-22T21:22:39Z",
+      "prerelease": false,
+      "url": "https://github.com/etcd-io/etcd/releases/tag/v3.7.2"
+    }
+  ],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "coreos/etcd",
+      "full_name": "etcd-io/etcd",
+      "archived": false,
+      "pushed_at": "2026-10-05T23:11:12Z",
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "stargazers": 52329,
+      "url": "https://github.com/etcd-io/etcd"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}

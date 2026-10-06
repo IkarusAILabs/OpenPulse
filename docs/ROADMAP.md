@@ -109,7 +109,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 ## M2 — Real Upstream Change Discovery
 STATUS: ACTIVE / HIGHEST PRIORITY
 
-Objective: repeatedly discover meaningful non-lifecycle changes with enough evidence to survive independent validation — distribution, registry, repository/archive, maintainer/ownership, support-model, license, breaking changes, package/distribution removal, migration signals. Not more signals: the October 2026 sweep proved mechanisms fire (65 diffs, since killed as window artifacts per `docs/DISCOVERIES.md`), but M2 acceptance (5 verified reproducible cases; currently 2 of 5) is unmet. Formalization and verification, not mechanism, is the work.
+Objective: repeatedly discover meaningful non-lifecycle changes with enough evidence to survive independent validation — distribution, registry, repository/archive, maintainer/ownership, support-model, license, breaking changes, package/distribution removal, migration signals. Not more signals: the October 2026 sweep proved mechanisms fire (65 diffs, since killed as window artifacts per `docs/DISCOVERIES.md`), but M2 acceptance (5 verified reproducible cases; currently 4 of 5 — the capa and etcd ownership moves joined minio and Bitnami) is nearly met. Formalization and verification, not mechanism, is the work.
 
 ## M3 — Intelligence Report Product
 STATUS: ACTIVE
@@ -202,7 +202,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 ## Item dispositions (reconciled 2026-10-04)
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
-- ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
+- ACTIVE: M2 acceptance set (4/5; capa and etcd ownership moves formalized with live fixtures), the namespace-move detector still awaiting a live firing.
 - VALIDATION: M4 at 9 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
 - NEXT: watchlist→SBOM→manifest ingestion sequence; evidence contract v1 shipped (schemas/evidence-contract/v1, see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
@@ -211,8 +211,8 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 ## Next 90 Days
 
-1. Real non-lifecycle discovery — close the M2 acceptance set (confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings).
-2. Report/productization — briefing stays ahead of the intelligence; evidence contract v1 shipped (docs/EVIDENCE_CONTRACT.md).
+1. Real non-lifecycle discovery — close the M2 acceptance set (ownership moves formalized: capa, etcd; one more verified case needed; a live namespace-move pair still pending).
+2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
 3. Golden benchmark — cert-manager, Kafka; start Grafana/Terraform/AI-ML.
 4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.
 5. Early-warning prototype — watchlist-scoped first-detection history already durable; add verified lead-time cases.

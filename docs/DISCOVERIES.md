@@ -9,9 +9,11 @@ verification status and reproduction. Curated-only entries are
 marked and never counted. A case that cannot replay is removed,
 not argued for.
 
-Acceptance status: **NOT MET — 2 of 5 verified.** The pruning
+Acceptance status: **NOT MET — 4 of 5 verified.** The pruning
 candidates were probed 2026-10-03 and killed (see Cases 3–5); the
-gap and the path to close it are recorded below, not hidden.
+two live ownership-move firings below (Cases 6–7, capa and etcd)
+replaced them. One more verified case closes the set; the gap and
+the path to close it are recorded below, not hidden.
 
 ## Case 1 — minio/minio archived ✅ VERIFIED
 
@@ -97,6 +99,51 @@ gap and the path to close it are recorded below, not hidden.
   stand on the per-tag + v2-list evidence above. The acquisition gap
   itself is filed as #36.
 
+## Case 6 — fireeye/capa moved to mandiant/capa ✅ VERIFIED (live replay)
+
+- What changed: the capa repository moved from `fireeye/capa` to
+  `mandiant/capa` (Mandiant acquired FireEye's products business,
+  2021). A recorded `github.com/fireeye/capa` require, remote or
+  checkout URL now names a redirect, not a first-party source.
+- Why it matters: recorded source paths silently change meaning on
+  an ownership move; pulls work via redirect today and break when
+  the redirect or the archived shape changes.
+- Affected: source reference `github.com/fireeye/capa` (the
+  moved-from path). The moved-to path is a different identity.
+- Evidence: live `repo_meta` 2026-10-06 — queried `fireeye/capa`,
+  `full_name: mandiant/capa`, `archived: false`,
+  `pushed_at: 2026-10-05T14:43:20Z`, `stargazers: 6213`,
+  fixture `data/fixtures/capa-move/raw_bundle.json`.
+- Confidence: EMERGING (single primary source: the repository itself).
+- First detection: 2026-10-06 (live probe; replayed offline by
+  `test_golden_capa_ownership_move`).
+- Effective date: the transfer predates observation history;
+  unrecorded — the stale reference is in force now.
+- Scope: project-wide, artifact-named. Finding:
+  `OWNERSHIP_CHANGE` / REVIEW-eligible; the finding names the
+  moved-from path as its affected artifact (gate requirement).
+- Reproduction: `openpulse analyze --project capa` (or
+  `analyze_github_meta` on the recorded meta — see the golden test).
+
+## Case 7 — coreos/etcd moved to etcd-io/etcd ✅ VERIFIED (live replay)
+
+- What changed: the etcd repository moved from `coreos/etcd` to
+  `etcd-io/etcd` (CoreOS wind-down, 2018). A recorded
+  `github.com/coreos/etcd` require or remote now names a redirect.
+- Why it matters: same class as Case 6 on a second real move —
+  proves the rule is not shaped around one repository's history.
+- Affected: source reference `github.com/coreos/etcd`.
+- Evidence: live `repo_meta` 2026-10-06 — queried `coreos/etcd`,
+  `full_name: etcd-io/etcd`, `archived: false`,
+  `pushed_at: 2026-10-05T23:11:12Z`, `stargazers: 52329`,
+  fixture `data/fixtures/etcd-move/raw_bundle.json`.
+- Confidence: EMERGING (single primary source).
+- First detection: 2026-10-06 (live probe; replayed offline by
+  `test_golden_etcd_namespace_move`).
+- Effective date: predates observation history; in force now.
+- Scope: project-wide, artifact-named. Finding:
+  `OWNERSHIP_CHANGE` / REVIEW-eligible.
+
 ## Anti-case — the 5-tag window flaw (caught, fixed)
 
 Same-session catch: symmetric appear/disappear pairs (`latest`
@@ -112,9 +159,9 @@ pipeline must not be able to claim more than its acquisition supports.
 ## Armed, awaiting live firing
 
 - Ownership drift (`OWNERSHIP_CHANGE`, `analyze_github_meta`):
-  owner-change detection with same-owner renames silent. Offline
-  proofs in `tests/test_analysts.py`; no live firing yet (needs a
-  real transfer; GitHub quota reserved).
+  **fired live twice** (Cases 6–7, capa and etcd, 2026-10-06) and
+  formalized with golden replays; same-owner renames stay silent
+  (offline proofs in `tests/test_analysts.py`).
 - Namespace moves (`split_moves`, `core/observations/sweep.py`):
   cross-namespace appear/disappear pairs become one migration story.
   Offline proofs in `tests/test_correlation.py`; no live pair
@@ -123,10 +170,15 @@ pipeline must not be able to claim more than its acquisition supports.
 ## What closes acceptance
 
 1. ~~Confirm-or-kill the three pruning cases~~ — done 2026-10-03,
-   all three killed (Cases 3–5). Remaining path: replacements for the
-   killed slots, and #36 (Hub anonymous pagination cap) resolved so
-   full-set probes are possible again for large repos.
-2. One live firing from the armed detectors (move or ownership).
+   all three killed (Cases 3–5). Replacements delivered 2026-10-06:
+   Cases 6–7 (capa, etcd ownership moves) from live repo_meta
+   probes. One more verified case closes the set; #36 (Hub
+   anonymous pagination cap) still blocks full-set probes for
+   large repos.
+2. ~~One live firing from the armed detectors (move or
+   ownership)~~ — ownership fired live twice (Cases 6–7). The
+   cross-namespace `split_moves` detector stays armed, awaiting a
+   live pair.
 3. Version-aware latest-only rule flipping the Bitnami gap test —
    CLOSED: `parse_tags` is version-aware and the flipped test
    (`test_bitnami_digest_mainline_gap_closed`) plus a no-false-positive

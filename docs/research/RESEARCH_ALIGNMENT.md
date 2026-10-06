@@ -28,7 +28,7 @@ SafeAI ([repo](https://github.com/IkarusAILabs/SafeAI)) is the Agent Authority E
 
 ## Research questions (OpenPulse scope)
 
-1. Can meaningful non-lifecycle upstream changes be discovered repeatedly with evidence that survives independent validation? (M2; observed: mechanisms fire; planned: 5-case acceptance set.)
+1. Can meaningful non-lifecycle upstream changes be discovered repeatedly with evidence that survives independent validation? (M2; observed: mechanisms fire, ownership moves fired live twice — capa, etcd; acceptance set 4 of 5.)
 2. Can applicability be determined precisely — affected vs not affected vs unknown — with measured precision/recall and bounded false-impact and false-clear rates? (M4/M5; implemented: verdict engine; planned: benchmark measurement.)
 3. Can first trustworthy detection be persisted so warning windows survive across runs, and can lead time be measured without estimation? (Implemented: detection ledger, `effective_date − first_trustworthy_detection`; planned: verified case studies.)
 4. Can OpenPulse evidence be consumed by a separate assurance system without understanding OpenPulse internals? (Planned: evidence contract, attestation schema.)
