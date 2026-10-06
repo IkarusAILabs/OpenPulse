@@ -354,6 +354,56 @@ response body, failures never log secrets. Known limitation: DNS is
 resolved before connecting, so a hostile resolver could race the
 check; short timeouts and no-redirects bound the blast radius.
 
+## Alert digest — the first M6 early-warning surface (`core/digest.py`)
+
+`openpulse digest` joins three things that already exist — the
+dependency inputs the customer just checked, the events the check
+ran against, and the durable first-detection ledger `openpulse
+check` records into — and renders one ranked briefing: what is
+changing in MY software, and by when. It computes nothing new and
+stores nothing: it is a read-only projection over the same stores,
+so there is no second source of truth to drift.
+
+Rules the digest inherits rather than reinvents:
+
+- **Customer evidence is required.** An entry exists only for a
+  dependency the caller declared with an impact-asserting verdict.
+  Public intelligence never implies customer impact.
+- **Deadlines come from event evidence only.** `days_until_effective`
+  is the evidence-declared effective date minus today; an affected
+  dependency whose event declares no effective date has no deadline
+  to count down to and stays in `check` output, out of the digest.
+  The derivation is `core.leadtime.event_effective_day` — the same
+  one the evidence contract's dates block pins — not a re-derivation.
+- **Lead time is never estimated.** It comes from the ledger's
+  `first_seen` for the exact fact (project, class, subject, scope),
+  read through the same `durable_fact_from_cause` identity the
+  writer uses, so a fact can never be recorded under one identity
+  and surfaced under another. No record → no lead-time claim. A
+  missing or unreadable entry renders as that statement, never as
+  an exception: the digest is a briefing a cron schedule depends on
+  rendering.
+- **The window is symmetric around today.** Default 90 days each
+  way: upcoming deadlines count down, and changes that just became
+  effective (days_until_effective negative, rendered with an
+  OVERDUE marker) lead the briefing — a weekly digest must not
+  drop a change the day it crosses zero. History older than the
+  lookback is the monthly report's to narrate.
+- **Security findings are excluded on purpose.** They carry CVE
+  ids, not event deadlines: a CVE fix is available the moment it
+  is published, so there is nothing to count down to. They keep
+  their severity and their home in `check` output.
+- **Ranking is deterministic and explained.** Soonest effective
+  date first, then dependency, then event id — no mystery score,
+  no unexplained ordering.
+
+The rendered briefing is two urgency bands (Act this cycle /
+Watch), one headline plus an evidence line per entry, and a clean
+“nothing upcoming or newly-effective” message for an empty window — which makes
+no claim about dependencies outside the window. `--output json`
+emits the same entries as structured documents for machine
+consumption.
+
 ## Verdict decision matrix (`core/risk/check.py`)
 
 AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE >

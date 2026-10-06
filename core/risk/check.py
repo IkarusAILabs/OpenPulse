@@ -427,6 +427,55 @@ _LIFECYCLE_EVENT_TYPES = ledger.LIFECYCLE_EVENT_TYPES
 _AFFECTED_RELATIONSHIPS = frozenset({"AFFECTS_VERSION", "AFFECTS_PACKAGE", "AFFECTS_ARTIFACT"})
 
 
+def durable_fact_from_cause(
+    cause: Cause,
+    events_by_id: dict[str, OSSEvent],
+) -> dict[str, Any] | None:
+    """Durable detection fact for ONE impact-asserting cause, or None.
+
+    The single derivation of cause -> ledger identity: fact key
+    (project, class, subject, scope). Both callers - the writer
+    (``detections_from_verdicts`` -> ``ledger.record_detection``)
+    and any reader that needs to look a fact up (the alert digest)
+    - go through this function, so a cause can never be recorded
+    under one identity and read back under another. Causes that
+    assert no impact, carry no stable project, or name no durable
+    event type yield None: nothing durable to remember.
+    """
+    if str(cause.get("relationship", "")) not in _AFFECTED_RELATIONSHIPS:
+        return None
+    project = str(cause.get("project") or "")
+    if not project:
+        return None  # no stable project -> nothing durable
+    if cause.get("cause") == "security_vulnerability":
+        subject = str(cause.get("event_id") or "")
+        if not subject:
+            return None
+        return {
+            "project": project,
+            "finding_class": ledger.SECURITY,
+            "subject": subject,
+            "scope": [],
+        }
+    if cause.get("cause") != "upstream_change":
+        return None
+    event_type = str(cause.get("event_type") or "")
+    if event_type not in _LIFECYCLE_EVENT_TYPES:
+        return None  # distribution changes keep observation-history detection
+    event = events_by_id.get(str(cause.get("event_id") or ""))
+    if event is None or event.scope is None:
+        return None
+    versions = sorted({str(v) for v in event.scope.versions or []})
+    if not versions:
+        return None
+    return {
+        "project": project,
+        "finding_class": ledger.LIFECYCLE,
+        "subject": event_type,
+        "scope": versions,
+    }
+
+
 def detections_from_verdicts(
     verdicts: list[DependencyVerdict],
     events: list[OSSEvent] | None = None,
@@ -440,59 +489,30 @@ def detections_from_verdicts(
     security facts as (project, CVE id), so the same underlying fact
     reported by different events/sources across runs maps to ONE
     ledger entry. `events` supplies the scope versions for lifecycle
-    causes (the cause carries the event id). Only impact-asserting
-    relationships contribute: a RELATED tie is context, not a
-    detection worth remembering, and UNKNOWN means no evidence.
-    Never invents: causes without a usable identity are skipped.
+    causes (the cause carries the event id). Identity derivation is
+    delegated to ``durable_fact_from_cause`` - one derivation path,
+    shared with the alert-digest reader, never a second one. Only
+    impact-asserting relationships contribute: a RELATED tie is
+    context, not a detection worth remembering, and UNKNOWN means no
+    evidence. Never invents: causes without a usable identity are
+    skipped.
     """
     events_by_id = {e.id: e for e in events or []}
     facts: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, tuple[str, ...]]] = set()
     for verdict in verdicts:
         for cause in verdict.verdicts:
-            if str(cause.get("relationship", "")) not in _AFFECTED_RELATIONSHIPS:
+            fact = durable_fact_from_cause(cause, events_by_id)
+            if fact is None:
                 continue
-            project = str(cause.get("project") or "")
-            if not project:
-                continue  # no stable project -> nothing durable
-            if cause.get("cause") == "security_vulnerability":
-                subject = str(cause.get("event_id") or "")
-                if not subject:
-                    continue
-                key = (project, ledger.SECURITY, subject, ())
-                if key in seen:
-                    continue
-                seen.add(key)
-                facts.append(
-                    {
-                        "project": project,
-                        "finding_class": ledger.SECURITY,
-                        "subject": subject,
-                        "scope": [],
-                    }
-                )
-                continue
-            if cause.get("cause") != "upstream_change":
-                continue
-            event_type = str(cause.get("event_type") or "")
-            if event_type not in _LIFECYCLE_EVENT_TYPES:
-                continue  # distribution changes keep observation-history detection
-            event = events_by_id.get(str(cause.get("event_id") or ""))
-            if event is None or event.scope is None:
-                continue
-            versions = sorted({str(v) for v in event.scope.versions or []})
-            if not versions:
-                continue
-            key = (project, ledger.LIFECYCLE, event_type, tuple(versions))
+            key = (
+                str(fact["project"]),
+                str(fact["finding_class"]),
+                str(fact["subject"]),
+                tuple(str(v) for v in fact["scope"]),
+            )
             if key in seen:
                 continue
             seen.add(key)
-            facts.append(
-                {
-                    "project": project,
-                    "finding_class": ledger.LIFECYCLE,
-                    "subject": event_type,
-                    "scope": versions,
-                }
-            )
+            facts.append(fact)
     return facts
