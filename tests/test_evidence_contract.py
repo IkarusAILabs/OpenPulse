@@ -10,7 +10,8 @@ from core.risk.check import check_dependency
 from core.schema.models import OSSEvent
 
 def event(path):
-    return OSSEvent(**json.load(open(path, encoding="utf-8")))
+    with open(path, encoding="utf-8") as handle:
+        return OSSEvent(**json.load(handle))
 
 def test_v1_contract_schema_and_hash():
     e=event("data/fixtures/django-eol/event.json")
