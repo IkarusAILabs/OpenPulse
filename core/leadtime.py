@@ -92,3 +92,21 @@ def finding_lead_time(finding: dict[str, Any]) -> tuple[int | None, str | None, 
     if detected is None or effective is None:
         return None, None, None
     return lead_time_days(detected, effective), str(detected), str(effective)
+
+
+def event_effective_day(event: Any) -> date | None:
+    """The evidence-declared effective date for one event, or None.
+
+    First evidence that declares one wins - the same semantics the
+    evidence contract pins in its dates block - so there is ONE
+    derivation of "when this event takes effect", shared by every
+    consumer (attestation, alert digest) instead of re-walked per
+    surface. An event whose evidences declare no effective date has
+    no deadline: None, never a date borrowed from published or
+    announcement fields.
+    """
+    for evidence in getattr(event, "evidences", None) or []:
+        day = parse_day(getattr(evidence, "effective_date", None))
+        if day is not None:
+            return day
+    return None

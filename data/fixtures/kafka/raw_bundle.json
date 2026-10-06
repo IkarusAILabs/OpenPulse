@@ -1,0 +1,36 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "apache-kafka",
+      "cycle": "3.8",
+      "eol": "2024-11-06",
+      "support": null,
+      "latest": "3.8.1",
+      "latestReleaseDate": "2024-10-29"
+    },
+    {
+      "collector": "endoflife",
+      "product": "apache-kafka",
+      "cycle": "4.3",
+      "eol": false,
+      "support": null,
+      "latest": "4.3.1",
+      "latestReleaseDate": "2026-06-23"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "apache/kafka",
+      "archived": false,
+      "pushed_at": "2026-09-24T00:00:00Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}

@@ -30,6 +30,7 @@ Purpose: turn public intelligence into customer answers without building generic
 - [DONE] YAML watchlist path (`openpulse check`) and CycloneDX SBOM input (`core/sbom_reader.py`) converging on `check_dependency` verdicts.
 - [NEXT] SPDX input alongside CycloneDX, same convergence rule (reuse identity/applicability semantics or do not ship). Purpose: M5 input breadth without a second engine.
 - [DONE] Lockfile readers (package-lock, poetry.lock, Cargo.lock — pinned-version truth only; `core/lockfile_reader.py`, skip-and-record discipline, `--lockfile` composable with watchlist/SBOM). Purpose: exact-version applicability, the highest-precision M5 input.
+- [DONE] Package manifest readers (requirements.txt, pyproject.toml, pom.xml, go.mod, Cargo.toml - pinned-version truth only; `core/manifest_reader.py`, skip-and-record discipline, `--manifest` composable with watchlist/SBOM/lockfile). Purpose: the most direct customer dependency input - what developers actually commit; exact-version applicability through the existing identity engine.
 - [NEXT] Container image inventory input (image:tag lists → artifact matching). Purpose: closes the loop with distribution intelligence (M2→M5).
 - [DEFERRED] GitHub-repository ingestion (dependency files at a ref). Purpose: real, but auth/permissions/rate-limit design belongs with customer monitoring, not local CLI.
 
@@ -37,10 +38,10 @@ Purpose: turn public intelligence into customer answers without building generic
 
 Purpose: turn scenarios into measurements (precision/recall, false-impact/clear rates).
 
-- [ACTIVE] Formalize cert-manager, Kafka (M4 list order). Purpose: benchmark coverage toward 10.
+- [DONE] Kafka and cert-manager goldens formalized (M4): two EOL cycles each verified against live endoflife.date rows and packaged-image identity. Purpose: benchmark coverage toward 10 — now at 9.
 - [NEXT] Grafana, Terraform, one AI/ML project (the AI/ML case doubles as the M8 entry point). Purpose: close M4 coverage including agent-selected software.
 - [NEXT] Benchmark harness reporting per-scenario applicability outcomes (affected/not/unknown vs expected) as a reproducibility package. Purpose: first step from scenarios to the research metrics the roadmap promises.
-- [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL six green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
+- [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL/Kubernetes/Kafka/cert-manager nine green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
 
 ## P5 — Evidence Contract (attestation precursor)
 
