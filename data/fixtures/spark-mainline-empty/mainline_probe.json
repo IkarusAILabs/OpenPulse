@@ -1,0 +1,12 @@
+{
+  "collector": "registries",
+  "registry": "docker.io",
+  "namespace": "bitnami",
+  "repo": "spark",
+  "tags_sample": [],
+  "digests": {},
+  "count": 0,
+  "has_versioned_tags": false,
+  "latest_only": false,
+  "truncated": false
+}
