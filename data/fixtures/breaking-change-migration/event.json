@@ -1,0 +1,86 @@
+{
+  "id": "react18-breaking-migration-2026",
+  "schema_version": "0.4.0",
+  "project_slug": "react",
+  "event_type": "BREAKING_CHANGE",
+  "title": "React 18 introduces breaking changes requiring migration - automatic batching, strict mode changes, new root API",
+  "summary": "React 18 introduces breaking changes including: automatic batching (previously opt-in), strict mode double-invoking effects in development, new createRoot API replacing render, and deprecated APIs removed. Migration requires code changes for affected applications.",
+  "confidence": "CONFIRMED",
+  "impact": "ACTION",
+  "affected_versions": ["18.0.0", "18.1.0", "18.2.0"],
+  "affected_artifacts": [
+    {"kind": "package", "ref": "npm:react@18.0.0"},
+    {"kind": "package", "ref": "npm:react@18.1.0"},
+    {"kind": "package", "ref": "npm:react@18.2.0"},
+    {"kind": "package", "ref": "npm:react-dom@18.0.0"},
+    {"kind": "package", "ref": "npm:react-dom@18.1.0"},
+    {"kind": "package", "ref": "npm:react-dom@18.2.0"}
+  ],
+  "evidences": [
+    {
+      "source": {
+        "name": "react.dev/blog",
+        "url": "https://react.dev/blog/2022/03/29/react-v18",
+        "authority": "official",
+        "fetched_at": "2022-03-29T00:00:00+00:00"
+      },
+      "excerpt": "React 18 introduces automatic batching (fewer re-renders), new root API (createRoot replaces render), strict mode changes (double-invoking effects in dev), and deprecated APIs removed (ReactDOM.render, etc.). Migration guide provided for upgrading from React 17.",
+      "effective_date": "2022-03-29",
+      "announcement_date": "2022-03-29",
+      "relation": "supports"
+    },
+    {
+      "source": {
+        "name": "github.com/facebook/react",
+        "url": "https://github.com/facebook/react/releases/tag/v18.0.0",
+        "authority": "official",
+        "fetched_at": "2022-03-29T00:00:00+00:00"
+      },
+      "excerpt": "React 18.0.0 release notes: Automatic batching for all state updates, createRoot API, strict mode changes, new hooks (useId, useTransition, useDeferredValue), deprecated APIs removed. Migration guide: https://react.dev/blog/2022/06/15/react-v18-upgrade-guide",
+      "effective_date": "2022-03-29",
+      "announcement_date": "2022-03-29",
+      "relation": "supports"
+    },
+    {
+      "source": {
+        "name": "react.dev/migration-guide",
+        "url": "https://react.dev/blog/2022/06/15/react-v18-upgrade-guide",
+        "authority": "official",
+        "fetched_at": "2022-06-15T00:00:00+00:00"
+      },
+      "excerpt": "Migration guide for React 18: Replace ReactDOM.render with createRoot, update strict mode usage, handle automatic batching changes, migrate deprecated APIs. Codemods available for automated migration assistance.",
+      "effective_date": "2022-03-29",
+      "announcement_date": "2022-06-15",
+      "relation": "context"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-react18-breaking",
+      "type": "BREAKING_CHANGE",
+      "subject": "react",
+      "statement": "React 18 introduces breaking changes requiring migration: automatic batching, strict mode changes, new createRoot API, deprecated APIs removed. Migration guide and codemods available.",
+      "evidence_refs": ["react.dev/blog", "github.com/facebook/react"]
+    },
+    {
+      "id": "claim-react18-migration",
+      "type": "MIGRATION_SIGNAL",
+      "subject": "react",
+      "statement": "Official migration guide and automated codemods available for React 18 migration. Breaking changes include: automatic batching, strict mode double-invoking effects, createRoot API, deprecated APIs removed.",
+      "evidence_refs": ["react.dev/migration-guide"]
+    }
+  ],
+  "attribution": {
+    "affected_project": "react",
+    "affected_package": "react",
+    "affected_version": "18.0.0, 18.1.0, 18.2.0"
+  },
+  "scope": {
+    "kind": "version",
+    "versions": ["18.0.0", "18.1.0", "18.2.0"],
+    "artifacts": [],
+    "packages": ["react", "react-dom"],
+    "registries": []
+  },
+  "created_at": "2022-03-29T00:00:00+00:00"
+}

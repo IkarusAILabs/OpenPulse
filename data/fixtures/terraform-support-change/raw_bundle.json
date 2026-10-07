@@ -1,0 +1,28 @@
+{
+  "support_change": [
+    {
+      "collector": "hashicorp",
+      "kind": "support_change",
+      "product": "terraform",
+      "version": "1.6",
+      "effective_date": "2023-10-10",
+      "source_url": "https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license"
+    },
+    {
+      "collector": "hashicorp",
+      "kind": "support_change",
+      "product": "terraform",
+      "version": "1.7",
+      "effective_date": "2023-10-10",
+      "source_url": "https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license"
+    },
+    {
+      "collector": "hashicorp",
+      "kind": "support_change",
+      "product": "terraform",
+      "version": "1.8",
+      "effective_date": "2023-10-10",
+      "source_url": "https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license"
+    }
+  ]
+}

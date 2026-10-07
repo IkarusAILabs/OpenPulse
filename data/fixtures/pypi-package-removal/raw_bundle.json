@@ -1,0 +1,30 @@
+{
+  "pypi_removal": [
+    {
+      "collector": "pypi",
+      "kind": "package_removal",
+      "project": "leftpad",
+      "versions": ["0.0.1", "0.0.2", "0.0.3"],
+      "removal_date": "2026-01-10",
+      "source": {
+        "name": "pypi.org",
+        "url": "https://pypi.org/project/leftpad/",
+        "authority": "primary",
+        "fetched_at": "2026-01-15T00:00:00+00:00"
+      }
+    },
+    {
+      "collector": "github",
+      "kind": "package_removal",
+      "project": "leftpad",
+      "versions": ["0.0.1", "0.0.2", "0.0.3"],
+      "removal_date": "2026-01-10",
+      "source": {
+        "name": "github.com/leftpad-maintainer/leftpad",
+        "url": "https://github.com/leftpad-maintainer/leftpad",
+        "authority": "official",
+        "fetched_at": "2026-01-15T00:00:00+00:00"
+      }
+    }
+  ]
+}

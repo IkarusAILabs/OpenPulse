@@ -1,0 +1,64 @@
+{
+  "id": "pypi-leftpad-removal-2026",
+  "schema_version": "0.4.0",
+  "project_slug": "leftpad",
+  "event_type": "PACKAGE_REMOVAL",
+  "title": "leftpad package removed from PyPI",
+  "summary": "The 'leftpad' package was removed from PyPI by the package maintainer. All versions are no longer available for installation. Dependent projects must migrate to alternatives or vendor the code.",
+  "confidence": "CONFIRMED",
+  "impact": "ACTION",
+  "affected_versions": ["0.0.1", "0.0.2", "0.0.3"],
+  "affected_artifacts": [
+    {"kind": "package", "ref": "pypi:leftpad:0.0.1"},
+    {"kind": "package", "ref": "pypi:leftpad:0.0.2"},
+    {"kind": "package", "ref": "pypi:leftpad:0.0.3"}
+  ],
+  "evidences": [
+    {
+      "source": {
+        "name": "pypi.org",
+        "url": "https://pypi.org/project/leftpad/",
+        "authority": "primary",
+        "fetched_at": "2026-01-15T00:00:00+00:00"
+      },
+      "excerpt": "Package 'leftpad' not found on PyPI. The package has been removed by the maintainer. This project is no longer available for installation via pip.",
+      "effective_date": "2026-01-10",
+      "announcement_date": "2026-01-10",
+      "relation": "supports"
+    },
+    {
+      "source": {
+        "name": "github.com/leftpad-maintainer/leftpad",
+        "url": "https://github.com/leftpad-maintainer/leftpad",
+        "authority": "official",
+        "fetched_at": "2026-01-15T00:00:00+00:00"
+      },
+      "excerpt": "Repository shows maintainer announced package removal from PyPI on 2026-01-10. No further releases planned. Users advised to vendor the code or migrate to alternative string padding utilities.",
+      "effective_date": "2026-01-10",
+      "announcement_date": "2026-01-10",
+      "relation": "supports"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-leftpad-removal",
+      "type": "PACKAGE_REMOVAL",
+      "subject": "leftpad",
+      "statement": "The leftpad package has been removed from PyPI by the maintainer. All versions are unavailable for installation.",
+      "evidence_refs": ["pypi.org", "github.com/leftpad-maintainer/leftpad"]
+    }
+  ],
+  "attribution": {
+    "affected_project": "leftpad",
+    "affected_package": "leftpad",
+    "affected_version": "0.0.1, 0.0.2, 0.0.3"
+  },
+  "scope": {
+    "kind": "version",
+    "versions": ["0.0.1", "0.0.2", "0.0.3"],
+    "artifacts": [],
+    "packages": ["leftpad"],
+    "registries": []
+  },
+  "created_at": "2026-01-15T00:00:00+00:00"
+}
