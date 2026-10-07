@@ -184,8 +184,11 @@ openpulse check --images data/fixtures/images/inventory_sample.txt --event data/
    # unpinned/workspace entries are skipped with reasons, never range-guessed)
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
 
-   # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
-   # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
+    # emit one evidence-contract v1 JSON document per dependency x event pair (JSONL)
+openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
+
+    # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
+    # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
 # 7. Run the test suite
@@ -266,7 +269,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 
 ## Roadmap
 
-M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery 🔨 active (acceptance: 5 verified cases) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 9 of 10–15 formalized → M5 Dependency Context (SBOM + watchlist + image inventories shipped; manifests/lockfiles next) → M6 Early Warning (ledger shipped; SaaS future) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
+M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context (SBOM + watchlist + image inventories shipped; manifests/lockfiles next) → M6 Early Warning (ledger shipped; SaaS future) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
 
 Deliberately *not* on the roadmap: becoming an EOL database, another
 generic SCA, collector-count vanity, AI reasoning in the trusted

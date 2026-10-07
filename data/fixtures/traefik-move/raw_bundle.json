@@ -1,0 +1,32 @@
+{
+  "endoflife": [],
+  "github": [
+    {
+      "collector": "github",
+      "repo": "containous/traefik",
+      "tag": "v3.7.14",
+      "name": "v3.7.14",
+      "published_at": "2026-10-06T07:49:56Z",
+      "prerelease": false,
+      "url": "https://github.com/traefik/traefik/releases/tag/v3.7.14"
+    }
+  ],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "containous/traefik",
+      "full_name": "traefik/traefik",
+      "archived": false,
+      "pushed_at": "2026-10-06T07:48:29Z",
+      "default_branch": "master",
+      "license": "MIT",
+      "stargazers": 65096,
+      "url": "https://github.com/traefik/traefik"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}

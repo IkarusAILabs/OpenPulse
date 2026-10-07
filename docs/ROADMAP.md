@@ -109,7 +109,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 ## M2 — Real Upstream Change Discovery
 STATUS: ACTIVE / HIGHEST PRIORITY
 
-Objective: repeatedly discover meaningful non-lifecycle changes with enough evidence to survive independent validation — distribution, registry, repository/archive, maintainer/ownership, support-model, license, breaking changes, package/distribution removal, migration signals. Not more signals: the October 2026 sweep proved mechanisms fire (65 diffs, since killed as window artifacts per `docs/DISCOVERIES.md`), but M2 acceptance (5 verified reproducible cases; currently 2 of 5) is unmet. Formalization and verification, not mechanism, is the work.
+Objective: repeatedly discover meaningful non-lifecycle changes with enough evidence to survive independent validation — distribution, registry, repository/archive, maintainer/ownership, support-model, license, breaking changes, package/distribution removal, migration signals. Not more signals: the October 2026 sweep proved mechanisms fire (65 diffs, since killed as window artifacts per `docs/DISCOVERIES.md`), but M2 acceptance (5 verified reproducible cases; met 2026-10-07 — capa, etcd, traefik, fbsdk and bitnami/spark live-replayed, joining minio and Bitnami) is met. Formalization and verification, not mechanism, is the work.
 
 ## M3 — Intelligence Report Product
 STATUS: ACTIVE
@@ -117,7 +117,7 @@ STATUS: ACTIVE
 The monthly briefing is a product surface (Executive Summary through Historical appendix, plus the `.meta.json` machine companion and the Lifecycle Posture view). Keep it ahead of the intelligence it carries; no new sections without a reader need. Lifecycle stays one category, never the product.
 
 ## M4 — Software Ecosystem Intelligence Benchmark
-STATUS: VALIDATION (9 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager)
+STATUS: VALIDATION (11 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager, Grafana, Terraform)
 
 A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: Grafana, Terraform, one AI/ML project.
 
@@ -145,7 +145,7 @@ Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), c
 ## M6 — Early Warning SaaS
 STATUS: FUTURE
 
-Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing. Commercial question stays: “What is changing in MY software?”
+Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
 
 ## M7 — Intelligence Network
 STATUS: FUTURE
@@ -202,16 +202,16 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 ## Item dispositions (reconciled 2026-10-04)
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
-- ACTIVE: M2 acceptance set (2/5), ownership/lifecycle detectors already shipped as mechanisms.
+- DONE 2026-10-07: M2 acceptance set closed (5 live-replayed cases: capa, etcd, traefik, fbsdk archive+move, bitnami/spark empty mainline). The namespace-move detector (`split_moves`) still awaits a live firing.
 - VALIDATION: M4 at 9 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
-- NEXT: watchlist→SBOM→manifest ingestion sequence; attestation minimal schema (see backlog P5).
+- NEXT: watchlist→SBOM→manifest ingestion sequence; evidence contract v1 shipped (schemas/evidence-contract/v1, see backlog P5).
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
 
 ## Next 90 Days
 
-1. Real non-lifecycle discovery — close the M2 acceptance set (confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings).
+1. Real non-lifecycle discovery — M2 acceptance set closed 2026-10-07 (five live-replayed cases formalized with golden tests; a live namespace-move pair for `split_moves` still pending).
 2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
 3. Golden benchmark — cert-manager, Kafka; start Grafana/Terraform/AI-ML.
 4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.

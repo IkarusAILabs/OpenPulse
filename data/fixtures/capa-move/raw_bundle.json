@@ -1,0 +1,32 @@
+{
+  "endoflife": [],
+  "github": [
+    {
+      "collector": "github",
+      "repo": "fireeye/capa",
+      "tag": "v9.4.0",
+      "name": "v9.4.0",
+      "published_at": "2026-04-01T09:30:11Z",
+      "prerelease": false,
+      "url": "https://github.com/mandiant/capa/releases/tag/v9.4.0"
+    }
+  ],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "fireeye/capa",
+      "full_name": "mandiant/capa",
+      "archived": false,
+      "pushed_at": "2026-10-05T14:43:20Z",
+      "default_branch": "master",
+      "license": "Apache-2.0",
+      "stargazers": 6213,
+      "url": "https://github.com/mandiant/capa"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}

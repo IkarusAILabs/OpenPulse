@@ -612,8 +612,7 @@ def _load_check_inputs(
         }[man_format]
         if man_deps:
             _echo(
-                f"manifest ({label}): {len(man_deps)} pinned package(s), "
-                f"{len(man_skipped)} skipped"
+                f"manifest ({label}): {len(man_deps)} pinned package(s), {len(man_skipped)} skipped"
             )
             deps = [*deps, *man_deps]
         elif man_skipped:
@@ -937,6 +936,309 @@ def digest(
         _echo(_json.dumps(built, indent=2))
         return
     _echo(render_digest_md(built))
+
+
+@cli.command()
+@click.option(
+    "--watchlist",
+    required=False,
+    type=click.Path(exists=True),
+    help="Watchlist YAML file",
+)
+@click.option(
+    "--sbom",
+    "sbom",
+    type=click.Path(exists=True),
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) — composable with --watchlist/--spdx",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) — composable with --watchlist/--sbom",
+)
+@click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory — composable with all other inputs",
+)
+@click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock) — pinned entries only, "
+    "composable with --watchlist/--sbom/--spdx",
+)
+@click.option(
+    "--manifest",
+    "manifest",
+    type=click.Path(exists=True),
+    help="Package manifest (requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml) "
+    "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Intelligence event JSON (repeatable)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for version checks",
+)
+@click.option(
+    "--window-days",
+    default=90,
+    show_default=True,
+    help="Warning window: keep changes effective within N days of today",
+)
+@click.option(
+    "--output",
+    "output",
+    type=click.Choice(["md", "json"]),
+    default="md",
+    show_default=True,
+    help="Briefing format: markdown (human) or JSON (machine)",
+)
+@click.option(
+    "--ledger",
+    "ledger_root",
+    default=".openpulse/detections",
+    show_default=True,
+    help="Durable first-detection ledger root (read-only; `openpulse check` records)",
+)
+def warnings(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    manifest,
+    events,
+    raw_bundle_dir,
+    window_days,
+    output,
+    ledger_root,
+):
+    """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
+    from core.risk.check import check_dependency
+    from core.warnings import build_warnings, render_warnings_md
+
+    if ledger_root == "":
+        ledger_root = None  # read warnings without a ledger: no lead-time claims
+    deps, loaded_events, bundles = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+    )
+    if not loaded_events:
+        raise click.ClickException(
+            "warnings needs at least one --event: deadlines come from event"
+            " evidence, not from the ledger alone"
+        )
+    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    built = build_warnings(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    if output == "json":
+        import json as _json
+
+        _echo(_json.dumps(built, indent=2))
+        return
+    _echo(render_warnings_md(built))
+
+
+@cli.command()
+@click.option(
+    "--watchlist",
+    required=False,
+    type=click.Path(exists=True),
+    help="Watchlist YAML file",
+)
+@click.option(
+    "--sbom",
+    "sbom",
+    type=click.Path(exists=True),
+    help="CycloneDX SBOM (JSON, spec 1.4/1.5) - composable with the other sources",
+)
+@click.option(
+    "--spdx",
+    "spdx",
+    type=click.Path(exists=True),
+    help="SPDX SBOM (JSON, 2.x) - composable with the other sources",
+)
+@click.option(
+    "--images",
+    "images",
+    type=click.Path(exists=True),
+    help="Container image inventory (one ref per line or a YAML list)",
+)
+@click.option(
+    "--lockfile",
+    "lockfile",
+    type=click.Path(exists=True),
+    help="Lockfile (package-lock.json / poetry.lock / Cargo.lock), pinned entries only",
+)
+@click.option(
+    "--manifest",
+    "manifest",
+    type=click.Path(exists=True),
+    help="Package manifest (requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml) "
+    "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
+)
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Intelligence event JSON (repeatable)",
+)
+@click.option(
+    "--raw-bundle-dir",
+    type=click.Path(exists=True, file_okay=False),
+    help="Offline {slug}.json bundles for version checks",
+)
+@click.option(
+    "--output",
+    "output",
+    default="",
+    type=click.Path(),
+    help="Write JSONL here (default: stdout)",
+)
+def attest(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    manifest=None,
+    events=None,
+    raw_bundle_dir=None,
+    output=None,
+):
+    """Emit one evidence-contract v1 document per dependency × event pair.
+
+    JSONL: one schema-valid contract per line, so stdout stays
+    pipeable; progress chatter goes to stderr. Each document is
+    independently verifiable: provenance.content_hash recomputes from
+    the content alone (docs/EVIDENCE_CONTRACT.md).
+    """
+    NL = chr(10)
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.evidence_contract import build_v1_contract, validate_v1_contract
+    from core.risk.check import check_dependency, load_watchlist_doc
+
+    if not watchlist and not sbom and not spdx and not images and not lockfile and not manifest:
+        raise click.ClickException(
+            "attest needs --watchlist, --sbom, --spdx, --images, --lockfile and/or --manifest"
+        )
+    if not events:
+        raise click.ClickException("attest needs at least one --event")
+    deps: list[Any] = []
+    if watchlist:
+        try:
+            deps = load_watchlist_doc(_load_yaml(watchlist))
+        except ValueError as e:
+            raise click.ClickException(f"{watchlist}: {e}")
+    if sbom:
+        from core.sbom_reader import read_sbom
+
+        try:
+            sbom_deps, _ = read_sbom(sbom)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"{sbom} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{sbom}: {e}")
+        if sbom_deps:
+            _echo(f"sbom: {len(sbom_deps)} mapped component(s)", err=True)
+            deps = [*deps, *sbom_deps]
+    if spdx:
+        from core.sbom_reader import read_spdx
+
+        try:
+            spdx_deps, _ = read_spdx(spdx)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(f"{spdx} is not valid JSON: {e}")
+        except ValueError as e:
+            raise click.ClickException(f"{spdx}: {e}")
+        if spdx_deps:
+            _echo(f"spdx: {len(spdx_deps)} mapped package(s)", err=True)
+            deps = [*deps, *spdx_deps]
+    if images:
+        from core.image_inventory import read_image_inventory
+
+        try:
+            img_deps, _ = read_image_inventory(images)
+        except ValueError as e:
+            raise click.ClickException(f"{images}: {e}")
+        if img_deps:
+            _echo(f"images: {len(img_deps)} image ref(s)", err=True)
+            deps = [*deps, *img_deps]
+    if lockfile:
+        from core.lockfile_reader import read_lockfile
+
+        try:
+            lock_deps, _, lock_format = read_lockfile(lockfile)
+        except ValueError as e:
+            raise click.ClickException(f"{lockfile}: {e}")
+        if lock_deps:
+            _echo(f"lockfile ({lock_format}): {len(lock_deps)} pinned package(s)", err=True)
+            deps = [*deps, *lock_deps]
+    if manifest:
+        from core.manifest_reader import read_manifest
+
+        try:
+            man_deps, _, man_format = read_manifest(manifest)
+        except ValueError as e:
+            raise click.ClickException(f"{manifest}: {e}")
+        label = {
+            "requirements": "requirements.txt",
+            "pyproject": "pyproject.toml",
+            "pom": "pom.xml",
+            "go": "go.mod",
+            "cargo": "Cargo.toml",
+        }[man_format]
+        if man_deps:
+            _echo(f"manifest ({label}): {len(man_deps)} pinned package(s)", err=True)
+            deps = [*deps, *man_deps]
+    if not deps:
+        raise click.ClickException(
+            "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
+        )
+    loaded_events = [_load_event(path) for path in events]
+    bundles = {}
+    if raw_bundle_dir:
+        from core.entities.resolve import resolve_project as _resolve
+
+        for dep in deps:
+            if dep["kind"] != "package":
+                continue
+            slug = _resolve(dep["package"])
+            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
+            if bundle.exists():
+                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+    # One contract per dependency x event: the attested pair is the
+    # unit of consumption, not the combined verdict over all events.
+    lines: list[str] = []
+    for dep in deps:
+        for event in loaded_events:
+            verdict = check_dependency(dep, [event], bundles)
+            doc = build_v1_contract(event, verdict)
+            problems = validate_v1_contract(doc)
+            if problems:
+                # A document OpenPulse itself cannot validate must
+                # never reach a consumer: fail loudly, emit nothing.
+                raise SystemExit(
+                    f"internal error: contract for {dep} vs {event.id} failed schema: {problems}"
+                )
+            lines.append(_json.dumps(doc, sort_keys=True))
+    if output:
+        _Path(output).write_text(NL.join(lines) + NL, encoding="utf-8")
+        _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)
+    else:
+        for line in lines:
+            click.echo(line)
 
 
 @cli.command()

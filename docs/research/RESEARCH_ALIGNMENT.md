@@ -28,7 +28,7 @@ SafeAI ([repo](https://github.com/IkarusAILabs/SafeAI)) is the Agent Authority E
 
 ## Research questions (OpenPulse scope)
 
-1. Can meaningful non-lifecycle upstream changes be discovered repeatedly with evidence that survives independent validation? (M2; observed: mechanisms fire; planned: 5-case acceptance set.)
+1. Can meaningful non-lifecycle upstream changes be discovered repeatedly with evidence that survives independent validation? (M2; observed: acceptance met 2026-10-07 — ownership moves fired live four times: capa, etcd, traefik, fbsdk; plus the bitnami/spark empty-mainline distribution removal.)
 2. Can applicability be determined precisely — affected vs not affected vs unknown — with measured precision/recall and bounded false-impact and false-clear rates? (M4/M5; implemented: verdict engine; planned: benchmark measurement.)
 3. Can first trustworthy detection be persisted so warning windows survive across runs, and can lead time be measured without estimation? (Implemented: detection ledger, `effective_date − first_trustworthy_detection`; planned: verified case studies.)
 4. Can OpenPulse evidence be consumed by a separate assurance system without understanding OpenPulse internals? (Planned: evidence contract, attestation schema.)
@@ -40,7 +40,7 @@ Collectors (GitHub, OSV, NVD, CVE, KEV, endoflife.date, registries; all degrade 
 
 ## Benchmark strategy (M4, validation in progress)
 
-9 of 10–15 golden scenarios formalized (Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager). Each answers eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) plus a “why OpenPulse?” assertion. Planned: Grafana, Terraform, one AI/ML project — each also answering the applicability metrics (precision/recall, false-impact/clear rates) as the benchmark matures from scenarios into measurements.
+11 of 10–15 golden scenarios formalized (Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager, Grafana, Terraform). Each answers eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) plus a “why OpenPulse?” assertion. Planned: one AI/ML project — each also answering the applicability metrics (precision/recall, false-impact/clear rates) as the benchmark matures from scenarios into measurements.
 
 ## AI-mediated dependency research (M8 direction, M9 experiment)
 

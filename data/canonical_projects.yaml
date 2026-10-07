@@ -105,8 +105,15 @@
   display_name: Grafana
   github: grafana/grafana
   website: https://grafana.com
-  aliases: [grafana]
-  docker_images: []
+  aliases: [grafana, grafana/grafana, docker.io/grafana/grafana, grafana/grafana-enterprise, docker.io/grafana/grafana-enterprise]
+  docker_images: [docker.io/grafana/grafana, docker.io/grafana/grafana-enterprise]
+  identity:
+    status: VERIFIED
+    source: "grafana/grafana is the upstream OSS repo and publishes docker.io/grafana/grafana; grafana-enterprise is the closed-source distribution of the same releases"
+    reviewed_at: "2026-10-07"
+    maintainer: choksi2212
+    confidence: high
+    note: "same release cycle as upstream (verified live: 12.3 and 12.2 tags exist on both images), but a separate artifact line; grafana/grafana-enterprise has no public repository"
 - slug: kubernetes
   display_name: Kubernetes
   github: kubernetes/kubernetes
@@ -123,8 +130,15 @@
   display_name: Terraform
   github: hashicorp/terraform
   website: https://www.terraform.io
-  aliases: [terraform]
-  docker_images: []
+  aliases: [terraform, hashicorp/terraform, docker.io/hashicorp/terraform]
+  docker_images: [docker.io/hashicorp/terraform]
+  identity:
+    status: VERIFIED
+    source: "hashicorp/terraform is the upstream repo and publishes docker.io/hashicorp/terraform"
+    reviewed_at: "2026-10-07"
+    maintainer: choksi2212
+    confidence: high
+    note: "OpenTofu (ghcr.io/opentofu/opentofu) is a fork with its own version line that numerically collides with Terraform core versions; it must never inherit a terraform EOL"
 - slug: mysql
   display_name: MySQL
   github: mysql/mysql-server

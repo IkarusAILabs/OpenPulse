@@ -488,218 +488,668 @@ def test_golden_cert_manager_eol_pins_and_namespaces():
     assert "bitnami-cert-manager" in bitnami_18.reason
 
 
-def test_golden_terraform_support_change():
-    """Terraform support model change - HashiCorp Terraform Cloud required for production.
+def test_golden_capa_ownership_move():
+    """Mandiant acquired the FireEye products business in 2021 and
+    moved capa to mandiant/capa: a recorded fireeye/capa reference
+    now names a redirect, not a first-party source. End to end from
+    the offline raw-bundle fixture (repo_meta probed live 2026-10-06).
 
     M4 eight questions, one scenario (mapping per acceptance):
-    Q1 what changed -- Terraform Community Edition no longer receives feature updates;
-       production use requires Terraform Cloud/Enterprise subscription.
-    Q2 evidence -- official blog and GitHub repo confirm; gate passes, CONFIRMED.
-    Q3 identity -- terraform project; distinct from other HashiCorp products.
-    Q4 what dependency -- terraform package, versions 1.6, 1.7, 1.8 affected.
-    Q5 which versions/artifacts -- 1.6, 1.7, 1.8 pins affected; 1.5 not affected.
-    Q6 when it matters -- effective 2023-10-10, already in force.
-    Q7 investigate -- reason names scope versions; migration to Terraform Cloud required.
-    Q8 why OpenPulse -- support model change not in EOL databases; identity
-       resolution + version scope separates from other HashiCorp products.
+    Q1 what changed -- the repository moved from fireeye/capa to
+       mandiant/capa; the queried path no longer names the owner;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source (the repository itself) so EMERGING;
+    Q3 identity -- github.com/fireeye/capa and
+       github.com/mandiant/capa are different repository identities;
+       the moved-from path is the one whose recorded references went
+       stale;
+    Q4 what dependency -- a go.mod/remote-style github.com/fireeye/capa
+       source reference is the affected dependency;
+    Q5 which versions/artifacts -- the old path is affected (it names
+       a redirect), the new path is not (UNKNOWN, not a match), and a
+       bare package pin stays contextual (AFFECTS_PROJECT);
+    Q6 when it matters -- the move already happened; the stale
+       reference is in force now, nothing is upcoming;
+    Q7 investigate -- the finding names both paths, states the drift,
+       and the verdict reason names the affected artifact;
+    Q8 why OpenPulse -- an EOL/CVE database has no slot for "your
+       recorded source path changed owner"; ownership drift is a
+       repository-identity fact only the meta-vs-recorded-path
+       comparison can catch.
     """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/capa-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 6)
+
+    # Q1 -- what changed: one ownership finding, project-scoped,
+    # naming the moved repository as the affected artifact.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["detection_method"] == "repository_observation"
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/fireeye/capa"}
+    ]
+
+    event = finding_to_event(findings[0], "capa", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; single primary source so
+    # EMERGING, never CONFIRMED off one observation.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+    assert [e.source.authority for e in event.evidences] == ["secondary"]
+
+    # Q3 -- identity: moved-from and moved-to paths are distinct
+    # repository identities; only the old path is the stale one.
+    assert event.project_slug == "capa"
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/fireeye/capa"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/mandiant/capa"}, [event])
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+
+    # Q4 + Q5 -- dependency verdicts: the old path is the affected
+    # dependency; the new path and a bare package pin are not impact.
+    package_pin = check_dependency(
+        {"kind": "package", "package": "capa", "ecosystem": "", "version": None}, [event]
+    )
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert old_ref.confidence == "EMERGING"
+
+    # Q6 -- when: the move already happened; nothing is upcoming.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "fireeye/capa" in findings[0]["title"]
+    assert "mandiant/capa" in findings[0]["title"]
+    assert "github.com/fireeye/capa" in old_ref.reason
+    assert "verify" in findings[0]["summary"]
+
+    # Q8 -- why OpenPulse: ownership drift is a repository-identity
+    # fact, not a lifecycle row; review-framed, never auto-action.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_etcd_namespace_move():
+    """etcd moved from coreos/etcd to etcd-io/etcd when CoreOS wound
+    down (transfer to the etcd-io org, 2018): a recorded
+    github.com/coreos/etcd require or remote now names a redirect.
+    End to end from the offline raw-bundle fixture (repo_meta probed
+    live 2026-10-06). Proves the same detector on a second real move:
+    the rule is not capa-shaped.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from coreos/etcd to
+       etcd-io/etcd;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source so EMERGING;
+    Q3 identity -- github.com/coreos/etcd and
+       github.com/etcd-io/etcd are distinct repository identities;
+       the recorded old path is the stale one;
+    Q4 what dependency -- a github.com/coreos/etcd source reference
+       (go.mod require, git remote) is the affected dependency;
+    Q5 which versions/artifacts -- old path affected, new path
+       UNKNOWN, bare package pin contextual;
+    Q6 when it matters -- the move already happened; stale
+       references are in force now;
+    Q7 investigate -- the finding names both paths and the verdict
+       reason names the affected artifact;
+    Q8 why OpenPulse -- namespace moves are upstream-identity facts
+       no dependency database records; the meta-vs-recorded-path
+       comparison is the only signal.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/etcd-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 6)
+
+    # Q1 -- what changed: one ownership finding, project-scoped.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/coreos/etcd"}
+    ]
+
+    event = finding_to_event(findings[0], "etcd", today=today)
+
+    # Q2 -- evidence: claim gate accepts it, single-source EMERGING.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts.
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/coreos/etcd"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/etcd-io/etcd"}, [event])
+    package_pin = check_dependency(
+        {"kind": "package", "package": "etcd", "ecosystem": "", "version": None}, [event]
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+
+    # Q6 -- when: the move already happened.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "coreos/etcd" in findings[0]["title"]
+    assert "etcd-io/etcd" in findings[0]["title"]
+    assert "github.com/coreos/etcd" in old_ref.reason
+
+    # Q8 -- why OpenPulse: namespace moves are upstream-identity facts.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_traefik_ownership_move():
+    """Traefik's repository moved from containous/traefik to
+    traefik/traefik when Traefik Labs replaced the Containous
+    company identity (2020): a recorded github.com/containous/traefik
+    require or remote now names a redirect while the moved-to repo
+    ships actively. End to end from the offline raw-bundle fixture
+    (repo_meta + latest release probed live 2026-10-07). Third real
+    move through the same rule: not shaped around capa or etcd, and
+    not around dead projects either -- the destination is alive.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from containous/traefik
+       to traefik/traefik; the queried path no longer names the
+       owner;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source (the repository itself) so EMERGING;
+    Q3 identity -- github.com/containous/traefik and
+       github.com/traefik/traefik are different repository
+       identities; the recorded old path is the stale one;
+    Q4 what dependency -- a github.com/containous/traefik source
+       reference (go.mod require, git remote) is the affected
+       dependency;
+    Q5 which versions/artifacts -- old path affected (it names a
+       redirect), new path UNKNOWN (not a match), bare package pin
+       stays contextual (AFFECTS_PROJECT);
+    Q6 when it matters -- the move already happened; the moved-to
+       repo is actively shipping (v3.7.14 released 2026-10-06), so
+       the stale reference is live drift, not history;
+    Q7 investigate -- the finding names both paths, and the verdict
+       reason names the affected artifact;
+    Q8 why OpenPulse -- an EOL/CVE database has no slot for "your
+       recorded source path changed owner"; nothing about v3.7.14 is
+       unusual, only the identity comparison catches it.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/traefik-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: one ownership finding, project-scoped, no
+    # archived finding (the repository is alive).
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert all(f["event_type"] != "PROJECT_ARCHIVED" for f in analyze(raw, today=today))
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["detection_method"] == "repository_observation"
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/containous/traefik"}
+    ]
+
+    event = finding_to_event(findings[0], "traefik", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; single primary source so
+    # EMERGING, never CONFIRMED off one observation.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+    assert [e.source.authority for e in event.evidences] == ["secondary"]
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: the old path
+    # is the affected dependency; the new path is a non-match.
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/containous/traefik"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/traefik/traefik"}, [event])
+    package_pin = check_dependency(
+        {"kind": "package", "package": "traefik", "ecosystem": "", "version": None}, [event]
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert old_ref.confidence == "EMERGING"
+
+    # Q6 -- when: the move already happened; the moved-to repo pushed
+    # and released v3.7.14 the day before the probe.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+    assert raw["github"][0]["tag"] == "v3.7.14"
+    assert raw["github_meta"][0]["pushed_at"].startswith("2026-10-06")
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "containous/traefik" in findings[0]["title"]
+    assert "traefik/traefik" in findings[0]["title"]
+    assert "github.com/containous/traefik" in old_ref.reason
+    assert "verify" in findings[0]["summary"]
+
+    # Q8 -- why OpenPulse: ownership drift is a repository-identity
+    # fact, not a lifecycle row; review-framed, never auto-action.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_fbsdk_archive_and_move():
+    """facebook/react-native-fbsdk was moved into the facebookarchive
+    org and archived when maintenance ended (2021): one recorded
+    repository now carries both signals at once -- the queried path
+    names a redirect (ownership) and the destination is read-only
+    (archived). The final release v3.0.0 (2020-11-23) predates the
+    archive, so every pin is a pin of a dead project. End to end from
+    the offline raw-bundle fixture (repo_meta + final release probed
+    live 2026-10-07). First combined case: archive and ownership are
+    independent findings, not one folded event.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from facebook to
+       facebookarchive AND was archived; both findings fire;
+    Q2 evidence -- both bridged events pass the claim gate;
+       single primary source each, so EMERGING;
+    Q3 identity -- github.com/facebook/react-native-fbsdk and
+       github.com/facebookarchive/react-native-fbsdk are different
+       repository identities; the archive org IS the moved-to
+       identity, visible in the recorded release URL;
+    Q4 what dependency -- the old source path is the affected
+       artifact; an npm package pin is contextual;
+    Q5 which versions/artifacts -- v3.0.0 is the last release;
+       no version escapes the archive (scope: project, versions []);
+    Q6 when it matters -- archived 2021, last push 2021-03-26;
+       in force now, nothing upcoming;
+    Q7 investigate -- the archived finding names the read-only state
+       and last push; the ownership finding names both paths;
+    Q8 why OpenPulse -- no EOL row covers a GitHub archive, and no
+       CVE database records that the recorded path moved; the
+       combination (dead + moved) is only visible by observation.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/fbsdk-archive-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: exactly two findings, one archived, one
+    # ownership move; the archive org is the moved-to identity.
+    all_findings = analyze(raw, today=today)
+    assert sorted(f["event_type"] for f in all_findings) == [
+        "OWNERSHIP_CHANGE",
+        "PROJECT_ARCHIVED",
+    ]
+    archived = next(f for f in all_findings if f["event_type"] == "PROJECT_ARCHIVED")
+    moved = next(f for f in all_findings if f["event_type"] == "OWNERSHIP_CHANGE")
+    assert archived["impact"] == "ACTION"
+    assert moved["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/facebook/react-native-fbsdk"}
+    ]
+    assert raw["github_meta"][0]["full_name"] == "facebookarchive/react-native-fbsdk"
+    assert raw["github_meta"][0]["archived"] is True
+
+    arch_event = finding_to_event(archived, "react-native-fbsdk", today=today)
+    move_event = finding_to_event(moved, "react-native-fbsdk", today=today)
+
+    # Q2 -- evidence: both events pass the gate; EMERGING each.
+    assert gate(arch_event) == []
+    assert gate(move_event) == []
+    assert arch_event.confidence.value == "EMERGING"
+    assert move_event.confidence.value == "EMERGING"
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: old path is
+    # the stale artifact on the move event; an npm pin is contextual
+    # on the archive event (the project itself is read-only).
+    old_ref = check_dependency(
+        {"kind": "image", "ref": "github.com/facebook/react-native-fbsdk"}, [move_event]
+    )
+    new_ref = check_dependency(
+        {"kind": "image", "ref": "github.com/facebookarchive/react-native-fbsdk"}, [move_event]
+    )
+    npm_pin = check_dependency(
+        {
+            "kind": "package",
+            "package": "react-native-fbsdk",
+            "ecosystem": "npm",
+            "version": "3.0.0",
+        },
+        [arch_event],
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (npm_pin.affected, npm_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert moved["scope"] == {"kind": "project", "versions": []}
+
+    # Q6 -- when: archived 2021, last push recorded in the finding;
+    # effective now, nothing upcoming.
+    assert archived["lifecycle_state"] == "EFFECTIVE"
+    assert moved["lifecycle_state"] == "EFFECTIVE"
+    assert "2021-03-26" in archived["summary"]
+    # the last release predates the archive: no version escapes it
+    assert raw["github"][0]["tag"] == "v3.0.0"
+    assert raw["github"][0]["published_at"].startswith("2020-11-23")
+    assert raw["github"][0]["url"].startswith(
+        "https://github.com/facebookarchive/react-native-fbsdk/"
+    )
+
+    # Q7 -- investigate: each finding names its own fact.
+    assert "archived" in archived["title"].lower()
+    assert "facebook/react-native-fbsdk" in moved["title"]
+    assert "facebookarchive/react-native-fbsdk" in moved["title"]
+
+    # Q8 -- why OpenPulse: the dead-and-moved combination is an
+    # observed identity fact. The analyst proposes ACTION for the
+    # archive (read-only is final); the eligibility layer still caps
+    # it at REVIEW -- "archived upstream is a project-level change,
+    # not proof any deployment is affected" -- while the move stays
+    # review-framed end to end. Neither is ever an auto-action.
+    assert archived["impact"] == "ACTION"
+    assert evaluate_impact(archived, today=today)["eligibility"] == "REVIEW"
+    assert evaluate_impact(moved, today=today)["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_bitnami_spark_empty_mainline():
+    """docker.io/bitnami/spark now answers with an empty tag set: not
+    `latest`-only, zero names on both the Hub API and the v2 protocol
+    (probed live 2026-10-07), while docker.io/bitnamilegacy/spark
+    holds all 936 historical tags with digests and no pushes since
+    2025-08-08. This is the shape the Bitnami catalog deletion
+    (announced 2025-07-16, effective 2025-08-28, postponed to
+    2025-09-29) actually produced for repos outside the kept subset:
+    a distribution removal one step past latest-only. End to end:
+    the producer-side rule fires off the recorded probe pair, the
+    curated event passes the gate, and pinned refs are told apart.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the bitnami/spark mainline publishes no tags
+       at all; the versioned distribution lives in bitnamilegacy;
+    Q2 evidence -- the curated event passes the claim gate
+       (official Bitnami announcement + primary registry probes),
+       CONFIRMED/ACTION; the producer-side finding bridges only as
+       EMERGING with a date violation -- weak evidence holds back;
+    Q3 identity -- docker.io/bitnami/spark and bitnamilegacy/spark
+       are distributions, not upstream: docker.io/apache/spark is
+       the upstream image and must NOT match;
+    Q4 what dependency -- a pinned docker.io/bitnami/spark:<version>
+       reference no longer resolves; a bitnamilegacy pin resolves
+       against a frozen, unsupported snapshot;
+    Q5 which versions/artifacts -- both namespace refs affected,
+       upstream apache/spark NOT_AFFECTED;
+    Q6 when it matters -- announced 2025-07-16, effective 2025-08-28
+       (deletion postponed to 2025-09-29); in force now;
+    Q7 investigate -- the finding names both namespaces and the
+       migration need; the verdict reason names the pinned ref;
+    Q8 why OpenPulse -- an EOL database records Spark's cycle; no
+       database row says "your pinned distribution tag answers
+       empty"; only a probe comparison can catch a removal.
+    """
+    from analyzers.change_analyst import analyze, analyze_registries
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    fixture = "data/fixtures/spark-mainline-empty"
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: the split rule fires on the recorded probe
+    # pair. The empty mainline is the producer-side gap this case
+    # formalizes: pristine main required latest_only on the mainline
+    # side and stayed silent on exactly this shape. The probe flags
+    # are what parse_tags emits for the recorded answers, not
+    # hand-tuned booleans.
+    main = json.load(open(f"{fixture}/mainline_probe.json", encoding="utf-8"))
+    legacy = json.load(open(f"{fixture}/legacy_probe.json", encoding="utf-8"))
+    assert main["tags_sample"] == [] and main["count"] == 0 and not main["truncated"]
+    assert main["latest_only"] is False and main["has_versioned_tags"] is False
+    assert legacy["count"] == 936 and legacy["has_versioned_tags"] is True
+    findings = analyze({"registries": [main, legacy]}, today=today)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["event_type"] == "DISTRIBUTION_CHANGE"
+    assert finding["title"] == (
+        "bitnami mainline publishes no tags at all; versioned tags live in bitnamilegacy"
+    )
+    assert finding["affected_artifacts"] == [
+        {"kind": "docker-image", "ref": "docker.io/bitnami/spark:<version>"},
+        {"kind": "docker-image", "ref": "docker.io/bitnamilegacy/spark:<version>"},
+    ]
+
+    # Q2 -- evidence: weak producer evidence holds itself back -- the
+    # bridged producer finding cannot pass the gate (no dates), and
+    # impact caps at REVIEW. The curated event (official announcement
+    # + primary probes) is the reportable form: CONFIRMED/ACTION.
+    producer_event = finding_to_event(finding, "bitnami-spark", today=today)
+    assert gate(producer_event) == [
+        "DISTRIBUTION_CHANGE requires announcement_date or effective_date in at least one evidence"
+    ]
+    assert evaluate_impact(finding, today=today)["eligibility"] == "REVIEW"
+    event = _load("spark-mainline-empty")
+    assert gate(event) == []
+    assert event.confidence.value == "CONFIRMED"
+    assert [e.source.authority for e in event.evidences] == ["official", "primary"]
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: both
+    # distribution namespaces are affected; the upstream apache image
+    # is explicitly NOT affected.
+    pin_main = check_dependency({"kind": "image", "ref": "docker.io/bitnami/spark:3.5.4"}, [event])
+    pin_legacy = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnamilegacy/spark:3.5.4"}, [event]
+    )
+    upstream = check_dependency({"kind": "image", "ref": "docker.io/apache/spark:3.5.4"}, [event])
+    assert (pin_main.affected, pin_main.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (pin_legacy.affected, pin_legacy.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (upstream.affected, upstream.relationship) == (False, "NOT_AFFECTED")
+    assert "docker.io/bitnami/spark:3.5.4" in pin_main.reason
+
+    # Q6 -- when: announced 2025-07-16, effective 2025-08-28, catalog
+    # deletion postponed to 2025-09-29 -- dates carried by the event
+    # evidence, in force now.
+    announce = next(e for e in event.evidences if e.source.name.startswith("github/bitnami"))
+    assert announce.effective_date == date(2025, 8, 28)
+    assert announce.announcement_date == date(2025, 7, 16)
+    assert event.impact.value == "ACTION"
+
+    # Q7 -- investigate: the producer finding names both namespaces
+    # (namespace form) and the migration need; the curated event
+    # names both full image refs and what a pin now resolves to.
+    assert "docker.io/bitnami" in finding["summary"]
+    assert "docker.io/bitnamilegacy" in finding["summary"]
+    assert "migration plan" in finding["summary"]
+    assert "no tags at all" in finding["title"]
+    assert "docker.io/bitnami/spark" in event.summary
+    assert "docker.io/bitnamilegacy/spark" in event.summary
+    assert "frozen, unsupported snapshot" in event.summary
+
+    # Q8 -- why OpenPulse: a removal that answers empty is only
+    # visible by probing; the split rule treats it as the
+    # distribution-model change it is, not a missing-repo error.
+    assert analyze_registries([main], today=today) == []
+    assert analyze_registries([legacy], today=today) == []
+
+
+def test_golden_grafana_eol_pins_and_distribution():
+    """Grafana 12.3 EOL: the upstream image and the enterprise
+    distribution of the same release cycle, end to end from the
+    offline raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 12.3 reached EOL on 2026-08-19, scoped
+       to that cycle only; the 12.2 cycle (EOL 2026-06-23) is a
+       separate earlier finding, and 13.0 (EOL 2027-01-09) stays
+       UPCOMING;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2026-08-19, single secondary source so EMERGING;
+    Q3 identity -- grafana, grafana/grafana and the docker.io
+       upstream image resolve to the grafana project, and so does
+       the grafana-enterprise image: it is the closed-source
+       distribution of the same release cycle, not a fork with its
+       own version line;
+    Q4 what dependency -- docker.io/grafana/grafana:12.3.0 is the
+       affected pin;
+    Q5 which versions/artifacts -- the 12.3.0 pin on the upstream
+       image is affected, the 13.0.0 pin is not, and the enterprise
+       image on the same tag is affected through the same scope;
+    Q6 when it matters -- effective 2026-08-19, already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- an EOL database row for Grafana 12.3 cannot
+       say whether a pinned docker.io/grafana/grafana-enterprise:12.3
+       tag is covered: identity resolution maps the distribution to
+       the upstream cycle, and version scope keeps the 13.0 pin
+       silent."""
+
     from analyzers.change_analyst import analyze
     from analyzers.lifecycle_events import finding_to_event
     from core.entities.resolve import resolve_project
     from core.evidence.policy import gate
-    from core.risk.check import check_dependency
 
-    raw = json.load(open("data/fixtures/terraform-support-change/raw_bundle.json", encoding="utf-8"))
-    today = date(2024, 1, 15)
+    raw = json.load(open("data/fixtures/grafana/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
 
-    # Q1 -- what changed: SUPPORT_CHANGE finding
-    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "SUPPORT_CHANGE"]
-    assert len(findings) == 1
-    assert findings[0]["event_type"] == "SUPPORT_CHANGE"
-    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
-    assert findings[0]["scope"]["versions"] == ["1.6", "1.7", "1.8"]
+    # Q1 -- what changed: three EOL findings, each scoped to its own
+    # cycle; 12.3 and 12.2 are in force, 13.0 is still upcoming.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert [f["scope"]["versions"] for f in findings] == [["12.3"], ["12.2"], ["13.0"]]
+    by_cycle = {f["scope"]["versions"][0]: f for f in findings}
+    assert by_cycle["12.3"]["lifecycle_state"] == "EFFECTIVE"
+    assert by_cycle["13.0"]["lifecycle_state"] == "UPCOMING"
+
+    event = finding_to_event(by_cycle["12.3"], "grafana", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2026, 8, 19) for e in event.evidences)
+
+    # Q3 -- identity: spellings and both image lines resolve to grafana.
+    assert event.project_slug == "grafana"
+    for spelling in ("grafana", "grafana/grafana", "Grafana"):
+        assert resolve_project(spelling) == "grafana", spelling
+    assert resolve_project("docker.io/grafana/grafana:12.3.0") == "grafana"
+    assert resolve_project("docker.io/grafana/grafana-enterprise:12.3.0") == "grafana"
+
+    # Q4 + Q5 -- dependency verdicts: the distribution is not a fork.
+    upstream_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana:12.3.0"}, [event]
+    )
+    enterprise_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana-enterprise:12.3.0"}, [event]
+    )
+    upstream_new = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana:13.0.0"}, [event]
+    )
+    assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
+    assert upstream_old.confidence == "EMERGING"
+    assert (enterprise_old.affected, enterprise_old.relationship) == (True, "AFFECTS_VERSION")
+    assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert by_cycle["12.3"]["effective_at"] == "2026-08-19"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "12.3" in upstream_old.reason
+    assert "12.3" in enterprise_old.reason
+
+    # Q8 -- why OpenPulse: the enterprise image inherits the upstream
+    # cycle EOL through identity, and the 13.0 pin stays silent
+    # through scope -- two calls a bare EOL row cannot make.
+    assert upstream_old.reason != upstream_new.reason
+    assert enterprise_old.match_method == "event_scope:version"
+
+
+def test_golden_terraform_eol_pins_and_fork_line():
+    """Terraform 1.14 EOL: core versioning with a numerically
+    colliding fork line, end to end from the offline raw-bundle
+    fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 1.14 reached EOL on 2026-08-26, scoped
+       to that cycle only; 1.13 (EOL 2026-04-29) is a separate
+       earlier finding, and 1.16 has no EOL date at all (eol: false)
+       so it yields no finding;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2026-08-26, single secondary source so EMERGING;
+    Q3 identity -- terraform, hashicorp/terraform and the
+       docker.io/hashicorp/terraform image resolve to the terraform
+       project; ghcr.io/opentofu/opentofu is a fork with its own
+       version line whose 1.14 numerically collides with core 1.14;
+    Q4 what dependency -- a terraform 1.14 pin is the affected
+       dependency;
+    Q5 which versions/artifacts -- the 1.14 pin is affected, the
+       1.16 pin is not, and the OpenTofu image on the same 1.14 tag
+       is not, because it is a different project;
+    Q6 when it matters -- effective 2026-08-26, already in force;
+    Q7 investigate -- the verdict reason names the scope version
+       and the fork exclusion names the fork project;
+    Q8 why OpenPulse -- an EOL database row for Terraform 1.14
+       cannot tell a pinned ghcr.io/opentofu/opentofu:1.14 tag apart
+       from hashicorp/terraform:1.14: identity resolution can, and
+       version scope keeps the 1.16 pin silent."""
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/terraform/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: the two dated cycles yield findings, the
+    # undated 1.16 row does not.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert [f["scope"]["versions"] for f in findings] == [["1.14"], ["1.13"]]
+    assert all(f["lifecycle_state"] == "EFFECTIVE" for f in findings)
+    assert "1.16" not in {f["scope"]["versions"][0] for f in findings}
 
     event = finding_to_event(findings[0], "terraform", today=today)
 
-    # Q2 -- evidence: claim gate accepts; dated, CONFIRMED.
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
     assert gate(event) == []
-    assert any(e.effective_date == date(2023, 10, 10) for e in event.evidences)
-    assert event.confidence.value == "CONFIRMED"
-    assert event.impact.value == "ACTION"
+    assert any(e.effective_date == date(2026, 8, 26) for e in event.evidences)
 
-    # Q3 -- identity: terraform project, distinct from other HashiCorp products.
+    # Q3 -- identity: spellings resolve; the fork does not.
     assert event.project_slug == "terraform"
-    assert resolve_project("terraform") == "terraform"
-    # Other HashiCorp products should not resolve to terraform
-    assert resolve_project("vault") != "terraform"
-    assert resolve_project("consul") != "terraform"
+    for spelling in ("terraform", "hashicorp/terraform", "Terraform"):
+        assert resolve_project(spelling) == "terraform", spelling
+    assert resolve_project("docker.io/hashicorp/terraform:1.14") == "terraform"
+    assert resolve_project("ghcr.io/opentofu/opentofu:1.14") != "terraform"
 
-    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
-    pin_16 = check_dependency({"kind": "package", "package": "terraform", "version": "1.6"}, [event])
-    pin_17 = check_dependency({"kind": "package", "package": "terraform", "version": "1.7"}, [event])
-    pin_18 = check_dependency({"kind": "package", "package": "terraform", "version": "1.8"}, [event])
-    pin_15 = check_dependency({"kind": "package", "package": "terraform", "version": "1.5"}, [event])
-    assert (pin_16.affected, pin_16.relationship) == (True, "AFFECTS_VERSION")
-    assert (pin_17.affected, pin_17.relationship) == (True, "AFFECTS_VERSION")
-    assert (pin_18.affected, pin_18.relationship) == (True, "AFFECTS_VERSION")
-    assert (pin_15.affected, pin_15.relationship) == (False, "NOT_AFFECTED")
+    # Q4 + Q5 -- dependency verdicts: the fork colliding tag is excluded.
+    pinned_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/hashicorp/terraform:1.14"}, [event]
+    )
+    pinned_new = check_dependency(
+        {"kind": "image", "ref": "docker.io/hashicorp/terraform:1.16"}, [event]
+    )
+    fork_same_tag = check_dependency(
+        {"kind": "image", "ref": "ghcr.io/opentofu/opentofu:1.14"}, [event]
+    )
+    assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
+    assert pinned_old.confidence == "EMERGING"
+    assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
+    assert (fork_same_tag.affected, fork_same_tag.relationship) == (False, "NOT_AFFECTED")
 
-    # Q6 -- when: effective 2023-10-10, already in force.
-    assert event.evidences[0].effective_date == date(2023, 10, 10)
-    assert any(f["effective_at"] == "2023-10-10" for f in findings)
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2026-08-26"
 
-    # Q7 -- investigate: reason names scope versions, migration required.
-    assert "1.6" in pin_16.reason or "1.7" in pin_17.reason or "1.8" in pin_18.reason
+    # Q7 -- investigate: the reason names the scope version, and the
+    # fork exclusion names the fork own project.
+    assert "1.14" in pinned_old.reason
+    assert "ghcr.io/opentofu/opentofu" in fork_same_tag.reason
 
-    # Q8 -- why OpenPulse: support model change not in EOL databases;
-    # identity resolution + version scope separates from other HashiCorp products.
-    assert event.project_slug == "terraform"
-    assert "terraform" in pin_16.reason.lower()
-
-
-def test_golden_pypi_package_removal():
-    """leftpad package removed from PyPI - all versions unavailable.
-
-    M4 eight questions, one scenario (mapping per acceptance):
-    Q1 what changed -- leftpad package removed from PyPI; all versions unavailable.
-    Q2 evidence -- PyPI primary source and GitHub repo confirm; gate passes, CONFIRMED.
-    Q3 identity -- leftpad project; package removal is project-wide.
-    Q4 what dependency -- leftpad package, all versions (0.0.1, 0.0.2, 0.0.3) affected.
-    Q5 which versions/artifacts -- all three versions unavailable; package-wide removal.
-    Q6 when it matters -- effective 2026-01-10, already in force.
-    Q7 investigate -- reason names all versions; vendor code or migrate.
-    Q8 why OpenPulse -- package removal not in EOL databases; package-wide
-       scope + package identity separates from version-specific changes.
-    """
-    from core.risk.check import check_dependency
-    from core.schema.models import OSSEvent
-    from analyzers.change_analyst import analyze
-    from analyzers.lifecycle_events import finding_to_event
-
-    raw = json.load(open("data/fixtures/pypi-package-removal/raw_bundle.json", encoding="utf-8"))
-    today = date(2026, 2, 1)
-
-    # Q1 -- what changed: PACKAGE_REMOVAL finding from analyzer
-    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "PACKAGE_REMOVAL"]
-    assert len(findings) == 1
-    assert findings[0]["event_type"] == "PACKAGE_REMOVAL"
-
-    event = finding_to_event(findings[0], "leftpad", today=today)
-
-    # Q1 -- what changed: PACKAGE_REMOVAL event
-    assert event.event_type.value == "PACKAGE_REMOVAL"
-    assert event.confidence.value == "CONFIRMED"
-    assert event.impact.value == "ACTION"
-
-    # Q2 -- evidence: gate passes, CONFIRMED from primary + official sources.
-    from core.evidence.policy import gate
-    assert gate(event) == []
-    assert any(e.effective_date == date(2026, 1, 10) for e in event.evidences)
-    assert event.confidence.value == "CONFIRMED"
-    assert event.impact.value == "ACTION"
-
-    # Q3 -- identity: leftpad project, package-wide scope.
-    assert event.project_slug == "leftpad"
-    assert event.scope is not None
-    assert event.scope.kind == "version"
-    assert set(event.scope.versions) == {"0.0.1", "0.0.2", "0.0.3"}
-
-    # Q4 + Q5 -- dependency verdicts: all versions affected, package-wide.
-    from core.risk.check import check_dependency
-    for version in ["0.0.1", "0.0.2", "0.0.3"]:
-        dep = {"kind": "package", "package": "leftpad", "version": version}
-        result = check_dependency(dep, [event])
-        assert result.affected is True, f"version {version} should be affected"
-        assert result.relationship == "AFFECTS_VERSION", f"version {version}"
-    # Different package not affected
-    other_dep = {"kind": "package", "package": "otherpkg", "version": "1.0"}
-    result = check_dependency(other_dep, [event])
-    assert result.affected is False
-    assert result.relationship == "NOT_AFFECTED"
-
-    # Q6 -- when: effective 2026-01-10, already in force.
-    assert any(e.effective_date == date(2026, 1, 10) for e in event.evidences)
-
-    # Q7 -- investigate: reason names all versions; vendor or migrate.
-    assert "0.0.1" in event.title or "leftpad" in event.title
-
-    # Q8 -- why OpenPulse: package removal not in EOL databases; package-wide
-    # scope + package identity separates from version-specific changes.
-    assert event.project_slug == "leftpad"
-    assert event.scope.kind == "version"
-    assert len(event.scope.versions) == 3
-
-
-def test_golden_breaking_change_migration():
-    """React 18 breaking changes with migration signals - automatic batching, strict mode, createRoot.
-
-    M4 eight questions, one scenario (mapping per acceptance):
-    Q1 what changed -- React 18 introduces breaking changes: automatic batching,
-       strict mode changes, new createRoot API, deprecated APIs removed.
-    Q2 evidence -- official blog, GitHub release, migration guide confirm; gate passes, CONFIRMED.
-    Q3 identity -- react project; react-dom also affected.
-    Q4 what dependency -- react and react-dom packages, versions 18.0.0, 18.1.0, 18.2.0.
-    Q5 which versions/artifacts -- 18.x versions affected; 17.x not affected.
-    Q6 when it matters -- effective 2022-03-29, already in force.
-    Q7 investigate -- reason names scope versions; migration guide + codemods available.
-    Q8 why OpenPulse -- breaking change with migration signals not in EOL databases;
-       version scope + identity resolution separates 17.x from 18.x; migration
-       guidance separates actionable from informational.
-    """
-    from core.risk.check import check_dependency
-    from core.schema.models import OSSEvent
-
-    event = OSSEvent(**json.load(open("data/fixtures/breaking-change-migration/event.json", encoding="utf-8")))
-    today = date(2022, 6, 15)
-
-    # Q1 -- what changed: BREAKING_CHANGE + MIGRATION_SIGNAL event
-    assert event.event_type.value == "BREAKING_CHANGE"
-    assert event.confidence.value == "CONFIRMED"
-    assert event.impact.value == "ACTION"
-
-    # Q2 -- evidence: gate passes, CONFIRMED from official + corroborated sources.
-    from core.evidence.policy import gate
-    assert gate(event) == []
-    assert any(e.effective_date == date(2022, 3, 29) for e in event.evidences)
-    assert event.confidence.value == "CONFIRMED"
-    assert event.impact.value == "ACTION"
-
-    # Q3 -- identity: react project; react-dom also affected.
-    assert event.project_slug == "react"
-    assert event.scope is not None
-    assert event.scope.kind == "version"
-    assert set(event.scope.versions) == {"18.0.0", "18.1.0", "18.2.0"}
-    assert "react-dom" in event.scope.packages
-
-    # Q4 + Q5 -- dependency verdicts: version truth across react + react-dom.
-    from core.risk.check import check_dependency
-    for version in ["18.0.0", "18.1.0", "18.2.0"]:
-        dep = {"kind": "package", "package": "react", "version": version}
-        result = check_dependency(dep, [event])
-        assert result.affected is True, f"react {version} should be affected"
-        assert result.relationship == "AFFECTS_VERSION", f"react {version}"
-
-    dep_dom = {"kind": "package", "package": "react-dom", "version": "18.2.0"}
-    result_dom = check_dependency(dep_dom, [event])
-    assert result_dom.affected is True
-    assert result_dom.relationship == "AFFECTS_VERSION"
-
-    # React 17 should NOT be affected
-    dep_17 = {"kind": "package", "package": "react", "version": "17.0.2"}
-    result_17 = check_dependency(dep_17, [event])
-    assert result_17.affected is False
-    assert result_17.relationship == "NOT_AFFECTED"
-
-    # Q6 -- when: effective 2022-03-29, already in force.
-    assert any(e.effective_date == date(2022, 3, 29) for e in event.evidences)
-
-    # Q7 -- investigate: reason names scope versions; migration guide + codemods.
-    assert "18" in event.title or "React 18" in event.title
-
-    # Q8 -- why OpenPulse: breaking change with migration signals not in EOL
-    # databases; version scope + identity resolution separates 17.x from 18.x;
-    # migration guidance separates actionable from informational.
-    assert event.project_slug == "react"
-    assert event.scope.kind == "version"
-    assert len(event.scope.versions) == 3
-    assert "react-dom" in event.scope.packages
+    # Q8 -- why OpenPulse: the fork image on the same 1.14 tag is
+    # excluded by project identity, and the 1.16 pin by version
+    # scope -- two calls a bare EOL row cannot make.
+    assert pinned_old.reason != fork_same_tag.reason
+    assert "terraform" in fork_same_tag.reason

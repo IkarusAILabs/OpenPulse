@@ -150,6 +150,26 @@ def _is_legacy_ns(namespace: str) -> bool:
     return "legacy" in ns
 
 
+def _is_empty_probe(entry: dict[str, Any]) -> bool:
+    """True when a probe recorded the mainline serving zero tags.
+
+    The collector emits ``tags_sample: []`` with ``truncated: False``
+    only when the registry answered and carried no names (Hub 200 with
+    ``count: 0``; the v2 protocol agrees -- docker.io/bitnami/spark,
+    2026-10-07). The key must be present and the list empty: an entry
+    without ``tags_sample`` is a synthetic/legacy shape, not an
+    observed empty mainline, and never a missing-repo claim (that is
+    the ``missing`` flag, a 404).
+    """
+    tags = entry.get("tags_sample")
+    return (
+        isinstance(tags, list)
+        and not tags
+        and not entry.get("truncated")
+        and not entry.get("missing")
+    )
+
+
 def analyze_registries(
     entries: list[dict[str, Any]], today: date | None = None
 ) -> list[dict[str, Any]]:
@@ -170,22 +190,36 @@ def analyze_registries(
     findings = []
     claimed: set[tuple[str | None, str | None]] = set()
     for image, repos in by_image.items():
-        mainline = [e for e in repos if e.get("latest_only")]
+        mainline = [e for e in repos if e.get("latest_only") or _is_empty_probe(e)]
         legacy = [
             e for e in repos if e.get("has_versioned_tags") and _is_legacy_ns(e.get("namespace"))
         ]
         if mainline and legacy:
             main, old = mainline[0], legacy[0]
             m_ns, o_ns = main.get("namespace"), old.get("namespace")
+            if _is_empty_probe(main):
+                mainline_state = (
+                    f"{m_ns} mainline publishes no tags at all; versioned tags live in {o_ns}"
+                )
+                mainline_summary = (
+                    f"docker.io/{m_ns} answers with an empty tag set while "
+                    f"docker.io/{o_ns} holds versioned tags with no updates. "
+                    f"Pinned {m_ns}/* references need a migration plan."
+                )
+            else:
+                mainline_state = f"{m_ns} mainline is latest-only; versioned tags live in {o_ns}"
+                mainline_summary = (
+                    f"docker.io/{m_ns} serves only `latest` while "
+                    f"docker.io/{o_ns} holds versioned tags with no updates. "
+                    f"Pinned {m_ns}/* references need a migration plan."
+                )
             findings.append(
                 {
                     "analyst": "change",
                     "event_type": "DISTRIBUTION_CHANGE",
                     "signal": "distribution",
-                    "title": f"{m_ns} mainline is latest-only; versioned tags live in {o_ns}",
-                    "summary": f"docker.io/{m_ns} serves only `latest` while "
-                    f"docker.io/{o_ns} holds versioned tags with no updates. "
-                    f"Pinned {m_ns}/* references need a migration plan.",
+                    "title": mainline_state,
+                    "summary": mainline_summary,
                     "impact": "ACTION",
                     "observed_at": str(today),
                     "effective_at": None,
@@ -319,7 +353,22 @@ def analyze_github_meta(
                     "evidence_strength": EVIDENCE_MODERATE,
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [],
+                    # The moved repository is the affected thing: every
+                    # recorded reference to the old path -- go.mod
+                    # requires, docs, CI checkout URLs -- now names a
+                    # redirect, not a first-party source. The ref is
+                    # scheme-free because that is the form manifests
+                    # and remotes record, and because normalize_ref
+                    # strips at the first colon: a scheme would
+                    # collapse the ref and make every https URL match
+                    # every other one. Naming the old path satisfies
+                    # the gate's OWNERSHIP_CHANGE requirement that the
+                    # finding state what moved -- and keeps the
+                    # destination path a non-match, which is the whole
+                    # discrimination this event exists to make.
+                    "affected_artifacts": [
+                        {"kind": "source-repository", "ref": f"github.com/{old}"}
+                    ],
                     "supporting": [e],
                 }
             )

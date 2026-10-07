@@ -241,6 +241,12 @@ def _public_change(
             "high-significance candidate, review"
         )
         return _result(PROJECT_CHANGE, REVIEW, reasons)
+    if event_type == "OWNERSHIP_CHANGE":
+        reasons.append(
+            "ownership move is a project-level identity fact, not proof "
+            "any deployment is affected: review, never automatic action"
+        )
+        return _result(PROJECT_CHANGE, REVIEW, reasons)
     if event_type == "DISTRIBUTION_CHANGE":
         if significance == "high" and finding.get("distribution_model_change"):
             reasons.append(

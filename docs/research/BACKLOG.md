@@ -8,7 +8,7 @@ Item states: DONE, ACTIVE, NEXT, DEFERRED, REMOVED. Dispositions at the bottom r
 
 Purpose: the trust model is the product; regressions here invalidate everything above.
 
-- [ACTIVE] M2 acceptance set: confirm-or-kill pending pruning cases; formalize ownership/namespace-move firings (`docs/DISCOVERIES.md`). Purpose: prove repeatable discovery.
+- [DONE 2026-10-07] M2 acceptance set: five live-replayed cases (capa, etcd, traefik, fbsdk archive+move, bitnami/spark empty mainline — `docs/DISCOVERIES.md` Cases 6-10); a live namespace-move pair for `split_moves` remains. Purpose: repeatable discovery proven.
 - [ACTIVE] Parser-version discipline: every acquisition-semantics change bumps `core/evidence/provenance.py:PARSER_VERSION` and re-baselines history (`core/observations/sweep.py` guard). Purpose: histories must never silently compare incomparable semantics.
 - [NEXT] OSV/CVE/NVD published-date coverage audit: which findings still lack `announced_at`, and whether any authoritative source is untapped. Purpose: temporal accuracy (roadmap metric).
 - [NEXT] `first_seen` backfill policy for lifecycle findings predating the ledger: document whether (and how) historical first detection may ever be reconstructed — default stays "unknown means unknown". Purpose: protect the no-estimation rule.
@@ -18,6 +18,7 @@ Purpose: the trust model is the product; regressions here invalidate everything 
 
 Purpose: the differentiation — changes lifecycle DBs never record and SCA notices only after breakage.
 
+- [DONE] Warning deadline surface (`core/warnings.py`, `openpulse warnings`): severity bands over the ONE digest join, ranked countdown with lead times inherited from the ledger (`docs/LEAD_TIME_CASES.md` pins three replayable cases). Purpose: turn first detections into deadlines without a second matching engine.
 - [ACTIVE] Version-aware latest-only rule follow-through: the Bitnami split must keep firing as registries evolve (digest-tagged mainlines). Purpose: keep a verified discovery derived, not just recorded.
 - [NEXT] Repository/archive-change detection beyond the archived flag (deletion, rename vs transfer disambiguation in `analyze_github_meta`). Purpose: M2 priority 3 with the ownership detector as template.
 - [NEXT] Support-model and license-change signal candidates (release-note/doc polling patterns; curated fixtures graduate to detected candidates only). Purpose: M2 priorities 5–6 without collector-count vanity.
@@ -49,6 +50,7 @@ Purpose: machine-readable dependency intelligence another system can consume wit
 
 - [DONE] Evidence contract minimal schema (`core/attestation.py`): event context, identity (with trust status), scope, affected dependency, applicability basis (match strength + method), assessment, confidence, evidence references with source authority, the four temporal roles, recommendation, unknowns, limitations, provenance (OpenPulse version, schema version, generation timestamp, content hash). Every field documents its current source; convergence, not invention. Builder is a pure function over (event, verdict[, finding]); round-trip dump→validate→byte-identical is test-pinned; the content hash covers the evidence body only (clock-independent), so the same logical document always hashes identically.
 - [PLANNED, marked in schema, never populated] `signature`, `signing_key_id`, `trust_root` — keys, signatures, and trust roots are a separate, later issue. The contract is NOT a signature format and NOT a policy decision: consumers decide what to do with the assessment.
+- [DONE] Evidence contract v1 standalone schema (issue #67): `schemas/evidence-contract/v1/schema.json` (draft 2020-12, per-field provenance pointers, planned signature fields null), `core/evidence_contract.py` (builder over the #60 convergence, dependency-free fail-closed validator, content hash over the v1 shape), `openpulse attest` CLI (JSONL emit, composable sources), docs/EVIDENCE_CONTRACT.md. No new dependencies.
 - [NEXT] First external consumer validation (M9 experiment design only — no coupled runtime before the contract has a consumer).
 
 ## Dispositions
