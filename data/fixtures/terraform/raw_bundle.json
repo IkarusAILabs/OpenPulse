@@ -1,0 +1,45 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "terraform",
+      "cycle": "1.14",
+      "eol": "2026-08-26",
+      "support": null,
+      "latest": "1.14.9",
+      "latestReleaseDate": "2026-04-20"
+    },
+    {
+      "collector": "endoflife",
+      "product": "terraform",
+      "cycle": "1.13",
+      "eol": "2026-04-29",
+      "support": null,
+      "latest": "1.13.5",
+      "latestReleaseDate": "2025-11-05"
+    },
+    {
+      "collector": "endoflife",
+      "product": "terraform",
+      "cycle": "1.16",
+      "eol": false,
+      "support": null,
+      "latest": "1.16.5",
+      "latestReleaseDate": "2026-09-30"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "hashicorp/terraform",
+      "archived": false,
+      "pushed_at": "2026-10-06T17:39:35Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}
