@@ -649,3 +649,178 @@ def test_golden_etcd_namespace_move():
     assert assessed["assessment"] == "PROJECT_CHANGE"
     assert assessed["eligibility"] == "REVIEW"
     assert old_ref.reason != new_ref.reason
+
+
+def test_golden_grafana_eol_pins_and_distribution():
+    """Grafana 12.3 EOL: the upstream image and the enterprise
+    distribution of the same release cycle, end to end from the
+    offline raw-bundle fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 12.3 reached EOL on 2026-08-19, scoped
+       to that cycle only; the 12.2 cycle (EOL 2026-06-23) is a
+       separate earlier finding, and 13.0 (EOL 2027-01-09) stays
+       UPCOMING;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2026-08-19, single secondary source so EMERGING;
+    Q3 identity -- grafana, grafana/grafana and the docker.io
+       upstream image resolve to the grafana project, and so does
+       the grafana-enterprise image: it is the closed-source
+       distribution of the same release cycle, not a fork with its
+       own version line;
+    Q4 what dependency -- docker.io/grafana/grafana:12.3.0 is the
+       affected pin;
+    Q5 which versions/artifacts -- the 12.3.0 pin on the upstream
+       image is affected, the 13.0.0 pin is not, and the enterprise
+       image on the same tag is affected through the same scope;
+    Q6 when it matters -- effective 2026-08-19, already in force;
+    Q7 investigate -- the verdict reason names the scope version;
+    Q8 why OpenPulse -- an EOL database row for Grafana 12.3 cannot
+       say whether a pinned docker.io/grafana/grafana-enterprise:12.3
+       tag is covered: identity resolution maps the distribution to
+       the upstream cycle, and version scope keeps the 13.0 pin
+       silent."""
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/grafana/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: three EOL findings, each scoped to its own
+    # cycle; 12.3 and 12.2 are in force, 13.0 is still upcoming.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert [f["scope"]["versions"] for f in findings] == [["12.3"], ["12.2"], ["13.0"]]
+    by_cycle = {f["scope"]["versions"][0]: f for f in findings}
+    assert by_cycle["12.3"]["lifecycle_state"] == "EFFECTIVE"
+    assert by_cycle["13.0"]["lifecycle_state"] == "UPCOMING"
+
+    event = finding_to_event(by_cycle["12.3"], "grafana", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2026, 8, 19) for e in event.evidences)
+
+    # Q3 -- identity: spellings and both image lines resolve to grafana.
+    assert event.project_slug == "grafana"
+    for spelling in ("grafana", "grafana/grafana", "Grafana"):
+        assert resolve_project(spelling) == "grafana", spelling
+    assert resolve_project("docker.io/grafana/grafana:12.3.0") == "grafana"
+    assert resolve_project("docker.io/grafana/grafana-enterprise:12.3.0") == "grafana"
+
+    # Q4 + Q5 -- dependency verdicts: the distribution is not a fork.
+    upstream_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana:12.3.0"}, [event]
+    )
+    enterprise_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana-enterprise:12.3.0"}, [event]
+    )
+    upstream_new = check_dependency(
+        {"kind": "image", "ref": "docker.io/grafana/grafana:13.0.0"}, [event]
+    )
+    assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
+    assert upstream_old.confidence == "EMERGING"
+    assert (enterprise_old.affected, enterprise_old.relationship) == (True, "AFFECTS_VERSION")
+    assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert by_cycle["12.3"]["effective_at"] == "2026-08-19"
+
+    # Q7 -- investigate: the reason names the scope version.
+    assert "12.3" in upstream_old.reason
+    assert "12.3" in enterprise_old.reason
+
+    # Q8 -- why OpenPulse: the enterprise image inherits the upstream
+    # cycle EOL through identity, and the 13.0 pin stays silent
+    # through scope -- two calls a bare EOL row cannot make.
+    assert upstream_old.reason != upstream_new.reason
+    assert enterprise_old.match_method == "event_scope:version"
+
+
+def test_golden_terraform_eol_pins_and_fork_line():
+    """Terraform 1.14 EOL: core versioning with a numerically
+    colliding fork line, end to end from the offline raw-bundle
+    fixture.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- cycle 1.14 reached EOL on 2026-08-26, scoped
+       to that cycle only; 1.13 (EOL 2026-04-29) is a separate
+       earlier finding, and 1.16 has no EOL date at all (eol: false)
+       so it yields no finding;
+    Q2 evidence -- the bridged event passes the claim gate, dated
+       effective 2026-08-26, single secondary source so EMERGING;
+    Q3 identity -- terraform, hashicorp/terraform and the
+       docker.io/hashicorp/terraform image resolve to the terraform
+       project; ghcr.io/opentofu/opentofu is a fork with its own
+       version line whose 1.14 numerically collides with core 1.14;
+    Q4 what dependency -- a terraform 1.14 pin is the affected
+       dependency;
+    Q5 which versions/artifacts -- the 1.14 pin is affected, the
+       1.16 pin is not, and the OpenTofu image on the same 1.14 tag
+       is not, because it is a different project;
+    Q6 when it matters -- effective 2026-08-26, already in force;
+    Q7 investigate -- the verdict reason names the scope version
+       and the fork exclusion names the fork project;
+    Q8 why OpenPulse -- an EOL database row for Terraform 1.14
+       cannot tell a pinned ghcr.io/opentofu/opentofu:1.14 tag apart
+       from hashicorp/terraform:1.14: identity resolution can, and
+       version scope keeps the 1.16 pin silent."""
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+
+    raw = json.load(open("data/fixtures/terraform/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: the two dated cycles yield findings, the
+    # undated 1.16 row does not.
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
+    assert [f["scope"]["versions"] for f in findings] == [["1.14"], ["1.13"]]
+    assert all(f["lifecycle_state"] == "EFFECTIVE" for f in findings)
+    assert "1.16" not in {f["scope"]["versions"][0] for f in findings}
+
+    event = finding_to_event(findings[0], "terraform", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; dated, single-source EMERGING.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2026, 8, 26) for e in event.evidences)
+
+    # Q3 -- identity: spellings resolve; the fork does not.
+    assert event.project_slug == "terraform"
+    for spelling in ("terraform", "hashicorp/terraform", "Terraform"):
+        assert resolve_project(spelling) == "terraform", spelling
+    assert resolve_project("docker.io/hashicorp/terraform:1.14") == "terraform"
+    assert resolve_project("ghcr.io/opentofu/opentofu:1.14") != "terraform"
+
+    # Q4 + Q5 -- dependency verdicts: the fork colliding tag is excluded.
+    pinned_old = check_dependency(
+        {"kind": "image", "ref": "docker.io/hashicorp/terraform:1.14"}, [event]
+    )
+    pinned_new = check_dependency(
+        {"kind": "image", "ref": "docker.io/hashicorp/terraform:1.16"}, [event]
+    )
+    fork_same_tag = check_dependency(
+        {"kind": "image", "ref": "ghcr.io/opentofu/opentofu:1.14"}, [event]
+    )
+    assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
+    assert pinned_old.confidence == "EMERGING"
+    assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
+    assert (fork_same_tag.affected, fork_same_tag.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective in the past, in force now.
+    assert findings[0]["effective_at"] == "2026-08-26"
+
+    # Q7 -- investigate: the reason names the scope version, and the
+    # fork exclusion names the fork own project.
+    assert "1.14" in pinned_old.reason
+    assert "ghcr.io/opentofu/opentofu" in fork_same_tag.reason
+
+    # Q8 -- why OpenPulse: the fork image on the same 1.14 tag is
+    # excluded by project identity, and the 1.16 pin by version
+    # scope -- two calls a bare EOL row cannot make.
+    assert pinned_old.reason != fork_same_tag.reason
+    assert "terraform" in fork_same_tag.reason

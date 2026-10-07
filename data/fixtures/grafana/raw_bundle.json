@@ -1,0 +1,45 @@
+{
+  "endoflife": [
+    {
+      "collector": "endoflife",
+      "product": "grafana",
+      "cycle": "12.3",
+      "eol": "2026-08-19",
+      "support": "2026-02-24",
+      "latest": "12.3.11",
+      "latestReleaseDate": "2026-08-18"
+    },
+    {
+      "collector": "endoflife",
+      "product": "grafana",
+      "cycle": "12.2",
+      "eol": "2026-06-23",
+      "support": "2025-11-19",
+      "latest": "12.2.10",
+      "latestReleaseDate": "2026-06-23"
+    },
+    {
+      "collector": "endoflife",
+      "product": "grafana",
+      "cycle": "13.0",
+      "eol": "2027-01-09",
+      "support": "2026-06-22",
+      "latest": "13.0.10",
+      "latestReleaseDate": "2026-09-29"
+    }
+  ],
+  "github": [],
+  "github_meta": [
+    {
+      "collector": "github",
+      "kind": "repo_meta",
+      "repo": "grafana/grafana",
+      "archived": false,
+      "pushed_at": "2026-10-06T23:04:29Z"
+    }
+  ],
+  "registries": [],
+  "nvd": [],
+  "osv": [],
+  "kev": []
+}
