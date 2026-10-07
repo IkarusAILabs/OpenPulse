@@ -651,6 +651,335 @@ def test_golden_etcd_namespace_move():
     assert old_ref.reason != new_ref.reason
 
 
+def test_golden_traefik_ownership_move():
+    """Traefik's repository moved from containous/traefik to
+    traefik/traefik when Traefik Labs replaced the Containous
+    company identity (2020): a recorded github.com/containous/traefik
+    require or remote now names a redirect while the moved-to repo
+    ships actively. End to end from the offline raw-bundle fixture
+    (repo_meta + latest release probed live 2026-10-07). Third real
+    move through the same rule: not shaped around capa or etcd, and
+    not around dead projects either -- the destination is alive.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from containous/traefik
+       to traefik/traefik; the queried path no longer names the
+       owner;
+    Q2 evidence -- the bridged event passes the claim gate; single
+       primary source (the repository itself) so EMERGING;
+    Q3 identity -- github.com/containous/traefik and
+       github.com/traefik/traefik are different repository
+       identities; the recorded old path is the stale one;
+    Q4 what dependency -- a github.com/containous/traefik source
+       reference (go.mod require, git remote) is the affected
+       dependency;
+    Q5 which versions/artifacts -- old path affected (it names a
+       redirect), new path UNKNOWN (not a match), bare package pin
+       stays contextual (AFFECTS_PROJECT);
+    Q6 when it matters -- the move already happened; the moved-to
+       repo is actively shipping (v3.7.14 released 2026-10-06), so
+       the stale reference is live drift, not history;
+    Q7 investigate -- the finding names both paths, and the verdict
+       reason names the affected artifact;
+    Q8 why OpenPulse -- an EOL/CVE database has no slot for "your
+       recorded source path changed owner"; nothing about v3.7.14 is
+       unusual, only the identity comparison catches it.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/traefik-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: one ownership finding, project-scoped, no
+    # archived finding (the repository is alive).
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    assert len(findings) == 1
+    assert all(f["event_type"] != "PROJECT_ARCHIVED" for f in analyze(raw, today=today))
+    assert findings[0]["scope"] == {"kind": "project", "versions": []}
+    assert findings[0]["detection_method"] == "repository_observation"
+    assert findings[0]["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/containous/traefik"}
+    ]
+
+    event = finding_to_event(findings[0], "traefik", today=today)
+
+    # Q2 -- evidence: claim gate accepts it; single primary source so
+    # EMERGING, never CONFIRMED off one observation.
+    assert gate(event) == []
+    assert event.confidence.value == "EMERGING"
+    assert [e.source.authority for e in event.evidences] == ["secondary"]
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: the old path
+    # is the affected dependency; the new path is a non-match.
+    old_ref = check_dependency({"kind": "image", "ref": "github.com/containous/traefik"}, [event])
+    new_ref = check_dependency({"kind": "image", "ref": "github.com/traefik/traefik"}, [event])
+    package_pin = check_dependency(
+        {"kind": "package", "package": "traefik", "ecosystem": "", "version": None}, [event]
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert old_ref.confidence == "EMERGING"
+
+    # Q6 -- when: the move already happened; the moved-to repo pushed
+    # and released v3.7.14 the day before the probe.
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+    assert raw["github"][0]["tag"] == "v3.7.14"
+    assert raw["github_meta"][0]["pushed_at"].startswith("2026-10-06")
+
+    # Q7 -- investigate: the finding and verdict name what moved.
+    assert "containous/traefik" in findings[0]["title"]
+    assert "traefik/traefik" in findings[0]["title"]
+    assert "github.com/containous/traefik" in old_ref.reason
+    assert "verify" in findings[0]["summary"]
+
+    # Q8 -- why OpenPulse: ownership drift is a repository-identity
+    # fact, not a lifecycle row; review-framed, never auto-action.
+    assessed = evaluate_impact(findings[0], today=today)
+    assert assessed["assessment"] == "PROJECT_CHANGE"
+    assert assessed["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_fbsdk_archive_and_move():
+    """facebook/react-native-fbsdk was moved into the facebookarchive
+    org and archived when maintenance ended (2021): one recorded
+    repository now carries both signals at once -- the queried path
+    names a redirect (ownership) and the destination is read-only
+    (archived). The final release v3.0.0 (2020-11-23) predates the
+    archive, so every pin is a pin of a dead project. End to end from
+    the offline raw-bundle fixture (repo_meta + final release probed
+    live 2026-10-07). First combined case: archive and ownership are
+    independent findings, not one folded event.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the repository moved from facebook to
+       facebookarchive AND was archived; both findings fire;
+    Q2 evidence -- both bridged events pass the claim gate;
+       single primary source each, so EMERGING;
+    Q3 identity -- github.com/facebook/react-native-fbsdk and
+       github.com/facebookarchive/react-native-fbsdk are different
+       repository identities; the archive org IS the moved-to
+       identity, visible in the recorded release URL;
+    Q4 what dependency -- the old source path is the affected
+       artifact; an npm package pin is contextual;
+    Q5 which versions/artifacts -- v3.0.0 is the last release;
+       no version escapes the archive (scope: project, versions []);
+    Q6 when it matters -- archived 2021, last push 2021-03-26;
+       in force now, nothing upcoming;
+    Q7 investigate -- the archived finding names the read-only state
+       and last push; the ownership finding names both paths;
+    Q8 why OpenPulse -- no EOL row covers a GitHub archive, and no
+       CVE database records that the recorded path moved; the
+       combination (dead + moved) is only visible by observation.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    raw = json.load(open("data/fixtures/fbsdk-archive-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: exactly two findings, one archived, one
+    # ownership move; the archive org is the moved-to identity.
+    all_findings = analyze(raw, today=today)
+    assert sorted(f["event_type"] for f in all_findings) == [
+        "OWNERSHIP_CHANGE",
+        "PROJECT_ARCHIVED",
+    ]
+    archived = next(f for f in all_findings if f["event_type"] == "PROJECT_ARCHIVED")
+    moved = next(f for f in all_findings if f["event_type"] == "OWNERSHIP_CHANGE")
+    assert archived["impact"] == "ACTION"
+    assert moved["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/facebook/react-native-fbsdk"}
+    ]
+    assert raw["github_meta"][0]["full_name"] == "facebookarchive/react-native-fbsdk"
+    assert raw["github_meta"][0]["archived"] is True
+
+    arch_event = finding_to_event(archived, "react-native-fbsdk", today=today)
+    move_event = finding_to_event(moved, "react-native-fbsdk", today=today)
+
+    # Q2 -- evidence: both events pass the gate; EMERGING each.
+    assert gate(arch_event) == []
+    assert gate(move_event) == []
+    assert arch_event.confidence.value == "EMERGING"
+    assert move_event.confidence.value == "EMERGING"
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: old path is
+    # the stale artifact on the move event; an npm pin is contextual
+    # on the archive event (the project itself is read-only).
+    old_ref = check_dependency(
+        {"kind": "image", "ref": "github.com/facebook/react-native-fbsdk"}, [move_event]
+    )
+    new_ref = check_dependency(
+        {"kind": "image", "ref": "github.com/facebookarchive/react-native-fbsdk"}, [move_event]
+    )
+    npm_pin = check_dependency(
+        {
+            "kind": "package",
+            "package": "react-native-fbsdk",
+            "ecosystem": "npm",
+            "version": "3.0.0",
+        },
+        [arch_event],
+    )
+    assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    assert (npm_pin.affected, npm_pin.relationship) == (False, "AFFECTS_PROJECT")
+    assert moved["scope"] == {"kind": "project", "versions": []}
+
+    # Q6 -- when: archived 2021, last push recorded in the finding;
+    # effective now, nothing upcoming.
+    assert archived["lifecycle_state"] == "EFFECTIVE"
+    assert moved["lifecycle_state"] == "EFFECTIVE"
+    assert "2021-03-26" in archived["summary"]
+    # the last release predates the archive: no version escapes it
+    assert raw["github"][0]["tag"] == "v3.0.0"
+    assert raw["github"][0]["published_at"].startswith("2020-11-23")
+    assert raw["github"][0]["url"].startswith(
+        "https://github.com/facebookarchive/react-native-fbsdk/"
+    )
+
+    # Q7 -- investigate: each finding names its own fact.
+    assert "archived" in archived["title"].lower()
+    assert "facebook/react-native-fbsdk" in moved["title"]
+    assert "facebookarchive/react-native-fbsdk" in moved["title"]
+
+    # Q8 -- why OpenPulse: the dead-and-moved combination is an
+    # observed identity fact. The analyst proposes ACTION for the
+    # archive (read-only is final); the eligibility layer still caps
+    # it at REVIEW -- "archived upstream is a project-level change,
+    # not proof any deployment is affected" -- while the move stays
+    # review-framed end to end. Neither is ever an auto-action.
+    assert archived["impact"] == "ACTION"
+    assert evaluate_impact(archived, today=today)["eligibility"] == "REVIEW"
+    assert evaluate_impact(moved, today=today)["eligibility"] == "REVIEW"
+    assert old_ref.reason != new_ref.reason
+
+
+def test_golden_bitnami_spark_empty_mainline():
+    """docker.io/bitnami/spark now answers with an empty tag set: not
+    `latest`-only, zero names on both the Hub API and the v2 protocol
+    (probed live 2026-10-07), while docker.io/bitnamilegacy/spark
+    holds all 936 historical tags with digests and no pushes since
+    2025-08-08. This is the shape the Bitnami catalog deletion
+    (announced 2025-07-16, effective 2025-08-28, postponed to
+    2025-09-29) actually produced for repos outside the kept subset:
+    a distribution removal one step past latest-only. End to end:
+    the producer-side rule fires off the recorded probe pair, the
+    curated event passes the gate, and pinned refs are told apart.
+
+    M2 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- the bitnami/spark mainline publishes no tags
+       at all; the versioned distribution lives in bitnamilegacy;
+    Q2 evidence -- the curated event passes the claim gate
+       (official Bitnami announcement + primary registry probes),
+       CONFIRMED/ACTION; the producer-side finding bridges only as
+       EMERGING with a date violation -- weak evidence holds back;
+    Q3 identity -- docker.io/bitnami/spark and bitnamilegacy/spark
+       are distributions, not upstream: docker.io/apache/spark is
+       the upstream image and must NOT match;
+    Q4 what dependency -- a pinned docker.io/bitnami/spark:<version>
+       reference no longer resolves; a bitnamilegacy pin resolves
+       against a frozen, unsupported snapshot;
+    Q5 which versions/artifacts -- both namespace refs affected,
+       upstream apache/spark NOT_AFFECTED;
+    Q6 when it matters -- announced 2025-07-16, effective 2025-08-28
+       (deletion postponed to 2025-09-29); in force now;
+    Q7 investigate -- the finding names both namespaces and the
+       migration need; the verdict reason names the pinned ref;
+    Q8 why OpenPulse -- an EOL database records Spark's cycle; no
+       database row says "your pinned distribution tag answers
+       empty"; only a probe comparison can catch a removal.
+    """
+    from analyzers.change_analyst import analyze, analyze_registries
+    from analyzers.lifecycle_events import finding_to_event
+    from core.evidence.policy import gate
+    from core.risk.impact import evaluate_impact
+
+    fixture = "data/fixtures/spark-mainline-empty"
+    today = date(2026, 10, 7)
+
+    # Q1 -- what changed: the split rule fires on the recorded probe
+    # pair. The empty mainline is the producer-side gap this case
+    # formalizes: pristine main required latest_only on the mainline
+    # side and stayed silent on exactly this shape. The probe flags
+    # are what parse_tags emits for the recorded answers, not
+    # hand-tuned booleans.
+    main = json.load(open(f"{fixture}/mainline_probe.json", encoding="utf-8"))
+    legacy = json.load(open(f"{fixture}/legacy_probe.json", encoding="utf-8"))
+    assert main["tags_sample"] == [] and main["count"] == 0 and not main["truncated"]
+    assert main["latest_only"] is False and main["has_versioned_tags"] is False
+    assert legacy["count"] == 936 and legacy["has_versioned_tags"] is True
+    findings = analyze({"registries": [main, legacy]}, today=today)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["event_type"] == "DISTRIBUTION_CHANGE"
+    assert finding["title"] == (
+        "bitnami mainline publishes no tags at all; versioned tags live in bitnamilegacy"
+    )
+    assert finding["affected_artifacts"] == [
+        {"kind": "docker-image", "ref": "docker.io/bitnami/spark:<version>"},
+        {"kind": "docker-image", "ref": "docker.io/bitnamilegacy/spark:<version>"},
+    ]
+
+    # Q2 -- evidence: weak producer evidence holds itself back -- the
+    # bridged producer finding cannot pass the gate (no dates), and
+    # impact caps at REVIEW. The curated event (official announcement
+    # + primary probes) is the reportable form: CONFIRMED/ACTION.
+    producer_event = finding_to_event(finding, "bitnami-spark", today=today)
+    assert gate(producer_event) == [
+        "DISTRIBUTION_CHANGE requires announcement_date or effective_date in at least one evidence"
+    ]
+    assert evaluate_impact(finding, today=today)["eligibility"] == "REVIEW"
+    event = _load("spark-mainline-empty")
+    assert gate(event) == []
+    assert event.confidence.value == "CONFIRMED"
+    assert [e.source.authority for e in event.evidences] == ["official", "primary"]
+
+    # Q3 + Q4 + Q5 -- identity and dependency verdicts: both
+    # distribution namespaces are affected; the upstream apache image
+    # is explicitly NOT affected.
+    pin_main = check_dependency({"kind": "image", "ref": "docker.io/bitnami/spark:3.5.4"}, [event])
+    pin_legacy = check_dependency(
+        {"kind": "image", "ref": "docker.io/bitnamilegacy/spark:3.5.4"}, [event]
+    )
+    upstream = check_dependency({"kind": "image", "ref": "docker.io/apache/spark:3.5.4"}, [event])
+    assert (pin_main.affected, pin_main.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (pin_legacy.affected, pin_legacy.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert (upstream.affected, upstream.relationship) == (False, "NOT_AFFECTED")
+    assert "docker.io/bitnami/spark:3.5.4" in pin_main.reason
+
+    # Q6 -- when: announced 2025-07-16, effective 2025-08-28, catalog
+    # deletion postponed to 2025-09-29 -- dates carried by the event
+    # evidence, in force now.
+    announce = next(e for e in event.evidences if e.source.name.startswith("github/bitnami"))
+    assert announce.effective_date == date(2025, 8, 28)
+    assert announce.announcement_date == date(2025, 7, 16)
+    assert event.impact.value == "ACTION"
+
+    # Q7 -- investigate: the producer finding names both namespaces
+    # (namespace form) and the migration need; the curated event
+    # names both full image refs and what a pin now resolves to.
+    assert "docker.io/bitnami" in finding["summary"]
+    assert "docker.io/bitnamilegacy" in finding["summary"]
+    assert "migration plan" in finding["summary"]
+    assert "no tags at all" in finding["title"]
+    assert "docker.io/bitnami/spark" in event.summary
+    assert "docker.io/bitnamilegacy/spark" in event.summary
+    assert "frozen, unsupported snapshot" in event.summary
+
+    # Q8 -- why OpenPulse: a removal that answers empty is only
+    # visible by probing; the split rule treats it as the
+    # distribution-model change it is, not a missing-repo error.
+    assert analyze_registries([main], today=today) == []
+    assert analyze_registries([legacy], today=today) == []
+
+
 def test_golden_grafana_eol_pins_and_distribution():
     """Grafana 12.3 EOL: the upstream image and the enterprise
     distribution of the same release cycle, end to end from the

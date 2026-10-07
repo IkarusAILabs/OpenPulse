@@ -1,0 +1,53 @@
+{
+ "id": "evt-bitnami-spark-2025-distribution-mainline-empty-001",
+ "schema_version": "0.4.0",
+ "project_slug": "bitnami-spark",
+ "event_type": "DISTRIBUTION_CHANGE",
+ "title": "Bitnami Spark distribution removal: docker.io/bitnami/spark publishes no tags; the 936 recorded tags (859 version-like) live in docker.io/bitnamilegacy/spark",
+ "summary": "Under the Bitnami catalog change effective 2025-08-28 (deletion of the docker.io/bitnami public catalog, postponed to 2025-09-29 after feedback), docker.io/bitnami/spark now answers with an empty tag set: no latest, no versioned tags, no digest tags. Every historical Spark version (2, 2.4.3-r3..r81, 3.x, 3.5.4-debian-12-r0..r6, 4.0.0-debian-12-r0..r20, ...) now lives only in docker.io/bitnamilegacy/spark (936 tags total, 859 version-like, no further updates or support). A pinned docker.io/bitnami/spark:<version> reference no longer resolves; a pinned docker.io/bitnamilegacy/spark:<version> reference resolves against a frozen, unsupported snapshot. Production use requires Bitnami Secure Images or an own-registry copy.",
+ "confidence": "CONFIRMED",
+ "impact": "ACTION",
+ "affected_versions": [
+  "*"
+ ],
+ "affected_artifacts": [
+  {
+   "kind": "docker-image",
+   "ref": "docker.io/bitnami/spark:<version>"
+  },
+  {
+   "kind": "docker-image",
+   "ref": "docker.io/bitnamilegacy/spark:<version>"
+  }
+ ],
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "docker.io/bitnami/spark:<version>",
+   "docker.io/bitnamilegacy/spark:<version>"
+  ]
+ },
+ "evidences": [
+  {
+   "source": {
+    "name": "github/bitnami-containers#83267",
+    "url": "https://github.com/bitnami/containers/issues/83267",
+    "authority": "official",
+    "fetched_at": "2026-10-07T00:00:00Z"
+   },
+   "excerpt": "Upcoming changes to the Bitnami catalog (effective August 28th, 2025): disable Debian-based image generation, move existing versioned tags to Bitnami Legacy repository (docker.io/bitnamilegacy) with no further updates or support; deletion postponed to September 29th with brownouts Aug 28, Sep 2, Sep 17.",
+   "announcement_date": "2025-07-16",
+   "effective_date": "2025-08-28"
+  },
+  {
+   "source": {
+    "name": "docker-hub/bitnamilegacy-spark",
+    "url": "https://hub.docker.com/v2/repositories/bitnamilegacy/spark/tags",
+    "authority": "primary",
+    "fetched_at": "2026-10-07T00:00:00Z"
+   },
+   "excerpt": "Registry observation 2026-10-07: docker.io/bitnami/spark serves an empty tag set (Hub count 0; registry v2 tags/list returns []). docker.io/bitnamilegacy/spark serves 936 tags, 859 version-like (latest, 2, 2.4.3-r3..r81, 3.x, 4.0.0-debian-12-r0..r20, ...) with digests recorded for all 936 (Hub digest pages + v2 union), no pushes since 2025-08-08 per tag_last_pushed. The split rule fires on the producer path: an empty mainline probe paired with a legacy namespace holding versioned tags is a distribution-model change, not just a missing-repo 404.",
+   "effective_date": "2025-08-08"
+  }
+ ]
+}

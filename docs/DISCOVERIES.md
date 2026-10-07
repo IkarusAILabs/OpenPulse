@@ -9,11 +9,12 @@ verification status and reproduction. Curated-only entries are
 marked and never counted. A case that cannot replay is removed,
 not argued for.
 
-Acceptance status: **NOT MET — 4 of 5 verified.** The pruning
-candidates were probed 2026-10-03 and killed (see Cases 3–5); the
-two live ownership-move firings below (Cases 6–7, capa and etcd)
-replaced them. One more verified case closes the set; the gap and
-the path to close it are recorded below, not hidden.
+Acceptance status: **MET 2026-10-07 — 5 of 5 verified, all
+live-replayed.** The pruning candidates were probed 2026-10-03 and
+killed (see Cases 3–5); capa and etcd (2026-10-06) then traefik,
+fbsdk and bitnami/spark (2026-10-07) replaced them. Every counted
+case replays offline from recorded evidence; the residual gaps are
+recorded below, not hidden.
 
 ## Case 1 — minio/minio archived ✅ VERIFIED
 
@@ -144,6 +145,102 @@ the path to close it are recorded below, not hidden.
 - Scope: project-wide, artifact-named. Finding:
   `OWNERSHIP_CHANGE` / REVIEW-eligible.
 
+## Case 8 — containous/traefik renamed to traefik/traefik ✅ VERIFIED (live replay)
+
+- What changed: the repository moved from `containous/traefik` to
+  `traefik/traefik` when Traefik Labs replaced the Containous
+  company identity (2020). A recorded `github.com/containous/traefik`
+  require or remote now names a redirect, while the moved-to repo
+  ships actively (v3.7.14 released 2026-10-06).
+- Why it matters: third real move through the same rule — proves it
+  is not shaped around capa (acquisition), etcd (wind-down) or dead
+  projects; live-destination moves are the common shape.
+- Affected: source reference `github.com/containous/traefik` (the
+  moved-from path). The moved-to path is a different identity.
+- Evidence: live `repo_meta` 2026-10-07 — queried `containous/traefik`,
+  `full_name: traefik/traefik`, `archived: false`,
+  `pushed_at: 2026-10-06T07:48:29Z`, `stargazers: 65098`; latest
+  release `v3.7.14` published `2026-10-06T07:49:56Z`; fixture
+  `data/fixtures/traefik-move/raw_bundle.json`.
+- Confidence: EMERGING (single primary source: the repository itself).
+- First detection: 2026-10-07 (live probe; replayed offline by
+  `test_golden_traefik_ownership_move`).
+- Effective date: the rename predates observation history;
+  unrecorded — the stale reference is in force now.
+- Scope: project-wide, artifact-named. Finding:
+  `OWNERSHIP_CHANGE` / REVIEW-eligible.
+- Reproduction: `openpulse analyze --project traefik` (or
+  `analyze_github_meta` on the recorded meta — see the golden test).
+
+## Case 9 — facebook/react-native-fbsdk moved AND archived ✅ VERIFIED (live replay)
+
+- What changed: the repository moved from `facebook/react-native-fbsdk`
+  to `facebookarchive/react-native-fbsdk` and was archived (2021):
+  one recorded repository carrying both signals at once. The final
+  release `v3.0.0` (2020-11-23) predates the archive — every pin is
+  a pin of a dead project.
+- Why it matters: first combined case — archive and ownership are
+  independent findings, not one folded event; the dead-and-moved
+  combination is only visible by observation.
+- Affected: source reference `github.com/facebook/react-native-fbsdk`
+  (the moved-from path); the npm package pin is contextual
+  (the project itself is read-only).
+- Evidence: live `repo_meta` 2026-10-07 — queried
+  `facebook/react-native-fbsdk`,
+  `full_name: facebookarchive/react-native-fbsdk`, `archived: true`,
+  `pushed_at: 2021-03-26T23:24:22Z`, `stargazers: 2973`; final
+  release `v3.0.0` published `2020-11-23`, release URL served from
+  the archive org; fixture
+  `data/fixtures/fbsdk-archive-move/raw_bundle.json`.
+- Confidence: EMERGING (single primary source each finding).
+- First detection: 2026-10-07 (live probe; replayed offline by
+  `test_golden_fbsdk_archive_and_move`).
+- Effective date: archived 2021; in force now, nothing upcoming.
+- Scope: project-wide, artifact-named. Findings: `PROJECT_ARCHIVED`
+  (ACTION proposal, REVIEW-capped) + `OWNERSHIP_CHANGE` (REVIEW).
+- Reproduction: `openpulse analyze --project react-native-fbsdk` (see
+  the golden test for both findings firing together).
+
+## Case 10 — docker.io/bitnami/spark mainline answers empty ✅ VERIFIED (live replay)
+
+- What changed: `docker.io/bitnami/spark` now answers with an empty
+  tag set — not `latest`-only, zero names on both the Hub API
+  (`count: 0`) and the registry v2 protocol (`tags: []`) — while
+  `docker.io/bitnamilegacy/spark` holds all 936 historical tags
+  (859 version-like, digests recorded for all 936, no pushes since
+  2025-08-08). The Bitnami catalog deletion (announced 2025-07-16,
+  effective 2025-08-28, postponed to 2025-09-29) produced a
+  distribution removal one step past latest-only for repos outside
+  the kept subset.
+- Why it matters: the split rule previously required `latest_only`
+  on the mainline side and stayed silent on exactly this shape; the
+  empty probe is the observed end-state of the deletion the curated
+  Bitnami case announced. An empty answer is a distribution-model
+  fact, not a missing-repo error (that is the `missing` 404 flag).
+- Affected: pinned `docker.io/bitnami/spark:<version>` (no longer
+  resolves) and `docker.io/bitnamilegacy/spark:<version>` (frozen,
+  unsupported snapshot); upstream `docker.io/apache/spark` explicitly
+  NOT affected.
+- Evidence: live registry probes 2026-10-07 — Hub
+  `bitnami/spark` `count: 0`; v2 protocol `tags: []`; Hub
+  `bitnamilegacy/spark` `count: 936` with the full name set;
+  official announcement `github.com/bitnami/containers#83267`;
+  fixtures `data/fixtures/spark-mainline-empty/` (both probes +
+  curated event).
+- Confidence: CONFIRMED (official announcement + primary probes) in
+  the curated event; producer-side finding bridges EMERGING with a
+  date violation — weak evidence holds itself back.
+- First detection: 2026-10-07 (live probe; replayed offline by
+  `test_golden_bitnami_spark_empty_mainline`).
+- Effective date: 2025-08-28 (catalog deletion postponed to
+  2025-09-29); in force now.
+- Scope: artifact-scoped, both namespace refs named. Finding:
+  `DISTRIBUTION_CHANGE` / REVIEW-eligible at the producer layer;
+  ACTION in the curated event.
+- Reproduction: `openpulse analyze` on the two recorded probes (see
+  the golden test) or `openpulse check --images` against the
+  curated event.
+
 ## Anti-case — the 5-tag window flaw (caught, fixed)
 
 Same-session catch: symmetric appear/disappear pairs (`latest`
@@ -159,7 +256,9 @@ pipeline must not be able to claim more than its acquisition supports.
 ## Armed, awaiting live firing
 
 - Ownership drift (`OWNERSHIP_CHANGE`, `analyze_github_meta`):
-  **fired live twice** (Cases 6–7, capa and etcd, 2026-10-06) and
+  **fired live four times** (Cases 6–7 capa and etcd 2026-10-06;
+  Cases 8–9 traefik and fbsdk 2026-10-07 — the fbsdk one together
+  with `PROJECT_ARCHIVED`, the first combined firing) and
   formalized with golden replays; same-owner renames stay silent
   (offline proofs in `tests/test_analysts.py`).
 - Namespace moves (`split_moves`, `core/observations/sweep.py`):
@@ -172,9 +271,11 @@ pipeline must not be able to claim more than its acquisition supports.
 1. ~~Confirm-or-kill the three pruning cases~~ — done 2026-10-03,
    all three killed (Cases 3–5). Replacements delivered 2026-10-06:
    Cases 6–7 (capa, etcd ownership moves) from live repo_meta
-   probes. One more verified case closes the set; #36 (Hub
-   anonymous pagination cap) still blocks full-set probes for
-   large repos.
+   probes, and 2026-10-07: Cases 8–10 (traefik org rename; fbsdk
+   archive+move combined; bitnami/spark empty-mainline split) —
+   five live-replayed verified cases beyond the structural set,
+   acceptance closed. #36 (Hub anonymous pagination cap) still
+   blocks full-set probes for large repos.
 2. ~~One live firing from the armed detectors (move or
    ownership)~~ — ownership fired live twice (Cases 6–7). The
    cross-namespace `split_moves` detector stays armed, awaiting a
@@ -184,4 +285,6 @@ pipeline must not be able to claim more than its acquisition supports.
    (`test_bitnami_digest_mainline_gap_closed`) plus a no-false-positive
    test on versioned mainlines lock it. Case 2 is now producer-derived.
 
-Then: 5 verified cases, M2 acceptance met, M4 benchmark fed.
+M2 acceptance met 2026-10-07: five verified live-replayed
+non-lifecycle cases (6–10) + the structural Case 2, each with an
+offline golden replay. Then: M4 benchmark fed.
