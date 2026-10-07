@@ -14,7 +14,7 @@ updates:
     labels: [dependencies]
     ignore:
       # Fixture-only pin (data/fixtures/manifests/requirements.txt); not a real dep.
-      - dependency-name: ["django"]
+      - dependency-name: "django"
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
