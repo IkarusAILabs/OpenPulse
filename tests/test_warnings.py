@@ -66,6 +66,28 @@ def _django_dep():
     return {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
 
 
+class _FrozenDate(date):
+    """Wall-clock stand-in pinned to 2026-10-06, the day the comment
+    fixtures and pinned countdowns in this file were written against.
+    The CLI tests below exercise the full command path, which has no
+    `--today` flag to pass explicitly like the pure-function tests do,
+    so the calendar is frozen here instead (same pattern as the
+    stepped datetime in test_attestation.py). A real calendar ticking
+    past 2026-10-06 shifts every countdown by one day per day and
+    turns these asserts red within 24h of landing.
+    """
+
+    @classmethod
+    def today(cls):
+        return cls(2026, 10, 6)
+
+
+def _freeze_warnings_clock(monkeypatch):
+    import core.digest as digest_module
+
+    monkeypatch.setattr(digest_module, "date", _FrozenDate)
+
+
 # ---------------------------------------------------------------------------
 # Pure deadline calculator (issue #66: pure-function deadline calc)
 # ---------------------------------------------------------------------------
@@ -392,6 +414,8 @@ def test_cli_warnings_end_to_end_two_runs(tmp_path, monkeypatch):
     reports the ORIGINAL first-seen date with a countdown and a band."""
     from cli.main import cli
 
+    _freeze_warnings_clock(monkeypatch)
+
     watchlist = _write_watchlist(tmp_path, _WL)
     event_file = _future_event_file(tmp_path)
     ledger_root = tmp_path / "ledger"
@@ -433,9 +457,10 @@ def test_cli_warnings_end_to_end_two_runs(tmp_path, monkeypatch):
     assert "MEDIUM" in out.output
 
 
-def test_cli_warnings_json_output(tmp_path):
+def test_cli_warnings_json_output(tmp_path, monkeypatch):
     from cli.main import cli
 
+    _freeze_warnings_clock(monkeypatch)
     watchlist = _write_watchlist(tmp_path, _WL)
     event_file = _future_event_file(tmp_path)
     out = CliRunner().invoke(
@@ -483,10 +508,12 @@ def test_cli_warnings_empty_result_renders_clean(tmp_path):
     assert "No warning deadlines within the 90-day window." in out.output
 
 
-def test_cli_warnings_composable_with_images(tmp_path):
+def test_cli_warnings_composable_with_images(tmp_path, monkeypatch):
     """--images is one of the composable inputs: image refs get
     deadlines through artifact matching."""
     from cli.main import cli
+
+    _freeze_warnings_clock(monkeypatch)
 
     event = json.load(open("data/fixtures/bitnami/event.json"))
     # Shift the effective date inside the window so the countdown is
@@ -510,8 +537,10 @@ def test_cli_warnings_composable_with_images(tmp_path):
     assert "MEDIUM" in out.output  # 40 days: inside the 31-90 band
 
 
-def test_cli_warnings_window_days_flag(tmp_path):
+def test_cli_warnings_window_days_flag(tmp_path, monkeypatch):
     from cli.main import cli
+
+    _freeze_warnings_clock(monkeypatch)
 
     watchlist = _write_watchlist(tmp_path, _WL)
     event_file = _future_event_file(tmp_path, effective="2026-12-31")
