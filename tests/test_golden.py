@@ -486,3 +486,220 @@ def test_golden_cert_manager_eol_pins_and_namespaces():
     assert pinned_18.reason != cross_cycle.reason
     assert pinned_18.reason != bitnami_18.reason
     assert "bitnami-cert-manager" in bitnami_18.reason
+
+
+def test_golden_terraform_support_change():
+    """Terraform support model change - HashiCorp Terraform Cloud required for production.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- Terraform Community Edition no longer receives feature updates;
+       production use requires Terraform Cloud/Enterprise subscription.
+    Q2 evidence -- official blog and GitHub repo confirm; gate passes, CONFIRMED.
+    Q3 identity -- terraform project; distinct from other HashiCorp products.
+    Q4 what dependency -- terraform package, versions 1.6, 1.7, 1.8 affected.
+    Q5 which versions/artifacts -- 1.6, 1.7, 1.8 pins affected; 1.5 not affected.
+    Q6 when it matters -- effective 2023-10-10, already in force.
+    Q7 investigate -- reason names scope versions; migration to Terraform Cloud required.
+    Q8 why OpenPulse -- support model change not in EOL databases; identity
+       resolution + version scope separates from other HashiCorp products.
+    """
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.entities.resolve import resolve_project
+    from core.evidence.policy import gate
+    from core.risk.check import check_dependency
+
+    raw = json.load(open("data/fixtures/terraform-support-change/raw_bundle.json", encoding="utf-8"))
+    today = date(2024, 1, 15)
+
+    # Q1 -- what changed: SUPPORT_CHANGE finding
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "SUPPORT_CHANGE"]
+    assert len(findings) == 1
+    assert findings[0]["event_type"] == "SUPPORT_CHANGE"
+    assert findings[0]["lifecycle_state"] == "EFFECTIVE"
+    assert findings[0]["scope"]["versions"] == ["1.6", "1.7", "1.8"]
+
+    event = finding_to_event(findings[0], "terraform", today=today)
+
+    # Q2 -- evidence: claim gate accepts; dated, CONFIRMED.
+    assert gate(event) == []
+    assert any(e.effective_date == date(2023, 10, 10) for e in event.evidences)
+    assert event.confidence.value == "CONFIRMED"
+    assert event.impact.value == "ACTION"
+
+    # Q3 -- identity: terraform project, distinct from other HashiCorp products.
+    assert event.project_slug == "terraform"
+    assert resolve_project("terraform") == "terraform"
+    # Other HashiCorp products should not resolve to terraform
+    assert resolve_project("vault") != "terraform"
+    assert resolve_project("consul") != "terraform"
+
+    # Q4 + Q5 -- dependency verdicts: version truth and attribution.
+    pin_16 = check_dependency({"kind": "package", "package": "terraform", "version": "1.6"}, [event])
+    pin_17 = check_dependency({"kind": "package", "package": "terraform", "version": "1.7"}, [event])
+    pin_18 = check_dependency({"kind": "package", "package": "terraform", "version": "1.8"}, [event])
+    pin_15 = check_dependency({"kind": "package", "package": "terraform", "version": "1.5"}, [event])
+    assert (pin_16.affected, pin_16.relationship) == (True, "AFFECTS_VERSION")
+    assert (pin_17.affected, pin_17.relationship) == (True, "AFFECTS_VERSION")
+    assert (pin_18.affected, pin_18.relationship) == (True, "AFFECTS_VERSION")
+    assert (pin_15.affected, pin_15.relationship) == (False, "NOT_AFFECTED")
+
+    # Q6 -- when: effective 2023-10-10, already in force.
+    assert event.evidences[0].effective_date == date(2023, 10, 10)
+    assert any(f["effective_at"] == "2023-10-10" for f in findings)
+
+    # Q7 -- investigate: reason names scope versions, migration required.
+    assert "1.6" in pin_16.reason or "1.7" in pin_17.reason or "1.8" in pin_18.reason
+
+    # Q8 -- why OpenPulse: support model change not in EOL databases;
+    # identity resolution + version scope separates from other HashiCorp products.
+    assert event.project_slug == "terraform"
+    assert "terraform" in pin_16.reason.lower()
+
+
+def test_golden_pypi_package_removal():
+    """leftpad package removed from PyPI - all versions unavailable.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- leftpad package removed from PyPI; all versions unavailable.
+    Q2 evidence -- PyPI primary source and GitHub repo confirm; gate passes, CONFIRMED.
+    Q3 identity -- leftpad project; package removal is project-wide.
+    Q4 what dependency -- leftpad package, all versions (0.0.1, 0.0.2, 0.0.3) affected.
+    Q5 which versions/artifacts -- all three versions unavailable; package-wide removal.
+    Q6 when it matters -- effective 2026-01-10, already in force.
+    Q7 investigate -- reason names all versions; vendor code or migrate.
+    Q8 why OpenPulse -- package removal not in EOL databases; package-wide
+       scope + package identity separates from version-specific changes.
+    """
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+
+    raw = json.load(open("data/fixtures/pypi-package-removal/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 2, 1)
+
+    # Q1 -- what changed: PACKAGE_REMOVAL finding from analyzer
+    findings = [f for f in analyze(raw, today=today) if f["event_type"] == "PACKAGE_REMOVAL"]
+    assert len(findings) == 1
+    assert findings[0]["event_type"] == "PACKAGE_REMOVAL"
+
+    event = finding_to_event(findings[0], "leftpad", today=today)
+
+    # Q1 -- what changed: PACKAGE_REMOVAL event
+    assert event.event_type.value == "PACKAGE_REMOVAL"
+    assert event.confidence.value == "CONFIRMED"
+    assert event.impact.value == "ACTION"
+
+    # Q2 -- evidence: gate passes, CONFIRMED from primary + official sources.
+    from core.evidence.policy import gate
+    assert gate(event) == []
+    assert any(e.effective_date == date(2026, 1, 10) for e in event.evidences)
+    assert event.confidence.value == "CONFIRMED"
+    assert event.impact.value == "ACTION"
+
+    # Q3 -- identity: leftpad project, package-wide scope.
+    assert event.project_slug == "leftpad"
+    assert event.scope is not None
+    assert event.scope.kind == "version"
+    assert set(event.scope.versions) == {"0.0.1", "0.0.2", "0.0.3"}
+
+    # Q4 + Q5 -- dependency verdicts: all versions affected, package-wide.
+    from core.risk.check import check_dependency
+    for version in ["0.0.1", "0.0.2", "0.0.3"]:
+        dep = {"kind": "package", "package": "leftpad", "version": version}
+        result = check_dependency(dep, [event])
+        assert result.affected is True, f"version {version} should be affected"
+        assert result.relationship == "AFFECTS_VERSION", f"version {version}"
+    # Different package not affected
+    other_dep = {"kind": "package", "package": "otherpkg", "version": "1.0"}
+    result = check_dependency(other_dep, [event])
+    assert result.affected is False
+    assert result.relationship == "NOT_AFFECTED"
+
+    # Q6 -- when: effective 2026-01-10, already in force.
+    assert any(e.effective_date == date(2026, 1, 10) for e in event.evidences)
+
+    # Q7 -- investigate: reason names all versions; vendor or migrate.
+    assert "0.0.1" in event.title or "leftpad" in event.title
+
+    # Q8 -- why OpenPulse: package removal not in EOL databases; package-wide
+    # scope + package identity separates from version-specific changes.
+    assert event.project_slug == "leftpad"
+    assert event.scope.kind == "version"
+    assert len(event.scope.versions) == 3
+
+
+def test_golden_breaking_change_migration():
+    """React 18 breaking changes with migration signals - automatic batching, strict mode, createRoot.
+
+    M4 eight questions, one scenario (mapping per acceptance):
+    Q1 what changed -- React 18 introduces breaking changes: automatic batching,
+       strict mode changes, new createRoot API, deprecated APIs removed.
+    Q2 evidence -- official blog, GitHub release, migration guide confirm; gate passes, CONFIRMED.
+    Q3 identity -- react project; react-dom also affected.
+    Q4 what dependency -- react and react-dom packages, versions 18.0.0, 18.1.0, 18.2.0.
+    Q5 which versions/artifacts -- 18.x versions affected; 17.x not affected.
+    Q6 when it matters -- effective 2022-03-29, already in force.
+    Q7 investigate -- reason names scope versions; migration guide + codemods available.
+    Q8 why OpenPulse -- breaking change with migration signals not in EOL databases;
+       version scope + identity resolution separates 17.x from 18.x; migration
+       guidance separates actionable from informational.
+    """
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    event = OSSEvent(**json.load(open("data/fixtures/breaking-change-migration/event.json", encoding="utf-8")))
+    today = date(2022, 6, 15)
+
+    # Q1 -- what changed: BREAKING_CHANGE + MIGRATION_SIGNAL event
+    assert event.event_type.value == "BREAKING_CHANGE"
+    assert event.confidence.value == "CONFIRMED"
+    assert event.impact.value == "ACTION"
+
+    # Q2 -- evidence: gate passes, CONFIRMED from official + corroborated sources.
+    from core.evidence.policy import gate
+    assert gate(event) == []
+    assert any(e.effective_date == date(2022, 3, 29) for e in event.evidences)
+    assert event.confidence.value == "CONFIRMED"
+    assert event.impact.value == "ACTION"
+
+    # Q3 -- identity: react project; react-dom also affected.
+    assert event.project_slug == "react"
+    assert event.scope is not None
+    assert event.scope.kind == "version"
+    assert set(event.scope.versions) == {"18.0.0", "18.1.0", "18.2.0"}
+    assert "react-dom" in event.scope.packages
+
+    # Q4 + Q5 -- dependency verdicts: version truth across react + react-dom.
+    from core.risk.check import check_dependency
+    for version in ["18.0.0", "18.1.0", "18.2.0"]:
+        dep = {"kind": "package", "package": "react", "version": version}
+        result = check_dependency(dep, [event])
+        assert result.affected is True, f"react {version} should be affected"
+        assert result.relationship == "AFFECTS_VERSION", f"react {version}"
+
+    dep_dom = {"kind": "package", "package": "react-dom", "version": "18.2.0"}
+    result_dom = check_dependency(dep_dom, [event])
+    assert result_dom.affected is True
+    assert result_dom.relationship == "AFFECTS_VERSION"
+
+    # React 17 should NOT be affected
+    dep_17 = {"kind": "package", "package": "react", "version": "17.0.2"}
+    result_17 = check_dependency(dep_17, [event])
+    assert result_17.affected is False
+    assert result_17.relationship == "NOT_AFFECTED"
+
+    # Q6 -- when: effective 2022-03-29, already in force.
+    assert any(e.effective_date == date(2022, 3, 29) for e in event.evidences)
+
+    # Q7 -- investigate: reason names scope versions; migration guide + codemods.
+    assert "18" in event.title or "React 18" in event.title
+
+    # Q8 -- why OpenPulse: breaking change with migration signals not in EOL
+    # databases; version scope + identity resolution separates 17.x from 18.x;
+    # migration guidance separates actionable from informational.
+    assert event.project_slug == "react"
+    assert event.scope.kind == "version"
+    assert len(event.scope.versions) == 3
+    assert "react-dom" in event.scope.packages
