@@ -174,8 +174,18 @@ class TestGitHubRepositoryIntegration:
             "_get_repo_tree",
             lambda repo, token, revision, timeout=30.0: [
                 {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "file1"},
-                {\n                    "type": "blob",\n                    "path": "packages/app/requirements.txt",\n                    "size": 20,\n                    "sha": "file2",\n                },
-                {\n                    "type": "blob",\n                    "path": "node_modules/x/package-lock.json",\n                    "size": 10,\n                    "sha": "skip",\n                },
+                {
+                    "type": "blob",
+                    "path": "packages/app/requirements.txt",
+                    "size": 20,
+                    "sha": "file2",
+                },
+                {
+                    "type": "blob",
+                    "path": "node_modules/x/package-lock.json",
+                    "size": 10,
+                    "sha": "skip",
+                },
             ],
         )
         monkeypatch.setattr(
