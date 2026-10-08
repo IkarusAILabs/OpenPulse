@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status: schema 0.4.0, 409 tests, catalog at 100, CI on Linux + Windows, deterministic SBOM archived, v0.5.0 released. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status: schema 0.4.0, CI on Linux + Windows, deterministic SBOM archived, v0.5.0 released. Test count is reported by CI. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -117,12 +117,12 @@ STATUS: ACTIVE
 The monthly briefing is a product surface (Executive Summary through Historical appendix, plus the `.meta.json` machine companion and the Lifecycle Posture view). Keep it ahead of the intelligence it carries; no new sections without a reader need. Lifecycle stays one category, never the product.
 
 ## M4 — Software Ecosystem Intelligence Benchmark
-STATUS: VALIDATION (11 of 10–15 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager, Grafana, Terraform)
+STATUS: VALIDATION (11 scenarios formalized: Bitnami, iText, MinIO, Django, Redis, PostgreSQL, Kubernetes, Kafka, cert-manager, Grafana, Terraform)
 
-A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. Still to formalise: Grafana, Terraform, one AI/ML project.
+A major research milestone: the suite must test identity (upstream vs distribution vs fork vs rename vs namespace vs package vs artifact), applicability (affected / not affected / unknown), evidence (official / corroborated / emerging / unverified), time (announced / first detected / last verified / effective / reported), and discovery across change classes. Every scenario answers the eight questions (change, evidence, identity, dependency, versions/artifacts, timing, investigation, why-not-a-database-record) with a “why OpenPulse?” assertion. The current suite is intentionally biased toward identity/applicability ambiguity and non-lifecycle change classes; an AI/ML scenario remains a useful future expansion, not a release blocker.
 
 ## M5 — Dependency Context & Impact Intelligence
-STATUS: NEXT MAJOR PRODUCT MILESTONE
+STATUS: DONE / MAINTENANCE
 
 ```text
 CUSTOMER DEPENDENCY
@@ -140,12 +140,12 @@ EVIDENCE
 ACTION
 ```
 
-Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), verdicts (AFFECTED / NOT_AFFECTED / UNKNOWN with identity, evidence, applicability, confidence, timing, recommendation). Missing: GitHub repositories as inputs (package manifests shipped in `core/manifest_reader.py`). All inputs must converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing.
+Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), and GitHub repository input (`core/github_reader.py`). All inputs converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing. GitHub inspection is bounded, commit-pinned, and reports partial/unsupported coverage rather than treating absence as proof of no dependencies.
 
 ## M6 — Early Warning SaaS
-STATUS: FUTURE
+STATUS: ACTIVE / OPERATIONALIZATION
 
-Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Currently implemented toward it (not as it): durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
+Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
 
 ## M7 — Intelligence Network
 STATUS: FUTURE
@@ -203,8 +203,10 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 
 - DONE → M1 maintenance: schema, gate, identity trust, match/evidence split, hash-chained observations, lead-time semantics, Windows CI, SBOM archiving, metadata sidecar.
 - DONE 2026-10-07: M2 acceptance set closed (5 live-replayed cases: capa, etcd, traefik, fbsdk archive+move, bitnami/spark empty mainline). The namespace-move detector (`split_moves`) still awaits a live firing.
-- VALIDATION: M4 at 9 scenarios; SPDX/lockfile/manifest inputs; per-entity ledger already shipped, SaaS surfaces absent.
-- NEXT: watchlist→SBOM→manifest ingestion sequence; evidence contract v1 shipped (schemas/evidence-contract/v1, see backlog P5).
+- VALIDATION: M4 at 11 formalized scenarios; benchmark expansion remains research work.
+- DONE: M5 dependency inputs converge on one verdict engine, including GitHub repositories.
+- ACTIVE: M6 warning engine, durable detection, digest and webhook delivery; remaining work is persistent delivery state, deduplication/retry policy, scheduling and CI/PR integration.
+- NEXT: external-consumer validation of evidence contract v1, then cryptographic contract v2 only after semantic stability.
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
@@ -212,9 +214,9 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 ## Next 90 Days
 
 1. Real non-lifecycle discovery — M2 acceptance set closed 2026-10-07 (five live-replayed cases formalized with golden tests; a live namespace-move pair for `split_moves` still pending).
-2. Report/productization — briefing stays ahead of the intelligence; evidence-contract minimal schema for machine consumers.
-3. Golden benchmark — cert-manager, Kafka; start Grafana/Terraform/AI-ML.
-4. Customer dependency ingestion — SPDX, lockfiles, manifests into the existing verdict engine.
-5. Early-warning prototype — watchlist-scoped first-detection history already durable; add verified lead-time cases.
+2. Report/productization — briefing stays ahead of the intelligence; validate evidence-contract consumption outside OpenPulse.
+3. Benchmark maintenance — prioritize identity/applicability ambiguity and non-lifecycle changes; add AI/ML only where it tests a distinct hypothesis.
+4. Early-warning operationalization — persistent delivery state, deterministic deduplication/retry policy, scheduling and CI/PR integration.
+5. Repository coverage assurance — preserve commit-pinned inspection provenance and distinguish COMPLETE/PARTIAL/FAILED inspection from “no dependencies found”.
 
 Do not add unrelated features. This roadmap exists to stop OpenPulse from becoming a feature-rich data aggregator and instead drive it toward a defensible dependency-intelligence product and a credible research instrument.
