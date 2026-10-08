@@ -860,7 +860,7 @@ def check(
         _echo(f"\n{affected}/{len(deps)} dependencies affected")
         from core.risk.check import fail_on_threshold
 
-        if (fail_on or ("action" if strict else "")) and fail_on_threshold(results, fail_on or "action"):
+        threshold = fail_on or ("action" if strict else "")\n        if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
         return
     for dep, result in zip(deps, results):
