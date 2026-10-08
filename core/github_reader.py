@@ -26,7 +26,8 @@ GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB per file
 MAX_FILES = 200  # max dependency files to process
-MAX_REPO_SIZE = 50 * 1024 * 1024  # 50MB total repo size heuristic
+MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
+MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
 
 
 @dataclass(frozen=True)
@@ -203,7 +204,7 @@ def _get_repo_tree(
 
     Returns list of tree entries or error dicts.
     """
-    url = f"{GITHUB_API}/repos/{repo.full_name}/git/trees/HEAD?recursive=1"
+    url = f"{GITHUB_API}/repos/{repo.full_name}/git/trees/{revision}?recursive=1"
     try:
         with httpx.Client(timeout=timeout, headers=_headers(token)) as client:
             resp = client.get(url)
@@ -312,7 +313,7 @@ def discover_dependency_files(repo: GitHubRepo, token: str | None = None) -> lis
             continue  # skip oversized files
 
         total_size += size
-        if total_size > MAX_REPO_SIZE:
+        if total_size > MAX_DISCOVERED_BYTES:
             break  # stop if repo is too large
 
         files.append({"path": path, "type": file_type, "size": size})
