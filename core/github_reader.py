@@ -350,6 +350,15 @@ def discover_dependency_files(
     files: list[dict[str, Any]] = []
     total_size = 0
 
+    if len(tree) > MAX_TREE_ENTRIES:
+        return [
+            {
+                "error": True,
+                "safe_message": f"repository tree exceeds {MAX_TREE_ENTRIES} entries",
+                "category": "github_repo",
+            }
+        ]
+
     for entry in tree:
         if entry.get("type") != "blob":
             continue
@@ -584,7 +593,14 @@ def read_github_repo(
         return [], [], errors
 
     if not file_infos:
-        return [], [\n            "repository inspected successfully at its default-branch commit, "\n            "but no supported dependency files were found"\n        ], []
+        return [
+            [],
+            [
+                "repository inspected successfully at its default-branch commit, "
+                "but no supported dependency files were found"
+            ],
+            [],
+        ]
 
     # Parse each file
     all_deps: list[dict[str, Any]] = []
@@ -592,6 +608,9 @@ def read_github_repo(
 
     for file_info in file_infos:
         deps, skipped = parse_dependency_file(repo, file_info, token)
+        for dep in deps:
+            dep["repository_branch"] = default_branch
+            dep["repository_commit"] = commit_sha
         all_deps.extend(deps)
         all_skipped.extend(skipped)
 
