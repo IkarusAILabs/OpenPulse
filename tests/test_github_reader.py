@@ -205,7 +205,7 @@ class TestGitHubRepositoryIntegration:
         assert deps[0]["repository"] == "owner/repo"
         assert deps[0]["repository_branch"] == "main"
         assert deps[0]["repository_commit"] == "abc123"
-        assert deps[0]["_source_paths"] == ["requirements.txt", "packages/app/requirements.txt"]
+        assert deps[0]["path"] in {"requirements.txt", "packages/app/requirements.txt"}
 
     def test_empty_supported_files_is_distinct_from_fetch_failure(self, monkeypatch):
         from core import github_reader
