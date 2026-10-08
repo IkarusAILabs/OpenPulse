@@ -197,6 +197,58 @@ def _handle_response(
     return []
 
 
+def _get_repo_revision(
+    repo: GitHubRepo, token: str | None, timeout: float = DEFAULT_TIMEOUT
+) -> tuple[str, str] | list[dict[str, Any]]:
+    """Resolve the default branch to an immutable commit SHA.
+
+    Dependency inspection must be reproducible: a mutable HEAD is not
+    sufficient evidence for what was actually inspected.
+    """
+    try:
+        with httpx.Client(timeout=timeout, headers=_headers(token)) as client:
+            meta = client.get(f"{GITHUB_API}/repos/{repo.full_name}")
+            errors = _handle_response(meta, "get_repo_metadata", repo)
+            if errors:
+                return errors
+            default_branch = str(meta.json().get("default_branch") or "")
+            if not default_branch:
+                return [
+                    as_error(
+                        "github_repo",
+                        Exception("repository has no default branch"),
+                        repo=str(repo),
+                        context="get_repo_metadata",
+                    )
+                ]
+            ref = client.get(
+                f"{GITHUB_API}/repos/{repo.full_name}/commits/{default_branch}"
+            )
+            errors = _handle_response(ref, "get_repo_revision", repo)
+            if errors:
+                return errors
+            sha = str(ref.json().get("sha") or "")
+            if not sha:
+                return [
+                    as_error(
+                        "github_repo",
+                        Exception("default branch has no commit SHA"),
+                        repo=str(repo),
+                        context="get_repo_revision",
+                    )
+                ]
+            return default_branch, sha
+    except Exception as e:
+        return [
+            as_error(
+                "github_repo",
+                e,
+                repo=str(repo),
+                context="get_repo_revision",
+            )
+        ]
+
+
 def _get_repo_tree(
     repo: GitHubRepo,
     token: str | None,
