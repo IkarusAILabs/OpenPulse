@@ -530,14 +530,22 @@ def analyze_support_change(
                 "analyst": "change",
                 "event_type": "SUPPORT_CHANGE",
                 "signal": "support",
-                "title": f"{product} {version} support model changed: community edition loses features",
-                "summary": f"{product} {version} community edition no longer receives feature updates; "
-                f"production use requires paid subscription. Effective {_lifecycle_when(effective)}.",
+                "title": (
+                    f"{product} {version} support model changed: "
+                    "community edition loses features"
+                ),
+                "summary": (
+                    f"{product} {version} community edition no longer receives feature updates; "
+                    f"production use requires paid subscription. "
+                    f"Effective {_lifecycle_when(effective)}."
+                ),
                 "impact": "ACTION",
                 "event_date": str(e.get("effective_date") or "unknown"),
                 "effective_at": str(effective_date) if effective_date else None,
                 "observed_at": str(today),
-                "lifecycle_state": "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING",
+                "lifecycle_state": (
+                    "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING"
+                ),
                 "scope": {"kind": "version", "versions": [str(version)]},
                 "affected_versions": [str(version)],
                 "affected_artifacts": [],
@@ -593,7 +601,13 @@ def analyze_package_removal(
                 f"Dependent projects must migrate or vendor the code.",
                 "impact": "ACTION",
                 "significance": "high",
-                "event_date": str(min(e.get("removal_date", "unknown") for e in project_entries if e.get("removal_date"))),
+                "event_date": str(
+                    min(
+                        e.get("removal_date", "unknown")
+                        for e in project_entries
+                        if e.get("removal_date")
+                    )
+                ),
                 "effective_at": str(removal_date) if removal_date else None,
                 "observed_at": str(today),
                 "lifecycle_state": "EFFECTIVE",
@@ -631,14 +645,22 @@ def analyze_breaking_change(
                 "event_type": "BREAKING_CHANGE",
                 "signal": "lifecycle",
                 "title": f"{project} {versions[0] if versions else ''} introduces breaking changes",
-                "summary": f"{project} {versions[0] if versions else ''} introduces breaking changes "
-                f"requiring migration. See migration guide for details.",
+                "summary": (
+                    f"{project} {versions[0] if versions else ''} introduces breaking changes "
+                    f"requiring migration. See migration guide for details."
+                ),
                 "impact": "ACTION",
                 "event_date": str(e.get("effective_date") or "unknown"),
                 "effective_at": str(effective_date) if effective_date else None,
                 "observed_at": str(today),
-                "lifecycle_state": "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING",
-                "scope": {"kind": "version", "versions": [str(v) for v in versions], "packages": packages},
+                "lifecycle_state": (
+                    "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING"
+                ),
+                "scope": {
+                    "kind": "version",
+                    "versions": [str(v) for v in versions],
+                    "packages": packages,
+                },
                 "affected_versions": [str(v) for v in versions],
                 "affected_artifacts": [],
                 "supporting": [e],

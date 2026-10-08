@@ -103,9 +103,7 @@ def evaluate_impact(
 
     if dependency_context is not None:
         return _with_context(finding, dependency_context, today, reasons)
-    result = _public(finding, today, reasons)
-    print(f"DEBUG evaluate_impact: eligibility={result.get('eligibility')}, finding_event_type={finding.get('event_type')}, finding_impact={finding.get('impact')}, finding_significance={finding.get('significance')}")
-    return result
+    return _public(finding, today, reasons)
 
 
 def _with_context(
@@ -261,7 +259,10 @@ def _public_change(
         return _result(PROJECT_CHANGE, WATCH, reasons)
     if event_type == "PACKAGE_REMOVAL":
         if significance == "high":
-            reasons.append("package removal from registry is high significance: action-oriented framing justified")
+            reasons.append(
+                "package removal from registry is high significance: "
+                "action-oriented framing justified"
+            )
             return _result(PROJECT_CHANGE, ACTION, reasons)
         reasons.append("package removal from registry: review")
         return _result(PROJECT_CHANGE, REVIEW, reasons)

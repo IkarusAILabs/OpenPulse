@@ -50,7 +50,10 @@ def _evidences(
         authority = "secondary"
         if isinstance(source_info, dict) and source_info.get("authority"):
             authority = source_info.get("authority")
-        print(f"DEBUG _evidences: entry keys={list(entry.keys())}, source_info={entry.get('source')}, authority={authority}")
+        print(
+            f"DEBUG _evidences: entry keys={list(entry.keys())}, "
+            f"source_info={entry.get('source')}, authority={authority}"
+        )
         evidences.append(
             {
                 "source": {
