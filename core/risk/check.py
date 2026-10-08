@@ -351,6 +351,34 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
 _ACTION_IMPACTS = ("ACTION", "CRITICAL")
 
 
+def fail_on_threshold(results: list[DependencyVerdict], threshold: str) -> bool:
+    """Return whether a deterministic CI policy threshold is breached.
+
+    ``affected`` gates any affected dependency; ``review`` includes REVIEW,
+    ACTION and CRITICAL causes; ``action`` preserves the historical strict
+    semantics; ``critical`` gates only CRITICAL causes. UNKNOWN and RELATED
+    never fail a threshold by themselves.
+    """
+    threshold = str(threshold).lower()
+    if threshold not in {"affected", "review", "action", "critical"}:
+        raise ValueError(f"unknown fail-on threshold: {threshold}")
+    if threshold == "affected":
+        return any(result.affected for result in results)
+    minimum = {
+        "review": {"REVIEW", "ACTION", "CRITICAL"},
+        "action": {"ACTION", "CRITICAL"},
+        "critical": {"CRITICAL"},
+    }[threshold]
+    return any(
+        result.affected
+        and any(
+            str(cause.get("impact", "")).upper() in minimum
+            for cause in result.verdicts
+            if cause.get("affected")
+        )
+        for result in results
+    )
+
 def strict_affected(results: list[DependencyVerdict]) -> bool:
     """Whether --strict should fail: an affected verdict carried by an
     ACTION-level cause. REVIEW/WATCH-level affected verdicts (e.g. weak

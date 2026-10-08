@@ -185,7 +185,7 @@
         "SECURITY", "EOL", "EOS", "LICENSE_CHANGE", "SUPPORT_CHANGE",
         "DISTRIBUTION_CHANGE", "REGISTRY_CHANGE", "OWNERSHIP_CHANGE",
         "MAINTAINER_CHANGE", "DEPRECATION", "BREAKING_CHANGE", "MAJOR_RELEASE",
-        "PROJECT_ARCHIVED", "OTHER_CRITICAL"
+        "PROJECT_ARCHIVED", "PACKAGE_REMOVAL", "OTHER_CRITICAL"
       ],
       "description": "source: core/schema/enums.py EventType (frozen since Phase 0)"
     },

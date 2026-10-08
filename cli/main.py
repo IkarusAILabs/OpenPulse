@@ -727,6 +727,13 @@ def _load_check_inputs(
 )
 @click.option("--strict", is_flag=True, help="Exit 1 when any dependency is affected")
 @click.option(
+    "--fail-on",
+    type=click.Choice(["affected", "review", "action", "critical"]),
+    default=None,
+    show_default=False,
+    help="CI exit threshold: affected, review, action, or critical",
+)
+@click.option(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
@@ -758,6 +765,7 @@ def check(
     events,
     raw_bundle_dir,
     strict,
+    fail_on,
     ledger_root,
     digest,
     webhook,
@@ -850,9 +858,10 @@ def check(
                 _echo(f"webhook delivery failed: {delivery['error']}")
         affected = sum(1 for r in results if r.affected)
         _echo(f"\n{affected}/{len(deps)} dependencies affected")
-        from core.risk.check import strict_affected
+        from core.risk.check import fail_on_threshold
 
-        if strict and strict_affected(results):
+        threshold = fail_on or ("action" if strict else "")
+        if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
         return
     for dep, result in zip(deps, results):

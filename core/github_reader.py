@@ -26,7 +26,8 @@ GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB per file
 MAX_FILES = 200  # max dependency files to process
-MAX_REPO_SIZE = 50 * 1024 * 1024  # 50MB total repo size heuristic
+MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
+MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
 
 
 @dataclass(frozen=True)
@@ -196,14 +197,69 @@ def _handle_response(
     return []
 
 
-def _get_repo_tree(
+def _get_repo_revision(
     repo: GitHubRepo, token: str | None, timeout: float = DEFAULT_TIMEOUT
-) -> list[dict[str, Any]] | list[dict[str, Any]]:
+) -> tuple[str, str] | list[dict[str, Any]]:
+    """Resolve the default branch to an immutable commit SHA.
+
+    Dependency inspection must be reproducible: a mutable HEAD is not
+    sufficient evidence for what was actually inspected.
+    """
+    try:
+        with httpx.Client(timeout=timeout, headers=_headers(token)) as client:
+            meta = client.get(f"{GITHUB_API}/repos/{repo.full_name}")
+            errors = _handle_response(meta, "get_repo_metadata", repo)
+            if errors:
+                return errors
+            default_branch = str(meta.json().get("default_branch") or "")
+            if not default_branch:
+                return [
+                    as_error(
+                        "github_repo",
+                        Exception("repository has no default branch"),
+                        repo=str(repo),
+                        context="get_repo_metadata",
+                    )
+                ]
+            ref = client.get(
+                f"{GITHUB_API}/repos/{repo.full_name}/commits/{default_branch}"
+            )
+            errors = _handle_response(ref, "get_repo_revision", repo)
+            if errors:
+                return errors
+            sha = str(ref.json().get("sha") or "")
+            if not sha:
+                return [
+                    as_error(
+                        "github_repo",
+                        Exception("default branch has no commit SHA"),
+                        repo=str(repo),
+                        context="get_repo_revision",
+                    )
+                ]
+            return default_branch, sha
+    except Exception as e:
+        return [
+            as_error(
+                "github_repo",
+                e,
+                repo=str(repo),
+                context="get_repo_revision",
+            )
+        ]
+
+
+def _get_repo_tree(
+    repo: GitHubRepo,
+    token: str | None,
+    revision: str,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> list[dict[str, Any]]:
     """Get recursive tree of repository contents.
 
     Returns list of tree entries or error dicts.
     """
-    url = f"{GITHUB_API}/repos/{repo.full_name}/git/trees/HEAD?recursive=1"
+    url = f"{GITHUB_API}/repos/{repo.full_name}/git/trees/{revision}?recursive=1"
     try:
         with httpx.Client(timeout=timeout, headers=_headers(token)) as client:
             resp = client.get(url)
@@ -278,17 +334,30 @@ def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
 
 
-def discover_dependency_files(repo: GitHubRepo, token: str | None = None) -> list[dict[str, Any]]:
-    """Discover all dependency files in a GitHub repository.
+def discover_dependency_files(
+    repo: GitHubRepo,
+    token: str | None = None,
+    revision: str = "HEAD",
+) -> list[dict[str, Any]]:
+    """Discover dependency files at a repository revision.
 
     Returns a list of {path, type, size} dicts, or error dicts on failure.
     """
-    tree = _get_repo_tree(repo, token)
+    tree = _get_repo_tree(repo, token, revision)
     if tree and isinstance(tree[0], dict) and tree[0].get("error"):
         return tree
 
     files: list[dict[str, Any]] = []
     total_size = 0
+
+    if len(tree) > MAX_TREE_ENTRIES:
+        return [
+            {
+                "error": True,
+                "safe_message": f"repository tree exceeds {MAX_TREE_ENTRIES} entries",
+                "category": "github_repo",
+            }
+        ]
 
     for entry in tree:
         if entry.get("type") != "blob":
@@ -312,7 +381,7 @@ def discover_dependency_files(repo: GitHubRepo, token: str | None = None) -> lis
             continue  # skip oversized files
 
         total_size += size
-        if total_size > MAX_REPO_SIZE:
+        if total_size > MAX_DISCOVERED_BYTES:
             break  # stop if repo is too large
 
         files.append({"path": path, "type": file_type, "size": size})
@@ -509,8 +578,13 @@ def read_github_repo(
     repo = parse_github_repo(repo_spec)
     token = get_github_token(cli_token)
 
-    # Discover files
-    file_infos = discover_dependency_files(repo, token)
+    revision_info = _get_repo_revision(repo, token, timeout)
+    if isinstance(revision_info, list):
+        return [], [], revision_info
+    default_branch, commit_sha = revision_info
+
+    # Discover files at the immutable commit.
+    file_infos = discover_dependency_files(repo, token, commit_sha)
     errors = [e for e in file_infos if e.get("error")]
     file_infos = [f for f in file_infos if not f.get("error")]
 
@@ -519,7 +593,14 @@ def read_github_repo(
         return [], [], errors
 
     if not file_infos:
-        return [], ["no supported dependency files found in repository"], []
+        return [
+            [],
+            [
+                "repository inspected successfully at its default-branch commit, "
+                "but no supported dependency files were found"
+            ],
+            [],
+        ]
 
     # Parse each file
     all_deps: list[dict[str, Any]] = []
@@ -527,6 +608,9 @@ def read_github_repo(
 
     for file_info in file_infos:
         deps, skipped = parse_dependency_file(repo, file_info, token)
+        for dep in deps:
+            dep["repository_branch"] = default_branch
+            dep["repository_commit"] = commit_sha
         all_deps.extend(deps)
         all_skipped.extend(skipped)
 
