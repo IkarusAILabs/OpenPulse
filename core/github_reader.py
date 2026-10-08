@@ -334,12 +334,16 @@ def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
 
 
-def discover_dependency_files(repo: GitHubRepo, token: str | None = None) -> list[dict[str, Any]]:
-    """Discover all dependency files in a GitHub repository.
+def discover_dependency_files(
+    repo: GitHubRepo,
+    token: str | None = None,
+    revision: str = "HEAD",
+) -> list[dict[str, Any]]:
+    """Discover dependency files at a repository revision.
 
     Returns a list of {path, type, size} dicts, or error dicts on failure.
     """
-    tree = _get_repo_tree(repo, token)
+    tree = _get_repo_tree(repo, token, revision)
     if tree and isinstance(tree[0], dict) and tree[0].get("error"):
         return tree
 
