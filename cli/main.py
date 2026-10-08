@@ -729,7 +729,7 @@ def _load_check_inputs(
 @click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
-    default="",
+    default=None,
     show_default=False,
     help="CI exit threshold: affected, review, action, or critical",
 )
