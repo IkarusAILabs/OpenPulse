@@ -492,12 +492,14 @@ def _load_check_inputs(
     images,
     lockfile,
     manifest,
+    github_repo,
+    github_token,
     events,
     raw_bundle_dir,
 ):
     """Shared input loading for check and digest (one path, not two).
 
-    Loads watchlist/SBOM/SPDX/images/lockfile deps + events +
+    Loads watchlist/SBOM/SPDX/images/lockfile/manifest/github-repo deps + events +
     offline bundles with the exact per-input echo discipline and
     skip-reason reporting the check command established: same
     errors, same messages, same composable semantics. Both commands
@@ -509,7 +511,8 @@ def _load_check_inputs(
     from core.entities.resolve import resolve_project as _resolve
     from core.risk.check import load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx and not images and not lockfile and not manifest:
+    has_input = watchlist or sbom or spdx or images or lockfile or manifest or github_repo
+    if not has_input:
         raise click.ClickException(
             "check needs --watchlist, --sbom, --spdx, --images, --lockfile and/or --manifest"
         )
@@ -622,6 +625,25 @@ def _load_check_inputs(
             )
         for line in man_skipped:
             _echo(f"! skipped: {line}")
+    if github_repo:
+        from core.github_reader import read_github_repo
+
+        try:
+            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+        except ValueError as e:
+            raise click.ClickException(f"{github_repo}: {e}")
+        for err in gh_errors:
+            _echo(f"! error: {err.get('safe_message', 'unknown error')}")
+        for line in gh_skipped:
+            _echo(f"! skipped: {line}")
+        if gh_deps:
+            _echo(f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository")
+            deps = [*deps, *gh_deps]
+        elif gh_skipped and not gh_errors:
+            _echo(
+                f"github-repo ({github_repo}): 0 usable, "
+                f"{len(gh_skipped)} skipped — nothing checkable in this repository"
+            )
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
@@ -677,6 +699,21 @@ def _load_check_inputs(
     "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
 )
 @click.option(
+    "--github-repo",
+    "github_repo",
+    type=str,
+    help="GitHub repository (owner/repo or https://github.com/owner/repo) "
+    "— discovers dependency files recursively, composable with all other inputs",
+)
+@click.option(
+    "--github-token",
+    "github_token",
+    type=str,
+    default="",
+    show_default=False,
+    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -725,12 +762,23 @@ def check(
     digest,
     webhook,
     webhook_allow_http,
+    github_repo="",
+    github_token="",
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
 
     deps, loaded_events, bundles = _load_check_inputs(
-        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+        watchlist,
+        sbom,
+        spdx,
+        images,
+        lockfile,
+        manifest,
+        github_repo,
+        github_token,
+        events,
+        raw_bundle_dir,
     )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
@@ -869,6 +917,21 @@ def check(
     "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
 )
 @click.option(
+    "--github-repo",
+    "github_repo",
+    type=str,
+    help="GitHub repository (owner/repo or https://github.com/owner/repo) "
+    "— discovers dependency files recursively, composable with all other inputs",
+)
+@click.option(
+    "--github-token",
+    "github_token",
+    type=str,
+    default="",
+    show_default=False,
+    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -913,6 +976,8 @@ def digest(
     window_days,
     output,
     ledger_root,
+    github_repo="",
+    github_token="",
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
@@ -921,7 +986,16 @@ def digest(
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
     deps, loaded_events, bundles = _load_check_inputs(
-        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+        watchlist,
+        sbom,
+        spdx,
+        images,
+        lockfile,
+        manifest,
+        github_repo,
+        github_token,
+        events,
+        raw_bundle_dir,
     )
     if not loaded_events:
         raise click.ClickException(
@@ -978,6 +1052,21 @@ def digest(
     "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
 )
 @click.option(
+    "--github-repo",
+    "github_repo",
+    type=str,
+    help="GitHub repository (owner/repo or https://github.com/owner/repo) "
+    "— discovers dependency files recursively, composable with all other inputs",
+)
+@click.option(
+    "--github-token",
+    "github_token",
+    type=str,
+    default="",
+    show_default=False,
+    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -1022,6 +1111,8 @@ def warnings(
     window_days,
     output,
     ledger_root,
+    github_repo="",
+    github_token="",
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
@@ -1030,7 +1121,16 @@ def warnings(
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
     deps, loaded_events, bundles = _load_check_inputs(
-        watchlist, sbom, spdx, images, lockfile, manifest, events, raw_bundle_dir
+        watchlist,
+        sbom,
+        spdx,
+        images,
+        lockfile,
+        manifest,
+        github_repo,
+        github_token,
+        events,
+        raw_bundle_dir,
     )
     if not loaded_events:
         raise click.ClickException(
@@ -1086,6 +1186,21 @@ def warnings(
     "— composable with --watchlist/--sbom/--spdx/--lockfile/--images",
 )
 @click.option(
+    "--github-repo",
+    "github_repo",
+    type=str,
+    help="GitHub repository (owner/repo or https://github.com/owner/repo) "
+    "— discovers dependency files recursively, composable with all other inputs",
+)
+@click.option(
+    "--github-token",
+    "github_token",
+    type=str,
+    default="",
+    show_default=False,
+    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+)
+@click.option(
     "--event",
     "events",
     multiple=True,
@@ -1110,10 +1225,12 @@ def attest(
     spdx,
     images,
     lockfile,
-    manifest=None,
-    events=None,
-    raw_bundle_dir=None,
-    output=None,
+    manifest,
+    github_repo,
+    github_token,
+    events,
+    raw_bundle_dir,
+    output,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
 
@@ -1129,7 +1246,8 @@ def attest(
     from core.evidence_contract import build_v1_contract, validate_v1_contract
     from core.risk.check import check_dependency, load_watchlist_doc
 
-    if not watchlist and not sbom and not spdx and not images and not lockfile and not manifest:
+    has_input = watchlist or sbom or spdx or images or lockfile or manifest or github_repo
+    if not has_input:
         raise click.ClickException(
             "attest needs --watchlist, --sbom, --spdx, --images, --lockfile and/or --manifest"
         )
@@ -1202,6 +1320,29 @@ def attest(
         if man_deps:
             _echo(f"manifest ({label}): {len(man_deps)} pinned package(s)", err=True)
             deps = [*deps, *man_deps]
+    if github_repo:
+        from core.github_reader import read_github_repo
+
+        try:
+            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+        except ValueError as e:
+            raise click.ClickException(f"{github_repo}: {e}")
+        for err in gh_errors:
+            _echo(f"! error: {err.get('safe_message', 'unknown error')}", err=True)
+        for line in gh_skipped:
+            _echo(f"! skipped: {line}", err=True)
+        if gh_deps:
+            _echo(
+                f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository",
+                err=True,
+            )
+            deps = [*deps, *gh_deps]
+        elif gh_skipped and not gh_errors:
+            _echo(
+                f"github-repo ({github_repo}): 0 usable, "
+                f"{len(gh_skipped)} skipped — nothing checkable in this repository",
+                err=True,
+            )
     if not deps:
         raise click.ClickException(
             "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"

@@ -40,12 +40,11 @@ def _evidences(
 ) -> list[dict[str, Any]]:
     evidences = []
     for entry in _source_entries(finding):
-        url = entry.get("link") or entry.get("url")
+        url = entry.get("link") or entry.get("url") or (entry.get("source") or {}).get("url")
         if not isinstance(url, str) or not url.startswith("http"):
             continue
         product = entry.get("product") or entry.get("repo") or "source"
         collector = entry.get("collector", "unknown")
-        # Read authority from source if present, default to secondary
         source_info = entry.get("source")
         authority = "secondary"
         if isinstance(source_info, dict) and source_info.get("authority"):
@@ -133,11 +132,18 @@ def finding_to_event(
     if versions:
         event_id += "-" + "-".join(sorted(set(versions))[:4])
     eligibility = evaluate_impact(finding).get("eligibility", "REVIEW")
-    # Bridge conservatively: lifecycle analyst eligibility is not customer
-    # context, so ACTION/CRITICAL proposals must not cross the event boundary.
-    impact = {"ACTION": "REVIEW", "CRITICAL": "REVIEW"}.get(
-        str(eligibility), str(eligibility)
-    )
+    # Map eligibility to impact for OSSEvent.
+    # Bridged events are public intelligence — they must never smuggle
+    # analyst ACTION/CRITICAL into the event. The check pipeline decides
+    # actual customer impact downstream from dependency evidence.
+    impact_map = {
+        "ACTION": "REVIEW",
+        "CRITICAL": "REVIEW",
+        "REVIEW": "REVIEW",
+        "WATCH": "WATCH",
+        "INFORMATIONAL": "INFORMATIONAL",
+    }
+    impact = impact_map.get(str(eligibility), str(eligibility))
     return OSSEvent(
         id=event_id,
         project_slug=slug,

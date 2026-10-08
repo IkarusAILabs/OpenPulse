@@ -425,3 +425,85 @@ def test_check_echo_fallback_when_stdout_encoding_non_utf8(monkeypatch):
     assert "[related] pkg3: RELATED" in val
     assert "[unknown] pkg4: UNKNOWN" in val
     assert "1/4 dependencies affected" in val
+
+
+# Convergence tests: same dependency from different sources must produce
+# identical verdicts. This is the core acceptance criterion for P0.
+def test_convergence_watchlist_vs_manifest():
+    """django==4.2 from watchlist and manifest must yield identical verdicts."""
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    django_eol = OSSEvent(**json.load(open("data/fixtures/django-eol/event.json")))
+
+    dep_watchlist = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+    dep_manifest = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+
+    v_watchlist = check_dependency(dep_watchlist, [django_eol])
+    v_manifest = check_dependency(dep_manifest, [django_eol])
+
+    # Verdicts must be identical
+    assert v_watchlist.affected == v_manifest.affected
+    assert v_watchlist.relationship == v_manifest.relationship
+    assert v_watchlist.confidence == v_manifest.confidence
+    assert v_watchlist.match_strength == v_manifest.match_strength
+    assert v_watchlist.evidence_confidence == v_manifest.evidence_confidence
+    assert v_watchlist.identity_status == v_manifest.identity_status
+    assert v_watchlist.match_method == v_manifest.match_method
+    assert v_watchlist.reason == v_manifest.reason
+
+
+def test_convergence_watchlist_vs_lockfile():
+    """django==4.2 from watchlist and poetry.lock must yield identical verdicts."""
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    django_eol = OSSEvent(**json.load(open("data/fixtures/django-eol/event.json")))
+
+    dep_watchlist = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+    dep_lockfile = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+
+    v_watchlist = check_dependency(dep_watchlist, [django_eol])
+    v_lockfile = check_dependency(dep_lockfile, [django_eol])
+
+    assert v_watchlist.affected == v_lockfile.affected
+    assert v_watchlist.relationship == v_lockfile.relationship
+    assert v_watchlist.confidence == v_lockfile.confidence
+
+
+def test_convergence_watchlist_vs_sbom():
+    """django==4.2 from watchlist and CycloneDX SBOM must yield identical verdicts."""
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    django_eol = OSSEvent(**json.load(open("data/fixtures/django-eol/event.json")))
+
+    dep_watchlist = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+    dep_sbom = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
+
+    v_watchlist = check_dependency(dep_watchlist, [django_eol])
+    v_sbom = check_dependency(dep_sbom, [django_eol])
+
+    assert v_watchlist.affected == v_sbom.affected
+    assert v_watchlist.relationship == v_sbom.relationship
+    assert v_watchlist.confidence == v_sbom.confidence
+
+
+def test_convergence_image_refs():
+    """docker.io/bitnami/redis:7.2 from watchlist and image
+    inventory must yield identical verdicts."""
+    from core.risk.check import check_dependency
+    from core.schema.models import OSSEvent
+
+    bitnami = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json")))
+
+    dep_watchlist = {"kind": "image", "ref": "docker.io/bitnami/redis:7.2"}
+    dep_inventory = {"kind": "image", "ref": "docker.io/bitnami/redis:7.2"}
+
+    v_watchlist = check_dependency(dep_watchlist, [bitnami])
+    v_inventory = check_dependency(dep_inventory, [bitnami])
+
+    assert v_watchlist.affected == v_inventory.affected
+    assert v_watchlist.relationship == v_inventory.relationship
+    assert v_watchlist.confidence == v_inventory.confidence
+    assert v_watchlist.match_strength == v_inventory.match_strength
