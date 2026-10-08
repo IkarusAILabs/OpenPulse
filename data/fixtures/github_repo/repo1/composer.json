@@ -1,0 +1,8 @@
+{
+    "name": "test/project",
+    "version": "1.0.0",
+    "require": {
+        "monolog/monolog": "=3.5.0",
+        "symfony/console": "=6.4.3"
+    }
+}

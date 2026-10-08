@@ -43,14 +43,22 @@ def gate(event: OSSEvent) -> list[str]:
     if imp in ("ACTION", "CRITICAL") and conf not in ("CONFIRMED", "CORROBORATED"):
         violations.append(f"{imp} requires CONFIRMED or CORROBORATED, got {conf}")
 
-    # 2. CONFIRMED needs an official source
+    # 2. CONFIRMED needs an official or primary source (primary for lifecycle events)
     if conf == "CONFIRMED":
-        official_count = sum(1 for e in event.evidences if e.source.authority == "official")
-        print(f"DEBUG gate: conf={conf}, official_count={official_count}")
-        for e in event.evidences:
-            print(f"  evidence: name={e.source.name}, authority={e.source.authority}")
-        if not any(e.source.authority == "official" for e in event.evidences):
-            violations.append("CONFIRMED requires at least one evidence with authority=official")
+        lifecycle_event_types = {"EOL", "EOS", "SUPPORT_CHANGE", "DEPRECATION"}
+        if typ in lifecycle_event_types:
+            if not any(
+                e.source.authority in ("official", "primary") for e in event.evidences
+            ):
+                violations.append(
+                    "CONFIRMED requires at least one evidence with "
+                    "authority=official or primary for lifecycle events"
+                )
+        else:
+            if not any(e.source.authority == "official" for e in event.evidences):
+                violations.append(
+                    "CONFIRMED requires at least one evidence with authority=official"
+                )
 
     # 3. CORROBORATED needs 2+ independent sources (families, not names;
     #    derived_from chains fold into their origin — see independence.py)

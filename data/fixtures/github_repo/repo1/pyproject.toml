@@ -1,0 +1,14 @@
+[project]
+name = "test-project"
+version = "1.0.0"
+dependencies = [
+    "django==4.2.7",
+    "requests==2.31.0",
+    "pandas==2.0.3",
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "==4.2.7"
+requests = "==2.31.0"
+pandas = "==2.0.3"
