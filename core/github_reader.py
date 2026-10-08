@@ -569,8 +569,13 @@ def read_github_repo(
     repo = parse_github_repo(repo_spec)
     token = get_github_token(cli_token)
 
-    # Discover files
-    file_infos = discover_dependency_files(repo, token)
+    revision_info = _get_repo_revision(repo, token, timeout)
+    if isinstance(revision_info, list):
+        return [], [], revision_info
+    default_branch, commit_sha = revision_info
+
+    # Discover files at the immutable commit.
+    file_infos = discover_dependency_files(repo, token, commit_sha)
     errors = [e for e in file_infos if e.get("error")]
     file_infos = [f for f in file_infos if not f.get("error")]
 
@@ -579,7 +584,7 @@ def read_github_repo(
         return [], [], errors
 
     if not file_infos:
-        return [], ["no supported dependency files found in repository"], []
+        return [], [\n            "repository inspected successfully at its default-branch commit, "\n            "but no supported dependency files were found"\n        ], []
 
     # Parse each file
     all_deps: list[dict[str, Any]] = []
