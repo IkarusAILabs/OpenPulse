@@ -1,0 +1,77 @@
+{
+  "id": "terraform-support-change-2026",
+  "schema_version": "0.4.0",
+  "project_slug": "terraform",
+  "event_type": "SUPPORT_CHANGE",
+  "title": "Terraform community support model change - Terraform Cloud required for production",
+  "summary": "HashiCorp announced that Terraform Community Edition will no longer receive feature updates; production use requires Terraform Cloud/Enterprise subscription. Community edition receives security fixes only.",
+  "confidence": "CONFIRMED",
+  "impact": "ACTION",
+  "affected_versions": ["1.6", "1.7", "1.8"],
+  "affected_artifacts": [
+    {"kind": "package", "ref": "pypi:terraform"},
+    {"kind": "docker-image", "ref": "docker.io/hashicorp/terraform:1.6"},
+    {"kind": "docker-image", "ref": "docker.io/hashicorp/terraform:1.7"},
+    {"kind": "docker-image", "ref": "docker.io/hashicorp/terraform:1.8"}
+  ],
+  "evidences": [
+    {
+      "source": {
+        "name": "hashicorp/blog",
+        "url": "https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license",
+        "authority": "official",
+        "fetched_at": "2023-08-10T00:00:00+00:00"
+      },
+      "excerpt": "Terraform will transition to the Business Source License (BSL) v1.1. Terraform Community Edition will be available under BSL, while production use requires Terraform Cloud or Terraform Enterprise.",
+      "effective_date": "2023-10-10",
+      "announcement_date": "2023-08-10",
+      "relation": "supports"
+    },
+    {
+      "source": {
+        "name": "github.com/hashicorp/terraform",
+        "url": "https://github.com/hashicorp/terraform",
+        "authority": "official",
+        "fetched_at": "2023-08-15T00:00:00+00:00"
+      },
+      "excerpt": "Repository shows BSL license file added. Community Edition now under BSL v1.1; production use requires Terraform Cloud/Enterprise license.",
+      "effective_date": "2023-10-10",
+      "announcement_date": "2023-08-10",
+      "relation": "supports"
+    },
+    {
+      "source": {
+        "name": "terraform.io/downloads",
+        "url": "https://www.terraform.io/downloads",
+        "authority": "official",
+        "fetched_at": "2023-10-15T00:00:00+00:00"
+      },
+      "excerpt": "Download page now prominently features Terraform Cloud/Enterprise for production use. Community Edition labeled 'Development & Testing Only'.",
+      "effective_date": "2023-10-10",
+      "announcement_date": "2023-10-10",
+      "relation": "context"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-terraform-support-model",
+      "type": "SUPPORT_CHANGE",
+      "subject": "terraform",
+      "statement": "Terraform Community Edition no longer receives feature updates; production use requires Terraform Cloud/Enterprise subscription",
+      "evidence_refs": ["hashicorp/blog", "github.com/hashicorp/terraform"]
+    }
+  ],
+  "attribution": {
+    "affected_project": "terraform",
+    "affected_package": "terraform",
+    "affected_version": "1.6, 1.7, 1.8"
+  },
+  "scope": {
+    "kind": "version",
+    "versions": ["1.6", "1.7", "1.8"],
+    "artifacts": [],
+    "packages": ["terraform"],
+    "registries": []
+  },
+  "created_at": "2023-08-15T00:00:00+00:00"
+}

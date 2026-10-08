@@ -501,6 +501,174 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
     return findings
 
 
+def analyze_support_change(
+    entries: list[dict[str, Any]], today: date | None = None
+) -> list[dict[str, Any]]:
+    """Map support model change signals to SUPPORT_CHANGE findings.
+
+    Detects when a project changes its support model, e.g., community edition
+    losing feature updates, production use requiring paid subscription.
+    """
+    today = today or date.today()
+    findings = []
+    for e in entries:
+        if e.get("error") or e.get("skipped") or e.get("kind") != "support_change":
+            continue
+        product = e.get("product", "?")
+        version = e.get("version", "?")
+        effective = e.get("effective_date")
+        effective_date = None
+        if isinstance(effective, str):
+            try:
+                effective_date = date.fromisoformat(effective.strip())
+            except ValueError:
+                pass
+        elif effective is True:
+            effective_date = date.min
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": "SUPPORT_CHANGE",
+                "signal": "support",
+                "title": (
+                    f"{product} {version} support model changed: "
+                    "community edition loses features"
+                ),
+                "summary": (
+                    f"{product} {version} community edition no longer receives feature updates; "
+                    f"production use requires paid subscription. "
+                    f"Effective {_lifecycle_when(effective)}."
+                ),
+                "impact": "ACTION",
+                "event_date": str(e.get("effective_date") or "unknown"),
+                "effective_at": str(effective_date) if effective_date else None,
+                "observed_at": str(today),
+                "lifecycle_state": (
+                    "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING"
+                ),
+                "scope": {"kind": "version", "versions": [str(version)]},
+                "affected_versions": [str(version)],
+                "affected_artifacts": [],
+                "supporting": [e],
+            }
+        )
+    return findings
+
+
+def analyze_package_removal(
+    entries: list[dict[str, Any]], today: date | None = None
+) -> list[dict[str, Any]]:
+    """Map package removal signals to PACKAGE_REMOVAL findings."""
+    today = today or date.today()
+    # Group entries by project to avoid duplicate findings
+    by_project: dict[str, list[dict[str, Any]]] = {}
+    for e in entries:
+        if e.get("error") or e.get("skipped") or e.get("kind") != "package_removal":
+            continue
+        project = e.get("project", "?")
+        by_project.setdefault(project, []).append(e)
+
+    findings = []
+    for project, project_entries in by_project.items():
+        # Merge versions from all entries
+        all_versions = []
+        removal_dates = []
+        for e in project_entries:
+            all_versions.extend(e.get("versions", []))
+            removal = e.get("removal_date")
+            if isinstance(removal, str):
+                try:
+                    removal_date = date.fromisoformat(removal.strip())
+                    removal_dates.append(removal_date)
+                except ValueError:
+                    pass
+        # Deduplicate versions
+        versions = sorted(set(all_versions))
+        # Use earliest removal date
+        removal_date = min(removal_dates) if removal_dates else None
+
+        # Merge supporting entries
+        supporting = project_entries
+
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": "PACKAGE_REMOVAL",
+                "signal": "distribution",
+                "title": f"{project} package removed from registry",
+                "summary": f"The {project} package has been removed from the registry. "
+                f"All versions ({', '.join(versions)}) are no longer available for installation. "
+                f"Dependent projects must migrate or vendor the code.",
+                "impact": "ACTION",
+                "significance": "high",
+                "event_date": str(
+                    min(
+                        e.get("removal_date", "unknown")
+                        for e in project_entries
+                        if e.get("removal_date")
+                    )
+                ),
+                "effective_at": str(removal_date) if removal_date else None,
+                "observed_at": str(today),
+                "lifecycle_state": "EFFECTIVE",
+                "scope": {"kind": "version", "versions": [str(v) for v in versions]},
+                "affected_versions": [str(v) for v in versions],
+                "affected_artifacts": [],
+                "supporting": supporting,
+            }
+        )
+    return findings
+
+
+def analyze_breaking_change(
+    entries: list[dict[str, Any]], today: date | None = None
+) -> list[dict[str, Any]]:
+    """Map breaking change signals to BREAKING_CHANGE findings."""
+    today = today or date.today()
+    findings = []
+    for e in entries:
+        if e.get("error") or e.get("skipped") or e.get("kind") != "breaking_change":
+            continue
+        project = e.get("project", "?")
+        versions = e.get("versions", [])
+        effective = e.get("effective_date")
+        effective_date = None
+        if isinstance(effective, str):
+            try:
+                effective_date = date.fromisoformat(effective.strip())
+            except ValueError:
+                pass
+        packages = e.get("packages", [project])
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": "BREAKING_CHANGE",
+                "signal": "lifecycle",
+                "title": f"{project} {versions[0] if versions else ''} introduces breaking changes",
+                "summary": (
+                    f"{project} {versions[0] if versions else ''} introduces breaking changes "
+                    f"requiring migration. See migration guide for details."
+                ),
+                "impact": "ACTION",
+                "event_date": str(e.get("effective_date") or "unknown"),
+                "effective_at": str(effective_date) if effective_date else None,
+                "observed_at": str(today),
+                "lifecycle_state": (
+                    "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING"
+                ),
+                "scope": {
+                    "kind": "version",
+                    "versions": [str(v) for v in versions],
+                    "packages": packages,
+                },
+                "affected_versions": [str(v) for v in versions],
+                "affected_artifacts": [],
+                "supporting": [e],
+            }
+        )
+    return findings
+
+
 def analyze(
     raw: dict[str, list[dict[str, Any]]], today: date | None = None
 ) -> list[dict[str, Any]]:
@@ -509,4 +677,7 @@ def analyze(
     findings = analyze_endoflife(raw.get("endoflife", []), today=today)
     findings += analyze_registries(raw.get("registries", []), today=today)
     findings += analyze_github_meta(raw.get("github_meta", []), today=today)
+    findings += analyze_support_change(raw.get("support_change", []), today=today)
+    findings += analyze_package_removal(raw.get("pypi_removal", []), today=today)
+    findings += analyze_breaking_change(raw.get("breaking_change", []), today=today)
     return findings

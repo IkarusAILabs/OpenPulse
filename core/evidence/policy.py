@@ -13,6 +13,7 @@ REQUIRES_ARTIFACTS = {
     "SUPPORT_CHANGE",
     "LICENSE_CHANGE",
     "OWNERSHIP_CHANGE",
+    "PACKAGE_REMOVAL",
 }
 
 REQUIRES_DATES = {
@@ -44,6 +45,10 @@ def gate(event: OSSEvent) -> list[str]:
 
     # 2. CONFIRMED needs an official source
     if conf == "CONFIRMED":
+        official_count = sum(1 for e in event.evidences if e.source.authority == "official")
+        print(f"DEBUG gate: conf={conf}, official_count={official_count}")
+        for e in event.evidences:
+            print(f"  evidence: name={e.source.name}, authority={e.source.authority}")
         if not any(e.source.authority == "official" for e in event.evidences):
             violations.append("CONFIRMED requires at least one evidence with authority=official")
 

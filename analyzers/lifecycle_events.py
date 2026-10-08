@@ -45,12 +45,17 @@ def _evidences(
             continue
         product = entry.get("product") or entry.get("repo") or "source"
         collector = entry.get("collector", "unknown")
+        # Read authority from source if present, default to secondary
+        source_info = entry.get("source")
+        authority = "secondary"
+        if isinstance(source_info, dict) and source_info.get("authority"):
+            authority = source_info.get("authority")
         evidences.append(
             {
                 "source": {
                     "name": f"{collector}/{product}",
                     "url": url,
-                    "authority": "secondary",
+                    "authority": authority,
                     "fetched_at": f"{observed_at}T00:00:00Z",
                 },
                 "excerpt": str(entry.get("excerpt") or finding.get("summary") or "")[:2000],
@@ -128,8 +133,11 @@ def finding_to_event(
     if versions:
         event_id += "-" + "-".join(sorted(set(versions))[:4])
     eligibility = evaluate_impact(finding).get("eligibility", "REVIEW")
+    # Bridge conservatively: lifecycle analyst eligibility is not customer
+    # context, so ACTION/CRITICAL proposals must not cross the event boundary.
     impact = {"ACTION": "REVIEW", "CRITICAL": "REVIEW"}.get(
-        str(eligibility), str(eligibility))
+        str(eligibility), str(eligibility)
+    )
     return OSSEvent(
         id=event_id,
         project_slug=slug,

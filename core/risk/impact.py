@@ -257,6 +257,15 @@ def _public_change(
             return _result(PROJECT_CHANGE, REVIEW, reasons)
         reasons.append("distribution observation without high significance: watch")
         return _result(PROJECT_CHANGE, WATCH, reasons)
+    if event_type == "PACKAGE_REMOVAL":
+        if significance == "high":
+            reasons.append(
+                "package removal from registry is high significance: "
+                "action-oriented framing justified"
+            )
+            return _result(PROJECT_CHANGE, ACTION, reasons)
+        reasons.append("package removal from registry: review")
+        return _result(PROJECT_CHANGE, REVIEW, reasons)
     reasons.append(f"unclassified change ({event_type or 'unknown'}): "
                    "no action framing without evidence")
     return _result(PROJECT_SIGNAL, _cap(analyst, ceiling=REVIEW), reasons)
