@@ -50,10 +50,6 @@ def _evidences(
         authority = "secondary"
         if isinstance(source_info, dict) and source_info.get("authority"):
             authority = source_info.get("authority")
-        print(
-            f"DEBUG _evidences: entry keys={list(entry.keys())}, "
-            f"source_info={entry.get('source')}, authority={authority}"
-        )
         evidences.append(
             {
                 "source": {
@@ -137,18 +133,11 @@ def finding_to_event(
     if versions:
         event_id += "-" + "-".join(sorted(set(versions))[:4])
     eligibility = evaluate_impact(finding).get("eligibility", "REVIEW")
-    # Map eligibility to impact for OSSEvent.
-    # ACTION eligibility maps to ACTION impact (not REVIEW) so that
-    # high-confidence, action-eligible findings retain their force
-    # when bridged to OSSEvent for check/digest consumers.
-    impact_map = {
-        "ACTION": "ACTION",
-        "CRITICAL": "CRITICAL",
-        "REVIEW": "REVIEW",
-        "WATCH": "WATCH",
-        "INFORMATIONAL": "INFORMATIONAL",
-    }
-    impact = impact_map.get(str(eligibility), str(eligibility))
+    # Bridge conservatively: lifecycle analyst eligibility is not customer
+    # context, so ACTION/CRITICAL proposals must not cross the event boundary.
+    impact = {"ACTION": "REVIEW", "CRITICAL": "REVIEW"}.get(
+        str(eligibility), str(eligibility)
+    )
     return OSSEvent(
         id=event_id,
         project_slug=slug,
