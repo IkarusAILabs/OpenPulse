@@ -157,3 +157,85 @@ class TestGetGitHubToken:
 
 # Integration tests would require network access - using fixtures instead
 # These would be in a separate test file that requires network
+
+
+class TestGitHubRepositoryIntegration:
+    def test_repository_revision_and_manifest_converge(self, monkeypatch):
+        """Exercise the complete adapter path without network access."""
+        from core import github_reader
+
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "abc123"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: [
+                {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "file1"},
+                {"type": "blob", "path": "packages/app/requirements.txt", "size": 20, "sha": "file2"},
+                {"type": "blob", "path": "node_modules/x/package-lock.json", "size": 10, "sha": "skip"},
+            ],
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_file_content",
+            lambda repo, path, token, timeout=30.0: "requests==2.32.0\n",
+        )
+
+        deps, skipped, errors = read_github_repo("owner/repo")
+
+        assert not errors
+        assert not skipped
+        assert len(deps) == 1
+        assert deps[0]["package"] == "requests"
+        assert deps[0]["version"] == "2.32.0"
+        assert deps[0]["repository"] == "owner/repo"
+        assert deps[0]["repository_branch"] == "main"
+        assert deps[0]["repository_commit"] == "abc123"
+        assert deps[0]["_source_paths"] == ["requirements.txt", "packages/app/requirements.txt"]
+
+    def test_empty_supported_files_is_distinct_from_fetch_failure(self, monkeypatch):
+        from core import github_reader
+
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "abc123"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: [],
+        )
+
+        deps, skipped, errors = read_github_repo("owner/repo")
+
+        assert deps == []
+        assert not errors
+        assert "inspected successfully" in skipped[0]
+
+    def test_tree_limit_is_reported_as_error(self, monkeypatch):
+        from core import github_reader
+
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "abc123"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: [
+                {"type": "blob", "path": f"f{i}.txt", "size": 1}
+                for i in range(github_reader.MAX_TREE_ENTRIES + 1)
+            ],
+        )
+
+        deps, skipped, errors = read_github_repo("owner/repo")
+
+        assert deps == []
+        assert skipped == []
+        assert errors
+        assert "tree exceeds" in errors[0]["safe_message"]
