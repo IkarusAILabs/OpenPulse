@@ -198,8 +198,11 @@ def _handle_response(
 
 
 def _get_repo_tree(
-    repo: GitHubRepo, token: str | None, timeout: float = DEFAULT_TIMEOUT
-) -> list[dict[str, Any]] | list[dict[str, Any]]:
+    repo: GitHubRepo,
+    token: str | None,
+    revision: str,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> list[dict[str, Any]]:
     """Get recursive tree of repository contents.
 
     Returns list of tree entries or error dicts.
