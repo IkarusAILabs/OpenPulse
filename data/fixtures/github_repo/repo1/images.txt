@@ -1,3 +1,0 @@
-docker.io/library/redis:7.2
-docker.io/library/postgres:15
-docker.io/bitnami/nginx:1.24
