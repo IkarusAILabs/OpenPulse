@@ -10,8 +10,9 @@ the same identity and matching semantics apply regardless of input source.
 from __future__ import annotations
 
 import base64
+import hashlib
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -24,10 +25,27 @@ from core.sbom_reader import read_sbom, read_spdx
 
 GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB per file
+# GitHub's blobs API serves base64 payloads up to 100 MB; above that a
+# file cannot be inspected and must become an explicit PARTIAL skip, never
+# a silent "no dependencies" (F2).
+MAX_BLOB_BYTES = 100 * 1024 * 1024  # 100MB per blob (GitHub hard limit)
 MAX_FILES = 200  # max dependency files to process
 MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
 MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
+
+#: Repository inspection coverage. COMPLETE means every discovered
+#: dependency file was read, integrity-verified and parsed; PARTIAL means
+#: at least one file or tree region was not (skips, caps, truncation,
+#: fetch/parse errors); FAILED means the repository could not be
+#: enumerated at all (revision or tree unavailable).
+COVERAGE_COMPLETE = "COMPLETE"
+COVERAGE_PARTIAL = "PARTIAL"
+COVERAGE_FAILED = "FAILED"
+
+#: Sentinel appended to a tree listing when GitHub reports the recursive
+#: tree as truncated; discovery downgrades coverage to PARTIAL.
+_TREE_TRUNCATED_KEY = "_openpulse_tree_truncated"
+_TREE_TRUNCATED_MARKER = {_TREE_TRUNCATED_KEY: True}
 
 
 @dataclass(frozen=True)
@@ -42,6 +60,26 @@ class GitHubRepo:
 
     def __str__(self) -> str:
         return self.full_name
+
+
+@dataclass
+class RepoInspection:
+    """Outcome of inspecting one repository revision.
+
+    ``coverage`` is COMPLETE/PARTIAL/FAILED; ``coverage_reasons`` lists
+    every downgrade cause (tree truncated, size/file cap, fetch error,
+    binary, parse error, rejected path). Every returned dependency is
+    stamped with the same repository-level coverage, so a verdict can
+    never look fully inspected when part of the tree was not read.
+    """
+
+    dependencies: list[dict[str, Any]] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
+    coverage: str = COVERAGE_COMPLETE
+    coverage_reasons: list[str] = field(default_factory=list)
+    branch: str = ""
+    commit: str = ""
 
 
 SUPPORTED_MANIFESTS = {
@@ -267,42 +305,107 @@ def _get_repo_tree(
             if errors:
                 return errors
             data = resp.json()
-            return data.get("tree", [])
+            tree = list(data.get("tree", []))
+            if data.get("truncated"):
+                # GitHub caps the recursive listing; an entry we cannot
+                # see is a file we cannot inspect - never treat the
+                # partial listing as the whole repository.
+                tree.append(dict(_TREE_TRUNCATED_MARKER))
+            return tree
     except Exception as e:
         return [as_error("github_repo", e, repo=str(repo), context="get_repo_tree")]
 
 
-def _get_file_content(
-    repo: GitHubRepo, path: str, token: str | None, timeout: float = DEFAULT_TIMEOUT
-) -> str | list[dict[str, Any]]:
-    """Get file content from GitHub (base64 decoded).
+def _tree_is_truncated(tree: list[dict[str, Any]]) -> bool:
+    return any(_TREE_TRUNCATED_KEY in entry for entry in tree)
 
-    Returns decoded content string or error dicts.
+
+def _git_blob_sha1(payload: bytes) -> str:
+    """Git object id of a blob: sha1("blob {len}\\0" + payload)."""
+    header = f"blob {len(payload)}".encode("ascii") + b"\x00"
+    return hashlib.sha1(header + payload).hexdigest()  # noqa: S324 - Git object id, not a security hash
+
+
+def _get_blob_content(
+    repo: GitHubRepo,
+    blob_sha: str,
+    token: str | None,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> tuple[str | None, dict[str, Any] | None]:
+    """Fetch one blob by its immutable git SHA and verify the returned
+    content hashes back to that SHA before decoding.
+
+    Returns ``(content, None)`` on success or ``(None, error_dict)`` on
+    any failure. The blobs API always returns base64 (up to 100 MB), so a
+    file is either fully read or an explicit error - never an empty
+    string standing in for a body nobody fetched (F1/F2).
     """
-    url = f"{GITHUB_API}/repos/{repo.full_name}/contents/{path}"
+    if not blob_sha:
+        return None, as_error(
+            "github_repo", Exception("tree entry has no blob SHA"), repo=str(repo), context="blob"
+        )
+    url = f"{GITHUB_API}/repos/{repo.full_name}/git/blobs/{blob_sha}"
     try:
         with httpx.Client(timeout=timeout, headers=_headers(token)) as client:
             resp = client.get(url)
-            errors = _handle_response(resp, f"get_file:{path}", repo)
+            errors = _handle_response(resp, f"get_blob:{blob_sha}", repo)
             if errors:
-                return errors
+                return None, errors[0]
             data = resp.json()
-            if data.get("encoding") == "base64":
-                content = base64.b64decode(data["content"]).decode("utf-8")
-                return content
-            return str(data.get("content", ""))
-    except UnicodeDecodeError:
-        return [
-            as_error(
-                "github_repo",
-                Exception("binary file"),
-                repo=str(repo),
-                path=path,
-                context="decode",
-            )
-        ]
     except Exception as e:
-        return [as_error("github_repo", e, repo=str(repo), path=path, context="get_file")]
+        return None, as_error("github_repo", e, repo=str(repo), context="get_blob")
+
+    if data.get("encoding") != "base64" or not isinstance(data.get("content"), str):
+        return None, as_error(
+            "github_repo",
+            Exception(f"blob {blob_sha} returned encoding {data.get('encoding')!r}, not base64"),
+            repo=str(repo),
+            context="blob_encoding",
+        )
+    try:
+        payload = base64.b64decode(data["content"])
+    except (ValueError, TypeError):
+        return None, as_error(
+            "github_repo",
+            Exception(f"blob {blob_sha} returned undecodable base64"),
+            repo=str(repo),
+            context="blob_decode",
+        )
+    actual = _git_blob_sha1(payload)
+    if actual != blob_sha:
+        return None, as_error(
+            "github_repo",
+            Exception(f"blob SHA mismatch: requested {blob_sha}, content hashes to {actual}"),
+            repo=str(repo),
+            context="blob_integrity",
+        )
+    try:
+        return payload.decode("utf-8"), None
+    except UnicodeDecodeError:
+        return None, as_error(
+            "github_repo",
+            Exception("binary file"),
+            repo=str(repo),
+            sha=blob_sha,
+            context="blob_decode",
+        )
+
+
+def _safe_repo_path(path: str) -> bool:
+    """Whether a tree path is safe to materialize.
+
+    Rejects absolute paths, drive-qualified paths, backslashes and any
+    ``..`` segment so a hostile tree entry cannot escape the temp
+    directory it is parsed from (F8).
+    """
+    if not path or path.startswith(("/", "\\")):
+        return False
+    if ":" in path or "\\" in path:
+        return False
+    parts = path.split("/")
+    if any(part in ("", ".", "..") for part in parts):
+        return False
+    return True
 
 
 def _is_dependency_file(filename: str) -> tuple[bool, str | None]:
@@ -334,32 +437,50 @@ def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
 
 
+@dataclass
+class _Discovery:
+    """Result of enumerating dependency files at one revision."""
+
+    files: list[dict[str, Any]] = field(default_factory=list)
+    skip_reasons: list[str] = field(default_factory=list)
+    truncated: bool = False
+    error: dict[str, Any] | None = None
+
+
 def discover_dependency_files(
     repo: GitHubRepo,
     token: str | None = None,
     revision: str = "HEAD",
-) -> list[dict[str, Any]]:
-    """Discover dependency files at a repository revision.
+) -> _Discovery:
+    """Discover dependency files at an immutable repository revision.
 
-    Returns a list of {path, type, size} dicts, or error dicts on failure.
+    Each returned file is ``{path, type, size, sha}`` where ``sha`` is
+    the git blob id taken from the pinned tree - the exact object the
+    content fetch must return. Every dropped file (oversize, cap, unsafe
+    path) is recorded as a skip reason so coverage can degrade to
+    PARTIAL instead of silently shrinking the inspected set.
     """
     tree = _get_repo_tree(repo, token, revision)
     if tree and isinstance(tree[0], dict) and tree[0].get("error"):
-        return tree
+        return _Discovery(error=tree[0])
 
-    files: list[dict[str, Any]] = []
-    total_size = 0
+    truncated = _tree_is_truncated(tree)
+    entries = [e for e in tree if _TREE_TRUNCATED_KEY not in e]
 
-    if len(tree) > MAX_TREE_ENTRIES:
-        return [
-            {
+    if len(entries) > MAX_TREE_ENTRIES:
+        return _Discovery(
+            error={
                 "error": True,
                 "safe_message": f"repository tree exceeds {MAX_TREE_ENTRIES} entries",
                 "category": "github_repo",
             }
-        ]
+        )
 
-    for entry in tree:
+    files: list[dict[str, Any]] = []
+    skip_reasons: list[str] = []
+    total_size = 0
+
+    for entry in entries:
         if entry.get("type") != "blob":
             continue
         path = entry.get("path", "")
@@ -376,40 +497,56 @@ def discover_dependency_files(
         if not is_supported:
             continue
 
-        size = entry.get("size", 0)
-        if size > MAX_FILE_SIZE:
-            continue  # skip oversized files
+        if not _safe_repo_path(path):
+            skip_reasons.append(f"{path}: rejected unsafe repository path")
+            continue
+
+        size = int(entry.get("size", 0) or 0)
+        if size > MAX_BLOB_BYTES:
+            skip_reasons.append(
+                f"{path}: {size} bytes exceeds {MAX_BLOB_BYTES}-byte inspection limit"
+            )
+            continue
 
         total_size += size
         if total_size > MAX_DISCOVERED_BYTES:
-            break  # stop if repo is too large
-
-        files.append({"path": path, "type": file_type, "size": size})
-
-        if len(files) >= MAX_FILES:
+            skip_reasons.append(
+                f"{path}: repository size cap ({MAX_DISCOVERED_BYTES} bytes) reached; "
+                "remaining dependency files not inspected"
+            )
             break
 
-    return files
+        files.append({"path": path, "type": file_type, "size": size, "sha": entry.get("sha", "")})
+
+        if len(files) >= MAX_FILES:
+            skip_reasons.append(
+                f"file cap ({MAX_FILES}) reached; remaining dependency files not inspected"
+            )
+            break
+
+    return _Discovery(files=files, skip_reasons=skip_reasons, truncated=truncated)
 
 
 def parse_dependency_file(
     repo: GitHubRepo,
     file_info: dict[str, Any],
     token: str | None = None,
-) -> tuple[list[dict[str, Any]], list[str]]:
+) -> tuple[list[dict[str, Any]], list[str], bool]:
     """Parse a single dependency file and return normalized dependencies.
 
-    Returns (dependencies, skipped_reasons).
-    Each dependency includes source context: {source, repository, path}.
+    Returns ``(dependencies, skipped_reasons, readable)`` where
+    ``readable`` is False when the blob could not be fetched, verified or
+    parsed - the signal that coverage must degrade to PARTIAL. Reader
+    skips (e.g. unpinned entries) keep ``readable`` True: they are
+    findings about content that was fully read, not reading failures.
     """
     path = file_info["path"]
     file_type = file_info["type"]
-    content_or_errors = _get_file_content(repo, path, token)
+    blob_sha = str(file_info.get("sha") or "")
 
-    if isinstance(content_or_errors, list):  # error list
-        return [], [f"{path}: {e.get('safe_message', 'unknown error')}" for e in content_or_errors]
-
-    content = content_or_errors
+    content, error = _get_blob_content(repo, blob_sha, token)
+    if error is not None:
+        return [], [f"{path}: {error.get('safe_message', 'unknown error')}"], False
 
     deps: list[dict[str, Any]] = []
     skipped: list[str] = []
@@ -431,7 +568,7 @@ def parse_dependency_file(
                 try:
                     parsed_deps, parsed_skipped = read_spdx_from_content(content)
                 except ValueError as e:
-                    return [], [f"{path}: not a valid CycloneDX or SPDX SBOM: {e}"]
+                    return [], [f"{path}: not a valid CycloneDX or SPDX SBOM: {e}"], False
             deps.extend(parsed_deps)
             skipped.extend([f"{path}: {s}" for s in parsed_skipped])
         elif file_type == "inventory":
@@ -439,7 +576,7 @@ def parse_dependency_file(
             deps.extend(parsed_deps)
             skipped.extend([f"{path}: {s}" for s in parsed_skipped])
     except Exception as e:
-        return [], [f"{path}: {redact(str(e))}"]
+        return [], [f"{path}: {redact(str(e))}"], False
 
     # Add source context to each dependency
     for dep in deps:
@@ -447,7 +584,7 @@ def parse_dependency_file(
         dep["repository"] = str(repo)
         dep["path"] = path
 
-    return deps, skipped
+    return deps, skipped, True
 
 
 def read_manifest_from_content(
@@ -563,6 +700,94 @@ def deduplicate_dependencies(deps: list[dict[str, Any]]) -> list[dict[str, Any]]
     return list(seen.values())
 
 
+def inspect_github_repo(
+    repo_spec: str,
+    cli_token: str | None = None,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> RepoInspection:
+    """Discover and parse every dependency file at the pinned commit.
+
+    The tree and every blob are read at the same immutable commit SHA and
+    each blob is verified against the SHA the tree declared. Coverage is
+    COMPLETE only when the whole tree was enumerated and every discovered
+    file was read and parsed; PARTIAL when anything was skipped, capped,
+    truncated or failed; FAILED when the repository could not be
+    enumerated. A fetch failure can never surface as zero dependencies
+    with COMPLETE coverage.
+    """
+    repo = parse_github_repo(repo_spec)
+    token = get_github_token(cli_token)
+
+    revision_info = _get_repo_revision(repo, token, timeout)
+    if isinstance(revision_info, list):
+        return RepoInspection(errors=revision_info, coverage=COVERAGE_FAILED)
+    default_branch, commit_sha = revision_info
+
+    # Discover files at the immutable commit; content is fetched by the
+    # blob SHA this tree declares, never from a mutable ref (F1).
+    discovery = discover_dependency_files(repo, token, commit_sha)
+    if discovery.error is not None:
+        return RepoInspection(
+            errors=[discovery.error],
+            coverage=COVERAGE_FAILED,
+            branch=default_branch,
+            commit=commit_sha,
+        )
+
+    coverage_reasons: list[str] = []
+    if discovery.truncated:
+        coverage_reasons.append("repository tree truncated by GitHub")
+    coverage_reasons.extend(discovery.skip_reasons)
+
+    if not discovery.files:
+        if not coverage_reasons:
+            return RepoInspection(
+                skipped=[
+                    "repository inspected successfully at its default-branch commit, "
+                    "but no supported dependency files were found"
+                ],
+                coverage=COVERAGE_COMPLETE,
+                branch=default_branch,
+                commit=commit_sha,
+            )
+        return RepoInspection(
+            skipped=list(coverage_reasons),
+            coverage=COVERAGE_PARTIAL,
+            coverage_reasons=list(coverage_reasons),
+            branch=default_branch,
+            commit=commit_sha,
+        )
+
+    all_deps: list[dict[str, Any]] = []
+    all_skipped: list[str] = []
+    for file_info in discovery.files:
+        deps, skipped, readable = parse_dependency_file(repo, file_info, token)
+        if not readable:
+            coverage_reasons.extend(skipped)
+        for dep in deps:
+            dep["repository_branch"] = default_branch
+            dep["repository_commit"] = commit_sha
+        all_deps.extend(deps)
+        all_skipped.extend(skipped)
+
+    unique_deps = deduplicate_dependencies(all_deps)
+
+    coverage = COVERAGE_PARTIAL if coverage_reasons else COVERAGE_COMPLETE
+    for dep in unique_deps:
+        dep["inspection_coverage"] = coverage
+        dep["inspection_coverage_reasons"] = list(coverage_reasons)
+
+    return RepoInspection(
+        dependencies=unique_deps,
+        skipped=all_skipped,
+        errors=[],
+        coverage=coverage,
+        coverage_reasons=list(coverage_reasons),
+        branch=default_branch,
+        commit=commit_sha,
+    )
+
+
 def read_github_repo(
     repo_spec: str,
     cli_token: str | None = None,
@@ -570,51 +795,12 @@ def read_github_repo(
 ) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     """Main entry point: discover and parse all dependencies in a GitHub repo.
 
-    Returns (dependencies, skipped_reasons, errors).
+    Thin wrapper over :func:`inspect_github_repo` preserving the original
+    3-tuple shape. Returns (dependencies, skipped_reasons, errors).
     - dependencies: normalized dependency objects with source context
+      (each stamped with ``inspection_coverage``/``inspection_coverage_reasons``)
     - skipped_reasons: human-readable skip reasons per file
     - errors: structured error dicts for API/network failures
     """
-    repo = parse_github_repo(repo_spec)
-    token = get_github_token(cli_token)
-
-    revision_info = _get_repo_revision(repo, token, timeout)
-    if isinstance(revision_info, list):
-        return [], [], revision_info
-    default_branch, commit_sha = revision_info
-
-    # Discover files at the immutable commit.
-    file_infos = discover_dependency_files(repo, token, commit_sha)
-    errors = [e for e in file_infos if e.get("error")]
-    file_infos = [f for f in file_infos if not f.get("error")]
-
-    if errors:
-        # Return early if we couldn't even list the repo
-        return [], [], errors
-
-    if not file_infos:
-        return [
-            [],
-            [
-                "repository inspected successfully at its default-branch commit, "
-                "but no supported dependency files were found"
-            ],
-            [],
-        ]
-
-    # Parse each file
-    all_deps: list[dict[str, Any]] = []
-    all_skipped: list[str] = []
-
-    for file_info in file_infos:
-        deps, skipped = parse_dependency_file(repo, file_info, token)
-        for dep in deps:
-            dep["repository_branch"] = default_branch
-            dep["repository_commit"] = commit_sha
-        all_deps.extend(deps)
-        all_skipped.extend(skipped)
-
-    # Deduplicate
-    unique_deps = deduplicate_dependencies(all_deps)
-
-    return unique_deps, all_skipped, errors
+    inspection = inspect_github_repo(repo_spec, cli_token, timeout)
+    return inspection.dependencies, inspection.skipped, inspection.errors

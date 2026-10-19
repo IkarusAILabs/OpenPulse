@@ -6,7 +6,7 @@
   "type": "object",
   "properties": {
     "contract_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "description": "Semver of this contract shape (docs/EVIDENCE_CONTRACT.md versioning policy)."
     },
     "event_context": {
@@ -137,7 +137,7 @@
       "description": "Who generated this document, when, and its integrity digest.",
       "properties": {
         "openpulse_version": {"type": "string", "description": "source: installed package version (importlib.metadata, same fallback as reports/generate.py)"},
-        "contract_version": {"const": "1.0.0", "description": "same as the top-level contract_version"},
+        "contract_version": {"const": "1.1.0", "description": "same as the top-level contract_version"},
         "generation_timestamp": {"type": "string", "format": "date-time", "description": "source: UTC now at build time; pinned during content_hash computation"},
         "event_id": {"type": "string", "description": "source: OSSEvent.id (the event this document carries)"},
         "content_hash": {
@@ -147,6 +147,23 @@
         }
       },
       "required": ["openpulse_version", "contract_version", "generation_timestamp", "event_id", "content_hash"],
+      "additionalProperties": false
+    },
+    "inspection_coverage": {
+      "type": "object",
+      "description": "How completely the source repository was inspected (v1.1). Non-repository inputs are COMPLETE.",
+      "properties": {
+        "status": {
+          "enum": ["COMPLETE", "PARTIAL", "FAILED"],
+          "description": "COMPLETE: every file read; PARTIAL: something skipped/capped/failed; FAILED: repository not enumerable"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Downgrade causes (tree truncated, size/file cap, fetch error, binary, rejected path)"
+        }
+      },
+      "required": ["status", "reasons"],
       "additionalProperties": false
     },
     "signature": {
@@ -176,7 +193,8 @@
     "temporal",
     "unknowns",
     "recommendation",
-    "provenance"
+    "provenance",
+    "inspection_coverage"
   ],
   "additionalProperties": false,
   "$defs": {

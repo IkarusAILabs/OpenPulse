@@ -9,9 +9,11 @@ import click
 from analyzers import change_analyst, report_analyst, security_analyst
 from core.entities.resolve import resolve_project
 from core.schema.models import OSSEvent
+from core.version import openpulse_version
 
 
 @click.group()
+@click.version_option(version=openpulse_version(), prog_name="openpulse")
 def cli():
     pass
 
@@ -626,23 +628,29 @@ def _load_check_inputs(
         for line in man_skipped:
             _echo(f"! skipped: {line}")
     if github_repo:
-        from core.github_reader import read_github_repo
+        from core.github_reader import inspect_github_repo
 
         try:
-            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+            inspection = inspect_github_repo(github_repo, cli_token=github_token)
         except ValueError as e:
             raise click.ClickException(f"{github_repo}: {e}")
-        for err in gh_errors:
+        for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}")
-        for line in gh_skipped:
+        for line in inspection.skipped:
             _echo(f"! skipped: {line}")
-        if gh_deps:
-            _echo(f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository")
-            deps = [*deps, *gh_deps]
-        elif gh_skipped and not gh_errors:
+        for reason in inspection.coverage_reasons:
+            _echo(f"! coverage: {reason}")
+        _echo(f"github-repo ({github_repo}): inspection coverage {inspection.coverage}")
+        if inspection.dependencies:
+            _echo(
+                f"github-repo ({github_repo}): "
+                f"{len(inspection.dependencies)} dependency(s) from repository"
+            )
+            deps = [*deps, *inspection.dependencies]
+        elif inspection.skipped and not inspection.errors:
             _echo(
                 f"github-repo ({github_repo}): 0 usable, "
-                f"{len(gh_skipped)} skipped — nothing checkable in this repository"
+                f"{len(inspection.skipped)} skipped — nothing checkable in this repository"
             )
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
@@ -882,6 +890,15 @@ def check(
             _echo(f"ℹ️ {label}: RELATED — {result.reason}")
         else:
             _echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
+    incomplete = [r for r in results if r.inspection_coverage != "COMPLETE"]
+    if incomplete:
+        reasons = sorted({reason for r in incomplete for reason in r.inspection_coverage_reasons})
+        _echo(
+            f"⚠️  inspection coverage: {len(incomplete)}/{len(results)} dependency(s) not "
+            "COMPLETE — results below are not a clean bill of health"
+        )
+        for reason in reasons:
+            _echo(f"   - {reason}")
     _echo(f"\n{affected}/{len(deps)} dependencies affected")
     from core.risk.check import strict_affected
 
@@ -1330,26 +1347,33 @@ def attest(
             _echo(f"manifest ({label}): {len(man_deps)} pinned package(s)", err=True)
             deps = [*deps, *man_deps]
     if github_repo:
-        from core.github_reader import read_github_repo
+        from core.github_reader import inspect_github_repo
 
         try:
-            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+            inspection = inspect_github_repo(github_repo, cli_token=github_token)
         except ValueError as e:
             raise click.ClickException(f"{github_repo}: {e}")
-        for err in gh_errors:
+        for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}", err=True)
-        for line in gh_skipped:
+        for line in inspection.skipped:
             _echo(f"! skipped: {line}", err=True)
-        if gh_deps:
+        for reason in inspection.coverage_reasons:
+            _echo(f"! coverage: {reason}", err=True)
+        _echo(
+            f"github-repo ({github_repo}): inspection coverage {inspection.coverage}",
+            err=True,
+        )
+        if inspection.dependencies:
             _echo(
-                f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository",
+                f"github-repo ({github_repo}): "
+                f"{len(inspection.dependencies)} dependency(s) from repository",
                 err=True,
             )
-            deps = [*deps, *gh_deps]
-        elif gh_skipped and not gh_errors:
+            deps = [*deps, *inspection.dependencies]
+        elif inspection.skipped and not inspection.errors:
             _echo(
                 f"github-repo ({github_repo}): 0 usable, "
-                f"{len(gh_skipped)} skipped — nothing checkable in this repository",
+                f"{len(inspection.skipped)} skipped — nothing checkable in this repository",
                 err=True,
             )
     if not deps:

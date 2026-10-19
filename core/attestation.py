@@ -281,13 +281,10 @@ _TIMESTAMP_PLACEHOLDER = "1970-01-01T00:00:00Z"
 
 
 def _openpulse_version() -> str:
-    """Installed package version, or unknown (same fallback as reports)."""
-    try:
-        from importlib.metadata import version as _pkg_version
+    """Installed package version, or the shared fallback (core.version)."""
+    from core.version import openpulse_version
 
-        return str(_pkg_version("openpulse"))
-    except Exception:
-        return "unknown"
+    return openpulse_version()
 
 
 def _event_context(event: OSSEvent) -> dict[str, Any]:

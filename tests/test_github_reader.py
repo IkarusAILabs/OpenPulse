@@ -3,9 +3,15 @@
 import pytest
 
 from core.github_reader import (
+    COVERAGE_COMPLETE,
+    COVERAGE_FAILED,
+    COVERAGE_PARTIAL,
+    _git_blob_sha1,
     _is_dependency_file,
+    _safe_repo_path,
     deduplicate_dependencies,
     get_github_token,
+    inspect_github_repo,
     parse_github_repo,
     read_github_repo,
 )
@@ -161,8 +167,7 @@ class TestGetGitHubToken:
 
 
 class TestGitHubRepositoryIntegration:
-    def test_repository_revision_and_manifest_converge(self, monkeypatch):
-        """Exercise the complete adapter path without network access."""
+    def _patch_common(self, monkeypatch, tree, blobs):
         from core import github_reader
 
         monkeypatch.setattr(
@@ -173,7 +178,19 @@ class TestGitHubRepositoryIntegration:
         monkeypatch.setattr(
             github_reader,
             "_get_repo_tree",
-            lambda repo, token, revision, timeout=30.0: [
+            lambda repo, token, revision, timeout=30.0: tree,
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_blob_content",
+            lambda repo, blob_sha, token, timeout=30.0: blobs.get(blob_sha, (None, None)),
+        )
+
+    def test_repository_revision_and_manifest_converge(self, monkeypatch):
+        """Exercise the complete adapter path without network access."""
+        self._patch_common(
+            monkeypatch,
+            tree=[
                 {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "file1"},
                 {
                     "type": "blob",
@@ -188,11 +205,10 @@ class TestGitHubRepositoryIntegration:
                     "sha": "skip",
                 },
             ],
-        )
-        monkeypatch.setattr(
-            github_reader,
-            "_get_file_content",
-            lambda repo, path, token, timeout=30.0: "requests==2.32.0\n",
+            blobs={
+                "file1": ("requests==2.32.0\n", None),
+                "file2": ("requests==2.32.0\n", None),
+            },
         )
 
         deps, skipped, errors = read_github_repo("owner/repo")
@@ -206,20 +222,10 @@ class TestGitHubRepositoryIntegration:
         assert deps[0]["repository_branch"] == "main"
         assert deps[0]["repository_commit"] == "abc123"
         assert deps[0]["path"] in {"requirements.txt", "packages/app/requirements.txt"}
+        assert deps[0]["inspection_coverage"] == COVERAGE_COMPLETE
 
     def test_empty_supported_files_is_distinct_from_fetch_failure(self, monkeypatch):
-        from core import github_reader
-
-        monkeypatch.setattr(
-            github_reader,
-            "_get_repo_revision",
-            lambda repo, token, timeout: ("main", "abc123"),
-        )
-        monkeypatch.setattr(
-            github_reader,
-            "_get_repo_tree",
-            lambda repo, token, revision, timeout=30.0: [],
-        )
+        self._patch_common(monkeypatch, tree=[], blobs={})
 
         deps, skipped, errors = read_github_repo("owner/repo")
 
@@ -230,18 +236,13 @@ class TestGitHubRepositoryIntegration:
     def test_tree_limit_is_reported_as_error(self, monkeypatch):
         from core import github_reader
 
-        monkeypatch.setattr(
-            github_reader,
-            "_get_repo_revision",
-            lambda repo, token, timeout: ("main", "abc123"),
-        )
-        monkeypatch.setattr(
-            github_reader,
-            "_get_repo_tree",
-            lambda repo, token, revision, timeout=30.0: [
-                {"type": "blob", "path": f"f{i}.txt", "size": 1}
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {"type": "blob", "path": f"f{i}.txt", "size": 1, "sha": f"s{i}"}
                 for i in range(github_reader.MAX_TREE_ENTRIES + 1)
             ],
+            blobs={},
         )
 
         deps, skipped, errors = read_github_repo("owner/repo")
@@ -250,3 +251,140 @@ class TestGitHubRepositoryIntegration:
         assert skipped == []
         assert errors
         assert "tree exceeds" in errors[0]["safe_message"]
+
+    def test_head_moving_between_tree_and_fetch_still_uses_tree_sha(self, monkeypatch):
+        """F1: content is fetched by the tree's blob SHA, not a mutable ref."""
+        calls = []
+        from core import github_reader
+
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "commit-at-tree"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: [
+                {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "blob-pinned"}
+            ],
+        )
+
+        def fake_blob(repo, blob_sha, token, timeout=30.0):
+            calls.append(blob_sha)
+            return "requests==2.32.0\n", None
+
+        monkeypatch.setattr(github_reader, "_get_blob_content", fake_blob)
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert calls == ["blob-pinned"]
+        assert inspection.commit == "commit-at-tree"
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert inspection.dependencies[0]["repository_commit"] == "commit-at-tree"
+
+    def test_large_lockfile_is_read_not_silently_empty(self, monkeypatch):
+        """F2: a 2 MB lockfile must parse, not become 'no dependencies'."""
+        import json
+
+        packages = {
+            f"node_modules/pkg{i}": {
+                "version": "1.0.0",
+                "resolved": "https://registry.npmjs.org/x",
+                "integrity": "sha512-AAAA",
+            }
+            for i in range(25_000)
+        }
+        content = json.dumps({"name": "app", "lockfileVersion": 3, "packages": packages})
+        assert len(content.encode()) > 2 * 1024 * 1024
+
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {
+                    "type": "blob",
+                    "path": "package-lock.json",
+                    "size": len(content),
+                    "sha": "big-lock",
+                }
+            ],
+            blobs={"big-lock": (content, None)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert len(inspection.dependencies) == 25_000
+
+    def test_truncated_tree_reports_partial(self, monkeypatch):
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "file1"},
+                {"_openpulse_tree_truncated": True},
+            ],
+            blobs={"file1": ("requests==2.32.0\n", None)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any("truncated" in reason for reason in inspection.coverage_reasons)
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    def test_fetch_failure_is_partial_not_zero_dependencies(self, monkeypatch):
+        """A failed fetch must never look like a clean, empty inspection."""
+        from collectors.errors import as_error
+
+        error = as_error("github_repo", Exception("boom"), context="get_blob")
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {"type": "blob", "path": "requirements.txt", "size": 20, "sha": "file1"},
+                {"type": "blob", "path": "pyproject.toml", "size": 20, "sha": "file2"},
+            ],
+            blobs={"file1": (None, error), "file2": ("requests==2.32.0\n", None)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any("requirements.txt" in reason for reason in inspection.coverage_reasons)
+        assert len(inspection.dependencies) == 1
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    def test_no_dependencies_never_returned_on_revision_failure(self, monkeypatch):
+        from collectors.errors import as_error
+
+        error = as_error("github_repo", Exception("not found"), context="get_repo_revision")
+        from core import github_reader
+
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: [error],
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_FAILED
+        assert inspection.errors
+
+
+class TestPathSafety:
+    def test_accepts_normal_paths(self):
+        assert _safe_repo_path("requirements.txt")
+        assert _safe_repo_path("packages/app/requirements.txt")
+
+    def test_rejects_traversal_and_absolute(self):
+        assert not _safe_repo_path("../evil/requirements.txt")
+        assert not _safe_repo_path("a/../../evil")
+        assert not _safe_repo_path("/etc/passwd")
+        assert not _safe_repo_path("C:/Windows/requirements.txt")
+        assert not _safe_repo_path("packages\\app\\requirements.txt")
+
+
+class TestGitBlobSha:
+    def test_matches_git_object_id(self):
+        # echo -n 'hi' | git hash-object --stdin
+        assert _git_blob_sha1(b"hi\n") == "45b983be36b73c0788dc9cbcb76cbb80fc7bb057"

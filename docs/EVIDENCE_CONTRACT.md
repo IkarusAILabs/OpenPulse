@@ -97,8 +97,20 @@ into an inward pydantic model. v1 is that model plus **outward names**:
 | `dates` | `temporal` |
 
 Every value path is shared: `build_v1_contract` calls the #60 builder,
-renames blocks, stamps `1.0.0`, and recomputes the content hash over
-the v1 shape. There is no second derivation path to keep in sync.
+renames blocks, stamps the current `contract_version`, adds the
+`inspection_coverage` block, and recomputes the content hash over the
+v1 shape. There is no second derivation path to keep in sync.
+
+### 1.1.0 - inspection coverage (v0.6.0)
+
+Minor, additive: a new required top-level `inspection_coverage` block
+carries the repository-inspection outcome that produced the verdict -
+`{"status": COMPLETE|PARTIAL|FAILED, "reasons": [...]}`. Non-repository
+inputs (`--watchlist`, `--sbom`, `--lockfile`, `--manifest`, `--images`)
+are always `COMPLETE`. A `PARTIAL` or `FAILED` status means OpenPulse
+did not read every discovered dependency file, so the absence of an
+AFFECTED verdict is not a clean bill of health. The producer version
+continues to be `provenance.openpulse_version`.
 
 ## CLI
 

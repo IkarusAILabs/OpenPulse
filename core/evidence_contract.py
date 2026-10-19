@@ -44,7 +44,12 @@ from core.schema.models import OSSEvent
 #: Semver of the v1 contract shape. Bump per the versioning policy in
 #: docs/EVIDENCE_CONTRACT.md (patch: wording; minor: additive fields;
 #: major: any breaking change to shape or hash semantics).
-CONTRACT_VERSION = "1.0.0"
+#:
+#: 1.1.0 (v0.6.0): additive ``inspection_coverage`` block
+#: (status + reasons), so a consumer can tell a fully inspected dependency
+#: from one whose repository was only partly read - never a clean bill of
+#: health by omission.
+CONTRACT_VERSION = "1.1.0"
 
 #: The v1 JSON Schema, shipped with the repo. Loaded lazily so that
 #: importing this module never touches the filesystem.
@@ -93,8 +98,21 @@ def build_v1_contract(
     base = attestation.build_contract(event, verdict, finding)
     doc = _rename_blocks(base)
     doc["contract_version"] = CONTRACT_VERSION
+    doc["inspection_coverage"] = _coverage_block(verdict)
     _set_content_hash(doc)
     return doc
+
+
+def _coverage_block(verdict: Any) -> dict[str, Any]:
+    """The v1.1 coverage block: repository inspection status + reasons.
+
+    Defaults to COMPLETE for inputs that are not repository inspections
+    (watchlist/SBOM/lockfile/manifest); a GitHub verdict carries the
+    COMPLETE/PARTIAL/FAILED status computed by the reader.
+    """
+    status = str(getattr(verdict, "inspection_coverage", "COMPLETE") or "COMPLETE")
+    reasons = [str(r) for r in (getattr(verdict, "inspection_coverage_reasons", None) or [])]
+    return {"status": status, "reasons": reasons}
 
 
 def _rename_blocks(base: EvidenceContract) -> dict[str, Any]:
@@ -129,6 +147,7 @@ _V1_BODY_FIELDS = (
     "unknowns",
     "recommendation",
     "provenance",
+    "inspection_coverage",
 )
 
 

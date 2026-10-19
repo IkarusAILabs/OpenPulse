@@ -74,9 +74,30 @@ def test_builder_output_validates_across_shapes(django_event, bitnami_event):
         assert verify_v1_content_hash(doc)
 
 
-def test_contract_version_is_semver_1_0_0(django_doc):
-    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.0.0"
+def test_contract_version_is_semver_1_1_0(django_doc):
+    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.1.0"
     assert django_doc["provenance"]["contract_version"] == CONTRACT_VERSION
+
+
+def test_coverage_defaults_complete_for_non_repo_inputs(django_doc):
+    assert django_doc["inspection_coverage"] == {"status": "COMPLETE", "reasons": []}
+
+
+def test_coverage_status_carried_from_partial_verdict(django_event):
+    dep = {
+        "kind": "package",
+        "package": "django",
+        "ecosystem": "PyPI",
+        "version": "4.2",
+        "inspection_coverage": "PARTIAL",
+        "inspection_coverage_reasons": ["repository tree truncated by GitHub"],
+    }
+    verdict = check_dependency(dep, [django_event])
+    doc = build_v1_contract(django_event, verdict)
+    assert doc["inspection_coverage"]["status"] == "PARTIAL"
+    assert doc["inspection_coverage"]["reasons"] == ["repository tree truncated by GitHub"]
+    assert validate_v1_contract(doc) == []
+    assert verify_v1_content_hash(doc)
 
 
 def test_v1_block_names_match_the_issue(django_doc):
@@ -91,6 +112,7 @@ def test_v1_block_names_match_the_issue(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     ):
         assert block in django_doc, block
     for inward in ("event", "evidence_references", "dates", "contract_schema_version"):
@@ -147,6 +169,7 @@ def test_every_required_block_missing_is_caught(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     ):
         broken = json.loads(json.dumps(django_doc))
         del broken[block]
@@ -276,6 +299,7 @@ def test_hash_covers_all_blocks_not_planned_fields(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     }
     assert "signature" not in _V1_BODY_FIELDS
 
