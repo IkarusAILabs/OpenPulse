@@ -1,0 +1,9 @@
+# Pinned CI build/audit tooling (F6).
+#
+# The project's own deps are pinned by requirements.lock; this file pins
+# the tools CI uses to build and audit that environment, so a green run
+# cannot silently test an unreviewed pip/setuptools/pip-audit.
+# Install with:  pip install -c .github/ci-constraints.txt ...
+pip==26.2.1
+setuptools==84.0.0
+pip-audit==2.10.1

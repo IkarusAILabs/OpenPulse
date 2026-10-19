@@ -4,9 +4,11 @@ The v1 content contract: a JSON document another system can consume
 without importing OpenPulse internals. Three layers, each testable
 alone:
 
-1. ``schemas/evidence-contract/v1/schema.json`` - the wire shape, JSON
-   Schema draft 2020-12, every field carrying a provenance pointer to
-   the current OpenPulse surface it copies.
+1. ``schemas/evidence-contract/v1.1/schema.json`` - the current wire
+   shape, JSON Schema draft 2020-12, every field carrying a provenance
+   pointer to the current OpenPulse surface it copies. It is published
+   beside the untouched ``v1/schema.json`` (1.0), so consumers pinned to
+   1.0 keep validating 1.0 documents.
 2. ``build_v1_contract`` - (event, verdict[, finding]) -> v1 document.
    The convergence itself lives in ``core.attestation`` (issue #53,
    PR #60): this layer only renames blocks to the v1 outward names
@@ -44,13 +46,21 @@ from core.schema.models import OSSEvent
 #: Semver of the v1 contract shape. Bump per the versioning policy in
 #: docs/EVIDENCE_CONTRACT.md (patch: wording; minor: additive fields;
 #: major: any breaking change to shape or hash semantics).
-CONTRACT_VERSION = "1.0.0"
+#:
+#: 1.1.0 (v0.6.0): additive ``inspection_coverage`` block
+#: (status + reasons), so a consumer can tell a fully inspected dependency
+#: from one whose repository was only partly read - never a clean bill of
+#: health by omission.
+CONTRACT_VERSION = "1.1.0"
 
-#: The v1 JSON Schema, shipped with the repo. Loaded lazily so that
-#: importing this module never touches the filesystem.
-SCHEMA_PATH = (
-    Path(__file__).resolve().parents[1] / "schemas" / "evidence-contract" / "v1" / "schema.json"
-)
+#: The v1.1 JSON Schema, shipped with the repo. Published BESIDE the
+#: untouched 1.0 schema (``v1/schema.json``): 1.0 documents keep
+#: validating against 1.0, and a 1.1 document requires the new
+#: ``inspection_coverage`` block. Loaded lazily so that importing this
+#: module never touches the filesystem.
+_SCHEMA_ROOT = Path(__file__).resolve().parents[1] / "schemas" / "evidence-contract"
+SCHEMA_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
+SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -68,8 +78,13 @@ def contract_version() -> str:
 
 
 def load_schema() -> dict[str, Any]:
-    """The v1 JSON Schema, parsed from the shipped file."""
+    """The v1.1 JSON Schema (current builder output), parsed."""
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def load_v1_0_schema() -> dict[str, Any]:
+    """The untouched v1.0 schema, for consumers pinned to 1.0 documents."""
+    return json.loads(SCHEMA_V1_0_PATH.read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------------------
@@ -81,20 +96,41 @@ def build_v1_contract(
     event: OSSEvent,
     verdict: Any,
     finding: dict[str, Any] | None = None,
+    inspection_coverage: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """(event, verdict[, finding]) -> one schema-valid v1 document.
+    """(event, verdict[, finding]) -> one schema-valid v1.1 document.
 
     Pure: no I/O, no side effects. The convergence is the #60 builder
     (``attestation.build_contract``); this layer renames blocks to the
-    v1 outward names, stamps contract_version 1.0.0 in both places,
-    and recomputes the content hash over the v1 shape. Unknown stays
-    unknown - nothing is inferred or backfilled.
+    v1 outward names, stamps contract_version 1.1.0 in both places,
+    adds the coverage block and recomputes the content hash over the
+    v1 shape. Unknown stays unknown - nothing is inferred or backfilled.
+
+    ``inspection_coverage`` lets a command pass a run-level repository
+    inspection summary (status + reasons) that is worse than or absent
+    from the dependency itself; attest uses it so a partially scanned
+    repository is never reported as a clean per-dependency result.
     """
     base = attestation.build_contract(event, verdict, finding)
     doc = _rename_blocks(base)
     doc["contract_version"] = CONTRACT_VERSION
+    doc["inspection_coverage"] = (
+        inspection_coverage if inspection_coverage is not None else _coverage_block(verdict)
+    )
     _set_content_hash(doc)
     return doc
+
+
+def _coverage_block(verdict: Any) -> dict[str, Any]:
+    """The v1.1 coverage block: repository inspection status + reasons.
+
+    Defaults to COMPLETE for inputs that are not repository inspections
+    (watchlist/SBOM/lockfile/manifest); a GitHub verdict carries the
+    COMPLETE/PARTIAL/FAILED status computed by the reader.
+    """
+    status = str(getattr(verdict, "inspection_coverage", "COMPLETE") or "COMPLETE")
+    reasons = [str(r) for r in (getattr(verdict, "inspection_coverage_reasons", None) or [])]
+    return {"status": status, "reasons": reasons}
 
 
 def _rename_blocks(base: EvidenceContract) -> dict[str, Any]:
@@ -129,6 +165,7 @@ _V1_BODY_FIELDS = (
     "unknowns",
     "recommendation",
     "provenance",
+    "inspection_coverage",
 )
 
 

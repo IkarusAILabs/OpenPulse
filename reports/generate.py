@@ -672,13 +672,9 @@ def build_report_metadata(
     from datetime import datetime, timezone
 
     from core.freshness import recency_days
+    from core.version import openpulse_version as _openpulse_version
 
-    try:
-        from importlib.metadata import version as _pkg_version
-
-        openpulse_version = _pkg_version("openpulse")
-    except Exception:
-        openpulse_version = "unknown"
+    openpulse_version = _openpulse_version()
     today = today or date.today()
     status_counts: dict[str, int] = {}
     category_counts: dict[str, int] = {}

@@ -74,7 +74,11 @@ same PR.
 - **Patch** (`1.0.x`): description/wording changes that alter no field
   set, no type, and no validation outcome.
 - **Minor** (`1.x.0`): additive fields (a new optional block or
-  property). Older documents remain valid.
+  property). Newer documents are published in a new sibling schema
+  directory (e.g. `schemas/evidence-contract/v1.1/schema.json`) while
+  the previous minor schema stays untouched, so a consumer pinned to
+  `1.0` keeps validating `1.0` documents. Older documents are not
+  retroactively valid against the newer schema.
 - **Breaking** (`x.0.0`): removing/renaming fields, tightening
   validation, or changing `content_hash` computation. Requires a new
   `schemas/evidence-contract/vX/` directory and a migration note
@@ -97,8 +101,26 @@ into an inward pydantic model. v1 is that model plus **outward names**:
 | `dates` | `temporal` |
 
 Every value path is shared: `build_v1_contract` calls the #60 builder,
-renames blocks, stamps `1.0.0`, and recomputes the content hash over
-the v1 shape. There is no second derivation path to keep in sync.
+renames blocks, stamps the current `contract_version`, adds the
+`inspection_coverage` block, and recomputes the content hash over the
+v1 shape. There is no second derivation path to keep in sync.
+
+### 1.1.0 - inspection coverage (v0.6.0)
+
+Minor, additive: a new required top-level `inspection_coverage` block
+carries the repository-inspection outcome that produced the verdict -
+`{"status": COMPLETE|PARTIAL|FAILED, "reasons": [...]}`. Non-repository
+inputs (`--watchlist`, `--sbom`, `--lockfile`, `--manifest`, `--images`)
+are always `COMPLETE`. A `PARTIAL` or `FAILED` status means OpenPulse
+did not read every discovered dependency file, so the absence of an
+AFFECTED verdict is not a clean bill of health. The producer version
+continues to be `provenance.openpulse_version`.
+
+The 1.1 schema is published at
+`schemas/evidence-contract/v1.1/schema.json`; `v1/schema.json` is left
+byte-for-byte at 1.0 and remains the schema for 1.0 documents. A
+consumer pinned to 1.0 can keep validating 1.0 output; upgrading to 1.1
+means adopting the file with the higher `contract_version`.
 
 ## CLI
 

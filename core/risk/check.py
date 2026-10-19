@@ -100,6 +100,18 @@ class DependencyVerdict(BaseModel):
             "lifecycle/security causes; None when nothing is recorded (never a guess)"
         ),
     )
+    inspection_coverage: str = Field(
+        default="COMPLETE",
+        description=(
+            "Coverage of the repository inspection behind this dependency: "
+            "COMPLETE (every file read), PARTIAL (something skipped/capped/failed) "
+            "or FAILED (repository not enumerable). Non-GitHub inputs are COMPLETE."
+        ),
+    )
+    inspection_coverage_reasons: list[str] = Field(
+        default_factory=list,
+        description="Downgrade causes for inspection_coverage (tree truncated, caps, fetch errors)",
+    )
 
 
 def load_watchlist_doc(doc: dict[str, Any]) -> list[dict[str, Any]]:
@@ -289,12 +301,16 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
     mappings) are capped at EMERGING.
     """
     label = _dep_label(dep)
+    coverage = str(dep.get("inspection_coverage") or "COMPLETE")
+    coverage_reasons = [str(r) for r in (dep.get("inspection_coverage_reasons") or [])]
     if not causes:
         return DependencyVerdict(
             dependency=label,
             affected=False,
             relationship="UNKNOWN",
             reason="no applicable evidence",
+            inspection_coverage=coverage,
+            inspection_coverage_reasons=coverage_reasons,
         )
     for cause in causes:
         cause.setdefault("detail", cause.get("reason", ""))
@@ -345,6 +361,8 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
         events=events,
         reason=reason,
         verdicts=causes,
+        inspection_coverage=coverage,
+        inspection_coverage_reasons=coverage_reasons,
     )
 
 

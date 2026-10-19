@@ -16,6 +16,7 @@ from core.evidence_contract import (
     SCHEMA_PATH,
     build_v1_contract,
     load_schema,
+    load_v1_0_schema,
     validate_v1_contract,
     verify_v1_content_hash,
 )
@@ -74,9 +75,58 @@ def test_builder_output_validates_across_shapes(django_event, bitnami_event):
         assert verify_v1_content_hash(doc)
 
 
-def test_contract_version_is_semver_1_0_0(django_doc):
-    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.0.0"
+def test_contract_version_is_semver_1_1_0(django_doc):
+    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.1.0"
     assert django_doc["provenance"]["contract_version"] == CONTRACT_VERSION
+
+
+def test_coverage_defaults_complete_for_non_repo_inputs(django_doc):
+    assert django_doc["inspection_coverage"] == {"status": "COMPLETE", "reasons": []}
+
+
+def test_coverage_status_carried_from_partial_verdict(django_event):
+    dep = {
+        "kind": "package",
+        "package": "django",
+        "ecosystem": "PyPI",
+        "version": "4.2",
+        "inspection_coverage": "PARTIAL",
+        "inspection_coverage_reasons": ["repository tree truncated by GitHub"],
+    }
+    verdict = check_dependency(dep, [django_event])
+    doc = build_v1_contract(django_event, verdict)
+    assert doc["inspection_coverage"]["status"] == "PARTIAL"
+    assert doc["inspection_coverage"]["reasons"] == ["repository tree truncated by GitHub"]
+    assert validate_v1_contract(doc) == []
+    assert verify_v1_content_hash(doc)
+
+
+def test_v1_1_schema_is_published_beside_untouched_v1_0():
+    assert SCHEMA_PATH.parent.name == "v1.1"
+    assert (SCHEMA_PATH.parent.parent / "v1" / "schema.json").exists()
+    schema_11 = load_schema()
+    schema_10 = load_v1_0_schema()
+    assert schema_11["properties"]["contract_version"]["const"] == "1.1.0"
+    assert schema_10["properties"]["contract_version"]["const"] == "1.0.0"
+    assert "inspection_coverage" in schema_11["required"]
+    assert "inspection_coverage" not in schema_10["required"]
+
+
+def test_v1_0_and_v1_1_are_not_interchangeable(django_doc):
+    """The 1.1 addition is additive for consumers, not a silent overwrite."""
+    # A 1.1 document must fail the untouched 1.0 schema.
+    assert validate_v1_contract(django_doc, schema=load_v1_0_schema())
+    # A 1.0-shaped document must fail the 1.1 schema (missing coverage)...
+    legacy = json.loads(json.dumps(django_doc))
+    legacy["contract_version"] = "1.0.0"
+    legacy["provenance"]["contract_version"] = "1.0.0"
+    del legacy["inspection_coverage"]
+    assert any(
+        "missing required property `inspection_coverage`" in e
+        for e in validate_v1_contract(legacy)
+    )
+    # ...but still validates against its own untouched 1.0 schema.
+    assert validate_v1_contract(legacy, schema=load_v1_0_schema()) == []
 
 
 def test_v1_block_names_match_the_issue(django_doc):
@@ -91,6 +141,7 @@ def test_v1_block_names_match_the_issue(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     ):
         assert block in django_doc, block
     for inward in ("event", "evidence_references", "dates", "contract_schema_version"):
@@ -147,6 +198,7 @@ def test_every_required_block_missing_is_caught(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     ):
         broken = json.loads(json.dumps(django_doc))
         del broken[block]
@@ -257,7 +309,8 @@ def test_validator_survives_junk_input():
 def test_schema_pins_draft_id_and_descriptions():
     schema = load_schema()
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
-    assert schema["$id"].endswith("/evidence-contract/v1/schema.json")
+    assert schema["$id"].endswith("/evidence-contract/v1.1/schema.json")
+    assert load_v1_0_schema()["$id"].endswith("/evidence-contract/v1/schema.json")
     for name, node in schema["properties"].items():
         assert "description" in node, name
     assert SCHEMA_PATH.exists()
@@ -276,6 +329,7 @@ def test_hash_covers_all_blocks_not_planned_fields(django_doc):
         "unknowns",
         "recommendation",
         "provenance",
+        "inspection_coverage",
     }
     assert "signature" not in _V1_BODY_FIELDS
 
@@ -361,6 +415,46 @@ def test_attest_cli_composes_sbom(tmp_path):
         assert validate_v1_contract(doc) == []
     labels = {doc["identity"]["dependency"] for doc in docs}
     assert "bitnami/redis:7.2" in labels
+
+
+def test_attest_records_failed_repository_scan_on_every_contract(monkeypatch):
+    """A FAILED repo scan must reach the contracts, not hide behind SBOM deps."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+    from core import github_reader
+
+    def fake_inspect(repo_spec, cli_token=None, timeout=30.0):
+        return github_reader.RepoInspection(
+            coverage=github_reader.COVERAGE_FAILED,
+            coverage_reasons=["revision unavailable"],
+            errors=[{"safe_message": "revision unavailable"}],
+        )
+
+    monkeypatch.setattr(github_reader, "inspect_github_repo", fake_inspect)
+    out = CliRunner().invoke(
+        cli,
+        [
+            "attest",
+            "--sbom",
+            "data/fixtures/sbom/cyclonedx.json",
+            "--github-repo",
+            "owner/repo",
+            "--event",
+            "data/fixtures/bitnami/event.json",
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    docs = [json.loads(ln) for ln in out.output.splitlines() if ln.startswith("{")]
+    assert docs
+    assert "repository inspection coverage: FAILED" in out.output
+    for doc in docs:
+        assert doc["inspection_coverage"] == {
+            "status": "FAILED",
+            "reasons": ["revision unavailable"],
+        }
+        assert validate_v1_contract(doc) == []
+        assert verify_v1_content_hash(doc)
 
 
 def test_attest_cli_rejects_missing_sources(tmp_path):

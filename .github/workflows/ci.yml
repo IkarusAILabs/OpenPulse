@@ -20,11 +20,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with: {python-version: '3.11'}
-      - run: pip install -U pip "setuptools>=83" && pip install -e ".[dev]" && pip install pip-audit
+      - run: pip install -U -c .github/ci-constraints.txt pip "setuptools>=83" && pip install -e ".[dev]" && pip install -c .github/ci-constraints.txt pip-audit
       # Threat: floated transitive deps — the lock is the reviewed set.
       - run: pip install -r requirements.lock && python scripts/check_lock.py
       - run: ruff check .
-      - run: pytest -q --ignore=tests/test_warnings.py
+      # Threat: a written-but-excluded test is not a test (F7).
+      - run: python scripts/check_ci_runs_all_tests.py
+      - run: pytest -q
       - run: pip-audit --desc
       # Threat: accidental credential commits — stdlib tripwire ( complements,
       # not replaces, GitHub push protection, which should stay enabled).

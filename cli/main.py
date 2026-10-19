@@ -9,9 +9,11 @@ import click
 from analyzers import change_analyst, report_analyst, security_analyst
 from core.entities.resolve import resolve_project
 from core.schema.models import OSSEvent
+from core.version import openpulse_version
 
 
 @click.group()
+@click.version_option(version=openpulse_version(), prog_name="openpulse")
 def cli():
     pass
 
@@ -485,6 +487,38 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     click.echo(_safe_text(msg, stream=stream), **kwargs)
 
 
+_COVERAGE_RANK = {"COMPLETE": 0, "PARTIAL": 1, "FAILED": 2}
+
+
+def _coverage_summary(inspections) -> tuple[str, list[str]]:
+    """Aggregate repository inspections into one run-level status.
+
+    This is deliberately independent of the dependency results: a
+    FAILED/PARTIAL scan that yielded zero dependencies still must not
+    look clean when other inputs contributed dependencies.
+    """
+    status = "COMPLETE"
+    reasons: list[str] = []
+    for inspection in inspections:
+        current = getattr(inspection, "coverage", "COMPLETE")
+        if _COVERAGE_RANK.get(current, 0) > _COVERAGE_RANK.get(status, 0):
+            status = current
+        for reason in getattr(inspection, "coverage_reasons", []) or []:
+            if reason not in reasons:
+                reasons.append(reason)
+    return status, reasons
+
+
+def _echo_run_coverage(inspections) -> str:
+    """Print the run-level repository coverage (if any) and return it."""
+    status, reasons = _coverage_summary(inspections)
+    if inspections:
+        _echo(f"repository inspection coverage: {status}")
+        for reason in reasons:
+            _echo(f"   - {reason}")
+    return status
+
+
 def _load_check_inputs(
     watchlist,
     sbom,
@@ -517,6 +551,7 @@ def _load_check_inputs(
             "check needs --watchlist, --sbom, --spdx, --images, --lockfile and/or --manifest"
         )
     deps: list[Any] = []
+    inspections: list[Any] = []
     if watchlist:
         try:
             deps = load_watchlist_doc(_load_yaml(watchlist))
@@ -626,23 +661,30 @@ def _load_check_inputs(
         for line in man_skipped:
             _echo(f"! skipped: {line}")
     if github_repo:
-        from core.github_reader import read_github_repo
+        from core.github_reader import inspect_github_repo
 
         try:
-            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+            inspection = inspect_github_repo(github_repo, cli_token=github_token)
         except ValueError as e:
             raise click.ClickException(f"{github_repo}: {e}")
-        for err in gh_errors:
+        for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}")
-        for line in gh_skipped:
+        for line in inspection.skipped:
             _echo(f"! skipped: {line}")
-        if gh_deps:
-            _echo(f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository")
-            deps = [*deps, *gh_deps]
-        elif gh_skipped and not gh_errors:
+        for reason in inspection.coverage_reasons:
+            _echo(f"! coverage: {reason}")
+        _echo(f"github-repo ({github_repo}): inspection coverage {inspection.coverage}")
+        inspections.append(inspection)
+        if inspection.dependencies:
+            _echo(
+                f"github-repo ({github_repo}): "
+                f"{len(inspection.dependencies)} dependency(s) from repository"
+            )
+            deps = [*deps, *inspection.dependencies]
+        elif inspection.skipped and not inspection.errors:
             _echo(
                 f"github-repo ({github_repo}): 0 usable, "
-                f"{len(gh_skipped)} skipped — nothing checkable in this repository"
+                f"{len(inspection.skipped)} skipped — nothing checkable in this repository"
             )
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
@@ -658,7 +700,7 @@ def _load_check_inputs(
         raise click.ClickException(
             "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
         )
-    return deps, loaded_events, bundles
+    return deps, loaded_events, bundles, inspections
 
 
 @cli.command()
@@ -727,6 +769,12 @@ def _load_check_inputs(
 )
 @click.option("--strict", is_flag=True, help="Exit 1 when any dependency is affected")
 @click.option(
+    "--fail-on-partial",
+    is_flag=True,
+    help="Exit 1 when repository inspection coverage is PARTIAL or FAILED "
+    "(report-only by default; FAILED always fails under --strict)",
+)
+@click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
@@ -770,13 +818,14 @@ def check(
     digest,
     webhook,
     webhook_allow_http,
+    fail_on_partial,
     github_repo="",
     github_token="",
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
 
-    deps, loaded_events, bundles = _load_check_inputs(
+    deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -788,6 +837,9 @@ def check(
         events,
         raw_bundle_dir,
     )
+    run_coverage = _echo_run_coverage(inspections)
+    coverage_failed = run_coverage == "FAILED"
+    coverage_blocked = fail_on_partial and run_coverage in ("PARTIAL", "FAILED")
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
@@ -863,6 +915,8 @@ def check(
         threshold = fail_on or ("action" if strict else "")
         if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
+        if coverage_blocked or (strict and coverage_failed):
+            raise SystemExit(1)
         return
     for dep, result in zip(deps, results):
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
@@ -882,10 +936,21 @@ def check(
             _echo(f"ℹ️ {label}: RELATED — {result.reason}")
         else:
             _echo(f"❓ {label}: UNKNOWN — evaluated, no applicable evidence")
+    incomplete = [r for r in results if r.inspection_coverage != "COMPLETE"]
+    if incomplete:
+        reasons = sorted({reason for r in incomplete for reason in r.inspection_coverage_reasons})
+        _echo(
+            f"⚠️  inspection coverage: {len(incomplete)}/{len(results)} dependency(s) not "
+            "COMPLETE — results below are not a clean bill of health"
+        )
+        for reason in reasons:
+            _echo(f"   - {reason}")
     _echo(f"\n{affected}/{len(deps)} dependencies affected")
     from core.risk.check import strict_affected
 
     if strict and strict_affected(results):
+        raise SystemExit(1)
+    if coverage_blocked or (strict and coverage_failed):
         raise SystemExit(1)
 
 
@@ -994,7 +1059,7 @@ def digest(
 
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
-    deps, loaded_events, bundles = _load_check_inputs(
+    deps, loaded_events, bundles, _inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1129,7 +1194,7 @@ def warnings(
 
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
-    deps, loaded_events, bundles = _load_check_inputs(
+    deps, loaded_events, bundles, _inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1263,6 +1328,7 @@ def attest(
     if not events:
         raise click.ClickException("attest needs at least one --event")
     deps: list[Any] = []
+    inspections: list[Any] = []
     if watchlist:
         try:
             deps = load_watchlist_doc(_load_yaml(watchlist))
@@ -1330,26 +1396,34 @@ def attest(
             _echo(f"manifest ({label}): {len(man_deps)} pinned package(s)", err=True)
             deps = [*deps, *man_deps]
     if github_repo:
-        from core.github_reader import read_github_repo
+        from core.github_reader import inspect_github_repo
 
         try:
-            gh_deps, gh_skipped, gh_errors = read_github_repo(github_repo, cli_token=github_token)
+            inspection = inspect_github_repo(github_repo, cli_token=github_token)
         except ValueError as e:
             raise click.ClickException(f"{github_repo}: {e}")
-        for err in gh_errors:
+        for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}", err=True)
-        for line in gh_skipped:
+        for line in inspection.skipped:
             _echo(f"! skipped: {line}", err=True)
-        if gh_deps:
+        for reason in inspection.coverage_reasons:
+            _echo(f"! coverage: {reason}", err=True)
+        _echo(
+            f"github-repo ({github_repo}): inspection coverage {inspection.coverage}",
+            err=True,
+        )
+        inspections.append(inspection)
+        if inspection.dependencies:
             _echo(
-                f"github-repo ({github_repo}): {len(gh_deps)} dependency(s) from repository",
+                f"github-repo ({github_repo}): "
+                f"{len(inspection.dependencies)} dependency(s) from repository",
                 err=True,
             )
-            deps = [*deps, *gh_deps]
-        elif gh_skipped and not gh_errors:
+            deps = [*deps, *inspection.dependencies]
+        elif inspection.skipped and not inspection.errors:
             _echo(
                 f"github-repo ({github_repo}): 0 usable, "
-                f"{len(gh_skipped)} skipped — nothing checkable in this repository",
+                f"{len(inspection.skipped)} skipped — nothing checkable in this repository",
                 err=True,
             )
     if not deps:
@@ -1368,13 +1442,23 @@ def attest(
             bundle = _Path(raw_bundle_dir) / f"{slug}.json"
             if bundle.exists():
                 bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+    # Repository-level coverage: a FAILED/PARTIAL scan must reach every
+    # emitted contract, even when the dependency came from another input,
+    # so a partially read repository is never attested as clean.
+    coverage_override = None
+    if inspections:
+        run_status, run_reasons = _coverage_summary(inspections)
+        _echo(f"repository inspection coverage: {run_status}", err=True)
+        for reason in run_reasons:
+            _echo(f"   - {reason}", err=True)
+        coverage_override = {"status": run_status, "reasons": run_reasons}
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     for dep in deps:
         for event in loaded_events:
             verdict = check_dependency(dep, [event], bundles)
-            doc = build_v1_contract(event, verdict)
+            doc = build_v1_contract(event, verdict, inspection_coverage=coverage_override)
             problems = validate_v1_contract(doc)
             if problems:
                 # A document OpenPulse itself cannot validate must

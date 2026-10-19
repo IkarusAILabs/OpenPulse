@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.4.0 — pydantic models (source of truth)."""
+"""OpenPulse Intelligence Schema v0.5.0 — pydantic models (source of truth)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from .enums import Confidence, EventType, Impact
 
-SCHEMA_VERSION = "0.4.0"
+SCHEMA_VERSION = "0.5.0"
 
 
 class Source(BaseModel):
