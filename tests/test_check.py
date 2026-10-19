@@ -219,6 +219,82 @@ def test_strict_fires_only_on_action_impacts():
     assert strict_affected([verdict("ACTION", affected=False)]) is False
 
 
+def _patch_inspection(monkeypatch, coverage):
+    from core import github_reader
+
+    def fake_inspect(repo_spec, cli_token=None, timeout=30.0):
+        return github_reader.RepoInspection(
+            coverage=coverage,
+            coverage_reasons=[f"{coverage.lower()} scan reason"] if coverage != "COMPLETE" else [],
+            errors=[{"safe_message": "inspection unavailable"}] if coverage == "FAILED" else [],
+        )
+
+    monkeypatch.setattr(github_reader, "inspect_github_repo", fake_inspect)
+
+
+def test_failed_repo_scan_fails_check_under_strict_with_other_inputs(monkeypatch):
+    """A FAILED scan with zero deps must not pass because another input contributed."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, "FAILED")
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--github-repo",
+            "owner/repo",
+            "--strict",
+        ],
+    )
+    assert out.exit_code == 1, out.output
+    assert "repository inspection coverage: FAILED" in out.output
+
+
+def test_failed_repo_scan_is_reportable_without_strict(monkeypatch):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, "FAILED")
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--github-repo",
+            "owner/repo",
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    assert "repository inspection coverage: FAILED" in out.output
+
+
+def test_partial_repo_scan_fails_only_with_fail_on_partial(monkeypatch):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, "PARTIAL")
+    args = [
+        "check",
+        "--watchlist",
+        "data/fixtures/watchlist_sample.yaml",
+        "--github-repo",
+        "owner/repo",
+    ]
+    report_only = CliRunner().invoke(cli, args)
+    assert report_only.exit_code == 0, report_only.output
+    assert "repository inspection coverage: PARTIAL" in report_only.output
+
+    strict_partial = CliRunner().invoke(cli, [*args, "--fail-on-partial"])
+    assert strict_partial.exit_code == 1, strict_partial.output
+
+
 def test_itext_license_change_warns():
     """iText closed-source use without a commercial license: ACTION warning."""
     import json as _json
