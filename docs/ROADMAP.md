@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status (2026-10-21): v0.6.0 on `main` with the v0.6.1 correctness fixes merged (#112 namespaced pom.xml, #113 registry-port image identity, certifi PYSEC-2026-4320); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-10-21): v0.6.1 prepared on `main` - Phase A correctness and leak fixes merged (#112, #113, #115–#119), `SECURITY.md` with private vulnerability reporting (#120); release notes in `CHANGELOG.md`; intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -211,12 +211,12 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 - REMOVED: v0.x phase plan (superseded 2026-10-02), hard-coded test-count headers (CI reports the count), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
 - DONE 2026-10-19: repository coverage assurance (v0.6.0, #100) - blob-SHA-pinned GitHub inspection with COMPLETE/PARTIAL/FAILED coverage, evidence contract v1.1.
-- DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml no longer parses to zero deps (#112), registry ports no longer collapse image identity (#113), certifi bumped for PYSEC-2026-4320.
-- NEXT (reconciled 2026-10-21 security architecture review): finish the v0.6.1 slice, then v0.7.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
+- DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
+- NEXT (reconciled 2026-10-21 security architecture review): collector response caps (A6b), then v0.7.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 
 ## Next 90 Days (reconciled 2026-10-21)
 
-1. Finish v0.6.1 correctness/leak fixes — webhook secret redaction, lock reclaim, GitHub-SBOM ingestion, bounded reads, identifier validation, `SECURITY.md`.
+1. ~~v0.6.1 correctness/leak fixes~~ DONE 2026-10-21 — remaining: collector response caps (A6b) and tagging the v0.6.1 release.
 2. v0.7.0 Anchored Trust (M1 requirement, not expansion) — derived source authority, derived independence, keyed history integrity with rollback detection and external anchoring, portable (JCS) contract hashing. Lead-time claims cite keyed-valid detections only.
 3. Early-warning operationalization (M6) — persistent delivery state, deterministic deduplication/retry policy, DNS-pinned webhook transport, CI/PR integration. Builds on item 2.
 4. Real non-lifecycle discovery (M2) — a live namespace-move pair for `split_moves`; repository/archive and support/license candidates per the backlog.

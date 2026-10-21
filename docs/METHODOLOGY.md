@@ -161,7 +161,7 @@ stable identity — (project, class, subject, scope) where lifecycle
 facts use (project, `EOL`/`EOS`/`DEPRECATION`, sorted cycle versions)
 and security facts use (project, CVE id). The store reuses the
 observation-history trust model: atomic writes (temp + rename),
-per-project locks with stale reclaim, and content hashes over
+per-project OS advisory locks, and (unkeyed) content hashes over
 identity and the sighting dates, verified on every read so an
 edited entry degrades to unknown instead of being trusted. No hash
 chain: an entry is a standalone earliest-witness record, so its own
@@ -258,7 +258,8 @@ version, and predecessor link; the first record links to an explicit
 `genesis` marker. Histories verify VALID / BROKEN / UNKNOWN —
 a broken chain is never diffed against (no findings, no append;
 the corrupt predecessor stays on disk as evidence). Sealed records
-are frozen; concurrent writers serialize on a per-repository lock
+are frozen; concurrent writers serialize on a per-repository OS advisory lock
+(`core/filelock.py`, released by the OS if the holder dies)
 with atomic writes, and history is ordered by chain links, never
 filenames. Threat model: the chain defeats silent corruption,
 partial edits, and fork anomalies, and detects rollback only while
@@ -369,7 +370,12 @@ every resolved IP checked (loopback, link-local incl. the cloud
 metadata range, RFC1918/ULA, CGNAT, multicast, reserved, and named
 metadata endpoints all rejected — one blocked address refuses the
 whole delivery), redirects never followed, short timeout, bounded
-response body, failures never log secrets. Known limitation: DNS is
+response body, failures never log secrets: delivery errors report the
+HTTP status and the scheme + host only, because for Slack/Teams/Discord
+incoming webhooks the URL path is the credential, and shared redaction
+strips webhook paths, `Bearer` credentials and GitHub/Slack token
+shapes. Prefer `OPENPULSE_WEBHOOK_URL` over `--webhook` so the URL
+stays out of the process list. Known limitation: DNS is
 resolved before connecting, so a hostile resolver could race the
 check; short timeouts and no-redirects bound the blast radius.
 

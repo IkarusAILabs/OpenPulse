@@ -1,14 +1,12 @@
 # Next Phases — v0.6.1 → v0.7.0 development plan (2026-10-21)
 
-Source: the 2026-10-21 security architecture review (finding matrix in `docs/ARCHITECTURE_REVIEW.md`). The plan sequences that review against `docs/ROADMAP.md`. Each item names its conceptual layer (1–10) and finding ID. Status words: DONE, NEXT, LATER.
+Source: the 2026-10-21 security architecture review (finding matrix in `docs/ARCHITECTURE_REVIEW.md`). The plan sequences that review against `docs/ROADMAP.md`. Each item names its conceptual layer (1–10) and finding ID. Status words: DONE, ACTIVE, NEXT, LATER.
 
 ## Where we are
 
-- `main` @ `fc38ccb`: v0.6.0, intelligence schema 0.5.0, evidence contract v1.1. CI is green on Linux and Windows.
-- Merged 2026-10-21:
-  - #112: namespaced pom.xml (H1).
-  - #113: registry-port image identity (M3).
-  - certifi 2026.10.19 for PYSEC-2026-4320.
+- `main` @ `b82aaf0` (2026-10-21): Phase A merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1. 747 offline tests; CI green on Linux and Windows.
+- Release: v0.6.1 is prepared in `CHANGELOG.md`. The last tagged release is v0.5.0: v0.6.0 was never tagged, so v0.6.1 ships both lines.
+- Phase A leftovers: A6b (collector response caps) and A9 (tag and publish the release).
 - Still open from v0.6.0: item **C** (finding F5) is referenced in the #100 commit (workstreams A, B, D) but documented nowhere. Either record what it was and add it to this plan, or mark it deferred.
 
 ## Rules for every phase
@@ -27,29 +25,30 @@ The standing roadmap principles apply. In practice, for each PR:
 |---|---|---|---|---|
 | A1 | Namespaced pom.xml; DOCTYPE refused; depth/element caps | 8 | H1 | DONE #112 |
 | A2 | Registry ports kept out of image identity | 3 | M3 | DONE #113 |
-| A3 | Webhook errors report status + host only (see detail below) | 7 | M4, L6 | NEXT |
-| A4 | Lock reclaim fixes (see detail below) | 1, 6 | M6 | NEXT |
-| A5 | GitHub-discovered SBOM/SPDX go through `load_sbom_doc`/`load_spdx_doc` with a size check | 8 | M7 | NEXT |
-| A6 | Bounded input handling (see detail below) | 8 | L1, L2, L4 | NEXT |
-| A7 | Strict charset validation for GitHub owner/repo and Docker namespace/repo; reject `.`, `..`, `?`, `#` | 1, 8 | L5 | NEXT |
-| A8 | `SECURITY.md`: disclosure contact, supported versions, scope; enable GitHub private vulnerability reporting | — | — | NEXT |
-| A9 | Release v0.6.1: version bump in `pyproject.toml` and `core/version.py`, changelog entry, tag | — | — | NEXT |
+| A3 | Webhook errors report status + host only (see detail below) | 7 | M4, L6 | DONE #115 |
+| A4 | Lock correctness: OS advisory locks (see detail below) | 1, 6 | M6 | DONE #116 |
+| A5 | GitHub-discovered SBOM/SPDX go through `load_sbom_doc`/`load_spdx_doc` with a size check | 8 | M7 | DONE #117 |
+| A6 | Bounded input handling (see detail below) | 8 | L1, L2, L4 | DONE #118 (file reads) |
+| A6b | Stream collector HTTP responses with a byte cap (all seven collectors; their tests mock `httpx.get` and need reworking) | 1 | L4 | NEXT |
+| A7 | Strict charset validation for GitHub owner/repo and Docker namespace/repo; reject `.`, `..`, `?`, `#` | 1, 8 | L5 | DONE #119 |
+| A8 | `SECURITY.md`: disclosure via GitHub private vulnerability reporting (enabled), supported versions, scope | — | — | DONE #120 |
+| A9 | Release v0.6.1: version bump in `pyproject.toml` and `core/version.py`, `CHANGELOG.md`, tag + GitHub release | — | — | ACTIVE (bump + changelog done; tag after merge) |
 
 **A3 detail:**
 - Webhook delivery errors report the status code and host only; the URL path is never printed.
 - `redact()` covers `Bearer <token>`, `ghp_`/`gho_`/`github_pat_` tokens, and the paths of known webhook hosts.
 - Add `OPENPULSE_WEBHOOK_URL` and `GITHUB_TOKEN` environment-variable inputs as an alternative to argv.
 
-**A4 detail:**
-- Check the deadline on every loop iteration.
-- Use an owner token in the lock file, and verify it before unlinking.
-- Use `fcntl`/`msvcrt` locking where available.
+**A4 detail (as shipped):**
+- `fcntl.flock` / `msvcrt.locking` on a persistent lock file; the OS releases it when the holder dies, so there is no stale-reclaim heuristic.
+- A first revision with owner tokens and rename-based reclaim double-acquired on the Linux CI runner; plain lock files cannot close that window.
+- Busy locks raise TimeoutError at the deadline; the lock file is never unlinked.
 
 **A6 detail:**
 - Replace `getsize()` followed by an unbounded read with `read(MAX+1)`.
 - Handle `RecursionError` with a clean exit.
 - Make the package-lock v1 walk iterative.
-- Stream collector bodies with a byte cap.
+- Stream collector bodies with a byte cap (split out as A6b).
 - Set `MAX_BLOB_BYTES` no higher than the parser cap.
 
 **Exit criteria:**
@@ -173,4 +172,4 @@ Schedule them alongside Phase C. They compete for the same reviewer time, not th
 
 ## Kickoff prompt for the next session
 
-> Work in the OpenPulse repo. Read `docs/NEXT_PHASES.md`, `docs/ARCHITECTURE_REVIEW.md` (2026-10-21 addendum) and `docs/ROADMAP.md`. Implement Phase A items A3–A7 as one PR per item, each on its own branch off `main`, under the "Rules for every phase". For each item: first re-verify the finding against the code, then write a test that fails, then fix it. Run ruff, the CI test guard, the full suite and `check_lock.py`, and open a PR whose description covers the threat, the fix, the test, and any golden flip. Then draft `SECURITY.md` (A8) and ask me for the disclosure contact before committing it. Do not start Phase B until Phase A has merged.
+> Work in the OpenPulse repo. Read `docs/NEXT_PHASES.md`, `docs/ARCHITECTURE_REVIEW.md` (2026-10-21 addendum), `docs/ROADMAP.md` and `CHANGELOG.md`. First finish Phase A item A6b: stream every collector's HTTP response with a byte cap, and rework the collector tests that mock `httpx.get`. Then start Phase B with B1 (derived source authority) and B2 (derived independence), one PR each, under the "Rules for every phase". For each item: re-verify the finding against the code, write a test that fails, then fix it, and justify any golden flip in the PR description. Ask me before adding `official_domains` to more than the projects that have curated official events today. Do not start B3 (keyed integrity) until B1 and B2 have merged, and propose the key-management design to me first.
