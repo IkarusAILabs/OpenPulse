@@ -223,3 +223,35 @@ not an adversary who recomputes the whole suffix (no secrets in a
 local-first store); DNS rebinding races the webhook check (bounded,
 documented); the secret tripwire complements but does not replace
 push protection.
+
+## Addendum - Security architecture review (2026-10-21, at `2a0e1ee`)
+
+Static review of input parsers, outbound network, integrity, the
+evidence gate, identity and CI, validated against the code (the top
+findings reproduced by running it). Verdict: the architecture holds;
+the remaining risk is silent false negatives at the input layer,
+trust anchors that are asserted rather than derived, and operational
+hardening M6 needs before unattended runs. Sequencing:
+`docs/NEXT_PHASES.md`.
+
+| ID | Finding | Sev | Status |
+|---|---|---|---|
+| H1 | Namespaced pom.xml parsed to `([], [])` - bare-name lookups on `{ns}` tags | High | FIXED #112 |
+| H2 | Unkeyed chain/ledger hashes; missing `tip.json` adopted, so rollback/wipe is silent; `first_detected_at` unchained | High | NEXT v0.7.0 |
+| M1 | `Source.authority` is a free string; `official` is self-declared, never derived from the URL | Med | NEXT v0.7.0 |
+| M2 | Independence falls back to source name; renamed copies count twice | Med | NEXT v0.7.0 |
+| M3 | `normalize_ref` cut at the first colon: `host:port/...` collapsed to `host` | Med | FIXED #113 |
+| M4 | Webhook URL path (the Slack/Teams credential) survives `redact()` into error output | Med | NEXT v0.6.1 |
+| M5 | Webhook DNS-rebinding TOCTOU; NAT64/6to4 not unwrapped before the blocklist | Med | NEXT v0.7.0 (M6) |
+| M6 | Stale-lock reclaim can spin forever; two reclaimers can both acquire | Med | NEXT v0.6.1 |
+| M7 | SBOMs discovered in GitHub repos never ingested (dict passed to path readers) | Med | NEXT v0.6.1 |
+| L1-L11 | Bounded reads, RecursionError, collector body caps, identifier validation, token redaction, clock trust, JCS contract hash, hash-pinned lock + signed releases, generic top-level package names, secret-scan blind spots | Low | v0.6.1 / v0.7.0 |
+| - | certifi 2026.7.22 bundled a compromised CA root (PYSEC-2026-4320) | - | FIXED (lock bump in #112/#113) |
+
+Strengths kept: `yaml.safe_load` only, no eval/pickle/subprocess,
+TLS verify on and no redirects in every collector, blob-SHA-verified
+bounded GitHub inspection with explicit coverage, an https-only
+no-redirect body-capped webhook policy, a vetoing gate, atomic writes,
+link-ordered chains with fork/gap/cycle detection, SHA-pinned
+least-privilege CI. Wording corrected in README/METHODOLOGY/ROADMAP:
+observation history is *corruption-detecting* until H2 lands.

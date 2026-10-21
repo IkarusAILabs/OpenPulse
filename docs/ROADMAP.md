@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status: schema 0.4.0, CI on Linux + Windows, deterministic SBOM archived, v0.5.0 released. Test count is reported by CI. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-10-21): v0.6.0 on `main` with the v0.6.1 correctness fixes merged (#112 namespaced pom.xml, #113 registry-port image identity, certifi PYSEC-2026-4320); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -102,7 +102,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 - identity trust (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
 - version applicability, explicit NOT_AFFECTED
 - confidence model with match strength vs evidence strength separated
-- registry observations, tamper-evident observation history
+- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.7.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
 - first-detection semantics, deterministic reports
 - security hardening (SSRF policy, redaction, lock-drift check, secret tripwire)
 
@@ -208,15 +208,18 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 - ACTIVE: M6 warning engine, durable detection, digest and webhook delivery; remaining work is persistent delivery state, deduplication/retry policy, scheduling and CI/PR integration.
 - NEXT: external-consumer validation of evidence contract v1, then cryptographic contract v2 only after semantic stability.
 - FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
-- REMOVED: v0.x phase plan (superseded 2026-10-02), "292 tests" header (now 409), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
+- REMOVED: v0.x phase plan (superseded 2026-10-02), hard-coded test-count headers (CI reports the count), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
+- DONE 2026-10-19: repository coverage assurance (v0.6.0, #100) - blob-SHA-pinned GitHub inspection with COMPLETE/PARTIAL/FAILED coverage, evidence contract v1.1.
+- DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml no longer parses to zero deps (#112), registry ports no longer collapse image identity (#113), certifi bumped for PYSEC-2026-4320.
+- NEXT (reconciled 2026-10-21 security architecture review): finish the v0.6.1 slice, then v0.7.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 
-## Next 90 Days
+## Next 90 Days (reconciled 2026-10-21)
 
-1. Real non-lifecycle discovery — M2 acceptance set closed 2026-10-07 (five live-replayed cases formalized with golden tests; a live namespace-move pair for `split_moves` still pending).
-2. Report/productization — briefing stays ahead of the intelligence; validate evidence-contract consumption outside OpenPulse.
-3. Benchmark maintenance — prioritize identity/applicability ambiguity and non-lifecycle changes; add AI/ML only where it tests a distinct hypothesis.
-4. Early-warning operationalization — persistent delivery state, deterministic deduplication/retry policy, scheduling and CI/PR integration.
-5. Repository coverage assurance — preserve commit-pinned inspection provenance and distinguish COMPLETE/PARTIAL/FAILED inspection from “no dependencies found”.
+1. Finish v0.6.1 correctness/leak fixes — webhook secret redaction, lock reclaim, GitHub-SBOM ingestion, bounded reads, identifier validation, `SECURITY.md`.
+2. v0.7.0 Anchored Trust (M1 requirement, not expansion) — derived source authority, derived independence, keyed history integrity with rollback detection and external anchoring, portable (JCS) contract hashing. Lead-time claims cite keyed-valid detections only.
+3. Early-warning operationalization (M6) — persistent delivery state, deterministic deduplication/retry policy, DNS-pinned webhook transport, CI/PR integration. Builds on item 2.
+4. Real non-lifecycle discovery (M2) — a live namespace-move pair for `split_moves`; repository/archive and support/license candidates per the backlog.
+5. Benchmark harness (M4) and release supply chain — per-scenario reproducibility package; hash-pinned lock, signed releases with provenance.
 
 Do not add unrelated features. This roadmap exists to stop OpenPulse from becoming a feature-rich data aggregator and instead drive it toward a defensible dependency-intelligence product and a credible research instrument.

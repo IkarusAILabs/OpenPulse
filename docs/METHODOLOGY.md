@@ -1,4 +1,4 @@
-# Methodology — how OpenPulse knows what it claims (schema v0.4.0)
+# Methodology — how OpenPulse knows what it claims (schema v0.5.0)
 
 ## Sources
 
@@ -251,7 +251,7 @@ never identities. First sighting is a baseline; changes derive only
 from observation diffs. History lives in git-ignored local JSON —
 portable, no server.
 
-Observations are tamper-evident: every persisted record carries a
+Observations are corruption-detecting: every persisted record carries a
 chain hash `H[n] = SHA256(canonical_fields(n) + H[n-1])` over
 observation id, source, entity, timestamps, content hash, parser
 version, and predecessor link; the first record links to an explicit
@@ -261,8 +261,13 @@ the corrupt predecessor stays on disk as evidence). Sealed records
 are frozen; concurrent writers serialize on a per-repository lock
 with atomic writes, and history is ordered by chain links, never
 filenames. Threat model: the chain defeats silent corruption,
-partial edits, and rollback/fork anomalies — not an adversary who
-recomputes the whole suffix (no secrets in a local-first store).
+partial edits, and fork anomalies, and detects rollback only while
+`tip.json` survives - a deleted tip is adopted, so truncation or a
+full wipe re-baselines silently. It does not resist an adversary who
+recomputes the whole suffix (the hashes are unkeyed; there are no
+secrets in a local-first store). Keyed integrity, missing-tip
+rollback detection and external anchoring are planned for v0.7.0
+(`docs/NEXT_PHASES.md`).
 
 Every registry-derived finding retains first-class observation
 evidence (`observation_evidence`: observation ids, hashes, chain
@@ -299,6 +304,20 @@ forms carry an explicit policy (`tag_vs_digest_policy`):
 
 A moving tag never reports digest-level certainty — enforced by
 tests (`tests/test_image_inventory.py`), not just documented.
+
+## Repository inspection coverage (schema 0.5.0, contract v1.1)
+
+A GitHub repository input (`--github-repo`) is read at one pinned
+commit; every dependency file is fetched by the blob SHA its tree
+declares, and the returned bytes must hash back to that SHA. Each
+inspection states `inspection_coverage`: COMPLETE, PARTIAL (with
+reasons - a skipped, oversized or unreadable file) or FAILED. Absence
+of dependency files under PARTIAL or FAILED coverage is never "no
+dependencies": it is an inspection limit, carried on the verdict, in
+`check`/`attest` output and in the evidence contract. The same rule
+holds inside a file: a manifest that declares dependencies but yields
+none must refuse or record skips, never return a silent empty set
+(the namespaced pom.xml regression, #112).
 
 ## Uncertainty handling
 
