@@ -47,6 +47,43 @@ class TestParseGitHubRepo:
             parse_github_repo("https://gitlab.com/owner/repo")
 
 
+class TestRepoIdentifierValidation:
+    """Regression (review L5): owner/name are interpolated into API URLs."""
+
+    @pytest.mark.parametrize(
+        "ident",
+        [
+            "git@github.com:a/b/../../user",
+            "a/..",
+            "a/.",
+            "../b",
+            "a/b?x=1",
+            "a/b#frag",
+            "https://github.com/a/b%2F..",
+            "a b/c",
+            "a/b:c",
+            "-a/b",
+            "git@github.com:a",
+        ],
+    )
+    def test_hostile_identifiers_are_refused(self, ident):
+        with pytest.raises(ValueError, match="Invalid GitHub repository identifier"):
+            parse_github_repo(ident)
+
+    @pytest.mark.parametrize(
+        "ident,owner,name",
+        [
+            ("IkarusAILabs/OpenPulse", "IkarusAILabs", "OpenPulse"),
+            ("https://github.com/owner/repo.js/tree/main", "owner", "repo.js"),
+            ("https://github.com/owner/repo.git", "owner", "repo"),
+            ("git@github.com:my-org/my_repo.git", "my-org", "my_repo"),
+        ],
+    )
+    def test_real_identifiers_still_parse(self, ident, owner, name):
+        repo = parse_github_repo(ident)
+        assert (repo.owner, repo.name) == (owner, name)
+
+
 class TestIsDependencyFile:
     def test_manifests(self):
         for fname in [

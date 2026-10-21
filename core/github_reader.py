@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -148,38 +149,47 @@ def parse_github_repo(url_or_name: str) -> GitHubRepo:
     - "https://github.com/owner/repo/"
     - "git@github.com:owner/repo.git"
 
-    Returns GitHubRepo or raises ValueError.
+    Returns GitHubRepo or raises ValueError. Owner and name must match
+    GitHub's own charsets: they are interpolated into API URLs, so `..`,
+    `?`, `#` or extra path segments must never reach a request.
     """
     s = url_or_name.strip()
+    owner = name = None
     # Handle git@github.com:owner/repo.git
     if s.startswith("git@github.com:"):
-        s = s[len("git@github.com:") :]
-        if s.endswith(".git"):
-            s = s[: -len(".git")]
-        owner, name = s.split("/", 1)
-        return GitHubRepo(owner=owner, name=name)
-
+        parts = s[len("git@github.com:") :].removesuffix(".git").split("/")
+        if len(parts) == 2:
+            owner, name = parts
     # Handle https://github.com/owner/repo
-    if s.startswith("https://github.com/"):
-        s = s[len("https://github.com/") :]
-        if s.endswith("/"):
-            s = s[:-1]
-        parts = s.split("/")
+    elif s.startswith("https://github.com/"):
+        parts = s[len("https://github.com/") :].rstrip("/").split("/")
         if len(parts) >= 2:
-            owner, name = parts[0], parts[1]
-            return GitHubRepo(owner=owner, name=name)
-
+            owner, name = parts[0], parts[1].removesuffix(".git")
     # Handle owner/repo
-    if "/" in s and not s.startswith("http"):
+    elif "/" in s and not s.startswith("http"):
         parts = s.split("/")
         if len(parts) == 2:
-            owner, name = parts[0], parts[1]
-            if owner and name:
-                return GitHubRepo(owner=owner, name=name)
+            owner, name = parts
 
+    if owner is not None and name is not None and _valid_repo_parts(owner, name):
+        return GitHubRepo(owner=owner, name=name)
     raise ValueError(
         f"Invalid GitHub repository identifier: {url_or_name}. "
         "Use 'owner/repo' or 'https://github.com/owner/repo'"
+    )
+
+
+#: GitHub logins: alphanumerics and single hyphens, <= 39 chars (underscore
+#: tolerated for enterprise/legacy accounts). Repo names: [A-Za-z0-9._-].
+_GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$")
+_GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+
+
+def _valid_repo_parts(owner: str, name: str) -> bool:
+    return (
+        bool(_GITHUB_OWNER_RE.match(owner))
+        and bool(_GITHUB_REPO_RE.match(name))
+        and name not in (".", "..")
     )
 
 
