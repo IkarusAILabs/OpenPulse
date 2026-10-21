@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import httpx
@@ -25,6 +26,17 @@ _HUB_OFFSET_WALL_MARKER = "pagination offset too large"
 
 _AUTH_URL = "https://auth.docker.io/token"
 _REGISTRY_TAGS_URL = "https://registry-1.docker.io/v2/{repo}/tags/list"
+
+
+#: One Docker path component (distribution spec): lowercase alphanumerics
+#: joined by single `.`/`_`, `__` or hyphen runs. Case is tolerated for
+#: compatibility with existing store keys; `/`, `:`, `@`, `?`, `#` and
+#: dot segments never reach a Hub or registry URL.
+_PATH_COMPONENT_RE = re.compile(r"^[a-z0-9]+(?:(?:\.|_|__|-+)[a-z0-9]+)*$", re.IGNORECASE)
+
+
+def valid_repo_component(part: str) -> bool:
+    return isinstance(part, str) and bool(_PATH_COMPONENT_RE.match(part))
 
 
 def docker_hub_url(namespace: str, repo: str) -> str:
@@ -155,6 +167,13 @@ class RegistryCollector(BaseCollector):
         self.timeout = timeout
 
     def check_image(self, namespace: str, repo: str) -> dict[str, Any]:
+        if not (valid_repo_component(namespace) and valid_repo_component(repo)):
+            return as_error(
+                "registries",
+                ValueError("namespace/repository is not a valid Docker path component"),
+                namespace=str(namespace)[:64],
+                repo=str(repo)[:64],
+            )
         try:
             results: list[dict[str, Any]] = []
             count: int | None = None
