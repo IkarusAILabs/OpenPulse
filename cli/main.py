@@ -796,7 +796,12 @@ def _load_check_inputs(
 @click.option(
     "--webhook",
     default="",
-    help="POST the digest markdown to a JSON-text webhook (e.g. Slack incoming)",
+    envvar="OPENPULSE_WEBHOOK_URL",
+    show_envvar=True,
+    help=(
+        "POST the digest markdown to a JSON-text webhook (e.g. Slack incoming). "
+        "Prefer the env var: argv is visible in the process list"
+    ),
 )
 @click.option(
     "--webhook-allow-http",
