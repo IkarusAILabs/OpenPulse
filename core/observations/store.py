@@ -19,15 +19,13 @@ import contextlib
 import json
 import os
 import tempfile
-import time
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-#: How long a lock file may live before it is considered stale (a
-#: crashed holder must not block automation forever).
-_LOCK_STALE_SECONDS = 120.0
+from core.filelock import exclusive_lock
+
 _LOCK_WAIT_SECONDS = 30.0
 
 
@@ -89,38 +87,18 @@ def repo_lock(
 ) -> Iterator[None]:
     """Per-repository exclusive lock across load-diff-save.
 
-    Lock file creation is atomic (O_CREAT|O_EXCL); stale locks from
-    dead processes are reclaimed after ``_LOCK_STALE_SECONDS``.
+    An OS advisory lock on a persistent ``.lock`` file
+    (``core.filelock.exclusive_lock``): released by the OS if the holder
+    dies, so a crashed run never blocks automation and no stale-reclaim
+    race exists.
     Raises TimeoutError when the lock cannot be acquired in time —
     the caller records it as an error, never proceeds unlocked.
     """
     directory = repo_dir(root, registry, namespace, repository)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    deadline = time.monotonic() + wait_seconds
-    fd: int | None = None
-    while fd is None:
-        try:
-            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            try:
-                age = time.time() - lock.stat().st_mtime
-            except OSError:
-                age = 0.0
-            if age > _LOCK_STALE_SECONDS:
-                with contextlib.suppress(OSError):
-                    lock.unlink()
-                continue
-            if time.monotonic() >= deadline:
-                raise TimeoutError(f"observation lock busy: {lock}")
-            time.sleep(0.05)
-    try:
-        os.write(fd, f"{os.getpid()}".encode("ascii"))
+    with exclusive_lock(lock, wait_seconds, "observation"):
         yield
-    finally:
-        os.close(fd)
-        with contextlib.suppress(OSError):
-            lock.unlink()
 
 
 def save_observation(obs: dict[str, Any], root: str | Path = ".openpulse/observations") -> Path:

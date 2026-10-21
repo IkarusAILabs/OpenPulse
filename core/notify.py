@@ -57,14 +57,31 @@ class WebhookPolicy:
 
 
 def _redacted_url(url: str) -> str:
-    """Host + path for messages: no query, no fragment, no userinfo."""
+    """Scheme + host for messages: no path, query, fragment or userinfo.
+
+    The path is dropped too: for Slack/Teams/Discord incoming webhooks
+    the path IS the credential.
+    """
     try:
         parts = urlsplit(url)
         host = parts.hostname or "?"
         port = f":{parts.port}" if parts.port else ""
-        return f"{parts.scheme}://{host}{port}{parts.path or ''}"
+        return f"{parts.scheme}://{host}{port}"
     except ValueError:
         return "<unparseable-url>"
+
+
+def _scrub_url(text: str, url: str) -> str:
+    """Remove every spelling of `url` (and its path) from a message."""
+    safe = _redacted_url(url)
+    text = text.replace(url, safe)
+    try:
+        path = urlsplit(url).path
+    except ValueError:
+        path = ""
+    if len(path) > 1:
+        text = text.replace(path, "/<redacted>")
+    return redact(text)
 
 
 def _blocked_ip(ip: ipaddress._BaseAddress) -> str | None:
@@ -191,11 +208,13 @@ def post_digest(
                 response.raise_for_status()
                 return {"ok": True, "status_code": response.status_code, "error": None}
     except httpx.HTTPStatusError as exc:
+        # httpx's message embeds the full request URL; report status + host only.
         status = exc.response.status_code if exc.response is not None else None
-        return {"ok": False, "status_code": status, "error": safe_message(exc)[:200]}
+        error = f"webhook returned HTTP {status} from {_redacted_url(webhook_url)}"
+        return {"ok": False, "status_code": status, "error": error}
     except Exception as exc:  # network, DNS, timeouts: report, never crash
-        detail = safe_message(exc)[:200]
-        return {"ok": False, "status_code": None, "error": redact(detail)}
+        detail = _scrub_url(safe_message(exc, limit=2000), webhook_url)[:200]
+        return {"ok": False, "status_code": None, "error": detail}
 
 
 __all__ = [
