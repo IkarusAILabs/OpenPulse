@@ -124,3 +124,41 @@ def test_catalog_new_entries_resolve():
     assert resolve_project("celery") == "celery"
     assert resolve_project("zookeeper") == "zookeeper"
     assert resolve_project("apache/zookeeper") == "zookeeper"
+
+
+def test_registry_port_is_not_a_tag():
+    """Regression: normalize_ref cut at the first colon, so every image on
+    `host:port` collapsed to one VERIFIED `host` identity."""
+    from core.entities.identity import resolution_trust
+    from core.entities.resolve import normalize_ref, resolve_project
+
+    assert normalize_ref("localhost:5000/team/redis:7") == "localhost:5000/team/redis"
+    assert normalize_ref("Registry.Example.com:5000/a/postgres") == (
+        "registry.example.com:5000/a/postgres"
+    )
+    assert normalize_ref("registry.example.com:5000/ns/repo@sha256:abc") == (
+        "registry.example.com:5000/ns/repo"
+    )
+    assert normalize_ref("ghcr.io/org/app:1.2@sha256:abc") == "ghcr.io/org/app"
+    # two images on one private registry keep distinct identities
+    assert resolve_project("localhost:5000/team/redis:7") != resolve_project(
+        "localhost:5000/team/nginx:1"
+    )
+    assert resolution_trust("localhost:5000/team/redis:7")["slug"] != "localhost"
+
+
+def test_single_segment_refs_keep_first_colon_cut():
+    from core.entities.resolve import normalize_ref, resolve_project
+
+    assert normalize_ref("redis:7") == "redis"
+    assert normalize_ref("redis@sha256:abc") == "redis"
+    assert normalize_ref("com.itextpdf:itext-core") == "com.itextpdf"
+    # the maven fallback still resolves from the raw ref
+    assert resolve_project("com.itextpdf:itext-core") == "itext"
+
+
+def test_private_registry_images_do_not_cross_match():
+    from core.risk.match import match_artifact
+
+    assert match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/redis:6")
+    assert not match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/nginx:1")

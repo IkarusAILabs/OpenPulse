@@ -358,10 +358,10 @@ def analyze_github_meta(
                     # requires, docs, CI checkout URLs -- now names a
                     # redirect, not a first-party source. The ref is
                     # scheme-free because that is the form manifests
-                    # and remotes record, and because normalize_ref
-                    # strips at the first colon: a scheme would
-                    # collapse the ref and make every https URL match
-                    # every other one. Naming the old path satisfies
+                    # and remotes record (normalize_ref no longer
+                    # collapses a scheme, but `https://github.com/x`
+                    # and `github.com/x` would still be two identities).
+                    # Naming the old path satisfies
                     # the gate's OWNERSHIP_CHANGE requirement that the
                     # finding state what moved -- and keeps the
                     # destination path a non-match, which is the whole
