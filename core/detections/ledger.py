@@ -56,7 +56,6 @@ from core.filelock import exclusive_lock
 
 #: Same staleness policy as the observation store: a crashed lock
 #: holder must not block automation forever.
-_LOCK_STALE_SECONDS = 120.0
 _LOCK_WAIT_SECONDS = 30.0
 
 #: Finding classes with durable, re-detectable identity. Both
@@ -182,15 +181,15 @@ def ledger_lock(
     """Per-project exclusive lock across load-merge-save.
 
     Same mechanics as ``core.observations.store.repo_lock`` (shared
-    ``core.filelock.exclusive_lock``): atomic O_CREAT|O_EXCL creation,
-    owner-token release, rename-based stale reclaim, TimeoutError (never
-    proceed unlocked). Lock files live in the project directory so
-    concurrent runs on different projects never serialize.
+    ``core.filelock.exclusive_lock``): OS advisory lock released on holder
+    exit, TimeoutError when busy (never proceed unlocked). Lock files live
+    in the project directory so concurrent runs on different projects
+    never serialize.
     """
     directory = _project_dir(root, project)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    with exclusive_lock(lock, wait_seconds, _LOCK_STALE_SECONDS, "ledger"):
+    with exclusive_lock(lock, wait_seconds, "ledger"):
         yield
 
 

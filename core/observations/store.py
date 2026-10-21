@@ -26,9 +26,6 @@ from typing import Any
 
 from core.filelock import exclusive_lock
 
-#: How long a lock file may live before it is considered stale (a
-#: crashed holder must not block automation forever).
-_LOCK_STALE_SECONDS = 120.0
 _LOCK_WAIT_SECONDS = 30.0
 
 
@@ -90,17 +87,17 @@ def repo_lock(
 ) -> Iterator[None]:
     """Per-repository exclusive lock across load-diff-save.
 
-    Lock file creation is atomic (O_CREAT|O_EXCL); stale locks from
-    dead processes are reclaimed after ``_LOCK_STALE_SECONDS`` by an
-    atomic rename (one winner), and release only removes our own lock
-    (``core.filelock.exclusive_lock``).
+    An OS advisory lock on a persistent ``.lock`` file
+    (``core.filelock.exclusive_lock``): released by the OS if the holder
+    dies, so a crashed run never blocks automation and no stale-reclaim
+    race exists.
     Raises TimeoutError when the lock cannot be acquired in time —
     the caller records it as an error, never proceeds unlocked.
     """
     directory = repo_dir(root, registry, namespace, repository)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    with exclusive_lock(lock, wait_seconds, _LOCK_STALE_SECONDS, "observation"):
+    with exclusive_lock(lock, wait_seconds, "observation"):
         yield
 
 

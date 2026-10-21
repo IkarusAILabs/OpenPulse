@@ -1,22 +1,22 @@
-"""Exclusive lock files for the local-first stores (observations, ledger).
+"""Exclusive locks for the local-first stores (observations, ledger).
 
-One implementation for both stores (they previously carried copies):
+One implementation for both stores (they previously carried copies),
+built on OS advisory locks - ``fcntl.flock`` on POSIX, ``msvcrt.locking``
+on Windows - held on a persistent lock file:
 
-- acquisition is atomic ``O_CREAT|O_EXCL``; the holder writes a unique
-  owner token into the file;
-- a lock older than ``stale_seconds`` is reclaimed by atomically
-  *renaming* it aside, so of two waiters racing the same stale lock
-  only one wins - the loser sees the rename fail and keeps waiting.
-  If the renamed file turns out not to be the stale one we saw (its
-  token changed: a live holder replaced it in between), it is linked
-  back in place;
-- the deadline is checked on every iteration, so a lock that cannot be
-  reclaimed (read-only file, Windows handle still open) ends in
-  TimeoutError instead of a busy loop;
-- release removes the file only while it still carries our token, so
-  a holder never deletes a successor's lock.
-
-Callers record TimeoutError as an error and never proceed unlocked.
+- the OS releases the lock when its holder exits or crashes, so there is
+  no staleness heuristic and no reclaim race. The earlier lock-file
+  scheme (O_CREAT|O_EXCL plus age-based reclaim) let two waiters both
+  acquire, and could spin forever when a stale file could not be removed;
+- ``flock`` locks belong to the open file description and Windows region
+  locks to the handle, so threads that each open the file exclude one
+  another as well as other processes;
+- the lock file is never unlinked: deleting a file other processes may be
+  about to lock would reintroduce the race. It is an empty marker beside
+  the data it protects;
+- acquisition polls a non-blocking lock until ``wait_seconds`` elapses,
+  then raises TimeoutError. Callers record it as an error and never
+  proceed unlocked.
 """
 
 from __future__ import annotations
@@ -24,83 +24,54 @@ from __future__ import annotations
 import contextlib
 import os
 import time
-import uuid
 from collections.abc import Iterator
 from pathlib import Path
 
-_POLL_SECONDS = 0.05
+_POLL_SECONDS = 0.02
 
+if os.name == "nt":  # pragma: no cover - exercised on the Windows CI runner
+    import msvcrt
 
-def _read_token(path: Path) -> str | None:
-    try:
-        return path.read_text(encoding="ascii", errors="replace")
-    except OSError:
-        return None
+    def _try_lock(fd: int) -> bool:
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        except OSError:
+            return False
+        return True
 
+    def _unlock(fd: int) -> None:
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
 
-def _try_reclaim(lock: Path, stale_seconds: float) -> None:
-    """Move a stale lock aside; restore it if it was not the stale one.
+else:
+    import fcntl
 
-    Only ``stat`` a live lock, never open it: on Windows an open handle
-    blocks the holder's unlink, which would leave the lock behind.
-    """
-    try:
-        age = time.time() - lock.stat().st_mtime
-    except OSError:
-        return
-    if age <= stale_seconds:
-        return
-    seen = _read_token(lock)
-    aside = lock.with_name(f"{lock.name}.stale-{uuid.uuid4().hex}")
-    try:
-        os.rename(lock, aside)
-    except OSError:
-        return  # another waiter won the rename, or the file is pinned
-    if _read_token(aside) != seen:
-        # A live holder replaced the stale lock between our stat and rename.
-        with contextlib.suppress(OSError):
-            os.link(aside, lock)
-    with contextlib.suppress(OSError):
-        aside.unlink()
+    def _try_lock(fd: int) -> bool:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return False
+        return True
+
+    def _unlock(fd: int) -> None:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 @contextlib.contextmanager
-def exclusive_lock(
-    lock: Path, wait_seconds: float, stale_seconds: float, label: str
-) -> Iterator[None]:
+def exclusive_lock(lock: Path, wait_seconds: float, label: str) -> Iterator[None]:
     """Hold ``lock`` exclusively; raise TimeoutError(``label``) when busy."""
-    token = f"{os.getpid()}-{uuid.uuid4().hex}"
     deadline = time.monotonic() + wait_seconds
-    fd: int | None = None
-    while fd is None:
-        try:
-            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            _try_reclaim(lock, stale_seconds)
-            if time.monotonic() >= deadline:
-                raise TimeoutError(f"{label} lock busy: {lock}") from None
-            time.sleep(_POLL_SECONDS)
+    fd = os.open(str(lock), os.O_CREAT | os.O_RDWR, 0o600)
     try:
-        os.write(fd, token.encode("ascii"))
+        while not _try_lock(fd):
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"{label} lock busy: {lock}")
+            time.sleep(_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            with contextlib.suppress(OSError):
+                _unlock(fd)
     finally:
         os.close(fd)
-    try:
-        yield
-    finally:
-        _release(lock, token)
-
-
-def _release(lock: Path, token: str) -> None:
-    """Unlink our own lock; retry briefly when Windows reports it busy."""
-    for _ in range(40):
-        if _read_token(lock) != token:
-            return
-        try:
-            lock.unlink()
-            return
-        except FileNotFoundError:
-            return
-        except PermissionError:  # a reclaimer's stat/read handle is open
-            time.sleep(_POLL_SECONDS / 5)
-        except OSError:
-            return
