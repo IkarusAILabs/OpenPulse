@@ -433,7 +433,7 @@ def test_webhook_http_error_never_echoes_the_secret_path():
     assert result["status_code"] == 404
     assert "XyZsecretPathToken" not in str(result)
     assert "T0001" not in str(result)
-    assert "hooks.slack.com" in result["error"]
+    assert result["error"] == "webhook returned HTTP 404 from https://hooks.slack.com"
 
 
 def test_webhook_transport_error_never_echoes_the_secret_path():
@@ -468,9 +468,11 @@ def test_redact_covers_auth_schemes_token_shapes_and_webhook_paths():
     out = redact(text)
     for secret in (pat, fine, slack, "sekret", "tok3n", "IncomingWebhook"):
         assert secret not in out, secret
-    assert "hooks.slack.com/<redacted>" in out
+    slack_url = "https://hooks.slack.com/services/T1/B2/sekret"
+    assert redact(slack_url) == "https://hooks.slack.com/<redacted>"
     # ordinary API URLs keep their path (collector diagnostics stay useful)
-    assert "api.github.com/repos/o/r" in redact("GET https://api.github.com/repos/o/r failed")
+    api_msg = "GET https://api.github.com/repos/o/r failed"
+    assert redact(api_msg) == api_msg
 
 
 def test_webhook_url_can_come_from_env_var(monkeypatch):
