@@ -337,8 +337,9 @@ def test_lock_contention_is_an_error_not_corruption(tmp_path):
                 pass
     finally:
         thread.join()
-    # Lock file is always released.
-    assert not (tmp_path / "docker.io" / "demo" / "app" / ".lock").exists()
+    # The lock is always released: it is immediately re-acquirable.
+    with store.repo_lock(tmp_path, "docker.io", "demo", "app", wait_seconds=0.1):
+        pass
 
 
 def test_rollback_missing_newest_file_refuses(tmp_path):
