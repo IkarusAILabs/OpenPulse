@@ -45,6 +45,16 @@ from core import sbom_reader
 #: not a second unbounded channel.
 MAX_MANIFEST_BYTES = sbom_reader.MAX_SBOM_BYTES
 
+#: pom.xml structural bounds - real POMs nest under ~10 levels and stay
+#: well below this element count; anything past either is refused, not
+#: walked (bounded CPU on hostile input).
+MAX_POM_DEPTH = 64
+MAX_POM_ELEMENTS = 200_000
+
+#: Maven POMs never need a DTD; refusing one keeps entity expansion
+#: (billion laughs) off the table regardless of the linked expat version.
+_DOCTYPE_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
+
 #: PEP 508 name grammar - the start of every requirements.txt line
 #: and PEP 621 dependency string.
 _REQ_NAME_RE = re.compile(r"[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?")
@@ -370,40 +380,52 @@ def load_pom_xml_doc(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     managed literal - that is the table's purpose. `<scope>test</scope>`
     entries are skipped as not runtime deps. Unresolvable
     property refs are skipped, never guessed.
+
+    Real POMs declare `xmlns="http://maven.apache.org/POM/4.0.0"`,
+    so every tag is normalized to its local name before any lookup -
+    a namespaced pom must never parse to zero deps. DTDs are refused
+    and depth/element counts are bounded.
     """
     import xml.etree.ElementTree as ET
 
+    if _DOCTYPE_RE.search(text):
+        raise ValueError("pom.xml declares a DOCTYPE - refused (POMs need no DTD)")
     try:
         root = ET.fromstring(text)
     except ET.ParseError as e:
         raise ValueError(f"pom.xml is not parseable XML: {e}") from None
     if _local_name(root.tag) != "project":
         raise ValueError("pom.xml needs a `<project>` root element")
-    properties = _pom_properties(root)
-    # Collect dependency blocks classified by ancestor chain: direct
-    # (project-level or profile/build-nested) vs managed.
+    # One bounded pass: strip namespaces and classify dependency blocks
+    # by ancestry - direct (project-level or profile/build-nested) vs
+    # managed; plugin/reporting dependencies run build tools, not the
+    # shipped artifact, so they are not runtime identity.
     direct_blocks: list[Any] = []
     managed_blocks: list[Any] = []
-    parent_of: dict[int, Any] = {}
-    for parent in root.iter():
-        for child in parent:
-            parent_of[id(child)] = parent
-    for block in (e for e in root.iter() if _local_name(e.tag) == "dependencies"):
-        chain: list[Any] = []
-        node = block
-        while node is not None and node is not root:
-            node = parent_of.get(id(node))
-            if node is not None:
-                chain.append(node)
-        names = [_local_name(e.tag) for e in chain]
-        if "dependencyManagement" in names:
-            managed_blocks.append(block)
-        elif any(n in ("plugin", "plugins", "reporting", "reportPlugin") for n in names):
-            # plugin/reporting dependencies run build tools, not the
-            # shipped artifact - not runtime identity.
-            continue
-        else:
-            direct_blocks.append(block)
+    count = 0
+    stack: list[tuple[Any, int, bool, bool]] = [(root, 0, False, False)]
+    while stack:
+        elem, depth, in_managed, in_plugin = stack.pop()
+        count += 1
+        if count > MAX_POM_ELEMENTS:
+            raise ValueError(f"pom.xml exceeds {MAX_POM_ELEMENTS} elements - refused")
+        if depth > MAX_POM_DEPTH:
+            raise ValueError(f"pom.xml nests deeper than {MAX_POM_DEPTH} levels - refused")
+        if isinstance(elem.tag, str):
+            elem.tag = _local_name(elem.tag)
+        tag = elem.tag
+        if tag == "dependencies":
+            if in_managed:
+                managed_blocks.append(elem)
+            elif not in_plugin:
+                direct_blocks.append(elem)
+        child_managed = in_managed or tag == "dependencyManagement"
+        child_plugin = in_plugin or tag in ("plugin", "plugins", "reporting", "reportPlugin")
+        # Reversed push keeps pops in document order - first-wins in the
+        # managed table depends on it.
+        for child in reversed(list(elem)):
+            stack.append((child, depth + 1, child_managed, child_plugin))
+    properties = _pom_properties(root)
     if not direct_blocks and not managed_blocks:
         raise ValueError("pom.xml declares no `<dependencies>` block")
     # Managed table: groupId:artifactId -> resolved literal version.
