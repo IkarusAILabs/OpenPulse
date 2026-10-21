@@ -145,8 +145,19 @@ everything else. We do not compete on EOL record counts.
   Bitnami-namespace rules, and identity trust (VERIFIED /
   REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
   EMERGING).
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage) with digest + webhook delivery, emit evidence-contract v1.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in).
-- **700+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract v1.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
+- **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+
+## What's new in v0.6.1
+
+v0.6.1 is the first release since v0.5.0 and also carries the v0.6.0 work. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+- **More of your dependencies, checked the same way.** `check` and `attest` read SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests, container image lists, and whole GitHub repositories (`--github-repo`). All of them feed the same verdict engine.
+- **Honest coverage.** Repository inspection reports COMPLETE, PARTIAL or FAILED, and an inspection that couldn't read something never claims "no dependencies".
+- **Early-warning views.** `openpulse digest` and `openpulse warnings` show upcoming deadlines, with lead times taken from first detection.
+- **Machine-readable verdicts.** `openpulse attest` emits evidence-contract v1.1 documents.
+- **Correctness and security fixes.** Real-world (namespaced) `pom.xml` files no longer parse to zero dependencies. Private-registry image refs (`host:port/...`) keep distinct identities. Webhook errors no longer leak the secret URL path. Locks are OS-level and crash-safe. Every input read is bounded.
+- **Upgrade note.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.7.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
 
 ## Quickstart
 
@@ -193,7 +204,17 @@ openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fi
     # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
-# 7. Run the test suite
+# 7. Check a whole GitHub repository (public; set GITHUB_TOKEN for private ones)
+openpulse check --github-repo owner/repo --event data/fixtures/bitnami/event.json
+
+# 8. Upcoming deadlines for your dependencies (90-day window; `check --ledger` records first detection)
+openpulse warnings --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
+openpulse digest   --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
+
+# 9. Post the check digest to Slack-style webhooks (URL via env var, never argv)
+OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/...   openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json --digest
+
+# 10. Run the test suite
 pytest -q
 ```
 
@@ -254,7 +275,7 @@ cli/                # openpulse CLI (validate, pulse, analyze, observe, report, 
 reports/            # generate.py — monthly ranked markdown reports
 data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
 docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
-tests/              # 700+ offline tests (no network in CI)
+tests/              # 740+ offline tests (no network in CI)
 ```
 
 The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this repo — the OSS intelligence core stays independent.
@@ -270,6 +291,8 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
 | `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 — machine-readable dependency verdicts |
 | `docs/NEXT_PHASES.md` | v0.6.1 → v0.7.0 development plan from the 2026-10-21 security review |
+| `CHANGELOG.md` | What changed in each release |
+| `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
 
 ## Roadmap
 
@@ -294,6 +317,10 @@ pytest -q      # must pass (offline)
 ```
 
 Good first issues are labeled [`good first issue`](https://github.com/IkarusAILabs/OpenPulse/labels/good%20first%20issue).
+
+## Security
+
+Found a vulnerability, including an input that makes OpenPulse confidently wrong? Please report it privately through GitHub's **Report a vulnerability** button (Security tab). Do not open a public issue. Scope, response times and known limitations: [`SECURITY.md`](SECURITY.md).
 
 ## Contributors
 
