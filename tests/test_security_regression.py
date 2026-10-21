@@ -413,3 +413,84 @@ def test_oversized_probe_rejected_not_persisted(tmp_path):
     assert result["observations"] == []
     assert result["errors"]
     assert list_observations("docker.io", "demo", "app", root=tmp_path) == []
+
+
+def test_webhook_http_error_never_echoes_the_secret_path():
+    """Regression: on 4xx/5xx the httpx message (full URL) reached the CLI;
+    for Slack-style webhooks the path IS the credential."""
+    import httpx
+
+    from core.notify import post_digest
+
+    url = "https://hooks.slack.com/services/T0001/B0002/XyZsecretPathToken"
+
+    def not_found(request):
+        return httpx.Response(404, content=b"no_service", request=request)
+
+    result = post_digest(
+        url, "md", transport=httpx.MockTransport(not_found), resolver=lambda h: ["93.184.216.34"]
+    )
+    assert result["ok"] is False
+    assert result["status_code"] == 404
+    assert "XyZsecretPathToken" not in str(result)
+    assert "T0001" not in str(result)
+    assert result["error"] == "webhook returned HTTP 404 from https://hooks.slack.com"
+
+
+def test_webhook_transport_error_never_echoes_the_secret_path():
+    import httpx
+
+    from core.notify import post_digest
+
+    url = "https://hooks.example:8443/hook/AbCsecretPath"
+
+    def fail(request):
+        raise httpx.ConnectError(f"failed to reach {request.url}")
+
+    result = post_digest(
+        url, "md", transport=httpx.MockTransport(fail), resolver=lambda h: ["93.184.216.34"]
+    )
+    assert result["ok"] is False
+    assert "AbCsecretPath" not in str(result)
+
+
+def test_redact_covers_auth_schemes_token_shapes_and_webhook_paths():
+    from collectors.errors import redact
+
+    pat = "ghp_" + "a" * 36
+    fine = "github_pat_" + "B" * 30
+    slack = "xo" + "xb-1234567890-abc"
+    text = (
+        f"Authorization: Bearer {pat} also {fine} and {slack} "
+        "https://hooks.slack.com/services/T1/B2/sekret "
+        "https://discord.com/api/webhooks/123/tok3n "
+        "https://contoso.webhook.office.com/webhookb2/g@t/IncomingWebhook/x/y"
+    )
+    out = redact(text)
+    for secret in (pat, fine, slack, "sekret", "tok3n", "IncomingWebhook"):
+        assert secret not in out, secret
+    slack_url = "https://hooks.slack.com/services/T1/B2/sekret"
+    assert redact(slack_url) == "https://hooks.slack.com/<redacted>"
+    # ordinary API URLs keep their path (collector diagnostics stay useful)
+    api_msg = "GET https://api.github.com/repos/o/r failed"
+    assert redact(api_msg) == api_msg
+
+
+def test_webhook_url_can_come_from_env_var(monkeypatch):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    monkeypatch.setenv("OPENPULSE_WEBHOOK_URL", "http://hooks.example/x")
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--event",
+            "data/fixtures/bitnami/event.json",
+        ],
+    )
+    # the env var is picked up: plain http is refused by policy, never sent
+    assert "webhook delivery failed: http webhooks need explicit opt-in" in out.output
