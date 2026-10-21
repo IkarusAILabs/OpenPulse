@@ -22,14 +22,17 @@ from collectors.errors import as_error, redact
 from core.image_inventory import read_image_inventory
 from core.lockfile_reader import read_lockfile
 from core.manifest_reader import read_manifest
-from core.sbom_reader import read_sbom, read_spdx
+from core.sbom_reader import MAX_SBOM_BYTES, load_sbom_doc, load_spdx_doc
 
 GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
-# GitHub's blobs API serves base64 payloads up to 100 MB; above that a
-# file cannot be inspected and must become an explicit PARTIAL skip, never
-# a silent "no dependencies" (F2).
-MAX_BLOB_BYTES = 100 * 1024 * 1024  # 100MB per blob (GitHub hard limit)
+# GitHub's blobs API serves base64 payloads up to 100 MB, but every reader
+# refuses input over the shared 50 MB parser cap (`MAX_SBOM_BYTES`), so a
+# larger blob is skipped by its tree-declared size before download instead
+# of being fetched only to be rejected. Over the cap is an explicit PARTIAL
+# skip, never a silent "no dependencies" (F2). Pinned equal to the parser
+# cap by tests.
+MAX_BLOB_BYTES = 50 * 1024 * 1024
 MAX_FILES = 200  # max dependency files to process
 MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
 MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
@@ -641,20 +644,29 @@ def read_lockfile_from_content(
             pass
 
 
-def read_sbom_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Read CycloneDX SBOM from content string."""
+def _parse_sbom_json(content: str, label: str) -> Any:
+    """Size-bounded JSON parse - the same cap the on-disk SBOM readers apply."""
     import json
 
-    doc = json.loads(content)
-    return read_sbom(doc)
+    size = len(content.encode("utf-8"))
+    if size > MAX_SBOM_BYTES:
+        raise ValueError(f"{label} is {size} bytes (limit {MAX_SBOM_BYTES})")
+    return json.loads(content)
+
+
+def read_sbom_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
+    """Read CycloneDX SBOM from content string.
+
+    Goes through the doc-level loader: the path readers (`read_sbom`)
+    take a filename, and handing them a parsed dict raised TypeError,
+    so repository SBOMs were never ingested.
+    """
+    return load_sbom_doc(_parse_sbom_json(content, "sbom"))
 
 
 def read_spdx_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Read SPDX SBOM from content string."""
-    import json
-
-    doc = json.loads(content)
-    return read_spdx(doc)
+    """Read SPDX SBOM from content string (doc-level loader, size-bounded)."""
+    return load_spdx_doc(_parse_sbom_json(content, "spdx"))
 
 
 def read_image_inventory_from_content(

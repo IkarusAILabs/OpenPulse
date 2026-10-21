@@ -17,7 +17,6 @@ network.
 
 from __future__ import annotations
 
-import json
 import urllib.parse
 from typing import Any
 
@@ -152,13 +151,9 @@ def _read_bounded_json(path: str, label: str) -> dict[str, Any]:
     because SBOMs are legitimately multi-MB, not because reads are
     unbounded. `label` names the input kind in the refusal message.
     """
-    import os
+    from core.bounded_io import loads_json, read_text
 
-    size = os.path.getsize(path)
-    if size > MAX_SBOM_BYTES:
-        raise ValueError(f"{label} is {size} bytes (limit {MAX_SBOM_BYTES})")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return loads_json(read_text(path, MAX_SBOM_BYTES, label), label)
 
 
 def read_sbom(path: str) -> tuple[list[dict[str, Any]], list[str]]:
