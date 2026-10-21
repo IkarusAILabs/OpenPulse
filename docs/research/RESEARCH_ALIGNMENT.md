@@ -36,7 +36,7 @@ SafeAI ([repo](https://github.com/IkarusAILabs/SafeAI)) is the Agent Authority E
 
 ## Evidence model (implemented)
 
-Collectors (GitHub, OSV, NVD, CVE, KEV, endoflife.date, registries; all degrade gracefully) feed pure-function analysts; the evidence gate vetoes weak claims; findings carry sources, content hashes, parser versions, confidence, scope, and temporal roles (announced / first detected / last verified / effective / reported). Registry observations are hash-chained and tamper-evident; dependency verdicts separate match strength from evidence strength; identity trust states (VERIFIED / REVIEW_REQUIRED / UNVERIFIED) cap conclusions from untrusted mappings. Reports render a PUBLIC/INTERNAL/DEBUG boundary enforced by tests.
+Collectors (GitHub, OSV, NVD, CVE, KEV, endoflife.date, registries; all degrade gracefully) feed pure-function analysts; the evidence gate vetoes weak claims; findings carry sources, content hashes, parser versions, confidence, scope, and temporal roles (announced / first detected / last verified / effective / reported). Registry observations are hash-chained and corruption-detecting (unkeyed; keyed integrity planned for v0.7.0); dependency verdicts separate match strength from evidence strength; identity trust states (VERIFIED / REVIEW_REQUIRED / UNVERIFIED) cap conclusions from untrusted mappings. Reports render a PUBLIC/INTERNAL/DEBUG boundary enforced by tests.
 
 ## Benchmark strategy (M4, validation in progress)
 
