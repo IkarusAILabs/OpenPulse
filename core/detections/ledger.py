@@ -47,11 +47,12 @@ import hashlib
 import json
 import os
 import tempfile
-import time
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from core.filelock import exclusive_lock
 
 #: Same staleness policy as the observation store: a crashed lock
 #: holder must not block automation forever.
@@ -180,38 +181,17 @@ def ledger_lock(
 ) -> Iterator[None]:
     """Per-project exclusive lock across load-merge-save.
 
-    Same mechanics as ``core.observations.store.repo_lock``: atomic
-    O_CREAT|O_EXCL creation, stale reclaim, TimeoutError (never
+    Same mechanics as ``core.observations.store.repo_lock`` (shared
+    ``core.filelock.exclusive_lock``): atomic O_CREAT|O_EXCL creation,
+    owner-token release, rename-based stale reclaim, TimeoutError (never
     proceed unlocked). Lock files live in the project directory so
     concurrent runs on different projects never serialize.
     """
     directory = _project_dir(root, project)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    deadline = time.monotonic() + wait_seconds
-    fd: int | None = None
-    while fd is None:
-        try:
-            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            try:
-                age = time.time() - lock.stat().st_mtime
-            except OSError:
-                age = 0.0
-            if age > _LOCK_STALE_SECONDS:
-                with contextlib.suppress(OSError):
-                    lock.unlink()
-                continue
-            if time.monotonic() >= deadline:
-                raise TimeoutError(f"ledger lock busy: {lock}")
-            time.sleep(0.05)
-    try:
-        os.write(fd, f"{os.getpid()}".encode("ascii"))
+    with exclusive_lock(lock, wait_seconds, _LOCK_STALE_SECONDS, "ledger"):
         yield
-    finally:
-        os.close(fd)
-        with contextlib.suppress(OSError):
-            lock.unlink()
 
 
 def _write_atomic(path: Path, payload: dict[str, Any]) -> None:
