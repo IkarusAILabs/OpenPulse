@@ -177,7 +177,9 @@ def test_lock_contention_is_an_error_not_corruption(root):
                 pass
     finally:
         thread.join()
-    assert not (root / "django" / ".ledger-lock").exists()
+    # The lock is always released: it is immediately re-acquirable.
+    with ledger.ledger_lock(root, "django", wait_seconds=0.1):
+        pass
 
 
 def test_corrupt_entry_degrades_to_unknown(root):
@@ -801,24 +803,21 @@ def test_check_cli_ledger_busy_never_crashes_the_run(tmp_path, monkeypatch):
     watchlist = _write_watchlist(tmp_path)
     ledger_root = tmp_path / "ledger"
     (ledger_root / "django").mkdir(parents=True)
-    # A fresh lock held by someone else: acquisition times out
-    # (stale reclaim disabled so the holder looks alive).
-    (ledger_root / "django" / ".ledger-lock").write_text("holder", encoding="utf-8")
+    # The ledger lock is genuinely held by someone else for the whole run.
     monkeypatch.setattr(ledger_mod, "_LOCK_WAIT_SECONDS", 0.05)
-    monkeypatch.setattr(ledger_mod, "_LOCK_STALE_SECONDS", 10_000.0)
-
-    out = CliRunner().invoke(
-        _cli,
-        [
-            "check",
-            "--watchlist",
-            str(watchlist),
-            "--event",
-            "data/fixtures/django-eol/event.json",
-            "--ledger",
-            str(ledger_root),
-        ],
-    )
+    with ledger_mod.ledger_lock(ledger_root, "django", wait_seconds=1):
+        out = CliRunner().invoke(
+            _cli,
+            [
+                "check",
+                "--watchlist",
+                str(watchlist),
+                "--event",
+                "data/fixtures/django-eol/event.json",
+                "--ledger",
+                str(ledger_root),
+            ],
+        )
     assert out.exit_code == 0, (out.output, out.exception)
     assert "django==4.2: AFFECTED" in out.output
     assert "ledger busy" in out.output

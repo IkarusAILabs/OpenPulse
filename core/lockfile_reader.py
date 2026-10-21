@@ -22,10 +22,10 @@ clean error instead of pulling a parser in.
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from core import sbom_reader
+from core.bounded_io import loads_json, read_bytes
 
 #: Lockfiles share the SBOM reader's size cap - the same bounded-read
 #: policy (real package-lock.json and poetry.lock files routinely run
@@ -107,8 +107,18 @@ def load_package_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], li
 def _walk_v1_dependencies(
     node: dict[str, Any], deps: list[dict[str, Any]], skipped: list[str]
 ) -> None:
-    """v1 lockfiles nest installed deps inside `dependencies` - walk all levels."""
-    for name, entry in node.items():
+    """v1 lockfiles nest installed deps inside `dependencies` - walk all levels.
+
+    Iterative (explicit stack, same depth-first order as the old
+    recursion), so hostile nesting cannot exhaust the interpreter stack.
+    """
+    stack = [iter(node.items())]
+    while stack:
+        item = next(stack[-1], None)
+        if item is None:
+            stack.pop()
+            continue
+        name, entry = item
         if not isinstance(entry, dict):
             skipped.append(f"`{name}`: not a mapping")
             continue
@@ -119,7 +129,7 @@ def _walk_v1_dependencies(
         deps.append(_pinned_dep(str(name), "npm", version))
         nested = entry.get("dependencies")
         if isinstance(nested, dict):
-            _walk_v1_dependencies(nested, deps, skipped)
+            stack.append(iter(nested.items()))
 
 
 def load_poetry_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -224,13 +234,9 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     `version` is Cargo. Anything else is refused with a clean error
     naming what was tried. Both branches share the SBOM-sized cap.
     """
-    size = os.path.getsize(path)
-    if size > MAX_LOCKFILE_BYTES:
-        raise ValueError(f"lockfile is {size} bytes (limit {MAX_LOCKFILE_BYTES})")
-    with open(path, "rb") as f:
-        data = f.read()
+    data = read_bytes(path, MAX_LOCKFILE_BYTES, "lockfile")
     try:
-        doc = json.loads(data)
+        doc = loads_json(data, "lockfile")
     except (json.JSONDecodeError, UnicodeDecodeError):
         doc = None
     if isinstance(doc, dict):

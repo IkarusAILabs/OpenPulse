@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_github_parse():
     from collectors.github.collector import parse_releases
 
@@ -172,3 +175,23 @@ def test_check_image_malformed_pages_are_errors(monkeypatch):
     out = docker_module.RegistryCollector().check_image("demo", "app")
     assert out.get("error") is True
     assert out.get("category") == "parse"
+
+
+@pytest.mark.parametrize(
+    "namespace,repo",
+    [("..", "redis"), ("bitnami", "../x"), ("a/b", "redis"), ("bitnami", "redis?x"),
+     ("bitnami", "redis#f"), ("bitnami", "redis:7"), ("", "redis")],
+)
+def test_registry_rejects_hostile_path_components(monkeypatch, namespace, repo):
+    """Regression (review L5): namespace/repo are interpolated into Hub URLs."""
+    import httpx
+
+    from collectors.registries.docker import RegistryCollector
+
+    def no_network(*_a, **_k):
+        raise AssertionError("request must not be sent")
+
+    monkeypatch.setattr(httpx, "get", no_network)
+    out = RegistryCollector().check_image(namespace, repo)
+    assert out["error"] is True
+    assert out["category"] == "parse"

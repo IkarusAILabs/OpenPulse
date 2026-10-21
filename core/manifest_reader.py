@@ -34,11 +34,11 @@ clean error instead of pulling a parser in.
 
 from __future__ import annotations
 
-import os
 import re
 from typing import Any
 
 from core import sbom_reader
+from core.bounded_io import read_bytes
 
 #: Manifests share the SBOM reader's size cap - the same bounded-read
 #: policy (real pom.xml and Cargo.toml files routinely run multi-MB),
@@ -703,11 +703,7 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     read is bounded by the SBOM cap (multi-MB pom.xml/Cargo.toml
     are legitimate; the cap keeps reads bounded, not unbounded).
     """
-    size = os.path.getsize(path)
-    if size > MAX_MANIFEST_BYTES:
-        raise ValueError(f"manifest is {size} bytes (limit {MAX_MANIFEST_BYTES})")
-    with open(path, "rb") as f:
-        data = f.read()
+    data = read_bytes(path, MAX_MANIFEST_BYTES, "manifest")
     try:
         # utf-8-sig = utf-8 that tolerates a leading BOM: the BOM is
         # encoding metadata, not content, but `lstrip()` would leave

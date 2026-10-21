@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -21,14 +22,17 @@ from collectors.errors import as_error, redact
 from core.image_inventory import read_image_inventory
 from core.lockfile_reader import read_lockfile
 from core.manifest_reader import read_manifest
-from core.sbom_reader import read_sbom, read_spdx
+from core.sbom_reader import MAX_SBOM_BYTES, load_sbom_doc, load_spdx_doc
 
 GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
-# GitHub's blobs API serves base64 payloads up to 100 MB; above that a
-# file cannot be inspected and must become an explicit PARTIAL skip, never
-# a silent "no dependencies" (F2).
-MAX_BLOB_BYTES = 100 * 1024 * 1024  # 100MB per blob (GitHub hard limit)
+# GitHub's blobs API serves base64 payloads up to 100 MB, but every reader
+# refuses input over the shared 50 MB parser cap (`MAX_SBOM_BYTES`), so a
+# larger blob is skipped by its tree-declared size before download instead
+# of being fetched only to be rejected. Over the cap is an explicit PARTIAL
+# skip, never a silent "no dependencies" (F2). Pinned equal to the parser
+# cap by tests.
+MAX_BLOB_BYTES = 50 * 1024 * 1024
 MAX_FILES = 200  # max dependency files to process
 MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
 MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
@@ -148,38 +152,47 @@ def parse_github_repo(url_or_name: str) -> GitHubRepo:
     - "https://github.com/owner/repo/"
     - "git@github.com:owner/repo.git"
 
-    Returns GitHubRepo or raises ValueError.
+    Returns GitHubRepo or raises ValueError. Owner and name must match
+    GitHub's own charsets: they are interpolated into API URLs, so `..`,
+    `?`, `#` or extra path segments must never reach a request.
     """
     s = url_or_name.strip()
+    owner = name = None
     # Handle git@github.com:owner/repo.git
     if s.startswith("git@github.com:"):
-        s = s[len("git@github.com:") :]
-        if s.endswith(".git"):
-            s = s[: -len(".git")]
-        owner, name = s.split("/", 1)
-        return GitHubRepo(owner=owner, name=name)
-
+        parts = s[len("git@github.com:") :].removesuffix(".git").split("/")
+        if len(parts) == 2:
+            owner, name = parts
     # Handle https://github.com/owner/repo
-    if s.startswith("https://github.com/"):
-        s = s[len("https://github.com/") :]
-        if s.endswith("/"):
-            s = s[:-1]
-        parts = s.split("/")
+    elif s.startswith("https://github.com/"):
+        parts = s[len("https://github.com/") :].rstrip("/").split("/")
         if len(parts) >= 2:
-            owner, name = parts[0], parts[1]
-            return GitHubRepo(owner=owner, name=name)
-
+            owner, name = parts[0], parts[1].removesuffix(".git")
     # Handle owner/repo
-    if "/" in s and not s.startswith("http"):
+    elif "/" in s and not s.startswith("http"):
         parts = s.split("/")
         if len(parts) == 2:
-            owner, name = parts[0], parts[1]
-            if owner and name:
-                return GitHubRepo(owner=owner, name=name)
+            owner, name = parts
 
+    if owner is not None and name is not None and _valid_repo_parts(owner, name):
+        return GitHubRepo(owner=owner, name=name)
     raise ValueError(
         f"Invalid GitHub repository identifier: {url_or_name}. "
         "Use 'owner/repo' or 'https://github.com/owner/repo'"
+    )
+
+
+#: GitHub logins: alphanumerics and single hyphens, <= 39 chars (underscore
+#: tolerated for enterprise/legacy accounts). Repo names: [A-Za-z0-9._-].
+_GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$")
+_GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+
+
+def _valid_repo_parts(owner: str, name: str) -> bool:
+    return (
+        bool(_GITHUB_OWNER_RE.match(owner))
+        and bool(_GITHUB_REPO_RE.match(name))
+        and name not in (".", "..")
     )
 
 
@@ -631,20 +644,29 @@ def read_lockfile_from_content(
             pass
 
 
-def read_sbom_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Read CycloneDX SBOM from content string."""
+def _parse_sbom_json(content: str, label: str) -> Any:
+    """Size-bounded JSON parse - the same cap the on-disk SBOM readers apply."""
     import json
 
-    doc = json.loads(content)
-    return read_sbom(doc)
+    size = len(content.encode("utf-8"))
+    if size > MAX_SBOM_BYTES:
+        raise ValueError(f"{label} is {size} bytes (limit {MAX_SBOM_BYTES})")
+    return json.loads(content)
+
+
+def read_sbom_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
+    """Read CycloneDX SBOM from content string.
+
+    Goes through the doc-level loader: the path readers (`read_sbom`)
+    take a filename, and handing them a parsed dict raised TypeError,
+    so repository SBOMs were never ingested.
+    """
+    return load_sbom_doc(_parse_sbom_json(content, "sbom"))
 
 
 def read_spdx_from_content(content: str) -> tuple[list[dict[str, Any]], list[str]]:
-    """Read SPDX SBOM from content string."""
-    import json
-
-    doc = json.loads(content)
-    return read_spdx(doc)
+    """Read SPDX SBOM from content string (doc-level loader, size-bounded)."""
+    return load_spdx_doc(_parse_sbom_json(content, "spdx"))
 
 
 def read_image_inventory_from_content(
