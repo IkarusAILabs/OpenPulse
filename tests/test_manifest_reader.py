@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from core import manifest_reader
 from core.manifest_reader import (
     MAX_MANIFEST_BYTES,
     _cargo_spec_to_dep,
@@ -23,6 +24,7 @@ REQUIREMENTS_FIXTURE = "data/fixtures/manifests/requirements.txt"
 PEP621_FIXTURE = "data/fixtures/manifests/pyproject_pep621.toml"
 POETRY_FIXTURE = "data/fixtures/manifests/pyproject_poetry.toml"
 POM_FIXTURE = "data/fixtures/manifests/pom.xml"
+POM_NAMESPACED_FIXTURE = "data/fixtures/manifests/pom_namespaced.xml"
 GO_FIXTURE = "data/fixtures/manifests/go.mod"
 CARGO_FIXTURE = "data/fixtures/manifests/Cargo.toml"
 MALFORMED_FIXTURE = "data/fixtures/manifests/malformed.txt"
@@ -118,8 +120,10 @@ class TestPyprojectReader:
 
 
 class TestPomReader:
-    def test_fixture_pins_three_and_skips_test_scope(self):
-        deps, skipped, fmt = read_manifest(POM_FIXTURE)
+    # Real POMs declare the Maven namespace; both forms must read identically.
+    @pytest.mark.parametrize("fixture", [POM_FIXTURE, POM_NAMESPACED_FIXTURE])
+    def test_fixture_pins_three_and_skips_test_scope(self, fixture):
+        deps, skipped, fmt = read_manifest(fixture)
         assert fmt == "pom"
         assert deps == [
             {
@@ -176,6 +180,46 @@ class TestPomReader:
     def test_unparseable_xml_is_refused_with_clean_error(self):
         with pytest.raises(ValueError, match="not parseable XML"):
             load_pom_xml_doc("<project><dependencies></project>")
+
+    def test_namespaced_pom_never_parses_to_zero_deps(self):
+        """Regression: bare-name lookups on `{ns}dependency` tags returned
+        ([], []) - a silent clean result for every real-world pom."""
+        pom = """<project xmlns="http://maven.apache.org/POM/4.0.0"><dependencies>
+        <dependency><groupId>com.itextpdf</groupId><artifactId>itext-core</artifactId>
+        <version>8.0.0</version></dependency>
+        </dependencies></project>"""
+        deps, skipped = load_pom_xml_doc(pom)
+        assert [d["package"] for d in deps] == ["com.itextpdf:itext-core"]
+        assert skipped == []
+
+    def test_prefixed_namespace_reads_like_default_namespace(self):
+        pom = """<m:project xmlns:m="http://maven.apache.org/POM/4.0.0">
+        <m:properties><m:v>1.4</m:v></m:properties>
+        <m:dependencies><m:dependency><m:groupId>g</m:groupId>
+        <m:artifactId>a</m:artifactId><m:version>${v}</m:version></m:dependency>
+        </m:dependencies></m:project>"""
+        deps, _ = load_pom_xml_doc(pom)
+        assert deps == [
+            {"kind": "package", "package": "g:a", "ecosystem": "Maven", "version": "1.4"}
+        ]
+
+    def test_doctype_is_refused(self):
+        pom = """<?xml version="1.0"?><!DOCTYPE project [<!ENTITY a "x">]>
+        <project><dependencies/></project>"""
+        with pytest.raises(ValueError, match="DOCTYPE"):
+            load_pom_xml_doc(pom)
+
+    def test_excessive_nesting_is_refused(self):
+        depth = manifest_reader.MAX_POM_DEPTH + 1
+        pom = "<project>" + "<x>" * depth + "</x>" * depth + "<dependencies/></project>"
+        with pytest.raises(ValueError, match="nests deeper"):
+            load_pom_xml_doc(pom)
+
+    def test_excessive_element_count_is_refused(self, monkeypatch):
+        monkeypatch.setattr(manifest_reader, "MAX_POM_ELEMENTS", 10)
+        pom = "<project><dependencies>" + "<x/>" * 20 + "</dependencies></project>"
+        with pytest.raises(ValueError, match="elements"):
+            load_pom_xml_doc(pom)
 
 
 class TestGoReader:
