@@ -26,13 +26,32 @@ _SECRET_RE = re.compile(
 )
 _QUERY_RE = re.compile(r"\?[^\s]*")
 _URL_USERINFO_RE = re.compile(r"(https?://)[^/\s@]+@", re.IGNORECASE)
+#: `Authorization: Bearer <tok>` - the header-name rule above eats only
+#: the empty value after the colon, leaving the credential behind.
+_AUTH_SCHEME_RE = re.compile(r"\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}", re.IGNORECASE)
+#: Credentials recognizable by shape alone (GitHub PAT/OAuth/app, Slack).
+_TOKEN_LITERAL_RE = re.compile(
+    r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9-]{10,})"
+)
+#: Webhook hosts whose URL path IS the credential (Slack, Discord,
+#: Teams/Office 365, Power Automate, Zapier): keep the host, drop the path.
+_WEBHOOK_PATH_RE = re.compile(
+    r"(https?://(?:hooks\.slack\.com|(?:canary\.|ptb\.)?discord(?:app)?\.com"
+    r"|[\w.-]*\.webhook\.office\.com|outlook\.office\.com|[\w.-]*\.logic\.azure\.com"
+    r"|hooks\.zapier\.com)(?::\d+)?)/[^\s'\"]*",
+    re.IGNORECASE,
+)
 
 
 def redact(text: str) -> str:
-    """Strip paths, query strings, URL userinfo, and secret-looking fragments."""
+    """Strip paths, query strings, URL userinfo, webhook URL paths, and
+    secret-looking fragments (auth schemes, known token shapes)."""
+    text = _WEBHOOK_PATH_RE.sub(r"\1/<redacted>", text)
     text = _PATH_RE.sub("<path>", text)
     text = _URL_USERINFO_RE.sub(r"\1<redacted>@", text)
     text = _QUERY_RE.sub("", text)
+    text = _AUTH_SCHEME_RE.sub(r"\1 <redacted>", text)
+    text = _TOKEN_LITERAL_RE.sub("<redacted>", text)
     return _SECRET_RE.sub("<redacted>", text)
 
 
