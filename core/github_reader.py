@@ -25,10 +25,13 @@ from core.sbom_reader import MAX_SBOM_BYTES, load_sbom_doc, load_spdx_doc
 
 GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
-# GitHub's blobs API serves base64 payloads up to 100 MB; above that a
-# file cannot be inspected and must become an explicit PARTIAL skip, never
-# a silent "no dependencies" (F2).
-MAX_BLOB_BYTES = 100 * 1024 * 1024  # 100MB per blob (GitHub hard limit)
+# GitHub's blobs API serves base64 payloads up to 100 MB, but every reader
+# refuses input over the shared 50 MB parser cap (`MAX_SBOM_BYTES`), so a
+# larger blob is skipped by its tree-declared size before download instead
+# of being fetched only to be rejected. Over the cap is an explicit PARTIAL
+# skip, never a silent "no dependencies" (F2). Pinned equal to the parser
+# cap by tests.
+MAX_BLOB_BYTES = 50 * 1024 * 1024
 MAX_FILES = 200  # max dependency files to process
 MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
 MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
