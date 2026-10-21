@@ -316,6 +316,53 @@ class TestGitHubRepositoryIntegration:
         assert inspection.coverage == COVERAGE_COMPLETE
         assert len(inspection.dependencies) == 25_000
 
+    @pytest.mark.parametrize(
+        "path,fixture",
+        [
+            ("sbom.json", "data/fixtures/sbom/cyclonedx.json"),
+            ("spdx.json", "data/fixtures/sbom/spdx.json"),
+        ],
+    )
+    def test_repository_sboms_are_ingested(self, monkeypatch, path, fixture):
+        """Regression: SBOM blobs were handed to the path readers as a dict
+        (TypeError), so every repository SBOM degraded to PARTIAL."""
+        from core.sbom_reader import read_sbom, read_spdx
+
+        with open(fixture, encoding="utf-8") as f:
+            content = f.read()
+        expected, _ = (read_spdx if "spdx" in path else read_sbom)(fixture)
+        assert expected
+        self._patch_common(
+            monkeypatch,
+            tree=[{"type": "blob", "path": path, "size": len(content), "sha": "bom"}],
+            blobs={"bom": (content, None)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        deps = inspection.dependencies
+        got = {(d.get("package") or d.get("ref"), d.get("version")) for d in deps}
+        want = {(d.get("package") or d.get("ref"), d.get("version")) for d in expected}
+        assert got == want
+        assert all(d["path"] == path for d in inspection.dependencies)
+
+    def test_oversized_repository_sbom_is_partial_not_empty(self, monkeypatch):
+        from core import github_reader
+
+        monkeypatch.setattr(github_reader, "MAX_SBOM_BYTES", 10)
+        content = '{"bomFormat": "CycloneDX", "specVersion": "1.5", "components": []}'
+        self._patch_common(
+            monkeypatch,
+            tree=[{"type": "blob", "path": "sbom.json", "size": len(content), "sha": "bom"}],
+            blobs={"bom": (content, None)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any("limit" in r for r in inspection.coverage_reasons + inspection.skipped)
+
     def test_truncated_tree_reports_partial(self, monkeypatch):
         self._patch_common(
             monkeypatch,
