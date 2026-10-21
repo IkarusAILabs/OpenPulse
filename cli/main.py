@@ -25,19 +25,36 @@ MAX_ARTIFACTS = 500
 
 def _load_json(path: str) -> dict:
     """Bounded JSON load: size cap + clean errors (no tracebacks to users)."""
+    from core.bounded_io import loads_json, read_text
+
     try:
-        size = __import__("os").path.getsize(path)
+        return loads_json(read_text(path, MAX_INPUT_BYTES, path), path)
     except OSError as e:
         raise click.ClickException(f"cannot read {path}: {e.strerror or e}")
-    if size > MAX_INPUT_BYTES:
-        raise click.ClickException(f"{path} is {size} bytes (limit {MAX_INPUT_BYTES})")
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
     except json.JSONDecodeError as e:
         raise click.ClickException(f"{path} is not valid JSON: {e}")
     except UnicodeDecodeError:
         raise click.ClickException(f"{path} is not UTF-8 text")
+    except ValueError as e:  # over the size cap, or nests too deeply
+        raise click.ClickException(str(e))
+
+
+#: Raw collector bundles are legitimately multi-MB: same cap as SBOMs.
+MAX_BUNDLE_BYTES = 50 * 1024 * 1024
+
+
+def _load_bundle(path) -> dict:
+    """Bounded raw-bundle load (`--raw-bundle-dir`), clean errors."""
+    from core.bounded_io import loads_json, read_text
+
+    try:
+        return loads_json(read_text(str(path), MAX_BUNDLE_BYTES, str(path)), str(path))
+    except OSError as e:
+        raise click.ClickException(f"cannot read {path}: {e.strerror or e}")
+    except UnicodeDecodeError:
+        raise click.ClickException(f"{path} is not UTF-8 text")
+    except ValueError as e:  # invalid JSON, over the cap, or nests too deeply
+        raise click.ClickException(f"{path}: {e}")
 
 
 def _load_event(path: str) -> OSSEvent:
@@ -301,7 +318,7 @@ def report(
         if raw_bundle_dir:
             bundle = _Path(raw_bundle_dir) / f"{slug}.json"
             if bundle.exists():
-                raw = _json.loads(bundle.read_text(encoding="utf-8"))
+                raw = _load_bundle(bundle)
         if raw is None:
             if raw_bundle_dir:
                 _echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
@@ -376,7 +393,6 @@ def report(
 @click.option("--out", default="", help="Output path (default reports/lifecycle-{month}.md)")
 def lifecycle_report(month, projects, raw_bundle_dir, out):
     """Lifecycle posture and planning view over seed projects."""
-    import json as _json
     from pathlib import Path as _Path
 
     from core.entities.catalog import endoflife_map, load_catalog
@@ -392,7 +408,7 @@ def lifecycle_report(month, projects, raw_bundle_dir, out):
         if raw_bundle_dir:
             bundle = _Path(raw_bundle_dir) / f"{slug}.json"
             if bundle.exists():
-                raw = _json.loads(bundle.read_text(encoding="utf-8"))
+                raw = _load_bundle(bundle)
         if raw is None:
             if raw_bundle_dir:
                 _echo(f"skip {slug}: no bundle in {raw_bundle_dir}")
@@ -411,23 +427,22 @@ def lifecycle_report(month, projects, raw_bundle_dir, out):
 
 def _load_yaml(path: str) -> dict:
     """Bounded YAML load with clean errors (mirrors _load_json)."""
-    import os as _os
-
     import yaml as _yaml
 
+    from core.bounded_io import read_text
+
     try:
-        size = _os.path.getsize(path)
+        data = _yaml.safe_load(read_text(path, MAX_INPUT_BYTES, path))
     except OSError as e:
         raise click.ClickException(f"cannot read {path}: {e.strerror or e}")
-    if size > MAX_INPUT_BYTES:
-        raise click.ClickException(f"{path} is {size} bytes (limit {MAX_INPUT_BYTES})")
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = _yaml.safe_load(f)
     except _yaml.YAMLError as e:
         raise click.ClickException(f"{path} is not valid YAML: {e}")
     except UnicodeDecodeError:
         raise click.ClickException(f"{path} is not UTF-8 text")
+    except RecursionError:
+        raise click.ClickException(f"{path} nests too deeply to parse")
+    except ValueError as e:  # over the size cap
+        raise click.ClickException(str(e))
     if not isinstance(data, dict):
         raise click.ClickException(f"{path} must contain a mapping")
     return data
@@ -539,7 +554,6 @@ def _load_check_inputs(
     errors, same messages, same composable semantics. Both commands
     stay in lockstep: a new input flag joins HERE, not in a copy.
     """
-    import json as _json
     from pathlib import Path as _Path
 
     from core.entities.resolve import resolve_project as _resolve
@@ -695,7 +709,7 @@ def _load_check_inputs(
             slug = _resolve(dep["package"])
             bundle = _Path(raw_bundle_dir) / f"{slug}.json"
             if bundle.exists():
-                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+                bundles[slug] = _load_bundle(bundle)
     if not deps:
         raise click.ClickException(
             "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
@@ -1441,7 +1455,7 @@ def attest(
             slug = _resolve(dep["package"])
             bundle = _Path(raw_bundle_dir) / f"{slug}.json"
             if bundle.exists():
-                bundles[slug] = _json.loads(bundle.read_text(encoding="utf-8"))
+                bundles[slug] = _load_bundle(bundle)
     # Repository-level coverage: a FAILED/PARTIAL scan must reach every
     # emitted contract, even when the dependency came from another input,
     # so a partially read repository is never attested as clean.

@@ -26,6 +26,8 @@ import os
 import re
 from typing import Any
 
+from core.bounded_io import read_text
+
 #: Size cap for inventory files. The 50MB `MAX_SBOM_BYTES` allowance
 #: exists because SBOMs are legitimately multi-MB; an inventory is one
 #: ref per line, so 1MB (~80k refs) is generous and keeps the
@@ -112,11 +114,7 @@ def read_image_inventory(path: str) -> tuple[list[dict[str, Any]], list[str]]:
 
     Bounded read: over the cap is a clean ValueError naming it.
     """
-    size = os.path.getsize(path)
-    if size > MAX_INVENTORY_BYTES:
-        raise ValueError(f"{source_label(path)} is {size} bytes (limit {MAX_INVENTORY_BYTES})")
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
+    text = read_text(path, MAX_INVENTORY_BYTES, source_label(path))
     # YAML list/mapping vs plain line format: a leading `- ` item or
     # a mapping key is YAML; anything else is treated as line format.
     stripped = text.strip()
