@@ -37,10 +37,18 @@ BITNAMI_NAMESPACES = (
 
 
 def normalize_ref(ref: str) -> str:
+    """Lowercase, strip `@digest`, then `:tag` from the LAST path segment.
+
+    A colon in an earlier segment is a registry port or URL scheme, never
+    a tag: `localhost:5000/team/redis:7` is `localhost:5000/team/redis`,
+    not `localhost` (which would give every image on that registry one
+    identity). Single-segment refs keep the old behavior - `name:tag`
+    and maven `group:artifact` both cut at the first colon.
+    """
     r = ref.strip().lower()
-    r = re.sub(r":.*$", "", r)  # strip :tag
     r = re.sub(r"@.*$", "", r)  # strip @digest
-    return r
+    head, sep, last = r.rpartition("/")
+    return head + sep + re.sub(r":.*$", "", last)  # strip :tag
 
 
 @lru_cache(maxsize=1)
