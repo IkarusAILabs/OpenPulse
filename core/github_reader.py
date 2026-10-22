@@ -196,13 +196,28 @@ def _valid_repo_parts(owner: str, name: str) -> bool:
     )
 
 
-def get_github_token(cli_token: str | None = None) -> str | None:
-    """Get GitHub token from CLI arg or environment.
+MAX_GITHUB_TOKEN_FILE_BYTES = 4096
 
-    Priority: CLI arg > GITHUB_TOKEN > GH_TOKEN.
+
+def get_github_token(cli_token: str | None = None, token_file: str | None = None) -> str | None:
+    """Get a GitHub token without requiring it to appear in argv.
+
+    Priority: CLI arg > token file > GITHUB_TOKEN > GH_TOKEN.
     """
     if cli_token:
         return cli_token
+    if token_file:
+        with open(token_file, "rb") as handle:
+            raw = handle.read(MAX_GITHUB_TOKEN_FILE_BYTES + 1)
+        if len(raw) > MAX_GITHUB_TOKEN_FILE_BYTES:
+            raise ValueError(f"GitHub token file exceeds {MAX_GITHUB_TOKEN_FILE_BYTES} bytes")
+        try:
+            token = raw.decode("utf-8").splitlines()[0].strip() if raw else ""
+        except UnicodeDecodeError as exc:
+            raise ValueError("GitHub token file is not UTF-8 text") from exc
+        if not token:
+            raise ValueError("GitHub token file does not contain a token")
+        return token
     return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 

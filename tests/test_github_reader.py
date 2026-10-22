@@ -188,6 +188,26 @@ class TestGetGitHubToken:
         monkeypatch.delenv("GH_TOKEN", raising=False)
         assert get_github_token(cli_token=None) == "env_token"
 
+    def test_token_file_takes_priority_over_environment(self, monkeypatch, tmp_path):
+        token_file = tmp_path / "github-token"
+        token_file.write_text("file_token\nignored second line\n", encoding="utf-8")
+        monkeypatch.setenv("GITHUB_TOKEN", "env_token")
+
+        assert get_github_token(token_file=str(token_file)) == "file_token"
+
+    def test_cli_token_takes_priority_over_token_file(self, tmp_path):
+        token_file = tmp_path / "github-token"
+        token_file.write_text("file_token\n", encoding="utf-8")
+
+        assert get_github_token("cli_token", str(token_file)) == "cli_token"
+
+    def test_token_file_rejects_more_than_4_kib(self, tmp_path):
+        token_file = tmp_path / "github-token"
+        token_file.write_bytes(b"x" * 4097)
+
+        with pytest.raises(ValueError, match="exceeds 4096 bytes"):
+            get_github_token(token_file=str(token_file))
+
     def test_gh_token_fallback(self, monkeypatch):
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         monkeypatch.setenv("GH_TOKEN", "gh_token")

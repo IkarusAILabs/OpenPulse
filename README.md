@@ -204,8 +204,10 @@ openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fi
     # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
 
-# 7. Check a whole GitHub repository (public; set GITHUB_TOKEN for private ones)
+# 7. Check a whole GitHub repository (public; for private repositories,
+#    prefer GITHUB_TOKEN or a token file so the credential is not exposed in argv)
 openpulse check --github-repo owner/repo --event data/fixtures/bitnami/event.json
+openpulse check --github-repo owner/private-repo --github-token-file ~/.config/openpulse/github-token --event data/fixtures/bitnami/event.json
 
 # 8. Upcoming deadlines for your dependencies (90-day window; `check --ledger` records first detection)
 openpulse warnings --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
