@@ -2,11 +2,18 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.6.2 — 2026-10-23
+
+Adds the GitHub Action. Intelligence schema **0.5.0** and evidence contract **v1.1** are unchanged.
+
+### Upgrade notes
+
+- `check --fail-on` now exits 1 when the threshold is breached without `--digest` too. If your CI used `--fail-on` without `--digest`, it may start failing on findings it used to pass.
+- The action is used as `IkarusAILabs/OpenPulse@<sha>`. Its metadata file is the root `action.yml`, and its docs are in `docs/GITHUB_ACTION.md`.
 
 ### Added
 
-- **GitHub Action** (`integrations/github-action/`, Phase C3). A composite action runs `openpulse attest` on manifests, lockfiles, SBOMs and image lists, or discovers them in the repository. It writes a job summary, a SARIF 2.1.0 log for Code Scanning and the evidence-contract JSONL. It fails only on the `fail-on` threshold (default `action`). Coverage other than COMPLETE is a warning, never a pass. CI dogfoods the action against `data/fixtures` on Linux and Windows. Not yet on the Marketplace.
+- **GitHub Action** (root `action.yml`, Phase C3). A composite action runs `openpulse attest` on manifests, lockfiles, SBOMs and image lists, or discovers them in the repository. It writes a job summary, a SARIF 2.1.0 log for Code Scanning and the evidence-contract JSONL. It fails only on the `fail-on` threshold (default `action`). Coverage other than COMPLETE is a warning, never a pass. CI dogfoods the action against `data/fixtures` on Linux and Windows. Not yet on the Marketplace.
 - `attest --sarif PATH`, `--summary PATH` and `--fail-on`. Every SARIF result cites its evidence URLs and the contract's `content_hash`. NOT_AFFECTED results are omitted. A dependency that no event applies to is reported once as an UNKNOWN note.
 
 ### Fixed
