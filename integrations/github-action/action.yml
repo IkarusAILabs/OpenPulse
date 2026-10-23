@@ -1,0 +1,212 @@
+name: OpenPulse dependency intelligence
+description: >-
+  Evidence-first upstream change detection (EOL, distribution/registry moves,
+  license/support changes) mapped to your dependencies, reported as SARIF and
+  a job summary. UNKNOWN stays UNKNOWN.
+author: IkarusAILabs
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  manifest:
+    description: requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml path
+    required: false
+    default: ''
+  lockfile:
+    description: package-lock.json / poetry.lock / Cargo.lock path
+    required: false
+    default: ''
+  sbom:
+    description: CycloneDX JSON SBOM path
+    required: false
+    default: ''
+  spdx:
+    description: SPDX 2.x JSON SBOM path
+    required: false
+    default: ''
+  images:
+    description: Container image inventory path (one ref per line, or a YAML list)
+    required: false
+    default: ''
+  github-repo:
+    description: >-
+      owner/repo to auto-discover dependency files through the GitHub API when
+      no path input is set. It reads the DEFAULT branch, not a pull request head:
+      use path inputs on pull_request.
+    required: false
+    default: ${{ github.repository }}
+  events:
+    description: >-
+      Whitespace/newline-separated event JSON paths. Empty: the bundled curated
+      events (Bitnami catalog, Bitnami Spark, Django 4.2 EOL, iText license).
+    required: false
+    default: ''
+  fail-on:
+    description: Fail threshold - affected, review, action, critical, or none
+    required: false
+    default: action
+  github-token:
+    description: >-
+      Token for github-repo discovery only (passed as env GITHUB_TOKEN, never
+      argv; never read for path inputs).
+    required: false
+    default: ${{ github.token }}
+  sarif-file:
+    description: Where to write the SARIF 2.1.0 log
+    required: false
+    default: openpulse.sarif
+  contracts-file:
+    description: Where to write the evidence-contract JSONL
+    required: false
+    default: openpulse-contracts.jsonl
+  upload-sarif:
+    description: Upload the SARIF to Code Scanning (needs `security-events write`)
+    required: false
+    default: 'false'
+  python-version:
+    description: Python used to run OpenPulse
+    required: false
+    default: '3.11'
+
+outputs:
+  sarif-file:
+    description: Path of the SARIF log
+    value: ${{ steps.run.outputs.sarif-file }}
+  contracts-file:
+    description: Path of the evidence-contract JSONL
+    value: ${{ steps.run.outputs.contracts-file }}
+  inspection-coverage:
+    description: Repository inspection coverage (COMPLETE, PARTIAL or FAILED)
+    value: ${{ steps.run.outputs.inspection-coverage }}
+  threshold-breached:
+    description: "'true' when the fail-on threshold was breached"
+    value: ${{ steps.run.outputs.threshold-breached }}
+
+runs:
+  using: composite
+  steps:
+    - id: python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ inputs.python-version }}
+        update-environment: false
+
+    # Threat: floated transitive deps - install the reviewed lock set, in an
+    # isolated venv so the caller's Python environment is untouched.
+    - name: Install OpenPulse
+      shell: bash
+      env:
+        ACTION_ROOT: ${{ github.action_path }}/../..
+        BASE_PYTHON: ${{ steps.python.outputs.python-path }}
+      run: |
+        set -euo pipefail
+        venv="$RUNNER_TEMP/openpulse-venv"
+        "$BASE_PYTHON" -m venv "$venv"
+        if [ -x "$venv/bin/python" ]; then bin="$venv/bin"; else bin="$venv/Scripts"; fi
+        # Editable on purpose: the evidence-contract schema and catalog
+        # data are read from the source tree, which a wheel does not ship.
+        "$bin/python" -m pip install --disable-pip-version-check -q \
+          -c "$ACTION_ROOT/requirements.lock" -e "$ACTION_ROOT"
+        echo "OPENPULSE_BIN=$bin" >> "$GITHUB_ENV"
+
+    # Threat: script injection - every input reaches the shell as an env var
+    # and a quoted argv element, never interpolated into the script text.
+    - id: run
+      name: Run openpulse attest
+      shell: bash
+      env:
+        ACTION_ROOT: ${{ github.action_path }}/../..
+        IN_MANIFEST: ${{ inputs.manifest }}
+        IN_LOCKFILE: ${{ inputs.lockfile }}
+        IN_SBOM: ${{ inputs.sbom }}
+        IN_SPDX: ${{ inputs.spdx }}
+        IN_IMAGES: ${{ inputs.images }}
+        IN_GITHUB_REPO: ${{ inputs.github-repo }}
+        IN_EVENTS: ${{ inputs.events }}
+        IN_FAIL_ON: ${{ inputs.fail-on }}
+        IN_SARIF: ${{ inputs.sarif-file }}
+        IN_CONTRACTS: ${{ inputs.contracts-file }}
+        # Threat: token in the process list - env only; the CLI resolves it
+        # solely for --github-repo.
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        args=()
+        [ -n "$IN_MANIFEST" ] && args+=(--manifest "$IN_MANIFEST")
+        [ -n "$IN_LOCKFILE" ] && args+=(--lockfile "$IN_LOCKFILE")
+        [ -n "$IN_SBOM" ] && args+=(--sbom "$IN_SBOM")
+        [ -n "$IN_SPDX" ] && args+=(--spdx "$IN_SPDX")
+        [ -n "$IN_IMAGES" ] && args+=(--images "$IN_IMAGES")
+        if [ "${#args[@]}" -eq 0 ]; then
+          if [ -z "$IN_GITHUB_REPO" ]; then
+            echo "::error title=OpenPulse::no path input and no github-repo to discover"
+            exit 2
+          fi
+          args+=(--github-repo "$IN_GITHUB_REPO")
+        else
+          unset GITHUB_TOKEN
+        fi
+
+        events=()
+        if [ -n "${IN_EVENTS//[[:space:]]/}" ]; then
+          for path in $IN_EVENTS; do events+=(--event "$path"); done
+        else
+          for name in bitnami spark-mainline-empty django-eol itext-license; do
+            events+=(--event "$ACTION_ROOT/data/fixtures/$name/event.json")
+          done
+        fi
+
+        gate=()
+        case "$IN_FAIL_ON" in
+          none|'') ;;
+          affected|review|action|critical) gate=(--fail-on "$IN_FAIL_ON") ;;
+          *) echo "::error title=OpenPulse::unknown fail-on '$IN_FAIL_ON'"; exit 2 ;;
+        esac
+
+        summary="$RUNNER_TEMP/openpulse-summary.md"
+        # A stale file from an earlier step must never pass for this run.
+        rm -f "$summary" "$IN_SARIF" "$IN_CONTRACTS"
+        set +e
+        # ${a[@]+...}: empty arrays under `set -u` on bash 3.2 (macOS).
+        "$OPENPULSE_BIN/openpulse" attest "${args[@]}" "${events[@]}" ${gate[@]+"${gate[@]}"} \
+          --output "$IN_CONTRACTS" --sarif "$IN_SARIF" --summary "$summary"
+        rc=$?
+        set -e
+        if [ ! -f "$IN_SARIF" ] || [ ! -f "$summary" ]; then
+          echo "::error title=OpenPulse::attest failed before writing results (exit $rc)"
+          exit "$rc"
+        fi
+        cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+        cat "$summary"
+
+        coverage="$("$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["runs"][0]["properties"]["inspection_coverage"])' "$IN_SARIF")"
+        if [ "$coverage" != "COMPLETE" ]; then
+          echo "::warning title=OpenPulse coverage::repository inspection coverage $coverage - results are not a clean bill of health"
+        fi
+        # Outputs exist, so a non-zero exit is the fail-on gate (input and
+        # schema errors exit before anything is written).
+        breached=false
+        [ "$rc" -ne 0 ] && breached=true
+        {
+          echo "sarif-file=$IN_SARIF"
+          echo "contracts-file=$IN_CONTRACTS"
+          echo "inspection-coverage=$coverage"
+          echo "threshold-breached=$breached"
+        } >> "$GITHUB_OUTPUT"
+
+    # Threat: an unpinned upload action - pinned by SHA like ci.yml.
+    - if: inputs.upload-sarif == 'true'
+      uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      with:
+        sarif_file: ${{ steps.run.outputs.sarif-file }}
+        category: openpulse
+
+    - name: Enforce fail-on
+      if: steps.run.outputs.threshold-breached == 'true'
+      shell: bash
+      env:
+        IN_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        echo "::error title=OpenPulse::fail-on $IN_FAIL_ON threshold breached (see the job summary)"
+        exit 1

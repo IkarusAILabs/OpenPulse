@@ -200,6 +200,10 @@ openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixt
     # emit one evidence-contract v1 JSON document per dependency x event pair (JSONL)
 openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
 
+    # same contracts as SARIF 2.1.0 (GitHub Code Scanning) + a Markdown summary;
+    # integrations/github-action/ wraps this as a GitHub Action
+openpulse attest --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json --output contracts.jsonl --sarif openpulse.sarif --summary summary.md
+
     # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
     # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
 openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
