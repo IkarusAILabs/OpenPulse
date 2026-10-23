@@ -5,5 +5,5 @@
 # cannot silently test an unreviewed pip/setuptools/pip-audit.
 # Install with:  pip install -c .github/ci-constraints.txt ...
 pip==26.2.1
-setuptools==84.0.0
+setuptools==84.1.0
 pip-audit==2.10.1

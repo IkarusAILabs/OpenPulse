@@ -16,6 +16,10 @@ Adds the GitHub Action. Intelligence schema **0.5.0** and evidence contract **v1
 - **GitHub Action** (root `action.yml`, Phase C3). A composite action runs `openpulse attest` on manifests, lockfiles, SBOMs and image lists, or discovers them in the repository. It writes a job summary, a SARIF 2.1.0 log for Code Scanning and the evidence-contract JSONL. It fails only on the `fail-on` threshold (default `action`). Coverage other than COMPLETE is a warning, never a pass. CI dogfoods the action against `data/fixtures` on Linux and Windows. Not yet on the Marketplace.
 - `attest --sarif PATH`, `--summary PATH` and `--fail-on`. Every SARIF result cites its evidence URLs and the contract's `content_hash`. NOT_AFFECTED results are omitted. A dependency that no event applies to is reported once as an UNKNOWN note.
 
+### Security
+
+- CI build tooling moves to setuptools 84.1.0 (GHSA-xmj3-9gf7-h52w: a crafted wheel could write an `__init__.py` outside the install directory on Windows). The build requirement is now `setuptools>=84.1.0`.
+
 ### Fixed
 
 - **`check --fail-on` was ignored without `--digest`.** The threshold only gated the digest output, so `check --fail-on action` exited 0 on an ACTION finding. It now gates both output shapes.
