@@ -23,6 +23,33 @@ MAX_EVIDENCES = 100
 MAX_ARTIFACTS = 500
 
 
+def _resolve_github_token(
+    github_repo: str, github_token: str, github_token_file: str | None
+) -> str | None:
+    """Resolve CLI credentials while keeping token values out of output.
+
+    Only a run that inspects a repository needs a token: without
+    ``--github-repo`` the token file is never opened, so a stale or
+    rotated path in shared cron/CI flags cannot fail an unrelated run.
+    """
+    from core.github_reader import get_github_token
+
+    if github_token:
+        _echo(
+            "warning: --github-token is deprecated; use GITHUB_TOKEN or "
+            "--github-token-file instead",
+            err=True,
+        )
+    if not github_repo:
+        return None
+    try:
+        return get_github_token(github_token, github_token_file)
+    except OSError as exc:
+        raise click.ClickException(f"cannot read GitHub token file: {exc.strerror or exc}") from exc
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
 def _load_json(path: str) -> dict:
     """Bounded JSON load: size cap + clean errors (no tracebacks to users)."""
     from core.bounded_io import loads_json, read_text
@@ -767,7 +794,13 @@ def _load_check_inputs(
     type=str,
     default="",
     show_default=False,
-    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+)
+@click.option(
+    "--github-token-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
 )
 @click.option(
     "--event",
@@ -840,10 +873,12 @@ def check(
     fail_on_partial,
     github_repo="",
     github_token="",
+    github_token_file=None,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
 
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
@@ -1020,9 +1055,15 @@ def check(
     "--github-token",
     "github_token",
     type=str,
-    default="",
+    default=None,
     show_default=False,
-    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+)
+@click.option(
+    "--github-token-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
 )
 @click.option(
     "--event",
@@ -1071,11 +1112,13 @@ def digest(
     ledger_root,
     github_repo="",
     github_token="",
+    github_token_file=None,
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
     from core.risk.check import check_dependency
 
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
     deps, loaded_events, bundles, _inspections = _load_check_inputs(
@@ -1155,9 +1198,15 @@ def digest(
     "--github-token",
     "github_token",
     type=str,
-    default="",
+    default=None,
     show_default=False,
-    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+)
+@click.option(
+    "--github-token-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
 )
 @click.option(
     "--event",
@@ -1206,11 +1255,13 @@ def warnings(
     ledger_root,
     github_repo="",
     github_token="",
+    github_token_file=None,
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
     from core.warnings import build_warnings, render_warnings_md
 
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
     deps, loaded_events, bundles, _inspections = _load_check_inputs(
@@ -1289,9 +1340,15 @@ def warnings(
     "--github-token",
     "github_token",
     type=str,
-    default="",
+    default=None,
     show_default=False,
-    help="GitHub token for private repositories (or use GITHUB_TOKEN env var)",
+    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+)
+@click.option(
+    "--github-token-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
 )
 @click.option(
     "--event",
@@ -1321,6 +1378,7 @@ def attest(
     manifest,
     github_repo,
     github_token,
+    github_token_file,
     events,
     raw_bundle_dir,
     output,
@@ -1332,6 +1390,7 @@ def attest(
     independently verifiable: provenance.content_hash recomputes from
     the content alone (docs/EVIDENCE_CONTRACT.md).
     """
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     NL = chr(10)
     import json as _json
     from pathlib import Path as _Path
