@@ -97,7 +97,7 @@ runs:
     - name: Install OpenPulse
       shell: bash
       env:
-        ACTION_ROOT: ${{ github.action_path }}/../..
+        ACTION_ROOT: ${{ github.action_path }}
         BASE_PYTHON: ${{ steps.python.outputs.python-path }}
       run: |
         set -euo pipefail
@@ -116,7 +116,7 @@ runs:
       name: Run openpulse attest
       shell: bash
       env:
-        ACTION_ROOT: ${{ github.action_path }}/../..
+        ACTION_ROOT: ${{ github.action_path }}
         IN_MANIFEST: ${{ inputs.manifest }}
         IN_LOCKFILE: ${{ inputs.lockfile }}
         IN_SBOM: ${{ inputs.sbom }}

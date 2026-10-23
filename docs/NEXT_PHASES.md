@@ -114,7 +114,7 @@ Phase C builds on Phase B: alerts cite keyed-valid detections.
 |---|---|---|
 | C1 | Persistent delivery state (see detail below) | — |
 | C2 | DNS-pinned webhook transport (see detail below) | M5 |
-| C3 | GitHub Action, `integrations/github-action/` (see detail below) | — |
+| C3 | GitHub Action, root `action.yml` (see detail below) | — |
 | C4 | `openpulse bench`: per-scenario expected vs actual verdicts, identity/applicability precision and recall, as a reproducibility JSON uploaded by CI (numbers are not marketed) | — |
 
 **C1 detail:**

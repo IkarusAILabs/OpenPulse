@@ -32,6 +32,24 @@ OpenPulse is part of the [Ikarus AI Labs](https://ikaruslabs.net) research progr
 
 AI can introduce dependencies faster than humans can review them. OpenPulse helps you understand what those dependencies depend on — and what happens when the ecosystem underneath them changes. **AI writes code fast. OpenPulse watches what that code depends on.**
 
+## Use it in GitHub Actions
+
+Run OpenPulse on every pull request that touches a dependency file, and weekly to catch upstream changes no PR triggered. You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
+
+```yaml
+permissions:
+  contents: read
+steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    with: {persist-credentials: false}
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.2
+    with:
+      manifest: requirements.txt
+      fail-on: action   # fail only on ACTION/CRITICAL findings
+```
+
+Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
+
 ## The problem we solve
 
 <img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
@@ -201,7 +219,7 @@ openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixt
 openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
 
     # same contracts as SARIF 2.1.0 (GitHub Code Scanning) + a Markdown summary;
-    # integrations/github-action/ wraps this as a GitHub Action
+    # the GitHub Action (action.yml, docs/GITHUB_ACTION.md) wraps this
 openpulse attest --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json --output contracts.jsonl --sarif openpulse.sarif --summary summary.md
 
     # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml

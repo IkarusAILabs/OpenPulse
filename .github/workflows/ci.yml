@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: pass
-        uses: ./integrations/github-action
+        uses: ./
         with:
           manifest: data/fixtures/manifests/requirements.txt
           lockfile: data/fixtures/lockfiles/poetry.lock
@@ -86,7 +86,7 @@ jobs:
       # EOL event is ACTION, so the default threshold must fail the step.
       - id: gate
         continue-on-error: true
-        uses: ./integrations/github-action
+        uses: ./
         with:
           manifest: data/fixtures/manifests/requirements.txt
           sarif-file: ${{ runner.temp }}/gate.sarif
