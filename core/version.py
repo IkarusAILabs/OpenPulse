@@ -16,7 +16,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
 #: Used only when distribution metadata is unavailable (uninstalled source tree).
-FALLBACK_VERSION = "0.6.2"
+FALLBACK_VERSION = "0.6.3"
 
 
 def openpulse_version() -> str:
