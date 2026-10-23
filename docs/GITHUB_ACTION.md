@@ -61,7 +61,7 @@ On pull requests from forks, the token is read-only and SARIF upload fails. Keep
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.2
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.2
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.2
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
         with:
           upload-sarif: 'true'
           fail-on: none            # report, do not fail the scheduled run

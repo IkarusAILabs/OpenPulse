@@ -1,8 +1,6 @@
 name: OpenPulse dependency intelligence
-description: >-
-  Evidence-first upstream change detection (EOL, distribution/registry moves,
-  license/support changes) mapped to your dependencies, reported as SARIF and
-  a job summary. UNKNOWN stays UNKNOWN.
+# Marketplace limit: the description must stay under 125 characters.
+description: Evidence-first EOL, license and registry change alerts for your dependencies, as SARIF and a job summary.
 author: IkarusAILabs
 branding:
   icon: activity

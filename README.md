@@ -42,7 +42,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.2
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings

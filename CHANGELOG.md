@@ -2,6 +2,12 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## 0.6.3 — 2026-10-23
+
+### Fixed
+
+- **The action could not be published to the GitHub Marketplace.** Its `description` was 189 characters, and the Marketplace limit is under 125. It is now 105, and `tests/test_action_metadata.py` enforces the limit. No behavior change.
+
 ## 0.6.2 — 2026-10-23
 
 Adds the GitHub Action. Intelligence schema **0.5.0** and evidence contract **v1.1** are unchanged.
