@@ -50,6 +50,19 @@ def _resolve_github_token(
         raise click.ClickException(str(exc)) from exc
 
 
+def _sarif_uri(path: str) -> str:
+    """SARIF artifact uri for an input file: relative to the working
+    directory (the repository root in CI) when possible, POSIX slashes."""
+    from pathlib import Path as _Path
+
+    candidate = _Path(path)
+    try:
+        candidate = candidate.resolve().relative_to(_Path.cwd().resolve())
+    except ValueError:
+        pass
+    return candidate.as_posix()
+
+
 def _load_json(path: str) -> dict:
     """Bounded JSON load: size cap + clean errors (no tracebacks to users)."""
     from core.bounded_io import loads_json, read_text
@@ -1000,8 +1013,12 @@ def check(
         for reason in reasons:
             _echo(f"   - {reason}")
     _echo(f"\n{affected}/{len(deps)} dependencies affected")
-    from core.risk.check import strict_affected
+    from core.risk.check import fail_on_threshold, strict_affected
 
+    # Same gate as the digest branch: --fail-on must not depend on
+    # the presentation (it was silently ignored here before).
+    if fail_on and fail_on_threshold(results, fail_on):
+        raise SystemExit(1)
     if strict and strict_affected(results):
         raise SystemExit(1)
     if coverage_blocked or (strict and coverage_failed):
@@ -1369,6 +1386,28 @@ def warnings(
     type=click.Path(),
     help="Write JSONL here (default: stdout)",
 )
+@click.option(
+    "--sarif",
+    "sarif_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Also write these contracts as a SARIF 2.1.0 log (GitHub Code Scanning)",
+)
+@click.option(
+    "--summary",
+    "summary_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Also append a Markdown summary of the SARIF results to PATH "
+    "(e.g. $GITHUB_STEP_SUMMARY)",
+)
+@click.option(
+    "--fail-on",
+    type=click.Choice(["affected", "review", "action", "critical"]),
+    default=None,
+    help="Exit 1 after writing every output when the same threshold `check --fail-on` "
+    "uses is breached",
+)
 def attest(
     watchlist,
     sbom,
@@ -1382,6 +1421,9 @@ def attest(
     events,
     raw_bundle_dir,
     output,
+    sarif_path="",
+    summary_path="",
+    fail_on=None,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
 
@@ -1406,10 +1448,13 @@ def attest(
     if not events:
         raise click.ClickException("attest needs at least one --event")
     deps: list[Any] = []
+    #: SARIF artifact uri per dependency (same order as deps).
+    uris: list[str] = []
     inspections: list[Any] = []
     if watchlist:
         try:
             deps = load_watchlist_doc(_load_yaml(watchlist))
+            uris = [_sarif_uri(watchlist)] * len(deps)
         except ValueError as e:
             raise click.ClickException(f"{watchlist}: {e}")
     if sbom:
@@ -1424,6 +1469,7 @@ def attest(
         if sbom_deps:
             _echo(f"sbom: {len(sbom_deps)} mapped component(s)", err=True)
             deps = [*deps, *sbom_deps]
+            uris += [_sarif_uri(sbom)] * len(sbom_deps)
     if spdx:
         from core.sbom_reader import read_spdx
 
@@ -1436,6 +1482,7 @@ def attest(
         if spdx_deps:
             _echo(f"spdx: {len(spdx_deps)} mapped package(s)", err=True)
             deps = [*deps, *spdx_deps]
+            uris += [_sarif_uri(spdx)] * len(spdx_deps)
     if images:
         from core.image_inventory import read_image_inventory
 
@@ -1446,6 +1493,7 @@ def attest(
         if img_deps:
             _echo(f"images: {len(img_deps)} image ref(s)", err=True)
             deps = [*deps, *img_deps]
+            uris += [_sarif_uri(images)] * len(img_deps)
     if lockfile:
         from core.lockfile_reader import read_lockfile
 
@@ -1456,6 +1504,7 @@ def attest(
         if lock_deps:
             _echo(f"lockfile ({lock_format}): {len(lock_deps)} pinned package(s)", err=True)
             deps = [*deps, *lock_deps]
+            uris += [_sarif_uri(lockfile)] * len(lock_deps)
     if manifest:
         from core.manifest_reader import read_manifest
 
@@ -1473,6 +1522,7 @@ def attest(
         if man_deps:
             _echo(f"manifest ({label}): {len(man_deps)} pinned package(s)", err=True)
             deps = [*deps, *man_deps]
+            uris += [_sarif_uri(manifest)] * len(man_deps)
     if github_repo:
         from core.github_reader import inspect_github_repo
 
@@ -1498,6 +1548,7 @@ def attest(
                 err=True,
             )
             deps = [*deps, *inspection.dependencies]
+            uris += [_sarif_uri(d.get("path") or ".") for d in inspection.dependencies]
         elif inspection.skipped and not inspection.errors:
             _echo(
                 f"github-repo ({github_repo}): 0 usable, "
@@ -1533,7 +1584,8 @@ def attest(
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
-    for dep in deps:
+    rendered: list[tuple[dict[str, Any], str]] = []
+    for dep, uri in zip(deps, uris, strict=True):
         for event in loaded_events:
             verdict = check_dependency(dep, [event], bundles)
             doc = build_v1_contract(event, verdict, inspection_coverage=coverage_override)
@@ -1545,12 +1597,41 @@ def attest(
                     f"internal error: contract for {dep} vs {event.id} failed schema: {problems}"
                 )
             lines.append(_json.dumps(doc, sort_keys=True))
+            rendered.append((doc, uri))
+    if sarif_path or summary_path:
+        from core.sarif import build_sarif, render_summary
+
+        sarif_doc = build_sarif(
+            rendered,
+            tool_version=openpulse_version(),
+            coverage=coverage_override,
+        )
+        if sarif_path:
+            _Path(sarif_path).write_text(
+                _json.dumps(sarif_doc, indent=2, sort_keys=True) + NL, encoding="utf-8"
+            )
+            count = len(sarif_doc["runs"][0]["results"])
+            _echo(f"wrote {sarif_path} ({count} result(s))", err=True)
+        if summary_path:
+            # Append, never truncate: $GITHUB_STEP_SUMMARY is shared by
+            # every step of the job.
+            with open(summary_path, "a", encoding="utf-8") as handle:
+                handle.write(render_summary(sarif_doc))
     if output:
         _Path(output).write_text(NL.join(lines) + NL, encoding="utf-8")
         _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)
     else:
         for line in lines:
             click.echo(line)
+    if fail_on:
+        from core.risk.check import fail_on_threshold
+
+        # The combined per-dependency verdict, exactly as `check` gates
+        # it, so one run yields both the evidence and the CI decision.
+        combined = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+        if fail_on_threshold(combined, fail_on):
+            _echo(f"fail-on {fail_on}: threshold breached", err=True)
+            raise SystemExit(1)
 
 
 @cli.command()

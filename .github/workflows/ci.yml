@@ -58,3 +58,56 @@ jobs:
       - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with: {languages: python}
       - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+  action:
+    # Threat: the shipped GitHub Action drifting from the CLI it wraps -
+    # dogfood it on every push against the repo's own offline fixtures
+    # (no SARIF upload: fixture findings must not become alerts here).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - id: pass
+        uses: ./integrations/github-action
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          lockfile: data/fixtures/lockfiles/poetry.lock
+          images: data/fixtures/images/inventory_sample.txt
+          fail-on: critical
+          sarif-file: ${{ runner.temp }}/pass.sarif
+          contracts-file: ${{ runner.temp }}/pass.jsonl
+      # Threat: a gate that never fires - django==4.2 vs the curated Django
+      # EOL event is ACTION, so the default threshold must fail the step.
+      - id: gate
+        continue-on-error: true
+        uses: ./integrations/github-action
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          sarif-file: ${{ runner.temp }}/gate.sarif
+          contracts-file: ${{ runner.temp }}/gate.jsonl
+      - name: Check action outputs
+        env:
+          PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
+          PASS_BREACHED: ${{ steps.pass.outputs.threshold-breached }}
+          PASS_COVERAGE: ${{ steps.pass.outputs.inspection-coverage }}
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+        run: |
+          set -euo pipefail
+          test "$PASS_BREACHED" = false
+          test "$PASS_COVERAGE" = COMPLETE
+          test "$GATE_OUTCOME" = failure
+          # OPENPULSE_BIN: the venv the action installed (exported via GITHUB_ENV).
+          "$OPENPULSE_BIN/python" - "$PASS_SARIF" <<'PY'
+          import json, sys
+          run = json.load(open(sys.argv[1], encoding="utf-8"))["runs"][0]
+          levels = {r["level"] for r in run["results"]}
+          assert "error" in levels, levels
+          assert all(r["properties"].get("content_hash") or r["properties"].get("content_hashes")
+                     for r in run["results"])
+          PY

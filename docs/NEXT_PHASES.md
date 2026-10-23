@@ -134,6 +134,7 @@ Phase C builds on Phase B: alerts cite keyed-valid detections.
 - Fails only on ACTION/CRITICAL causes backed by keyed-valid evidence.
 - Non-COMPLETE coverage produces a warning, never a pass.
 - Uses least-privilege `permissions:`.
+- Status: first cut ACTIVE (action, `attest --sarif/--summary/--fail-on`, CI dogfooding). The gate counts ACTION/CRITICAL causes today; "backed by keyed-valid evidence" is added once B3 ships.
 
 ## Phase D — Release supply chain (in parallel with B and C)
 
