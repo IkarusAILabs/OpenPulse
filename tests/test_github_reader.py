@@ -201,6 +201,21 @@ class TestGetGitHubToken:
 
         assert get_github_token("cli_token", str(token_file)) == "cli_token"
 
+    def test_token_file_with_utf8_bom_yields_a_clean_token(self, tmp_path):
+        """Regression: Notepad's BOM survived strip() and made the
+        Authorization header unencodable (every inspection FAILED)."""
+        import httpx
+
+        from core.github_reader import _headers
+
+        token_file = tmp_path / "github-token"
+        token_file.write_bytes(b"\xef\xbb\xbffile_token\r\n")
+
+        token = get_github_token(token_file=str(token_file))
+
+        assert token == "file_token"
+        httpx.Client(headers=_headers(token)).close()
+
     def test_token_file_rejects_more_than_4_kib(self, tmp_path):
         token_file = tmp_path / "github-token"
         token_file.write_bytes(b"x" * 4097)

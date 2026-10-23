@@ -212,7 +212,9 @@ def get_github_token(cli_token: str | None = None, token_file: str | None = None
         if len(raw) > MAX_GITHUB_TOKEN_FILE_BYTES:
             raise ValueError(f"GitHub token file exceeds {MAX_GITHUB_TOKEN_FILE_BYTES} bytes")
         try:
-            token = raw.decode("utf-8").splitlines()[0].strip() if raw else ""
+            # utf-8-sig: Windows editors (Notepad) write a BOM, which strip()
+            # keeps and which would make the Authorization header unencodable.
+            token = raw.decode("utf-8-sig").splitlines()[0].strip() if raw else ""
         except UnicodeDecodeError as exc:
             raise ValueError("GitHub token file is not UTF-8 text") from exc
         if not token:

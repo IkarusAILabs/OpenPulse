@@ -23,8 +23,15 @@ MAX_EVIDENCES = 100
 MAX_ARTIFACTS = 500
 
 
-def _resolve_github_token(github_token: str, github_token_file: str | None) -> str | None:
-    """Resolve CLI credentials while keeping token values out of output."""
+def _resolve_github_token(
+    github_repo: str, github_token: str, github_token_file: str | None
+) -> str | None:
+    """Resolve CLI credentials while keeping token values out of output.
+
+    Only a run that inspects a repository needs a token: without
+    ``--github-repo`` the token file is never opened, so a stale or
+    rotated path in shared cron/CI flags cannot fail an unrelated run.
+    """
     from core.github_reader import get_github_token
 
     if github_token:
@@ -33,6 +40,8 @@ def _resolve_github_token(github_token: str, github_token_file: str | None) -> s
             "--github-token-file instead",
             err=True,
         )
+    if not github_repo:
+        return None
     try:
         return get_github_token(github_token, github_token_file)
     except OSError as exc:
@@ -869,7 +878,7 @@ def check(
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
 
-    github_token = _resolve_github_token(github_token, github_token_file)
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
@@ -1109,7 +1118,7 @@ def digest(
     from core.digest import build_digest, render_digest_md
     from core.risk.check import check_dependency
 
-    github_token = _resolve_github_token(github_token, github_token_file)
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
     deps, loaded_events, bundles, _inspections = _load_check_inputs(
@@ -1252,7 +1261,7 @@ def warnings(
     from core.risk.check import check_dependency
     from core.warnings import build_warnings, render_warnings_md
 
-    github_token = _resolve_github_token(github_token, github_token_file)
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
     deps, loaded_events, bundles, _inspections = _load_check_inputs(
@@ -1381,7 +1390,7 @@ def attest(
     independently verifiable: provenance.content_hash recomputes from
     the content alone (docs/EVIDENCE_CONTRACT.md).
     """
-    github_token = _resolve_github_token(github_token, github_token_file)
+    github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     NL = chr(10)
     import json as _json
     from pathlib import Path as _Path
