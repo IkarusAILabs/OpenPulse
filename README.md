@@ -111,6 +111,25 @@ Each finding includes:
 - the hash of the evidence contract it came from;
 - a stable `unique_id_from_tool`, so re-imports deduplicate instead of piling up.
 
+## Send findings to Dependency-Track
+
+Dependency-Track only tracks vulnerabilities, so OpenPulse findings go in as **INTERNAL vulnerabilities**, one per OpenPulse event (`OPENPULSE-<event id>`), assigned to the affected components of your DT project:
+
+```bash
+openpulse attest --sbom bom.json --event data/fixtures/django-eol/event.json --output contracts.jsonl
+openpulse dependency-track --contracts contracts.jsonl --dry-run
+```
+
+```bash
+OPENPULSE_DTRACK_API_KEY=... openpulse dependency-track --contracts contracts.jsonl --url https://dtrack.example --project-name my-app --project-version 1.4.0
+```
+
+- **What is pushed:** only *affected* pairs. RELATED and UNKNOWN pairs stay in the JSONL, SARIF and DefectDojo outputs, because DT treats anything assigned as vulnerable.
+- **Matching:** components are matched by group, name and version inside the project. Dependencies that aren't components of the project are reported, never guessed onto a different component.
+- **Re-runs:** pushing again reuses existing vulnerabilities, so nothing duplicates.
+- **Credentials:** the API key is read only from `OPENPULSE_DTRACK_API_KEY`, never from the command line. It needs the `VULNERABILITY_MANAGEMENT` and `PORTFOLIO_MANAGEMENT` permissions.
+- **Transport:** HTTPS is required unless you pass `--allow-http`, and redirects are never followed.
+
 ## The problem we solve
 
 <img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
