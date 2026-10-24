@@ -70,6 +70,13 @@ carry `relationship` + `match_method` + `identity_evidence`:
 the ceiling at `AFFECTS_PACKAGE` or `RELATED`. Uncertainty never
 strengthens a conclusion.
 
+Event version scopes name **release lines** (endoflife.date cycles such
+as `4.2`, `13`, `18`), while dependencies pin releases. A line covers
+every version whose leading segments equal it (`versions.in_release_line`):
+`django==4.2.11` and `postgres:13.5-alpine` are inside cycles `4.2` and
+`13`; `4.20.1` is not inside `4.2`. A version that cannot be compared is
+`RELATED` (not established), never `NOT_AFFECTED`.
+
 ## Evidence, claims, independence
 
 Every claim names supporting evidence (`Claim.evidence_refs`); an

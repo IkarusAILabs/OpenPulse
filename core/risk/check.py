@@ -25,7 +25,7 @@ from core.entities.identity import resolution_trust
 from core.entities.resolve import resolve_project
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
-from core.versions import compare
+from core.versions import in_release_line
 
 _RANK = {
     "UNKNOWN": 0,
@@ -195,15 +195,31 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
                 "match_method": "project_scope",
                 "reason": f"event is version-scoped to {scope.versions}; dep version unknown",
             }
+        comparable = True
         for scoped in scope.versions:
-            if compare(str(version), str(scoped)) == 0:
+            within = in_release_line(str(version), str(scoped))
+            if within is None:
+                comparable = False
+            elif within:
                 return {
                     **base,
                     "relationship": "AFFECTS_VERSION",
                     "affected": True,
                     "match_method": "event_scope_version",
-                    "reason": f"{dep['package']}=={version} matches event scope version {scoped}",
+                    "reason": f"{dep['package']}=={version} is within event scope version {scoped}",
                 }
+        if not comparable:
+            # Never a clear: an unparseable version is not "outside" a scope.
+            return {
+                **base,
+                "relationship": "RELATED",
+                "affected": False,
+                "match_method": "project_scope",
+                "reason": (
+                    f"{dep['package']}=={version} is not comparable with scope versions "
+                    f"{scope.versions}"
+                ),
+            }
         return {
             **base,
             "relationship": "NOT_AFFECTED",
