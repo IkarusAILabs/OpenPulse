@@ -47,6 +47,18 @@ jobs:
       # Threat: broken packaging — the console script and key entry points
       # must import and respond after a real install.
       - run: openpulse --help && python -c "import cli.main, core.notify, core.observations.sweep"
+      # Threat: a wheel that imports but ships no data - a plain `pip install`
+      # silently ran with an empty catalog (every identity resolving to itself)
+      # and without the evidence-contract schemas. Install the built wheel into
+      # a clean venv and exercise it from outside the checkout.
+      - run: |
+          python -m pip wheel --no-deps -w "$RUNNER_TEMP/wheel" .
+          python -m venv "$RUNNER_TEMP/wheelvenv"
+          WPY="$RUNNER_TEMP/wheelvenv/bin/python"
+          [ -x "$WPY" ] || WPY="$RUNNER_TEMP/wheelvenv/Scripts/python.exe"
+          "$WPY" -m pip install -q "$RUNNER_TEMP"/wheel/*.whl
+          cd "$RUNNER_TEMP"
+          "$WPY" -I -c "from core.entities.resolve import resolve_project; from core.evidence_contract import SCHEMA_PATH; from core.resources import data_path; assert resolve_project('postgres:16') == 'postgresql'; assert SCHEMA_PATH.exists(); assert data_path('fixtures', 'django-eol', 'event.json').exists()"
   codeql:
     runs-on: ubuntu-latest
     permissions:
