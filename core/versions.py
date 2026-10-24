@@ -88,6 +88,27 @@ def compare(a: str, b: str, scheme: str | None = None) -> int | None:
     return 0
 
 
+def in_release_line(version: str, line: str) -> bool | None:
+    """Is ``version`` the release line ``line`` or a release within it?
+
+    Event version scopes name release lines (endoflife.date cycles such as
+    ``4.2``, ``13``, ``18``), while dependencies pin releases (``4.2.11``,
+    ``13.5``). A line covers every version whose leading segments equal
+    it: ``4.2`` covers ``4.2.11`` but not ``4.20.1``. None when either side
+    is not comparable - the caller must report that as not established,
+    never as outside the scope.
+    """
+    exact = compare(str(version), str(line))
+    if exact is None:
+        return None
+    if exact == 0:
+        return True
+    width = len(str(line).split("."))
+    head = ".".join(str(version).split(".")[:width])
+    within = compare(head, str(line))
+    return None if within is None else within == 0
+
+
 def satisfies(version: str, constraint: dict[str, Any], scheme: str | None = None) -> bool | None:
     """One range constraint (OSV or CPE style) against a version."""
     if not constraint:
