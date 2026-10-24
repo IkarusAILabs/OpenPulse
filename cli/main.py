@@ -229,6 +229,35 @@ def analyze(project, raw_bundle, project_version):
     _echo("\nnote: findings are proposals — Evidence Analyst + gate decide events.")
 
 
+@cli.command(name="mcp")
+@click.option(
+    "--root",
+    default=".",
+    type=click.Path(exists=True, file_okay=False),
+    show_default=True,
+    help="Project root: check_dependency_file only reads files inside it",
+)
+@click.option(
+    "--offline",
+    is_flag=True,
+    help="No network: answer from the bundled curated events only",
+)
+def mcp_command(root, offline):
+    """MCP server (stdio) for AI coding agents: dependency evidence as tools.
+
+    Needs the optional extra: pip install "openpulse[mcp]".
+    """
+    try:
+        import mcp.server.mcpserver  # noqa: F401  (optional SDK present?)
+    except ImportError:
+        raise click.ClickException(
+            'the MCP server needs the optional SDK: pip install "openpulse[mcp]"'
+        ) from None
+    from cli.mcp_server import run
+
+    run(root=root, live=not offline)
+
+
 @cli.command(name="demo-bitnami")
 def demo_bitnami():
     """Offline north-star demo: Bitnami event -> gate -> who is affected -> report."""

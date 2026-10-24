@@ -41,6 +41,8 @@ openpulse_schemas = ["evidence-contract/*/schema.json"]
 
 [project.optional-dependencies]
 dev = ["pytest>=9.1.1", "ruff>=0.17.0"]
+# MCP server for AI coding agents (`openpulse mcp`); pins in requirements-mcp.lock.
+mcp = ["mcp>=2.3.0"]
 
 [project.scripts]
 openpulse = "cli.main:cli"

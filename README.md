@@ -50,6 +50,38 @@ steps:
 
 Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
+## Use it from AI coding agents (MCP)
+
+AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
+
+```bash
+pip install "openpulse[mcp]"
+claude mcp add openpulse -- openpulse mcp      # Claude Code
+```
+
+Other clients take the usual JSON entry:
+
+```json
+{ "mcpServers": { "openpulse": { "command": "openpulse", "args": ["mcp"] } } }
+```
+
+| Tool | Answers |
+|---|---|
+| `dependency_status` | Is this package version or image end-of-life or end-of-support? Is it hit by a curated upstream change (distribution, license, support model)? Which OSV advisories affect *this* version? |
+| `check_dependency_file` | The same, for every pinned entry of a manifest, lockfile, SBOM or image list in the project |
+| `project_lifecycle` | Which release lines of a project are still supported, so the agent can pick one |
+
+Every answer cites its sources and lists what it could **not** establish. UNKNOWN never means safe, and the agent and its human make the decision.
+
+How the server is limited:
+
+- Every tool is read-only.
+- File checks are confined to the project root (`--root`).
+- Lookups go only to endoflife.date, OSV and the GitHub API, and are cached per session.
+- `--offline` restricts it to the bundled curated events.
+
+The SDK and its dependencies are an optional extra with its own audited lock (`requirements-mcp.lock`).
+
 ## The problem we solve
 
 <img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
