@@ -19,12 +19,24 @@ def _resolve(tree: str, package: str, parts: tuple[str, ...]) -> Path:
     checkout = _REPO_ROOT.joinpath(tree, *parts)
     if checkout.exists():
         return checkout
-    try:
-        from importlib.resources import files
+    # The data packages have no __init__.py (they are plain directories), so
+    # resolve their search locations directly. importlib.resources.files()
+    # returns a MultiplexedPath for them, whose joinpath() rejects file
+    # names before Python 3.12 (NotADirectoryError).
+    import importlib.util
 
-        return Path(str(files(package).joinpath(*parts)))
-    except ModuleNotFoundError:
-        return checkout  # neither layout present: callers report the missing path
+    try:
+        spec = importlib.util.find_spec(package)
+    except (ImportError, ValueError):
+        spec = None
+    locations = list(spec.submodule_search_locations or []) if spec else []
+    for location in locations:
+        candidate = Path(location).joinpath(*parts)
+        if candidate.exists():
+            return candidate
+    if locations:
+        return Path(locations[0]).joinpath(*parts)
+    return checkout  # neither layout present: callers report the missing path
 
 
 def data_path(*parts: str) -> Path:
