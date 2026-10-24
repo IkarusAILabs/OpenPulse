@@ -16,8 +16,28 @@ dependencies = [
   "click>=8.5.0",
 ]
 
-[tool.setuptools.packages.find]
-include = ["core*", "collectors*", "analyzers*", "cli*", "reports*", "integrations*"]
+# Explicit package list (pinned against find_packages by
+# tests/test_packaging.py) so the runtime data directories can ship as
+# packages too: `data/` (catalog, seed, curated events) and `schemas/`
+# (evidence-contract JSON Schemas) are needed by an installed wheel, not
+# only by a source checkout. core.resources resolves both layouts.
+[tool.setuptools]
+packages = [
+  "analyzers", "analyzers.activity", "analyzers.distribution", "analyzers.license",
+  "analyzers.lifecycle", "analyzers.security", "analyzers.support",
+  "cli",
+  "collectors", "collectors.cve", "collectors.endoflife", "collectors.github",
+  "collectors.kev", "collectors.nvd", "collectors.osv", "collectors.registries",
+  "core", "core.detections", "core.entities", "core.events", "core.evidence",
+  "core.observations", "core.risk", "core.schema",
+  "reports",
+  "openpulse_data", "openpulse_schemas",
+]
+package-dir = {"openpulse_data" = "data", "openpulse_schemas" = "schemas"}
+
+[tool.setuptools.package-data]
+openpulse_data = ["*.yaml", "fixtures/*/event.json"]
+openpulse_schemas = ["evidence-contract/*/schema.json"]
 
 [project.optional-dependencies]
 dev = ["pytest>=9.1.1", "ruff>=0.17.0"]

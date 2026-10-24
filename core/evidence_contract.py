@@ -35,12 +35,12 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import Any
 
 from core import attestation
 from core.attestation import EvidenceContract
 from core.evidence.provenance import hash_content
+from core.resources import schema_path
 from core.schema.models import OSSEvent
 
 #: Semver of the v1 contract shape. Bump per the versioning policy in
@@ -58,7 +58,7 @@ CONTRACT_VERSION = "1.1.0"
 #: validating against 1.0, and a 1.1 document requires the new
 #: ``inspection_coverage`` block. Loaded lazily so that importing this
 #: module never touches the filesystem.
-_SCHEMA_ROOT = Path(__file__).resolve().parents[1] / "schemas" / "evidence-contract"
+_SCHEMA_ROOT = schema_path("evidence-contract")  # checkout or installed wheel
 SCHEMA_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 

@@ -7,12 +7,14 @@ file must be lowercase and tag/digest-free (enforced by tests).
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 import yaml
 
-DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "canonical_projects.yaml"
+from core.resources import data_path
+
+#: Checkout `data/` or the installed `openpulse_data` package (core.resources).
+DEFAULT_PATH = data_path("canonical_projects.yaml")
 
 
 @lru_cache(maxsize=4)
