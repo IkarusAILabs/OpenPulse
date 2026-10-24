@@ -17,6 +17,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - Severity follows impact: Critical, High, Medium, Low, or Info for RELATED and unknown dependencies. NOT_AFFECTED pairs are left out.
   - Each finding carries its evidence URLs, the recommendation, what could not be established, and the evidence-contract hash.
   - A stable `unique_id_from_tool` lets re-imports deduplicate.
+- **Dependency-Track upload: `openpulse dependency-track --contracts FILE`.** It pushes affected findings as INTERNAL vulnerabilities, one per OpenPulse event (`OPENPULSE-<event id>`), each assigned to the matching components of a DT project.
+  - Only affected pairs are pushed, and unmatched dependencies are reported.
+  - Re-runs are idempotent.
+  - The API key comes from `OPENPULSE_DTRACK_API_KEY` only.
+  - HTTPS is required unless `--allow-http` is passed.
+  - `--dry-run` shows the plan without sending anything.
 
 ## 0.6.3 — 2026-10-23
 
