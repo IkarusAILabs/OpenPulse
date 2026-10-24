@@ -13,6 +13,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 - **Answers come from live sources.** Lifecycle data from endoflife.date, advisories from OSV and repository health from GitHub go through the same evidence gate and verdict engine as `check`. Results are cached per session.
 - **Limits.** `check_dependency_file` only reads files inside `--root`. `--offline` limits answers to the bundled curated events.
 - **Separate lock for the SDK.** The SDK and its dependencies are pinned in `requirements-mcp.lock`. A dedicated CI job installs that set, audits it and runs a real stdio session with the SDK client.
+- **DefectDojo export: `openpulse attest --defectdojo FILE`.** It writes DefectDojo's *Generic Findings Import* JSON, built from the same evidence contracts as the JSONL and SARIF outputs and producing one finding per SARIF result.
+  - Severity follows impact: Critical, High, Medium, Low, or Info for RELATED and unknown dependencies. NOT_AFFECTED pairs are left out.
+  - Each finding carries its evidence URLs, the recommendation, what could not be established, and the evidence-contract hash.
+  - A stable `unique_id_from_tool` lets re-imports deduplicate.
 
 ## 0.6.3 — 2026-10-23
 

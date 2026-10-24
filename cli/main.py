@@ -1431,6 +1431,13 @@ def warnings(
     "(e.g. $GITHUB_STEP_SUMMARY)",
 )
 @click.option(
+    "--defectdojo",
+    "defectdojo_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Also write these contracts as DefectDojo 'Generic Findings Import' JSON",
+)
+@click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
@@ -1452,6 +1459,7 @@ def attest(
     output,
     sarif_path="",
     summary_path="",
+    defectdojo_path="",
     fail_on=None,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
@@ -1646,6 +1654,14 @@ def attest(
             # every step of the job.
             with open(summary_path, "a", encoding="utf-8") as handle:
                 handle.write(render_summary(sarif_doc))
+    if defectdojo_path:
+        from core.defectdojo import build_findings
+
+        dojo = build_findings(rendered)
+        _Path(defectdojo_path).write_text(
+            _json.dumps(dojo, indent=2, sort_keys=True) + NL, encoding="utf-8"
+        )
+        _echo(f"wrote {defectdojo_path} ({len(dojo['findings'])} finding(s))", err=True)
     if output:
         _Path(output).write_text(NL.join(lines) + NL, encoding="utf-8")
         _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)
