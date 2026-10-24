@@ -82,6 +82,35 @@ How the server is limited:
 
 The SDK and its dependencies are an optional extra with its own audited lock (`requirements-mcp.lock`).
 
+## Send findings to DefectDojo
+
+Security teams already triage in DefectDojo, so OpenPulse findings can go there directly. `attest --defectdojo` writes DefectDojo's **Generic Findings Import** format, built from the same evidence contracts as the JSONL and SARIF outputs.
+
+```bash
+openpulse attest --lockfile poetry.lock --event data/fixtures/django-eol/event.json   --defectdojo openpulse-defectdojo.json
+```
+
+```bash
+curl -sS -X POST "$DEFECTDOJO_URL/api/v2/import-scan/" -H "Authorization: Token $DEFECTDOJO_TOKEN" -F scan_type="Generic Findings Import" -F engagement="$ENGAGEMENT_ID" -F file=@openpulse-defectdojo.json
+```
+
+In the UI, open the engagement and choose **Import Scan Results** with scan type *Generic Findings Import*.
+
+| Contract | DefectDojo severity |
+|---|---|
+| Affected, CRITICAL impact | Critical |
+| Affected, ACTION impact | High |
+| Affected, REVIEW impact | Medium |
+| Affected, WATCH or INFORMATIONAL impact | Low |
+| RELATED, or a dependency no event applies to | Info |
+| NOT_AFFECTED | not exported |
+
+Each finding includes:
+
+- the evidence URLs, the recommendation, and what could not be established;
+- the hash of the evidence contract it came from;
+- a stable `unique_id_from_tool`, so re-imports deduplicate instead of piling up.
+
 ## The problem we solve
 
 <img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
