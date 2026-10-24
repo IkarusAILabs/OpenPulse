@@ -19,9 +19,11 @@ the whole point of the Bitnami case.
 
 from __future__ import annotations
 
+import re
+
 from core.entities.resolve import normalize_ref, resolve_project
 from core.schema.models import OSSEvent
-from core.versions import compare
+from core.versions import in_release_line
 
 
 def split_image_ref(ref: str) -> tuple[str, str, str]:
@@ -40,6 +42,16 @@ def split_image_ref(ref: str) -> tuple[str, str, str]:
     else:
         namespace, name = "/".join(rest[:-1]), rest[-1]
     return registry, namespace, name
+
+
+#: Docker variant tags: `13.5-alpine`, `3.12-slim-bookworm` -> version head.
+_TAG_VARIANT = re.compile(r"^(v?\d+(?:\.\d+)*)-[A-Za-z][A-Za-z0-9._-]*$")
+
+
+def _tag_version(tag: str) -> str:
+    """The comparable version in an image tag (variant suffix dropped)."""
+    match = _TAG_VARIANT.match(tag)
+    return match.group(1) if match else tag
 
 
 def tag_of(ref: str) -> str | None:
@@ -202,14 +214,27 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
                     f"version scope {scope['versions']} excludes it"
                 ),
             }
+        tag_version = _tag_version(tag)
+        comparable = True
         for version in scope["versions"]:
-            if compare(tag, str(version)) == 0:
+            within = in_release_line(tag_version, str(version))
+            if within is None:
+                comparable = False
+            elif within:
                 return {
                     "affected": True,
                     "via": "version",
                     "relationship": "AFFECTS_VERSION",
-                    "detail": f"{ref} tag {tag} matches event scope version {version}",
+                    "detail": f"{ref} tag {tag} is within event scope version {version}",
                 }
+        if not comparable:
+            # Never a clear: a tag we cannot compare is not "outside" a scope.
+            return {
+                "affected": False,
+                "via": None,
+                "relationship": "RELATED",
+                "detail": f"{ref} tag {tag} is not comparable with scope {scope['versions']}",
+            }
         return {
             "affected": False,
             "via": None,
