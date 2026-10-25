@@ -4,9 +4,8 @@ Source: the 2026-10-21 security architecture review (finding matrix in `docs/ARC
 
 ## Where we are
 
-- `main` @ `b82aaf0` (2026-10-21): Phase A merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1. 747 offline tests; CI green on Linux and Windows.
-- Release: v0.6.1 is prepared in `CHANGELOG.md`. The last tagged release is v0.5.0: v0.6.0 was never tagged, so v0.6.1 ships both lines.
-- Phase A leftovers: A6b (collector response caps) and A9 (tag and publish the release).
+- 2026-10-25: Phase A merged (#112, #113, #115–#120); v0.6.3 released (GitHub Action). Since then: wheel data packaging (#132), release-line scope fix (#133), and the distribution channels from the positioning plan: `openpulse mcp` for AI coding agents ([MCP.md](MCP.md)), DefectDojo export and Dependency-Track upload (#134–#136). Intelligence schema 0.5.0, evidence contract v1.1.
+- Phase A leftover: A6b (collector response caps). A9 is done (v0.6.1-v0.6.3 tagged and released).
 - Still open from v0.6.0: item **C** (finding F5) is referenced in the #100 commit (workstreams A, B, D) but documented nowhere. Either record what it was and add it to this plan, or mark it deferred.
 
 ## Rules for every phase

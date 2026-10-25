@@ -32,6 +32,8 @@ OpenPulse is part of the [Ikarus AI Labs](https://ikaruslabs.net) research progr
 
 AI can introduce dependencies faster than humans can review them. OpenPulse helps you understand what those dependencies depend on — and what happens when the ecosystem underneath them changes. **AI writes code fast. OpenPulse watches what that code depends on.**
 
+The agents can now ask OpenPulse themselves: [`openpulse mcp`](docs/MCP.md) is an MCP server, so Claude Code, Cursor or Copilot can check whether a dependency is end-of-life, changed upstream or affected by advisories *before* adding it.
+
 ## Use it in GitHub Actions
 
 Run OpenPulse on every pull request that touches a dependency file, and weekly to catch upstream changes no PR triggered. You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
@@ -81,6 +83,8 @@ How the server is limited:
 - `--offline` restricts it to the bundled curated events.
 
 The SDK and its dependencies are an optional extra with its own audited lock (`requirements-mcp.lock`).
+
+Setup for Claude Code, Cursor, VS Code/Copilot, Claude Desktop and Windsurf, the tool reference, an example answer and troubleshooting: [docs/MCP.md](docs/MCP.md).
 
 ## Send findings to DefectDojo
 
@@ -177,7 +181,7 @@ That is the bar for every OpenPulse event: **what changed, the evidence, who may
 | Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (100 projects, every item sourced) | ✅ Shipped |
 | Intelligence | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 Building now |
 | Early Warning | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
-| AI-native | "What dependencies is AI introducing?" | AI Supply Chain Governance — Know Your Dependencies | Direction |
+| AI-native | "What dependencies is AI introducing?" | AI Supply Chain Governance — Know Your Dependencies: agents ask OpenPulse before they change a dependency ([`openpulse mcp`](docs/MCP.md)) | Early preview |
 
 ## The metric that matters: Early Warning Lead Time
 
@@ -243,6 +247,8 @@ everything else. We do not compete on EOL record counts.
   Bitnami-namespace rules, and identity trust (VERIFIED /
   REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
   EMERGING).
+- **AI coding agents (MCP)**: `openpulse mcp` gives Claude Code, Cursor, Copilot and other MCP clients three read-only tools (`dependency_status`, `check_dependency_file`, `project_lifecycle`) backed by live endoflife.date, OSV and GitHub lookups and the same verdict engine as `check` ([docs/MCP.md](docs/MCP.md)).
+- **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract v1.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
@@ -375,7 +381,10 @@ core/risk/          # match.py — event-vs-dependency impact matching
 core/pulse.py       # compute_pulse() — findings/events to 7 facets
 collectors/         # github, osv, nvd, cve, kev, endoflife, registries (+base)
 analyzers/          # change_analyst, security_analyst, evidence_analyst, report_analyst
-cli/                # openpulse CLI (validate, pulse, analyze, observe, report, check, demo-bitnami)
+cli/                # openpulse CLI (validate, pulse, analyze, observe, report, check, attest, mcp, dependency-track, ...)
+cli/mcp_server.py   # `openpulse mcp` - MCP server over the official SDK (optional extra)
+core/agent_tools.py # SDK-free engine behind the MCP tools
+core/sarif.py, core/defectdojo.py, core/dtrack.py  # SARIF / DefectDojo / Dependency-Track outputs
 reports/            # generate.py — monthly ranked markdown reports
 data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
 docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
@@ -393,6 +402,8 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | `docs/ANALYSTS.md` | The four analysts and their rules |
 | `docs/ARCHITECTURE_REVIEW.md` | Architecture & security assessment, finding matrix, migration plan |
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
+| `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
+| `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
 | `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 — machine-readable dependency verdicts |
 | `docs/NEXT_PHASES.md` | v0.6.1 → v0.7.0 development plan from the 2026-10-21 security review |
 | `CHANGELOG.md` | What changed in each release |
