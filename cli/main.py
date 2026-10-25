@@ -229,6 +229,122 @@ def analyze(project, raw_bundle, project_version):
     _echo("\nnote: findings are proposals — Evidence Analyst + gate decide events.")
 
 
+@cli.command(name="mcp")
+@click.option(
+    "--root",
+    default=".",
+    type=click.Path(exists=True, file_okay=False),
+    show_default=True,
+    help="Project root: check_dependency_file only reads files inside it",
+)
+@click.option(
+    "--offline",
+    is_flag=True,
+    help="No network: answer from the bundled curated events only",
+)
+def mcp_command(root, offline):
+    """MCP server (stdio) for AI coding agents: dependency evidence as tools.
+
+    Needs the optional extra: pip install "openpulse[mcp]".
+    """
+    try:
+        import mcp.server.mcpserver  # noqa: F401  (optional SDK present?)
+    except ImportError:
+        raise click.ClickException(
+            'the MCP server needs the optional SDK: pip install "openpulse[mcp]"'
+        ) from None
+    from cli.mcp_server import run
+
+    run(root=root, live=not offline)
+
+
+@cli.command(name="dependency-track")
+@click.option(
+    "--contracts",
+    "contracts_path",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Evidence-contract JSONL written by `openpulse attest --output`",
+)
+@click.option("--url", default="", help="Dependency-Track base URL (e.g. https://dtrack.example)")
+@click.option("--project-uuid", default="", help="Target project UUID")
+@click.option("--project-name", default="", help="Target project name (with --project-version)")
+@click.option("--project-version", default="", help="Target project version")
+@click.option("--dry-run", is_flag=True, help="Print the plan; send nothing")
+@click.option("--allow-http", is_flag=True, help="Opt in to a plain-http Dependency-Track URL")
+@click.option("--timeout", default=30.0, show_default=True, help="Per-request timeout (seconds)")
+def dependency_track(
+    contracts_path, url, project_uuid, project_name, project_version, dry_run, allow_http, timeout
+):
+    """Push affected findings into Dependency-Track as INTERNAL vulnerabilities.
+
+    One vulnerability per OpenPulse event (OPENPULSE-<event id>), assigned to the
+    project's matching components. API key from the OPENPULSE_DTRACK_API_KEY
+    environment variable (never argv); needs VULNERABILITY_MANAGEMENT and
+    PORTFOLIO_MANAGEMENT.
+    """
+    import os
+
+    import httpx
+
+    from core import dtrack
+    from core.bounded_io import read_text
+
+    try:
+        text = read_text(contracts_path, MAX_BUNDLE_BYTES, contracts_path)
+        docs = [json.loads(line) for line in text.splitlines() if line.strip()]
+    except (OSError, ValueError) as e:
+        raise click.ClickException(f"{contracts_path}: {e}")
+    planned = dtrack.plan(docs)
+    pairs = sum(len(p["components"]) for p in planned)
+    _echo(f"plan: {len(planned)} vulnerability(ies), {pairs} affected component(s)")
+    if dry_run:
+        for item in planned:
+            vuln = item["vulnerability"]
+            _echo(f"  {vuln['vulnId']} [{vuln['severity']}] {vuln['title']}")
+            for component in item["components"]:
+                _echo(f"    -> {component['label']} {component['identity']}")
+        return
+    if not planned:
+        _echo("nothing affected: nothing to push")
+        return
+    api_key = os.environ.get(dtrack.API_KEY_ENV, "")
+    if not api_key:
+        raise click.ClickException(
+            f"set {dtrack.API_KEY_ENV} (the API key is never read from argv)"
+        )
+    try:
+        base = dtrack.check_url(url, allow_http=allow_http)
+    except ValueError as e:
+        raise click.ClickException(str(e))
+    if not project_uuid and not (project_name and project_version):
+        raise click.ClickException("give --project-uuid, or --project-name and --project-version")
+    with httpx.Client(
+        base_url=base,
+        headers={"X-Api-Key": api_key, "User-Agent": "openpulse-dtrack"},
+        timeout=timeout,
+        follow_redirects=False,
+    ) as client:
+        try:
+            uuid = project_uuid or dtrack.lookup_project(client, project_name, project_version)
+        except (httpx.HTTPError, ValueError) as e:
+            from collectors.errors import safe_message
+
+            raise click.ClickException(f"project lookup failed: {safe_message(e)}")
+        report = dtrack.upload(client, uuid, planned)
+    _echo(
+        f"created {len(report['created'])}, existing {len(report['existing'])}, "
+        f"assigned {len(report['assigned'])}, not found {len(report['not_found'])}, "
+        f"errors {len(report['errors'])}"
+    )
+    for label in report["not_found"]:
+        _echo(f"! not a component of the project: {label}")
+    for error in report["errors"]:
+        _echo(f"! error: {error}")
+    if report["errors"]:
+        raise SystemExit(1)
+
+
 @cli.command(name="demo-bitnami")
 def demo_bitnami():
     """Offline north-star demo: Bitnami event -> gate -> who is affected -> report."""
@@ -1402,6 +1518,13 @@ def warnings(
     "(e.g. $GITHUB_STEP_SUMMARY)",
 )
 @click.option(
+    "--defectdojo",
+    "defectdojo_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Also write these contracts as DefectDojo 'Generic Findings Import' JSON",
+)
+@click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
@@ -1423,6 +1546,7 @@ def attest(
     output,
     sarif_path="",
     summary_path="",
+    defectdojo_path="",
     fail_on=None,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
@@ -1617,6 +1741,14 @@ def attest(
             # every step of the job.
             with open(summary_path, "a", encoding="utf-8") as handle:
                 handle.write(render_summary(sarif_doc))
+    if defectdojo_path:
+        from core.defectdojo import build_findings
+
+        dojo = build_findings(rendered)
+        _Path(defectdojo_path).write_text(
+            _json.dumps(dojo, indent=2, sort_keys=True) + NL, encoding="utf-8"
+        )
+        _echo(f"wrote {defectdojo_path} ({len(dojo['findings'])} finding(s))", err=True)
     if output:
         _Path(output).write_text(NL.join(lines) + NL, encoding="utf-8")
         _echo(f"wrote {output} ({len(lines)} contract(s))", err=True)

@@ -50,6 +50,86 @@ steps:
 
 Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
+## Use it from AI coding agents (MCP)
+
+AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
+
+```bash
+pip install "openpulse[mcp]"
+claude mcp add openpulse -- openpulse mcp      # Claude Code
+```
+
+Other clients take the usual JSON entry:
+
+```json
+{ "mcpServers": { "openpulse": { "command": "openpulse", "args": ["mcp"] } } }
+```
+
+| Tool | Answers |
+|---|---|
+| `dependency_status` | Is this package version or image end-of-life or end-of-support? Is it hit by a curated upstream change (distribution, license, support model)? Which OSV advisories affect *this* version? |
+| `check_dependency_file` | The same, for every pinned entry of a manifest, lockfile, SBOM or image list in the project |
+| `project_lifecycle` | Which release lines of a project are still supported, so the agent can pick one |
+
+Every answer cites its sources and lists what it could **not** establish. UNKNOWN never means safe, and the agent and its human make the decision.
+
+How the server is limited:
+
+- Every tool is read-only.
+- File checks are confined to the project root (`--root`).
+- Lookups go only to endoflife.date, OSV and the GitHub API, and are cached per session.
+- `--offline` restricts it to the bundled curated events.
+
+The SDK and its dependencies are an optional extra with its own audited lock (`requirements-mcp.lock`).
+
+## Send findings to DefectDojo
+
+Security teams already triage in DefectDojo, so OpenPulse findings can go there directly. `attest --defectdojo` writes DefectDojo's **Generic Findings Import** format, built from the same evidence contracts as the JSONL and SARIF outputs.
+
+```bash
+openpulse attest --lockfile poetry.lock --event data/fixtures/django-eol/event.json   --defectdojo openpulse-defectdojo.json
+```
+
+```bash
+curl -sS -X POST "$DEFECTDOJO_URL/api/v2/import-scan/" -H "Authorization: Token $DEFECTDOJO_TOKEN" -F scan_type="Generic Findings Import" -F engagement="$ENGAGEMENT_ID" -F file=@openpulse-defectdojo.json
+```
+
+In the UI, open the engagement and choose **Import Scan Results** with scan type *Generic Findings Import*.
+
+| Contract | DefectDojo severity |
+|---|---|
+| Affected, CRITICAL impact | Critical |
+| Affected, ACTION impact | High |
+| Affected, REVIEW impact | Medium |
+| Affected, WATCH or INFORMATIONAL impact | Low |
+| RELATED, or a dependency no event applies to | Info |
+| NOT_AFFECTED | not exported |
+
+Each finding includes:
+
+- the evidence URLs, the recommendation, and what could not be established;
+- the hash of the evidence contract it came from;
+- a stable `unique_id_from_tool`, so re-imports deduplicate instead of piling up.
+
+## Send findings to Dependency-Track
+
+Dependency-Track only tracks vulnerabilities, so OpenPulse findings go in as **INTERNAL vulnerabilities**, one per OpenPulse event (`OPENPULSE-<event id>`), assigned to the affected components of your DT project:
+
+```bash
+openpulse attest --sbom bom.json --event data/fixtures/django-eol/event.json --output contracts.jsonl
+openpulse dependency-track --contracts contracts.jsonl --dry-run
+```
+
+```bash
+OPENPULSE_DTRACK_API_KEY=... openpulse dependency-track --contracts contracts.jsonl --url https://dtrack.example --project-name my-app --project-version 1.4.0
+```
+
+- **What is pushed:** only *affected* pairs. RELATED and UNKNOWN pairs stay in the JSONL, SARIF and DefectDojo outputs, because DT treats anything assigned as vulnerable.
+- **Matching:** components are matched by group, name and version inside the project. Dependencies that aren't components of the project are reported, never guessed onto a different component.
+- **Re-runs:** pushing again reuses existing vulnerabilities, so nothing duplicates.
+- **Credentials:** the API key is read only from `OPENPULSE_DTRACK_API_KEY`, never from the command line. It needs the `VULNERABILITY_MANAGEMENT` and `PORTFOLIO_MANAGEMENT` permissions.
+- **Transport:** HTTPS is required unless you pass `--allow-http`, and redirects are never followed.
+
 ## The problem we solve
 
 <img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />

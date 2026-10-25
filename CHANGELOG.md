@@ -2,6 +2,28 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **`openpulse mcp`: an MCP server for AI coding agents** (optional extra, `pip install "openpulse[mcp]"`). It provides three read-only tools:
+  - `dependency_status`: end-of-life/end-of-support status, curated upstream changes and version-specific OSV advisories for one dependency.
+  - `check_dependency_file`: the same checks for every pinned entry in a project file.
+  - `project_lifecycle`: which release lines of a project are still supported.
+- **Answers come from live sources.** Lifecycle data from endoflife.date, advisories from OSV and repository health from GitHub go through the same evidence gate and verdict engine as `check`. Results are cached per session.
+- **Limits.** `check_dependency_file` only reads files inside `--root`. `--offline` limits answers to the bundled curated events.
+- **Separate lock for the SDK.** The SDK and its dependencies are pinned in `requirements-mcp.lock`. A dedicated CI job installs that set, audits it and runs a real stdio session with the SDK client.
+- **DefectDojo export: `openpulse attest --defectdojo FILE`.** It writes DefectDojo's *Generic Findings Import* JSON, built from the same evidence contracts as the JSONL and SARIF outputs and producing one finding per SARIF result.
+  - Severity follows impact: Critical, High, Medium, Low, or Info for RELATED and unknown dependencies. NOT_AFFECTED pairs are left out.
+  - Each finding carries its evidence URLs, the recommendation, what could not be established, and the evidence-contract hash.
+  - A stable `unique_id_from_tool` lets re-imports deduplicate.
+- **Dependency-Track upload: `openpulse dependency-track --contracts FILE`.** It pushes affected findings as INTERNAL vulnerabilities, one per OpenPulse event (`OPENPULSE-<event id>`), each assigned to the matching components of a DT project.
+  - Only affected pairs are pushed, and unmatched dependencies are reported.
+  - Re-runs are idempotent.
+  - The API key comes from `OPENPULSE_DTRACK_API_KEY` only.
+  - HTTPS is required unless `--allow-http` is passed.
+  - `--dry-run` shows the plan without sending anything.
+
 ## 0.6.3 — 2026-10-23
 
 ### Fixed
