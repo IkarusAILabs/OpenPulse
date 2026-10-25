@@ -15,6 +15,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **`python -m cli`** (#146) runs OpenPulse through the interpreter, for MCP clients that can't find the `openpulse` executable. Configure it as `["-I", "-m", "cli", "mcp"]`, or `-P` on Python 3.11+. Without the flag, the working directory is searched first, so a project's own `cli/` package would run instead of OpenPulse: in an untrusted repository, that means its code runs. See [`docs/MCP.md`](docs/MCP.md), which also shows the Windows interpreter path. Help and usage text read `openpulse` either way.
 - **`openpulse mcp`: an MCP server for AI coding agents** (optional extra, `pip install "openpulse[mcp]"`). It provides three read-only tools:
   - `dependency_status`: end-of-life/end-of-support status, curated upstream changes and version-specific OSV advisories for one dependency.
   - `check_dependency_file`: the same checks for every pinned entry in a project file.

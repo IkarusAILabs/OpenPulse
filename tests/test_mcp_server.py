@@ -66,15 +66,21 @@ def test_file_check_inside_root_works():
     assert payload["affected"] == ["django==4.2"]
 
 
-def test_stdio_end_to_end_with_the_sdk_client():
-    """A real MCP client talks to `openpulse mcp --offline` over stdio."""
+def test_stdio_end_to_end_with_the_sdk_client(tmp_path):
+    """A real MCP client talks to `openpulse mcp --offline` over stdio.
+
+    Launched the way docs/MCP.md documents it - interpreter + safe-path
+    flag + `-m cli` - from a directory that is NOT the OpenPulse checkout,
+    as real clients do (they start servers inside the user's project).
+    """
     from mcp.client.session import ClientSession
     from mcp.client.stdio import StdioServerParameters, stdio_client
 
+    safe_path = "-P" if sys.version_info >= (3, 11) else "-I"
     params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "cli", "mcp", "--offline", "--root", str(REPO)],
-        cwd=str(REPO),
+        args=[safe_path, "-m", "cli", "mcp", "--offline", "--root", str(REPO)],
+        cwd=str(tmp_path),
     )
 
     async def session():

@@ -49,17 +49,3 @@ def test_checkout_layout_is_preferred():
         Path(resources.__file__).resolve().parents[1] / "data" / "canonical_projects.yaml"
     )
     assert resources.schema_path("evidence-contract", "v1.1", "schema.json").exists()
-
-
-def test_cli_main_module_executable():
-    """`python -m cli --version` executes cleanly without requiring the entrypoint on PATH."""
-    import subprocess
-    import sys
-
-    res = subprocess.run(
-        [sys.executable, "-m", "cli", "--version"],
-        capture_output=True,
-        text=True,
-    )
-    assert res.returncode == 0
-    assert "openpulse, version" in res.stdout

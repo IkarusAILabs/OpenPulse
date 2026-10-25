@@ -50,20 +50,33 @@ Add `--scope project` to share it with your team through the project's `.mcp.jso
 }
 ```
 
-If `openpulse` is not on the client's `PATH` (common with virtualenvs and on Windows), configure the Python interpreter directly:
+If `openpulse` is not on the client's `PATH` (common with virtualenvs and on Windows), either use the full path to the `openpulse` executable as `command`, or point the client at the virtualenv's Python interpreter:
 
 ```json
 {
   "mcpServers": {
     "openpulse": {
       "command": "/path/to/venv/bin/python",
-      "args": ["-m", "cli", "mcp"]
+      "args": ["-I", "-m", "cli", "mcp"]
     }
   }
 }
 ```
 
-Or use the full path to the `openpulse` executable as `command`.
+On Windows the interpreter is `Scripts\python.exe`, and JSON needs escaped backslashes:
+
+```json
+{
+  "mcpServers": {
+    "openpulse": {
+      "command": "C:\\path\\to\\venv\\Scripts\\python.exe",
+      "args": ["-I", "-m", "cli", "mcp"]
+    }
+  }
+}
+```
+
+> **Keep `-I`.** MCP clients start servers inside your project, and a bare `python -m cli` puts the working directory first on Python's import path. Any project with its own `cli/` package (a common name) would then run *its* `cli/__main__.py` instead of OpenPulse. In a repository you don't trust, that means its code runs as soon as the client starts the server. `-I` (isolated mode, Python 3.10+) ignores the working directory, user site-packages and `PYTHON*` environment variables. On Python 3.11+ you can use `-P` instead, which only drops the working directory.
 
 ## Tools
 
@@ -141,7 +154,8 @@ Live lookups are cached per server session, one fetch per project. A file check 
 | Symptom | Fix |
 |---|---|
 | `the MCP server needs the optional SDK` | `pip install "openpulse[mcp]"` in the environment the client runs |
-| Client cannot start the server | Use the absolute path to `openpulse` as `command` |
+| Client cannot start the server | Use the absolute path to `openpulse` as `command`, or the venv interpreter with `["-I", "-m", "cli", "mcp"]` |
+| Something other than OpenPulse starts (`python -m cli` config) | Your project has its own `cli/` package. Add `-I` before `-m` so the working directory is not searched |
 | `outside the server's project root` | Start the server in your project (or pass `--root /path/to/project`) and pass paths relative to it |
 | Everything is UNKNOWN | Check `sources`: a lookup may have failed (network, rate limit) or the project is not in endoflife.date / the catalog. UNKNOWN is not a clean result |
 
