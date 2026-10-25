@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import sys
+import uuid
 from pathlib import Path
 
 _PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;#]+)")
@@ -37,7 +38,7 @@ def build(lock_path: str = "requirements.lock") -> dict:
     return {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
-        "serialNumber": f"urn:uuid:openpulse-lock-{digest[:32]}",
+        "serialNumber": f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, f'urn:openpulse:lock:{digest}')}",
         "version": 1,
         "metadata": {"component": {"type": "application", "name": "openpulse"}},
         "components": components,
