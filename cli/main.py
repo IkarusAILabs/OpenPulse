@@ -690,6 +690,25 @@ def _echo_run_coverage(inspections) -> str:
     return status
 
 
+def _github_auth_options(func):
+    """Shared GitHub credential options for commands that can inspect a repository."""
+    func = click.option(
+        "--github-token-file",
+        type=click.Path(exists=True, dir_okay=False),
+        default=None,
+        help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
+    )(func)
+    func = click.option(
+        "--github-token",
+        "github_token",
+        type=str,
+        default=None,
+        show_default=False,
+        help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+    )(func)
+    return func
+
+
 def _load_check_inputs(
     watchlist,
     sbom,
@@ -917,20 +936,7 @@ def _load_check_inputs(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default="",
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1184,20 +1190,7 @@ def check(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1327,20 +1320,7 @@ def digest(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1469,20 +1449,7 @@ def warnings(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
