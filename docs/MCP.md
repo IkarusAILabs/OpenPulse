@@ -50,7 +50,20 @@ Add `--scope project` to share it with your team through the project's `.mcp.jso
 }
 ```
 
-If `openpulse` is not on the client's `PATH` (for example, it is installed in a virtualenv), use the full path to the executable as `command`.
+If `openpulse` is not on the client's `PATH` (common with virtualenvs and on Windows), configure the Python interpreter directly:
+
+```json
+{
+  "mcpServers": {
+    "openpulse": {
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "cli", "mcp"]
+    }
+  }
+}
+```
+
+Or use the full path to the `openpulse` executable as `command`.
 
 ## Tools
 
