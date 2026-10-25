@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status (2026-10-21): v0.6.1 prepared on `main` - Phase A correctness and leak fixes merged (#112, #113, #115–#119), `SECURITY.md` with private vulnerability reporting (#120); release notes in `CHANGELOG.md`; intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-10-25): v0.6.3 released; on `main` since then: wheel data packaging (#132), release-line scope fix (#133), MCP server for AI coding agents, DefectDojo export and Dependency-Track upload (#134–#136, landed via the recovery PR); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -153,7 +153,9 @@ STATUS: FUTURE
 Emerging signals, community observations, confidence progression, cross-source triangulation, long-term history, anonymized cross-customer intelligence. Only start when customer monitoring is working.
 
 ## M8 — AI-Mediated Dependency Intelligence
-STATUS: RESEARCH (integration direction, not a product feature)
+STATUS: RESEARCH + EARLY PREVIEW (agent channel shipped: `openpulse mcp`, see `docs/MCP.md`)
+
+Implemented (2026-10-24): an MCP server lets coding agents query dependency evidence before they change a dependency. This keeps the principle below intact: the agent *consumes* OpenPulse evidence, while OpenPulse's verdicts stay deterministic and evidence-gated. No AI is in OpenPulse's decision path.
 
 Research question: how should dependency intelligence change when AI agents increasingly select, introduce, upgrade and remove software dependencies? OpenPulse contributes dependency intelligence + applicability + evidence + temporal context; SafeAI contributes agent authority + change + authority evidence. Do NOT put an AI agent in the trusted decision path; study the evidence question first.
 
