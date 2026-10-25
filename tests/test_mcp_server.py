@@ -73,7 +73,7 @@ def test_stdio_end_to_end_with_the_sdk_client():
 
     params = StdioServerParameters(
         command=sys.executable,
-        args=["-c", "from cli.main import cli; cli()", "mcp", "--offline", "--root", str(REPO)],
+        args=["-m", "cli", "mcp", "--offline", "--root", str(REPO)],
         cwd=str(REPO),
     )
 
