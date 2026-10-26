@@ -21,6 +21,50 @@ def test_catalog_aliases():
     assert resolve_project("apache/kafka") == "kafka"
 
 
+def test_catalog_alias_collision_raises():
+    from core.entities.catalog import catalog_alias_map
+
+    colliding = [
+        {"slug": "a", "aliases": ["shared"]},
+        {"slug": "b", "aliases": ["shared"]},
+    ]
+    try:
+        catalog_alias_map(colliding)
+    except ValueError as exc:
+        assert "shared" in str(exc)
+        assert "a" in str(exc) and "b" in str(exc)
+    else:
+        raise AssertionError("expected ValueError on alias collision")
+
+    # real catalog has no collisions
+    from core.entities.catalog import load_catalog
+
+    assert catalog_alias_map(load_catalog())
+
+    # temp YAML fixture with a colliding alias raises
+    import os
+    import tempfile
+
+    import yaml
+
+    fixture = [
+        {"slug": "x", "aliases": ["dup"]},
+        {"slug": "y", "aliases": ["dup"]},
+    ]
+    fd, path = tempfile.mkstemp(suffix=".yaml")
+    try:
+        with os.fdopen(fd, "w") as f:
+            yaml.safe_dump(fixture, f)
+        bad_catalog = load_catalog(path)
+        try:
+            catalog_alias_map(bad_catalog)
+        except ValueError as exc:
+            assert "dup" in str(exc)
+        else:
+            raise AssertionError("expected ValueError on temp fixture collision")
+    finally:
+        os.remove(path)
+
 def test_catalog_hygiene():
     from core.entities.catalog import catalog_alias_map, load_catalog
 

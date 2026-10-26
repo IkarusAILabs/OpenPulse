@@ -423,7 +423,7 @@ Evidence-first means contributions are easy to review:
 
 1. **Add a collector** — subclass `collectors/base.py:9`, add `parse_*` pure functions, offline fixture tests. Network failures must return `error` dicts, never raise.
 2. **Add an analyst rule** — extend the relevant `analyzers/*_analyst.py`, document the rule in `docs/ANALYSTS.md`, cover it with tests.
-3. **Add a project** — append to `data/canonical_projects.yaml` (lowercase, tag-free aliases; tests enforce hygiene).
+3. **Add a project** — append to `data/canonical_projects.yaml` (lowercase, tag-free aliases; tests enforce hygiene and reject alias/docker-image collisions).
 4. Every event needs: source URL + fetch date + confidence. `UNVERIFIED` can never be `ACTION`.
 
 ```bash

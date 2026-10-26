@@ -24,12 +24,23 @@ def load_catalog(path: str | None = None) -> list[dict[str, Any]]:
 
 
 def catalog_alias_map(catalog: list[dict[str, Any]]) -> dict[str, str]:
-    """alias -> slug for every alias and docker image in the catalog."""
+    """alias -> slug for every alias and docker image in the catalog.
+
+    Raises ValueError if two different slugs claim the same alias or Docker
+    image, so a bad catalog fails loudly at load time instead of silently
+    resolving one project to another's identity.
+    """
     out: dict[str, str] = {}
     for entry in catalog:
         slug = entry.get("slug", "")
         for alias in (entry.get("aliases") or []) + (entry.get("docker_images") or []):
-            out.setdefault(str(alias).strip().lower(), slug)
+            key = str(alias).strip().lower()
+            if key in out and out[key] != slug:
+                raise ValueError(
+                    f"catalog alias collision: {key!r} claimed by both "
+                    f"{out[key]!r} and {slug!r}"
+                )
+            out[key] = slug
     return out
 
 
