@@ -2,6 +2,22 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Fixed
+
+**This changes verdicts.** All of the following could report NOT_AFFECTED (a clearance) for a dependency that is in an event's scope. They were found by the conformance audit in technical report TR-2026-01.
+
+- **Multi-digest events checked only the first digest (D1).** When an event named several digests of one repository, a dependency pinning any digest after the first was cleared. Every named artifact is now compared: any match is AFFECTED, and one undetermined comparison (digest against tag) withholds the clearance.
+- **OSV ranges collapsed to their last interval (D2).** `introduced 1.0, fixed 1.2, introduced 2.0, fixed 2.3` was read as `[2.0, 2.3)`, so `1.1` was cleared. Ranges are now walked as unions of intervals. `GIT` and unknown range types, and versions at or past a `limit`, are undetermined. An advisory is cleared only if every affected entry clears the version. Withdrawn advisories no longer assert anything.
+- **A clearance from one event hid an unresolved one (D3).** The headline verdict is no longer NOT_AFFECTED while another event's cause is RELATED or AFFECTS_PROJECT. Per-cause verdicts were already kept, and `affected` is unchanged.
+- **Heuristic identity excluded dependencies (D5).** "This image is a different project" now needs a VERIFIED resolution. `docker.io/bitnami/<x>` images that resolve only through the generic Bitnami namespace rule are RELATED to upstream `<x>` lifecycle events, not NOT_AFFECTED: they package that upstream release. Four goldens flipped, with the justification recorded in `tests/test_golden.py`.
+- **Package-scoped events associated with every image.** An event scoped to packages (the iText licence change, for example) marked unrelated images RELATED. Only images of the event's project are now associated.
+
+### Added
+
+- **`Scope.exhaustive` (D4)**, intelligence schema 0.5.0 → **0.6.0** (additive, default `true`, so existing events behave as before). Set it to `false` when a scope lists known members only: absence from it is then RELATED, never a clearance. The evidence contract is unchanged.
+
 ## 0.7.0 — 2026-10-28 "Channels"
 
 OpenPulse reaches the places where dependency decisions are made: AI coding agents (MCP), DefectDojo and Dependency-Track. **This release changes verdicts** (#133, below), and the install name is now `ikarus-openpulse`. Read the upgrade notes before upgrading CI gates.

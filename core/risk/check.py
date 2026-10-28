@@ -9,6 +9,9 @@ combines them only at the final verdict, retaining each cause.
 Decision matrix (final relationship):
   AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE
   > NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN
+except that a clearance from one event never outranks an unresolved
+association (RELATED / AFFECTS_PROJECT) from another
+(``winning_cause``).
 `affected` is True only for ARTIFACT/VERSION/PACKAGE. A project-only
 tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 """
@@ -38,6 +41,10 @@ _RANK = {
 }
 
 _AFFECTED = ("AFFECTS_ARTIFACT", "AFFECTS_VERSION", "AFFECTS_PACKAGE")
+
+#: Associations that are neither impact nor clearance: while any cause
+#: holds one, a NOT_AFFECTED from another event cannot headline.
+_UNRESOLVED = ("RELATED", "AFFECTS_PROJECT")
 
 #: Match strength answers "what matches" — never "how trustworthy is
 #: the underlying claim". The ceiling below is what a match *alone*
@@ -159,7 +166,25 @@ def _dep_label(dep: dict[str, Any]) -> str:
 
 
 def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
-    """Package dep vs one event's scope. None when the event says nothing usable."""
+    """Package dep vs one event's scope. None when the event says nothing usable.
+
+    A negative stands only against an exhaustive scope; outside a
+    non-exhaustive one the cause is RELATED (see ``_exclusion``).
+    """
+    cause = _scope_cause(dep, event)
+    if cause is None or cause["relationship"] != "NOT_AFFECTED":
+        return cause
+    if event.scope is None or event.scope.exhaustive:
+        return cause
+    return {
+        **cause,
+        "relationship": "RELATED",
+        "match_method": "project_scope",
+        "reason": f"{cause['reason']}; scope is not exhaustive, so not a clearance",
+    }
+
+
+def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     slug = resolve_project(str(dep["package"]))
     if slug != event.project_slug:
         return None
@@ -306,6 +331,25 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
     return causes
 
 
+def winning_cause(causes: list[Cause]) -> Cause:
+    """The cause that headlines a verdict (non-empty ``causes``).
+
+    The highest-ranked cause, except that a clearance never outranks
+    an unresolved association from another event: when any cause is
+    RELATED or AFFECTS_PROJECT, NOT_AFFECTED cannot headline. UNKNOWN
+    causes ("matches nothing in this event") assert no association and
+    do not block a clearance. Per-cause verdicts stay retained either
+    way, and ``affected`` is unchanged -- neither side is affected.
+    """
+    top = max(causes, key=lambda c: _RANK.get(str(c.get("relationship", "")), 0))
+    if str(top.get("relationship")) != "NOT_AFFECTED":
+        return top
+    unresolved = [c for c in causes if str(c.get("relationship")) in _UNRESOLVED]
+    if not unresolved:
+        return top
+    return max(unresolved, key=lambda c: _RANK.get(str(c.get("relationship", "")), 0))
+
+
 def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
     """Explicit decision matrix over retained causes.
 
@@ -332,7 +376,7 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
         cause.setdefault("detail", cause.get("reason", ""))
         cause.setdefault("evidence_confidence", "UNVERIFIED")
         cause.setdefault("identity_status", "VERIFIED")
-    top = max(causes, key=lambda c: _RANK.get(str(c["relationship"]), 0))
+    top = winning_cause(causes)
     relationship = str(top["relationship"])
     affected = relationship in _AFFECTED
     match_strength = _MATCH_STRENGTH.get(relationship, "none")
@@ -412,6 +456,7 @@ def fail_on_threshold(results: list[DependencyVerdict], threshold: str) -> bool:
         )
         for result in results
     )
+
 
 def strict_affected(results: list[DependencyVerdict]) -> bool:
     """Whether --strict should fail: an affected verdict carried by an

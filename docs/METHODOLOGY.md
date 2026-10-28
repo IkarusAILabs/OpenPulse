@@ -1,4 +1,4 @@
-# Methodology — how OpenPulse knows what it claims (schema v0.5.0)
+# Methodology — how OpenPulse knows what it claims (schema v0.6.0)
 
 ## Sources
 
@@ -69,6 +69,17 @@ carry `relationship` + `match_method` + `identity_evidence`:
 `True`/`False`/`None` — `None` (unknown version, exotic scheme) keeps
 the ceiling at `AFFECTS_PACKAGE` or `RELATED`. Uncertainty never
 strengthens a conclusion.
+
+An OSV range is a **union of intervals**: events are walked in
+version order, `introduced` opens an interval and `fixed` (exclusive)
+or `last_affected` (inclusive) closes it, so `introduced 1.0, fixed
+1.2, introduced 2.0, fixed 2.3` covers `[1.0, 1.2)` and `[2.0, 2.3)`.
+Only `SEMVER` and `ECOSYSTEM` ranges are evaluated: `GIT` ranges need
+commit-graph reasoning and are `None`, as is any unknown range type
+and any version at or past a `limit`. An advisory is cleared for a
+version only when **every** affected entry decides `False`; one
+undetermined entry withholds the clearance. Withdrawn advisories
+assert nothing.
 
 Event version scopes name **release lines** (endoflife.date cycles such
 as `4.2`, `13`, `18`), while dependencies pin releases. A line covers
@@ -302,7 +313,10 @@ forms carry an explicit policy (`tag_vs_digest_policy`):
   digest are the same immutable bytes — AFFECTS_ARTIFACT, the only
   form of exact artifact identity besides tag equality.
 - **Different digests are provably different content.** NOT_AFFECTED:
-  the pinned bytes are not the artifact the event names.
+  the pinned bytes are not the artifact the event names — but only
+  once **every** artifact the event names has been compared. Any
+  equal digest is AFFECTS_ARTIFACT, and any digest-vs-tag element
+  keeps the verdict RELATED.
 - **A digest on one side and a tag on the other is RELATED, never
   AFFECTS_ARTIFACT and never NOT_AFFECTED.** The refs agree on the
   repository, but a tag can move onto (or away from) the pinned
@@ -440,9 +454,22 @@ consumption.
 
 AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE >
 NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN.
-`affected` is True only for ARTIFACT/VERSION/PACKAGE. A stronger
-negative (evaluated version outside the range) beats RELATED/UNKNOWN;
-no weaker match overrides it. The match implies a confidence *ceiling*
+`affected` is True only for ARTIFACT/VERSION/PACKAGE. Within one
+event, an evaluated negative beats RELATED/UNKNOWN. Across events, a
+clearance never outranks an unresolved association: while any cause
+is RELATED or AFFECTS_PROJECT, the headline is that cause, not
+NOT_AFFECTED (`winning_cause`). UNKNOWN causes ("matches nothing in
+this event") do not block a clearance. Every cause stays in
+`verdicts`.
+
+**When a negative is admissible.** NOT_AFFECTED requires (1) an
+exhaustive scope (`Scope.exhaustive`, default true; a scope declared
+non-exhaustive lists known members only, so outside it is RELATED);
+(2) every scope element evaluated and decisively excluded, with no
+early return on the first element; and (3) an identity exclusion
+("this ref is another project") resting on a VERIFIED resolution. A
+heuristic mapping such as the generic Bitnami namespace rule is
+RELATED, never an exclusion. The match implies a confidence *ceiling*
 (ARTIFACT → CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
 EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
 UNVERIFIED); the verdict takes the minimum of that ceiling and the

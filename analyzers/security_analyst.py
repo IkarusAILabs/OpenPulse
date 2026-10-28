@@ -218,19 +218,27 @@ def _absorb_osv(
 ) -> None:
     if not _osv_identity(e, names, pkg, eco):
         return
+    if e.get("withdrawn"):
+        # Retracted by the publisher: no applicability claim either way.
+        return
     package = str(e.get("package", ""))
     slot["affected_package"] = slot["affected_package"] or package
-    evaluated, applies, fixed = False, False, None
+    evaluated, applies, undecided, fixed = False, False, False, None
     for affected in e.get("affected", []) or []:
         result = osv_applicable(version, affected) if version else None
-        if result is not None:
-            evaluated = True
-            slot["version_checked"] = True
+        if result is None:
+            undecided = True
         if result is True:
             applies = True
-            slot["version_hit"] = True
         for candidate in affected.get("fixed", []) or []:
             fixed = fixed or str(candidate)
+    # A version is cleared only when EVERY affected entry decided
+    # False: one undetermined entry withholds the negative.
+    if applies or (version and not undecided and e.get("affected")):
+        evaluated = True
+        slot["version_checked"] = True
+    if applies:
+        slot["version_hit"] = True
     if applies:
         slot["relationship"] = "AFFECTS_VERSION"
         slot["match_method"] = "osv_package+version_range"

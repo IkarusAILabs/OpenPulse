@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.5.0 — pydantic models (source of truth)."""
+"""OpenPulse Intelligence Schema v0.6.0 — pydantic models (source of truth)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from .enums import Confidence, EventType, Impact
 
-SCHEMA_VERSION = "0.5.0"
+SCHEMA_VERSION = "0.6.0"
 
 
 class Source(BaseModel):
@@ -88,8 +88,9 @@ class Scope(BaseModel):
 
     Absent scope means project-wide (legacy behavior). Populated scope
     narrows matching: version lists, explicit artifacts/packages, or
-    registries. A dependency outside a populated scope is NOT_AFFECTED,
-    not UNKNOWN.
+    registries. A dependency outside a populated, exhaustive scope is
+    NOT_AFFECTED, not UNKNOWN; outside a non-exhaustive scope it is
+    RELATED (the list names known members only).
     """
 
     kind: Literal["project", "package", "artifact", "version", "registry"] = "project"
@@ -97,6 +98,13 @@ class Scope(BaseModel):
     artifacts: list[str] = Field(default_factory=list)
     packages: list[str] = Field(default_factory=list)
     registries: list[str] = Field(default_factory=list)
+    exhaustive: bool = Field(
+        default=True,
+        description=(
+            "Whether the listed elements are every member of the scope. "
+            "False: known members only, so exclusion is never a clearance."
+        ),
+    )
 
 
 class OSSEvent(BaseModel):

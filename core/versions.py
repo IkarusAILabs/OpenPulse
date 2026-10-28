@@ -165,18 +165,96 @@ def osv_applicable(
         return None
     undecided = False
     for rng in ranges:
-        constraint: dict[str, Any] = {}
-        for event in rng.get("events", []) or []:
-            for key, value in event.items():
-                if key == "introduced" and value in ("0", "0.0", ""):
-                    continue
-                constraint[key] = value
-        result = satisfies(version, constraint, scheme)
+        result = _osv_range(version, rng, scheme)
         if result is True:
             return True
         if result is None:
             undecided = True
     return None if undecided else False
+
+
+#: OSV range types whose events are versions. GIT ranges name commits
+#: and need commit-graph reasoning: always undetermined here.
+_OSV_VERSION_RANGES = ("SEMVER", "ECOSYSTEM")
+_OSV_ZERO = ("0", "0.0", "")
+
+
+def _osv_range(version: str, rng: dict[str, Any], scheme: str | None) -> bool | None:
+    """One OSV range: a UNION of intervals, per the OSV evaluation rule.
+
+    Events are sorted by version and walked in order: ``introduced``
+    opens an interval, ``fixed`` (exclusive) and ``last_affected``
+    (inclusive) close it, so ``introduced 1.0, fixed 1.2, introduced
+    2.0, fixed 2.3`` covers [1.0, 1.2) and [2.0, 2.3). A version at or
+    past a ``limit`` is undetermined (never a clearance), as is any
+    event or range type that cannot be compared.
+    """
+    if str(rng.get("type") or "ECOSYSTEM").upper() not in _OSV_VERSION_RANGES:
+        return None
+    keyed: list[tuple[str, str]] = []
+    for event in rng.get("events", []) or []:
+        for key, value in event.items():
+            if key in ("introduced", "fixed", "last_affected", "limit"):
+                keyed.append((key, str(value)))
+    if not keyed:
+        return None
+    for key, value in keyed:
+        if key == "limit":
+            below = compare(version, value, scheme)
+            if below is None or below >= 0:
+                return None
+    walk = [(k, v) for k, v in keyed if k != "limit"]
+    if not any(k == "introduced" for k, _ in walk):
+        # Malformed but seen in the wild: a range with only a fix. Read
+        # it as open from the start (the lenient pre-walk behavior), so
+        # a missing bound can never become a clearance.
+        walk.insert(0, ("introduced", "0"))
+    positions: list[tuple[int, int, str]] = []  # (version vs event, order, kind)
+    for order, (key, value) in enumerate(walk):
+        if key == "introduced" and value in _OSV_ZERO:
+            positions.append((1, order, key))  # version is past "0" by definition
+            continue
+        result = compare(version, value, scheme)
+        if result is None:
+            return None
+        positions.append((result, order, key))
+    # Sorted walk without sorting the events themselves: an event
+    # applies once the version has reached it (introduced/fixed: >=;
+    # last_affected: >). The latest-applying event in version order
+    # decides, so sort the applying events by their own version.
+    applying = [
+        (key, walk[order][1])
+        for result, order, key in positions
+        if (result > 0) or (result == 0 and key != "last_affected")
+    ]
+    if not applying:
+        return False
+    latest_key = _latest_event(applying, scheme)
+    if latest_key is None:
+        return None
+    return latest_key == "introduced"
+
+
+def _latest_event(applying: list[tuple[str, str]], scheme: str | None) -> str | None:
+    """Kind of the highest-versioned applying event; None if not comparable.
+
+    Ties between an opening and a closing event at the same version
+    resolve to the closing one (a fix at X wins over an introduction
+    at X, matching OSV's sorted-order rule where both apply).
+    """
+    best_key, best_value = applying[0]
+    for key, value in applying[1:]:
+        if best_value in _OSV_ZERO and best_key == "introduced":
+            best_key, best_value = key, value
+            continue
+        if value in _OSV_ZERO and key == "introduced":
+            continue
+        order = compare(value, best_value, scheme)
+        if order is None:
+            return None
+        if order > 0 or (order == 0 and key != "introduced"):
+            best_key, best_value = key, value
+    return best_key
 
 
 def cpe_applicable(

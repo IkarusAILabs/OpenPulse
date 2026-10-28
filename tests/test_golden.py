@@ -215,7 +215,12 @@ def test_golden_postgresql_eol_pins_and_namespaces():
     assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
     assert upstream_old.confidence == "EMERGING"
     assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+    # FLIPPED (TR-2026-01 D5): docker.io/bitnami/<x> resolves only via the
+    # generic Bitnami namespace heuristic (REVIEW_REQUIRED), which cannot
+    # prove a different project -- and this image packages the very
+    # upstream cycle the event names. NOT_AFFECTED was a false clear;
+    # RELATED keeps it undetermined and never affected.
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "RELATED")
 
     # Q6 -- when: effective in the past, in force now.
     assert findings[0]["effective_at"] == "2025-11-13"
@@ -294,7 +299,12 @@ def test_golden_kubernetes_eol_pins_and_skew():
     assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
     assert pinned_old.confidence == "EMERGING"
     assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+    # FLIPPED (TR-2026-01 D5): docker.io/bitnami/<x> resolves only via the
+    # generic Bitnami namespace heuristic (REVIEW_REQUIRED), which cannot
+    # prove a different project -- and this image packages the very
+    # upstream cycle the event names. NOT_AFFECTED was a false clear;
+    # RELATED keeps it undetermined and never affected.
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "RELATED")
 
     # Q6 -- when: effective in the past, in force now.
     assert findings[0]["effective_at"] == "2025-11-11"
@@ -376,8 +386,13 @@ def test_golden_kafka_eol_pins_and_namespaces():
     assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
     assert pinned_old.confidence == "EMERGING"
     assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_cycle.affected, bitnami_cycle.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+    # FLIPPED (TR-2026-01 D5): docker.io/bitnami/<x> resolves only via the
+    # generic Bitnami namespace heuristic (REVIEW_REQUIRED), which cannot
+    # prove a different project -- and this image packages the very
+    # upstream cycle the event names. NOT_AFFECTED was a false clear;
+    # RELATED keeps it undetermined and never affected.
+    assert (bitnami_cycle.affected, bitnami_cycle.relationship) == (False, "RELATED")
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "RELATED")
 
     # Q6 -- when: effective in the past, in force now.
     assert findings[0]["effective_at"] == "2024-11-06"
@@ -471,7 +486,12 @@ def test_golden_cert_manager_eol_pins_and_namespaces():
     assert (pinned_18.affected, pinned_18.relationship) == (True, "AFFECTS_VERSION")
     assert (pinned_21.affected, pinned_21.relationship) == (False, "NOT_AFFECTED")
     assert (cross_cycle.affected, cross_cycle.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_18.affected, bitnami_18.relationship) == (False, "NOT_AFFECTED")
+    # FLIPPED (TR-2026-01 D5): docker.io/bitnami/<x> resolves only via the
+    # generic Bitnami namespace heuristic (REVIEW_REQUIRED), which cannot
+    # prove a different project -- and this image packages the very
+    # upstream cycle the event names. NOT_AFFECTED was a false clear;
+    # RELATED keeps it undetermined and never affected.
+    assert (bitnami_18.affected, bitnami_18.relationship) == (False, "RELATED")
 
     # Q6 -- when: both effective in the past, in force now.
     assert by_cycle["1.19"]["effective_at"] == "2026-07-08"
