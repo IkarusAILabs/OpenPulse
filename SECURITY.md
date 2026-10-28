@@ -64,10 +64,10 @@ What to expect:
 - **Unkeyed local history.** The observation chain and the detection ledger
   use unkeyed hashes. An adversary with write access to `.openpulse/` can
   recompute them, and a deleted `tip.json` is adopted. Keyed integrity and
-  rollback detection are planned for v0.7.0 (`docs/NEXT_PHASES.md`).
+  rollback detection are planned for v0.8.0 (`docs/NEXT_PHASES.md`).
 - **Webhook DNS rebinding.** The webhook SSRF check resolves DNS before
   connecting, so it is open to DNS rebinding. A DNS-pinned transport is
-  planned for v0.7.0.
+  planned for v0.9.0.
 - **Unsigned contracts.** Evidence-contract documents are not signed. Their
   `signature` fields are always `null` in v1.
 

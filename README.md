@@ -242,7 +242,7 @@ everything else. We do not compete on EOL record counts.
 - **Change engine**: corruption-detecting digest-aware registry observations
   (hash-chained local history, frozen sealed records, per-repo locks;
   the chain is unkeyed, so it does not yet resist an adversary with
-  write access to `.openpulse/` - keyed integrity is planned for v0.7.0),
+  write access to `.openpulse/` - keyed integrity is planned for v0.8.0),
   observation diffs (`openpulse observe`), catalog sweep with
   first-detection tracking (`openpulse sweep`, `report --with-sweep`).
 - **Entity resolution**: canonical catalog with PURL builders,
@@ -258,11 +258,12 @@ everything else. We do not compete on EOL record counts.
 
 v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
 
-- **Verdict change: please read before upgrading.** End-of-life events are scoped to release lines (`4.2`, `13`), and versions used to be compared for equality. So `django==4.2.11` or `postgres:13.5` inside an end-of-life cycle was reported NOT_AFFECTED. They are now AFFECTED (#133). CI gates using `--fail-on` (or the Action's `fail-on`) may start failing on lockfiles that used to pass. That is the intended verdict.
-- **AI coding agents.** `openpulse mcp` lets Claude Code, Cursor, Copilot and other MCP clients check a dependency *before* they add it ([docs/MCP.md](docs/MCP.md)).
-- **Security-team tools.** `attest --defectdojo` writes DefectDojo findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track.
-- **Install name.** OpenPulse is distributed as **`ikarus-openpulse`**, because `openpulse` on PyPI is an unrelated project. If you installed it as `openpulse` from git before, run `pip uninstall openpulse` first.
-- **Still true.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.8.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
+- **More of your dependencies, checked the same way.** `check` and `attest` read SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests, container image lists, and whole GitHub repositories (`--github-repo`). All of them feed the same verdict engine.
+- **Honest coverage.** Repository inspection reports COMPLETE, PARTIAL or FAILED, and an inspection that couldn't read something never claims "no dependencies".
+- **Early-warning views.** `openpulse digest` and `openpulse warnings` show upcoming deadlines, with lead times taken from first detection.
+- **Machine-readable verdicts.** `openpulse attest` emits evidence-contract v1.1 documents.
+- **Correctness and security fixes.** Real-world (namespaced) `pom.xml` files no longer parse to zero dependencies. Private-registry image refs (`host:port/...`) keep distinct identities. Webhook errors no longer leak the secret URL path. Locks are OS-level and crash-safe. Every input read is bounded.
+- **Upgrade note.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.8.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
 
 ## Quickstart
 
@@ -406,7 +407,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
 | `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
 | `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 — machine-readable dependency verdicts |
-| `docs/NEXT_PHASES.md` | v0.6.1 → v0.7.0 development plan from the 2026-10-21 security review |
+| `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.9: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
 | `CHANGELOG.md` | What changed in each release |
 | `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
 
