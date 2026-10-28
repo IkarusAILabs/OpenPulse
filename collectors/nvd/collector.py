@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -97,7 +96,7 @@ class NVDCollector(BaseCollector):
         keyword = self.keyword_map.get(project_slug, project_slug)
         headers = {"apiKey": self.api_key} if self.api_key else {}
         try:
-            r = httpx.get(
+            r = http.get(
                 API,
                 params={"keywordSearch": keyword, "resultsPerPage": 20},
                 headers=headers,

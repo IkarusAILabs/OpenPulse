@@ -44,7 +44,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.0
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -57,9 +57,11 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "openpulse[mcp]"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
+
+> **Install name:** OpenPulse is distributed as **`ikarus-openpulse`**. The name `openpulse` on PyPI belongs to an unrelated project (OpenQASM's pulse AST), so never `pip install openpulse`. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as shown. The command you run is still `openpulse`.
 
 Other clients take the usual JSON entry:
 
@@ -240,7 +242,7 @@ everything else. We do not compete on EOL record counts.
 - **Change engine**: corruption-detecting digest-aware registry observations
   (hash-chained local history, frozen sealed records, per-repo locks;
   the chain is unkeyed, so it does not yet resist an adversary with
-  write access to `.openpulse/` - keyed integrity is planned for v0.7.0),
+  write access to `.openpulse/` - keyed integrity is planned for v0.8.0),
   observation diffs (`openpulse observe`), catalog sweep with
   first-detection tracking (`openpulse sweep`, `report --with-sweep`).
 - **Entity resolution**: canonical catalog with PURL builders,
@@ -252,16 +254,16 @@ everything else. We do not compete on EOL record counts.
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract v1.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
-## What's new in v0.6.1
+## What's new in v0.7.0
 
-v0.6.1 is the first release since v0.5.0 and also carries the v0.6.0 work. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
 
 - **More of your dependencies, checked the same way.** `check` and `attest` read SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests, container image lists, and whole GitHub repositories (`--github-repo`). All of them feed the same verdict engine.
 - **Honest coverage.** Repository inspection reports COMPLETE, PARTIAL or FAILED, and an inspection that couldn't read something never claims "no dependencies".
 - **Early-warning views.** `openpulse digest` and `openpulse warnings` show upcoming deadlines, with lead times taken from first detection.
 - **Machine-readable verdicts.** `openpulse attest` emits evidence-contract v1.1 documents.
 - **Correctness and security fixes.** Real-world (namespaced) `pom.xml` files no longer parse to zero dependencies. Private-registry image refs (`host:port/...`) keep distinct identities. Webhook errors no longer leak the secret URL path. Locks are OS-level and crash-safe. Every input read is bounded.
-- **Upgrade note.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.7.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
+- **Upgrade note.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.8.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
 
 ## Quickstart
 
@@ -405,7 +407,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
 | `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
 | `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 — machine-readable dependency verdicts |
-| `docs/NEXT_PHASES.md` | v0.6.1 → v0.7.0 development plan from the 2026-10-21 security review |
+| `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.9: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
 | `CHANGELOG.md` | What changed in each release |
 | `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
 

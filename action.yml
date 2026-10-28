@@ -102,9 +102,9 @@ runs:
         venv="$RUNNER_TEMP/openpulse-venv"
         "$BASE_PYTHON" -m venv "$venv"
         if [ -x "$venv/bin/python" ]; then bin="$venv/bin"; else bin="$venv/Scripts"; fi
-        # Dependencies are hash-checked (a re-uploaded or tampered artifact
-        # with the same version fails), then OpenPulse itself is installed
-        # editable from the checked-out action source, with no further deps.
+        # Editable on purpose: the action runs the checked-out source as-is
+        # (catalog and contract schemas resolve from the source tree; wheels
+        # ship them too since #132).
         "$bin/python" -m pip install --disable-pip-version-check -q \
           --require-hashes -r "$ACTION_ROOT/requirements-runtime.lock"
         "$bin/python" -m pip install --disable-pip-version-check -q \

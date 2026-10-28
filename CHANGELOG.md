@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.7.0 — 2026-10-28 "Channels"
+
+OpenPulse reaches the places where dependency decisions are made: AI coding agents (MCP), DefectDojo and Dependency-Track. **This release changes verdicts** (#133, below), and the install name is now `ikarus-openpulse`. Read the upgrade notes before upgrading CI gates.
 
 ### Fixed
 
@@ -11,6 +13,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- **Install name is now `ikarus-openpulse`.** `openpulse` on PyPI is an unrelated project (OpenQASM's pulse AST), and `pip install "openpulse[mcp]"` installed it. Install with `pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"` until the PyPI release lands. If you previously installed OpenPulse from git under the old name, run `pip uninstall openpulse` first, so two distributions don't claim the same modules. The CLI command is still `openpulse`.
 - **Gates may start failing.** Because of #133, pinned dependencies inside an end-of-life release line now report AFFECTED. That is the intended verdict, but a CI gate using `--fail-on` (or the Action's `fail-on`) may now fail where it used to pass.
 
 ### Added
