@@ -4,19 +4,11 @@ The living build plan. It sequences the 2026-10-21 security review (finding matr
 
 Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
-## Where we are (verified against `main` @ `3e63629`)
+## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
-- **Released:** v0.6.3 (2026-10-23), with the GitHub Action. Not on the Marketplace yet.
-- **On `main` but unreleased:**
-  - wheel data packaging (#132);
-  - release-line scope fix (#133). This **changes verdicts**: patch pins inside an end-of-life cycle are now AFFECTED;
-  - `openpulse mcp` for AI coding agents, DefectDojo export and Dependency-Track upload (#134–#137);
-  - `python -I -m cli` (#146, #150);
-  - CycloneDX serial fix (#147);
-  - shared GitHub auth options (#149).
-
-  `CHANGELOG.md` `Unreleased` holds all of it. The MCP server is therefore in **no tagged release yet**.
-- **Phase A** (correctness and leak fixes) is done except A6b (collector response caps).
+- **Released:** v0.7.0 "Channels" (2026-10-28): wheel data packaging (#132), the release-line verdict fix (#133, **changes verdicts**), `openpulse mcp`, DefectDojo export and Dependency-Track upload (#134–#137), `python -I -m cli` (#146, #150), the CycloneDX serial fix (#147), shared GitHub auth options (#149) and the install name `ikarus-openpulse` (#154). The Action is not on the Marketplace yet (R4).
+- **Next patch, v0.7.1:** collector response caps (#155, H11) and hash-locked installs everywhere (#156, H12).
+- **Phase A** (correctness and leak fixes) is done, including A6b.
 - **Phases B–D:** none of Phase B is started. Phase C has only the Action (C3). Phase D has only the serial fix (part of D4).
 - **Contributor PRs waiting on changes:**
   - #148 (Tejas5405): it claims `Fixes #103` but changes no behaviour;
@@ -59,11 +51,11 @@ The work on `main` reaches users only through a release, and the documented inst
 
 | # | Item | Size | Who | Status |
 |---|---|---|---|---|
-| R1 | **Install docs fix (urgent).** Replace `pip install "openpulse[mcp]"` in README and `docs/MCP.md` with a pinned git install, `pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"`, until a PyPI name exists. Add a test that greps the docs for a bare `pip install openpulse`. | S | maintainer | ACTIVE (release PR) |
+| R1 | **Install docs fix (urgent).** Replace `pip install "openpulse[mcp]"` in README and `docs/MCP.md` with a pinned git install, `pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"`, until a PyPI name exists. Add a test that greps the docs for a bare `pip install openpulse`. | S | maintainer | DONE (#154) |
 | R2 | **Distribution name decision.** Choose an available PyPI name, e.g. `openpulse-intel` or `ikarus-openpulse`, keeping the `openpulse` CLI command. Reserve it on PyPI with a placeholder through Trusted Publishing only. | S | **owner** | DECIDED 2026-10-28: `ikarus-openpulse` (CLI command stays `openpulse`; later import namespace `ikarus_openpulse`). The rename ships in the v0.7.0 release PR; reserving it on PyPI happens with D2's first Trusted Publishing upload |
-| R3 | **Release v0.7.0 "Channels".** Version bump, CHANGELOG `Unreleased` → `0.7.0`, tag, GitHub release. The release notes must lead with #133's verdict change, because gates may start failing. Minor (not patch) because of that semantic change and the three new commands. | S | maintainer | ACTIVE (decided 2026-10-28: v0.7.0) |
+| R3 | **Release v0.7.0 "Channels".** Version bump, CHANGELOG `Unreleased` → `0.7.0`, tag, GitHub release. The release notes must lead with #133's verdict change, because gates may start failing. Minor (not patch) because of that semantic change and the three new commands. | S | maintainer | DONE: tagged and released 2026-10-28 |
 | R4 | **Publish the Action to the Marketplace** from the v0.7.0 tag (the description is already under the limit). | S | **owner** | NEXT |
-| R5 | **Triage:** close #79 (GitHub repo input shipped in v0.6.0); rescope #78 to "delivery state + dedup" (C1); confirm Dependabot closed #130 after #131; follow up on #148 and #151, or take them over if the contributors go quiet. | S | maintainer | ACTIVE |
+| R5 | **Triage:** close #79 (GitHub repo input shipped in v0.6.0); rescope #78 to "delivery state + dedup" (C1); confirm Dependabot closed #130 after #131; follow up on #148 and #151, or take them over if the contributors go quiet. | S | maintainer | DONE 2026-10-28 (#148 and #151 await their contributors) |
 | R6 | **Record or retire v0.6.0 item "C" (finding F5).** It's named in the #100 commit and documented nowhere. | S | **owner** | DONE: retired 2026-10-28 (scope unknown, nothing depends on it) |
 
 **Exit:** v0.7.0 is tagged and released; the docs install OpenPulse and not the quantum-pulse package; the Action is on the Marketplace; the issue list matches the code.
@@ -84,8 +76,8 @@ Each item has an issue with acceptance criteria, so it can go to contributors. M
 | H8 | `scan_secrets`: canonical self-skip, skip virtualenvs, decide on `*.lock` | #142 | S | contributor |
 | H9 | Catalog collisions fail loudly **at every caller** (resolver and trust) | #144, #151 | S | contributor (#151) |
 | H10 | Standalone evidence-contract consumer (no OpenPulse imports) | #108 | M | contributor |
-| H11 | **A6b:** stream every collector's HTTP response with a byte cap; rework the tests that mock `httpx.get` | — | M | maintainer |
-| H12 | **D1:** hash-pinned locks (`--require-hashes`), `--no-deps -e .`, and `check_lock.py` failing on unlocked installs | #110 | M | maintainer |
+| H11 | **A6b:** stream every collector's HTTP response with a byte cap; rework the tests that mock `httpx.get` | — | M | DONE (#155, v0.7.1) |
+| H12 | **D1:** hash-pinned locks (`--require-hashes`), `--no-deps -e .`, and `check_lock.py` failing on unlocked installs | #110 | M | DONE (#156, v0.7.1) |
 | H13 | **D3 (rest):** ruff `S` rules with justified per-line ignores | — | S | maintainer |
 
 **Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel.

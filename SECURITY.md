@@ -78,7 +78,8 @@ What to expect:
   redirects.
 - GitHub inspection is pinned to commit and blob SHAs, with bounds.
 - Webhooks are https-only, with an IP blocklist and a body cap.
-- Every file read is bounded.
+- Every file read is bounded, and every collector HTTP response is size-capped while it streams (decoded bytes, so compressed bombs are caught).
+- Every install in CI and in the GitHub Action is hash-checked (`--require-hashes`) against complete, hash-pinned locks; CI fails on any installed package the lock doesn't list.
 - CI actions are pinned by SHA and run with least privilege. CI also runs
   CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret
   tripwire.
