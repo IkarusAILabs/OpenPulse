@@ -14,8 +14,14 @@ Optional extras keep their own lock beside the core one
 (``requirements-mcp.lock`` for ``openpulse[mcp]``). Floors are checked
 against every lock file in the repository; the installed tree only
 against the locks named on the command line (default: the core lock), so
-the main CI job need not install the extra. Pins may carry a
-``; sys_platform == "..."`` marker and are only required on that platform.
+the main CI job need not install the extra. Pins may carry an environment
+marker (``; sys_platform == 'win32'``, ``; python_full_version < '3.11'``)
+and are only required where it holds. The lock files are hash-pinned
+(``--hash`` continuation lines; see scripts/compile_locks.py).
+
+3. With ``--exact`` (CI): the installed tree must also not contain any
+   distribution the named locks don't list. "Locked but missing" alone let
+   an unlisted transitive dependency (``typing-inspection``) float freely.
 """
 
 from __future__ import annotations
@@ -25,12 +31,32 @@ import re
 import sys
 from pathlib import Path
 
-_PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;#]+)")
-_PLATFORM = re.compile(r";\s*sys_platform\s*==\s*[\"']([^\"']+)[\"']")
+#: `name==version` up to whitespace, a marker, a comment or a line continuation.
+_PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;#\\]+)")
+_MARKER = re.compile(r";\s*([^\\#]+)")
+_PLATFORM = re.compile(r"sys_platform\s*==\s*[\"']([^\"']+)[\"']")
+#: Installed by CI bootstrap, not by the project: never "unlocked" drift.
+_TOOLING = {"pip", "setuptools", "wheel", "ikarus-openpulse", "openpulse"}
 #: Every lock file the floors may be satisfied by (core first).
 LOCK_FILES = ("requirements.lock", "requirements-mcp.lock")
 #: pyproject ``"name>=1.2.3"`` requirement entries (runtime + dev extras).
 _FLOOR = re.compile(r'"([A-Za-z0-9_.\-]+)\s*>=\s*([0-9][^"]*)"')
+
+
+def _normalize(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _applies(marker: str) -> bool:
+    """Does an environment marker hold here? (`packaging` is in the lock;
+    without it, only `sys_platform == ...` is understood and anything else
+    is assumed to apply.)"""
+    try:
+        from packaging.markers import Marker
+    except ImportError:
+        platform = _PLATFORM.search(marker)
+        return platform is None or platform.group(1) == sys.platform
+    return Marker(marker).evaluate()
 
 
 def _read_pins(lock_path: str, this_platform_only: bool = False) -> dict[str, str]:
@@ -39,10 +65,10 @@ def _read_pins(lock_path: str, this_platform_only: bool = False) -> dict[str, st
         match = _PIN.match(line.strip())
         if not match:
             continue
-        platform = _PLATFORM.search(line)
-        if this_platform_only and platform and platform.group(1) != sys.platform:
+        marker = _MARKER.search(line)
+        if this_platform_only and marker and not _applies(marker.group(1).strip()):
             continue
-        pins[match.group(1).lower()] = match.group(2)
+        pins[_normalize(match.group(1))] = match.group(2)
     return pins
 
 
@@ -76,7 +102,7 @@ def _version_tuple(value: str) -> tuple[int, ...]:
     return tuple(int(part) for part in match.group(1).split("."))
 
 
-def check(*lock_paths: str) -> list[str]:
+def check(*lock_paths: str, exact: bool = False) -> list[str]:
     lock_paths = lock_paths or ("requirements.lock",)
     installed_pins: dict[str, str] = {}
     for path in lock_paths:
@@ -85,7 +111,7 @@ def check(*lock_paths: str) -> list[str]:
     for path in LOCK_FILES:
         if Path(path).exists():
             pins.update(_read_pins(path))
-    floors = _read_floors()
+    floors = {_normalize(k): v for k, v in _read_floors().items()}
     problems: list[str] = []
 
     for name, pin in sorted(installed_pins.items()):
@@ -96,6 +122,12 @@ def check(*lock_paths: str) -> list[str]:
             continue
         if installed != pin:
             problems.append(f"{name}: installed {installed} != locked {pin}")
+
+    if exact:
+        for dist in importlib.metadata.distributions():
+            name = _normalize(dist.metadata["Name"] or "")
+            if name and name not in installed_pins and name not in _TOOLING:
+                problems.append(f"{name}=={dist.version} is installed but not locked")
 
     for name, floor in sorted(floors.items()):
         pin = pins.get(name)
@@ -109,13 +141,14 @@ def check(*lock_paths: str) -> list[str]:
 
 
 def main() -> int:
-    problems = check(*sys.argv[1:])
+    args = [a for a in sys.argv[1:] if a != "--exact"]
+    problems = check(*args, exact="--exact" in sys.argv[1:])
     for problem in problems:
         print(f"lock drift: {problem}")
     if problems:
         print(f"{len(problems)} lock/pyproject problem(s) found")
         return 1
-    checked = ", ".join(sys.argv[1:]) or "requirements.lock"
+    checked = ", ".join(args) or "requirements.lock"
     print(f"lock verified: installed tree matches {checked} and pyproject floors")
     return 0
 
