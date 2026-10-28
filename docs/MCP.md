@@ -12,11 +12,13 @@ Every answer is evidence, not a decision. It names its sources, lists what it co
 ## Install
 
 ```bash
-pip install "openpulse[mcp]"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"
 openpulse mcp --help
 ```
 
-The MCP SDK is an **optional extra**. A plain `pip install openpulse` stays as small as before. The extra's dependencies are pinned and audited separately in [`requirements-mcp.lock`](../requirements-mcp.lock).
+OpenPulse is distributed as **`ikarus-openpulse`**. Don't `pip install openpulse`: that name on PyPI is an unrelated project (OpenQASM's pulse AST), and it has no `mcp` command. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as above.
+
+The MCP SDK is an **optional extra**. Installing without `[mcp]` stays as small as before. The extra's dependencies are pinned and audited separately in [`requirements-mcp.lock`](../requirements-mcp.lock).
 
 ## Connect your agent
 
@@ -153,7 +155,8 @@ Live lookups are cached per server session, one fetch per project. A file check 
 
 | Symptom | Fix |
 |---|---|
-| `the MCP server needs the optional SDK` | `pip install "openpulse[mcp]"` in the environment the client runs |
+| `the MCP server needs the optional SDK` | Install the `mcp` extra in the environment the client runs: the error message prints the exact command |
+| `openpulse: command not found` after `pip install openpulse` | That installed an unrelated PyPI project. `pip uninstall openpulse`, then install `ikarus-openpulse` as above |
 | Client cannot start the server | Use the absolute path to `openpulse` as `command`, or the venv interpreter with `["-I", "-m", "cli", "mcp"]` |
 | Something other than OpenPulse starts (`python -m cli` config) | Your project has its own `cli/` package. Add `-I` before `-m` so the working directory is not searched |
 | `outside the server's project root` | Start the server in your project (or pass `--root /path/to/project`) and pass paths relative to it |
