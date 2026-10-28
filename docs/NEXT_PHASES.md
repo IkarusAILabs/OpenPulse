@@ -59,12 +59,12 @@ The work on `main` reaches users only through a release, and the documented inst
 
 | # | Item | Size | Who | Status |
 |---|---|---|---|---|
-| R1 | **Install docs fix (urgent).** Replace `pip install "openpulse[mcp]"` in README and `docs/MCP.md` with a pinned git install, `pip install "openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"`, until a PyPI name exists. Add a test that greps the docs for a bare `pip install openpulse`. | S | maintainer | NEXT |
-| R2 | **Distribution name decision.** Choose an available PyPI name, e.g. `openpulse-intel` or `ikarus-openpulse`, keeping the `openpulse` CLI command. Reserve it on PyPI with a placeholder through Trusted Publishing only. | S | **owner** | BLOCKED |
-| R3 | **Release v0.7.0 "Channels".** Version bump, CHANGELOG `Unreleased` → `0.7.0`, tag, GitHub release. The release notes must lead with #133's verdict change, because gates may start failing. Minor (not patch) because of that semantic change and the three new commands. | S | maintainer | NEXT |
+| R1 | **Install docs fix (urgent).** Replace `pip install "openpulse[mcp]"` in README and `docs/MCP.md` with a pinned git install, `pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"`, until a PyPI name exists. Add a test that greps the docs for a bare `pip install openpulse`. | S | maintainer | ACTIVE (release PR) |
+| R2 | **Distribution name decision.** Choose an available PyPI name, e.g. `openpulse-intel` or `ikarus-openpulse`, keeping the `openpulse` CLI command. Reserve it on PyPI with a placeholder through Trusted Publishing only. | S | **owner** | DECIDED 2026-10-28: `ikarus-openpulse` (CLI command stays `openpulse`; later import namespace `ikarus_openpulse`). The rename ships in the v0.7.0 release PR; reserving it on PyPI happens with D2's first Trusted Publishing upload |
+| R3 | **Release v0.7.0 "Channels".** Version bump, CHANGELOG `Unreleased` → `0.7.0`, tag, GitHub release. The release notes must lead with #133's verdict change, because gates may start failing. Minor (not patch) because of that semantic change and the three new commands. | S | maintainer | ACTIVE (decided 2026-10-28: v0.7.0) |
 | R4 | **Publish the Action to the Marketplace** from the v0.7.0 tag (the description is already under the limit). | S | **owner** | NEXT |
-| R5 | **Triage:** close #79 (GitHub repo input shipped in v0.6.0); rescope #78 to "delivery state + dedup" (C1); confirm Dependabot closed #130 after #131; follow up on #148 and #151, or take them over if the contributors go quiet. | S | maintainer | NEXT |
-| R6 | **Record or retire v0.6.0 item "C" (finding F5).** It's named in the #100 commit and documented nowhere. | S | **owner** | BLOCKED |
+| R5 | **Triage:** close #79 (GitHub repo input shipped in v0.6.0); rescope #78 to "delivery state + dedup" (C1); confirm Dependabot closed #130 after #131; follow up on #148 and #151, or take them over if the contributors go quiet. | S | maintainer | ACTIVE |
+| R6 | **Record or retire v0.6.0 item "C" (finding F5).** It's named in the #100 commit and documented nowhere. | S | **owner** | DONE: retired 2026-10-28 (scope unknown, nothing depends on it) |
 
 **Exit:** v0.7.0 is tagged and released; the docs install OpenPulse and not the quantum-pulse package; the Action is on the Marketplace; the issue list matches the code.
 
@@ -173,9 +173,9 @@ Goal: authority, independence and history integrity are derived from verifiable 
 
 | # | Item | Issue | Size | Depends on |
 |---|---|---|---|---|
-| D2 | Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **under the R2 name**; sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
+| D2 | Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **as `ikarus-openpulse`** (R2); sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
 | D5 (rest) | Legacy flat identity keys respect `confidence` | — | S | H9 |
-| D6 | Move the top-level packages (`core`, `cli`, `collectors`, `analyzers`, `reports`) under one namespace with a deprecation shim. **The namespace can't be `openpulse`:** the PyPI `openpulse` package imports as `openpulse`, so both installed together would collide. Use the R2 name (e.g. `openpulse_intel`). Keep `python -I -m cli` working through the shim for one minor release. | — | L | R2, D2 (ask first) |
+| D6 | Move the top-level packages (`core`, `cli`, `collectors`, `analyzers`, `reports`) under one namespace with a deprecation shim. **The namespace can't be `openpulse`:** the PyPI `openpulse` package imports as `openpulse`, so both installed together would collide. Use the R2 name: `ikarus_openpulse`. Keep `python -I -m cli` working through the shim for one minor release. | — | L | R2, D2 (ask first) |
 
 **Exit:** `pip install <R2 name>` installs a signed, attested OpenPulse with an SBOM, and no OpenPulse module shadows or is shadowed by another distribution.
 
@@ -193,10 +193,10 @@ These compete for reviewer time, not for the same files:
 
 | # | Decision | Blocks |
 |---|---|---|
-| 1 | PyPI distribution name (R2) | R1's final wording, D2, D6 |
-| 2 | Release as v0.7.0 now (recommended: #133 changes verdicts, and three commands are new) | R3 |
+| 1 | PyPI distribution name (R2) — **decided: `ikarus-openpulse`** | R1's final wording, D2, D6 |
+| 2 | Release as v0.7.0 now — **decided: yes** | R3 |
 | 3 | Publish the Action to the Marketplace | R4 |
-| 4 | Keep or retire v0.6.0 item "C" / F5 | R6 |
+| 4 | Keep or retire v0.6.0 item "C" / F5 — **decided: retired** | R6 |
 | 5 | B3 key management: storage, rotation, pre-key histories | B3–B5, C1 |
 | 6 | Which projects get `official_domains` first | B1 scope |
 
