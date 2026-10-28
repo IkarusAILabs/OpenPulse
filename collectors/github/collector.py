@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -79,7 +78,7 @@ class GitHubCollector(BaseCollector):
                 }
             ]
         try:
-            r = httpx.get(
+            r = http.get(
                 API.format(repo=repo),
                 timeout=self.timeout,
                 headers=self._headers(),
@@ -100,7 +99,7 @@ class GitHubCollector(BaseCollector):
                 "skipped": f"no repo mapping for {project_slug}",
             }
         try:
-            r = httpx.get(
+            r = http.get(
                 REPO_API.format(repo=repo),
                 timeout=self.timeout,
                 headers=self._headers(),

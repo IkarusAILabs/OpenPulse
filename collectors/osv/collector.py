@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -86,7 +85,7 @@ class OSVCollector(BaseCollector):
             ]
         package, ecosystem = mapping
         try:
-            r = httpx.post(
+            r = http.post(
                 API,
                 json={"package": {"name": package, "ecosystem": ecosystem}},
                 timeout=self.timeout,

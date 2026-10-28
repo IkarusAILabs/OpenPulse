@@ -1,5 +1,7 @@
 import pytest
 
+from collectors import http as collectors_http
+
 
 def test_github_parse():
     from collectors.github.collector import parse_releases
@@ -124,7 +126,6 @@ def _tag(name):
 
 
 def test_check_image_paginates_full_tag_set(monkeypatch):
-    import httpx
 
     from collectors.registries import docker as docker_module
 
@@ -136,7 +137,7 @@ def test_check_image_paginates_full_tag_set(monkeypatch):
             return _paged_response([_tag("old")])
         return _paged_response([_tag("latest"), _tag("1.0")], next_url="https://hub.docker.com/v2/x?page=2")
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(collectors_http, "get", fake_get)
     out = docker_module.RegistryCollector().check_image("demo", "app")
     assert out.get("error") is None
     assert set(out["digests"]) == {"latest", "1.0", "old"}
@@ -145,7 +146,6 @@ def test_check_image_paginates_full_tag_set(monkeypatch):
 
 
 def test_check_image_stops_at_page_cap(monkeypatch):
-    import httpx
 
     from collectors.registries import docker as docker_module
     from collectors.registries.docker import _MAX_TAG_PAGES
@@ -156,7 +156,7 @@ def test_check_image_stops_at_page_cap(monkeypatch):
         calls.append(url)
         return _paged_response([_tag(f"t{len(calls)}")], next_url="https://hub.docker.com/v2/x?page=more")
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(collectors_http, "get", fake_get)
     out = docker_module.RegistryCollector().check_image("demo", "app")
     assert out.get("error") is None
     assert len(calls) == _MAX_TAG_PAGES
@@ -171,7 +171,7 @@ def test_check_image_malformed_pages_are_errors(monkeypatch):
     def fake_get(url, timeout=None):
         return httpx.Response(200, json=["not", "a", "mapping"], request=httpx.Request("GET", url))
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(collectors_http, "get", fake_get)
     out = docker_module.RegistryCollector().check_image("demo", "app")
     assert out.get("error") is True
     assert out.get("category") == "parse"
@@ -184,14 +184,13 @@ def test_check_image_malformed_pages_are_errors(monkeypatch):
 )
 def test_registry_rejects_hostile_path_components(monkeypatch, namespace, repo):
     """Regression (review L5): namespace/repo are interpolated into Hub URLs."""
-    import httpx
 
     from collectors.registries.docker import RegistryCollector
 
     def no_network(*_a, **_k):
         raise AssertionError("request must not be sent")
 
-    monkeypatch.setattr(httpx, "get", no_network)
+    monkeypatch.setattr(collectors_http, "get", no_network)
     out = RegistryCollector().check_image(namespace, repo)
     assert out["error"] is True
     assert out["category"] == "parse"

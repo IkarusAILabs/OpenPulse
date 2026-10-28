@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -137,7 +138,7 @@ def registry_tags_list(namespace: str, repo: str, timeout: float) -> list[str] |
     the caller can keep its Hub evidence instead of fabricating a set.
     """
     scope = f"repository:{namespace}/{repo}:pull"
-    r = httpx.get(
+    r = http.get(
         _AUTH_URL,
         params={"service": "registry.docker.io", "scope": scope},
         timeout=timeout,
@@ -146,7 +147,7 @@ def registry_tags_list(namespace: str, repo: str, timeout: float) -> list[str] |
     token_payload = r.json()
     if not isinstance(token_payload, dict) or not token_payload.get("token"):
         raise ValueError("registry token response is not a mapping with a token")
-    r2 = httpx.get(
+    r2 = http.get(
         _REGISTRY_TAGS_URL.format(repo=f"{namespace}/{repo}"),
         headers={"Authorization": f"Bearer {token_payload['token']}"},
         timeout=timeout,
@@ -182,7 +183,7 @@ class RegistryCollector(BaseCollector):
             truncated = False
             rejected_next = False
             while url is not None and pages < _MAX_TAG_PAGES:
-                r = httpx.get(url, timeout=self.timeout)
+                r = http.get(url, timeout=self.timeout)
                 if r.status_code == 404:
                     return {
                         "collector": "registries",
