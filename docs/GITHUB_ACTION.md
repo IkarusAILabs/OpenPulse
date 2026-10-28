@@ -42,7 +42,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 
 **Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`) and `threshold-breached` (`true`/`false`).
 
-The action installs OpenPulse from its own checkout, constrained to the reviewed `requirements.lock`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
+The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
 ## Permissions
 
@@ -61,7 +61,7 @@ On pull requests from forks, the token is read-only and SARIF upload fails. Keep
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.0
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.1
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.1
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.1
         with:
           upload-sarif: 'true'
           fail-on: none            # report, do not fail the scheduled run

@@ -12,13 +12,13 @@ Every answer is evidence, not a decision. It names its sources, lists what it co
 ## Install
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.1"
 openpulse mcp --help
 ```
 
 OpenPulse is distributed as **`ikarus-openpulse`**. Don't `pip install openpulse`: that name on PyPI is an unrelated project (OpenQASM's pulse AST), and it has no `mcp` command. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as above.
 
-The MCP SDK is an **optional extra**. Installing without `[mcp]` stays as small as before. The extra's dependencies are pinned and audited separately in [`requirements-mcp.lock`](../requirements-mcp.lock).
+The MCP SDK is an **optional extra** and needs **Python 3.11 or newer** (MCP SDK 2.x requires it); the rest of OpenPulse still supports 3.10. Installing without `[mcp]` stays as small as before. The extra's dependencies are pinned and audited separately in [`requirements-mcp.lock`](../requirements-mcp.lock).
 
 ## Connect your agent
 
