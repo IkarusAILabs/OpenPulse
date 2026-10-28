@@ -15,6 +15,8 @@ list and unions it in. These tests pin the honest-state contract:
 
 import httpx
 
+from collectors import http as collectors_http
+
 
 def _hub_page(results, next_url=None, count=None, url="https://hub.docker.com/v2/x"):
     payload = {"results": results, "count": count if count is not None else len(results)}
@@ -67,7 +69,7 @@ def _v2_calls(monkeypatch, full_names, hub_pages, v2_status=200):
         calls["hub"].append(url)
         return hub_pages.pop(0)
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(collectors_http, "get", fake_get)
     return calls
 
 
@@ -144,7 +146,6 @@ def test_hijacked_next_page_stops_the_walk(monkeypatch):
     """A Hub response pointing `next` off-host must not send the
     collector there: the walk stops and the probe is marked truncated
     (incomparable basis) instead of following a response-driven URL."""
-    import httpx
 
     from collectors.registries.docker import RegistryCollector
 
@@ -156,7 +157,7 @@ def test_hijacked_next_page_stops_the_walk(monkeypatch):
         requested.append(url)
         return hub_pages.pop(0)
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(collectors_http, "get", fake_get)
     out = RegistryCollector().check_image("demo", "app")
     assert out.get("error") is None
     assert all("evil.example.com" not in url for url in requested)

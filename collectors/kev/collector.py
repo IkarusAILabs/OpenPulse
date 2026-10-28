@@ -12,8 +12,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -81,7 +80,7 @@ class KEVCollector(BaseCollector):
     def _fetch(self) -> dict[str, Any]:
         if self._catalog is None:
             if KEVCollector._shared_catalog is None:
-                r = httpx.get(API, timeout=self.timeout)
+                r = http.get(API, timeout=self.timeout)
                 r.raise_for_status()
                 KEVCollector._shared_catalog = r.json()
             self._catalog = KEVCollector._shared_catalog

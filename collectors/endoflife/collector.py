@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -42,7 +41,7 @@ class EndoflifeCollector(BaseCollector):
         product = self.slug_map.get(project_slug, project_slug)
         url = f"https://endoflife.date/api/{product}.json"
         try:
-            r = httpx.get(url, timeout=self.timeout)
+            r = http.get(url, timeout=self.timeout)
             if r.status_code == 404:
                 return [
                     {

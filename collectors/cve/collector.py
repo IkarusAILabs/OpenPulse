@@ -11,8 +11,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -66,7 +65,7 @@ class CVECollector(BaseCollector):
                 }
             ]
         try:
-            r = httpx.get(API.format(cve_id=cve_id), timeout=self.timeout)
+            r = http.get(API.format(cve_id=cve_id), timeout=self.timeout)
             if r.status_code == 404:
                 return [{"collector": "cve", "id": cve_id, "skipped": "not found"}]
             r.raise_for_status()
