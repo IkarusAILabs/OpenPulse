@@ -39,7 +39,7 @@ Purpose: turn public intelligence into customer answers without building generic
 - [DONE 2026-10-19] GitHub-repository ingestion (`core/github_reader.py`, `--github-repo`): commit- and blob-SHA-pinned, bounded, COMPLETE/PARTIAL/FAILED coverage in verdicts and contract v1.1. Purpose: dependency files at a ref without treating absence as proof.
 - [DONE 2026-10-21] Namespaced pom.xml (#112): real-world POMs no longer parse to zero deps; DOCTYPE refused, depth/element caps.
 - [DONE 2026-10-21, v0.6.1] SBOMs discovered in GitHub repos are ingested (#117); every file read bounded (`core/bounded_io.py`), deep JSON is a clean error, iterative package-lock v1 walk (#118); repo/registry identifiers validated before URLs (#119). Purpose: no silent input-layer gaps.
-- [NEXT] Collector HTTP responses streamed with a byte cap (A6b). Purpose: bound the last unbounded input channel.
+- [DONE 2026-10-28, v0.7.1] Collector HTTP responses streamed with a byte cap (A6b, #155). Purpose: bound the last unbounded input channel.
 
 ## P3 — Intelligence Benchmark
 
