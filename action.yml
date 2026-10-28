@@ -106,7 +106,9 @@ runs:
         # (catalog and contract schemas resolve from the source tree; wheels
         # ship them too since #132).
         "$bin/python" -m pip install --disable-pip-version-check -q \
-          -c "$ACTION_ROOT/requirements.lock" -e "$ACTION_ROOT"
+          --require-hashes -r "$ACTION_ROOT/requirements-runtime.lock"
+        "$bin/python" -m pip install --disable-pip-version-check -q \
+          --no-deps -e "$ACTION_ROOT"
         echo "OPENPULSE_BIN=$bin" >> "$GITHUB_ENV"
 
     # Threat: script injection - every input reaches the shell as an env var
