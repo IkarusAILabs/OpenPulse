@@ -245,13 +245,15 @@ def analyze(project, raw_bundle, project_version):
 def mcp_command(root, offline):
     """MCP server (stdio) for AI coding agents: dependency evidence as tools.
 
-    Needs the optional extra: pip install "openpulse[mcp]".
+    Needs the optional `mcp` extra (see docs/MCP.md).
     """
     try:
         import mcp.server.mcpserver  # noqa: F401  (optional SDK present?)
     except ImportError:
+        from core.version import install_hint
+
         raise click.ClickException(
-            'the MCP server needs the optional SDK: pip install "openpulse[mcp]"'
+            f"the MCP server needs the optional SDK: {install_hint('mcp')}"
         ) from None
     from cli.mcp_server import run
 

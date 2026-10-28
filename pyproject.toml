@@ -3,8 +3,8 @@ requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openpulse"
-version = "0.6.3"
+name = "ikarus-openpulse"
+version = "0.7.0"
 description = "OpenPulse - OSS Dependency Intelligence with evidence"
 readme = "README.md"
 requires-python = ">=3.10"
