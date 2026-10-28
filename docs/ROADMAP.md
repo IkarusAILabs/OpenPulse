@@ -102,7 +102,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 - identity trust (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
 - version applicability, explicit NOT_AFFECTED
 - confidence model with match strength vs evidence strength separated
-- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.7.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
+- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.8.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
 - first-detection semantics, deterministic reports
 - security hardening (SSRF policy, redaction, lock-drift check, secret tripwire)
 
@@ -219,7 +219,7 @@ Every major milestone produces at least one of: benchmark, dataset, schema, evid
 ## Next 90 Days (reconciled 2026-10-21)
 
 1. ~~v0.6.1 correctness/leak fixes~~ DONE 2026-10-21 — remaining: collector response caps (A6b) and tagging the v0.6.1 release.
-2. v0.7.0 Anchored Trust (M1 requirement, not expansion) — derived source authority, derived independence, keyed history integrity with rollback detection and external anchoring, portable (JCS) contract hashing. Lead-time claims cite keyed-valid detections only.
+2. v0.8.0 Anchored Trust (M1 requirement, not expansion) — derived source authority, derived independence, keyed history integrity with rollback detection and external anchoring, portable (JCS) contract hashing. Lead-time claims cite keyed-valid detections only.
 3. Early-warning operationalization (M6) — persistent delivery state, deterministic deduplication/retry policy, DNS-pinned webhook transport, CI/PR integration. Builds on item 2.
 4. Real non-lifecycle discovery (M2) — a live namespace-move pair for `split_moves`; repository/archive and support/license candidates per the backlog.
 5. Benchmark harness (M4) and release supply chain — per-scenario reproducibility package; hash-pinned lock, signed releases with provenance.

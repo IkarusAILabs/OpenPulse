@@ -274,7 +274,7 @@ partial edits, and fork anomalies, and detects rollback only while
 full wipe re-baselines silently. It does not resist an adversary who
 recomputes the whole suffix (the hashes are unkeyed; there are no
 secrets in a local-first store). Keyed integrity, missing-tip
-rollback detection and external anchoring are planned for v0.7.0
+rollback detection and external anchoring are planned for v0.8.0
 (`docs/NEXT_PHASES.md`).
 
 Every registry-derived finding retains first-class observation
