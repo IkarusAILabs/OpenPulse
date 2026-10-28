@@ -3,7 +3,11 @@
 Conservative by construction:
 - Exact artifact triple equality → AFFECTS_ARTIFACT.
 - Populated event scope narrows everything else: a dependency outside
-  an explicit scope is NOT_AFFECTED, not UNKNOWN.
+  an explicit, exhaustive scope is NOT_AFFECTED, not UNKNOWN. A scope
+  declared non-exhaustive lists known members only: outside it is
+  RELATED, never a clearance.
+- Every scope element is evaluated: a clearance needs every element
+  decisively excluded, and one undetermined element withholds it.
 - Version scopes belong to the event's project: a tag that merely
   collides with a scope version of a different project
   (docker.io/bitnami/redis:6.2 vs an upstream redis EOL) is
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import re
 
+from core.entities.identity import resolution_trust
 from core.entities.resolve import normalize_ref, resolve_project
 from core.schema.models import OSSEvent
 from core.versions import in_release_line
@@ -153,36 +158,76 @@ def tag_vs_digest_policy(ref: str, artifact_ref: str) -> dict[str, str | bool | 
     }
 
 
-def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
-    """Return {affected, via, relationship, detail} for one dependency ref."""
-    for a in event.affected_artifacts:
-        if match_artifact(ref, a.ref):
-            policy = tag_vs_digest_policy(ref, a.ref)
-            if policy:
-                # The pinning policy owns the verdict whenever the two
-                # refs mix forms or disagree on bytes: a moving tag
-                # never reports digest-level certainty.
-                return policy
+def _artifact_candidates(
+    ref: str, candidates: list[str], inside: str
+) -> dict[str, str | bool | None] | None:
+    """Every candidate sharing ref's repository, evaluated -- no early return.
+
+    Any exact match wins (AFFECTS_ARTIFACT). Otherwise an undetermined
+    pinning comparison (digest vs tag) beats a decisive exclusion
+    (different digests): one element that may point at the pinned
+    bytes is enough to withhold a clearance. None when no candidate
+    shares the repository at all.
+    """
+    undetermined = None
+    excluded = None
+    for candidate in candidates:
+        if not match_artifact(ref, candidate):
+            continue
+        policy = tag_vs_digest_policy(ref, candidate)
+        if not policy:
             return {
                 "affected": True,
                 "via": "artifact",
                 "relationship": "AFFECTS_ARTIFACT",
-                "detail": f"{ref} matches affected artifact {a.ref}",
+                "detail": f"{ref} {inside} {candidate}",
             }
+        if policy["relationship"] == "RELATED":
+            undetermined = undetermined or policy
+        else:
+            excluded = excluded or policy
+    return undetermined or excluded
+
+
+def _exclusion(
+    event: OSSEvent, result: dict[str, str | bool | None]
+) -> dict[str, str | bool | None]:
+    """A NOT_AFFECTED result stands only against an exhaustive scope.
+
+    A scope declared non-exhaustive lists known members only, so
+    absence from it is not evidence of exclusion: RELATED instead.
+    """
+    if result.get("relationship") != "NOT_AFFECTED":
+        return result
+    if event.scope is None or event.scope.exhaustive:
+        return result
+    return {
+        **result,
+        "relationship": "RELATED",
+        "detail": f"{result['detail']}; scope is not exhaustive, so not a clearance",
+    }
+
+
+def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
+    """Return {affected, via, relationship, detail} for one dependency ref."""
+    return _exclusion(event, _event_affects_ref(event, ref))
+
+
+def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
+    # The pinning policy owns the verdict whenever the two refs mix
+    # forms or disagree on bytes: a moving tag never reports
+    # digest-level certainty.
+    named = _artifact_candidates(
+        ref, [a.ref for a in event.affected_artifacts], "matches affected artifact"
+    )
+    if named is not None:
+        return named
     scope = _scope(event)
     kind = scope["kind"]
     if kind == "artifact" and scope["artifacts"]:
-        for candidate in scope["artifacts"]:
-            if match_artifact(ref, candidate):
-                policy = tag_vs_digest_policy(ref, candidate)
-                if policy:
-                    return policy
-                return {
-                    "affected": True,
-                    "via": "artifact",
-                    "relationship": "AFFECTS_ARTIFACT",
-                    "detail": f"{ref} is inside event artifact scope {candidate}",
-                }
+        inside = _artifact_candidates(ref, scope["artifacts"], "is inside event artifact scope")
+        if inside is not None:
+            return inside
         return {
             "affected": False,
             "via": None,
@@ -200,11 +245,25 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
             }
         slug = resolve_project(ref)
         if slug != event.project_slug:
+            trust = resolution_trust(ref)
             # A version scope belongs to the event's project. A tag that
             # merely collides with a scope version of a different project
             # is identity-excluded: docker.io/bitnami/redis:6.2 must not
             # inherit an upstream redis EOL, and docker.io/postgres:6.2
-            # must not match anything by tag alone.
+            # must not match anything by tag alone. The exclusion is only
+            # as good as the resolution behind it: a heuristic or
+            # distrusted mapping cannot prove a different project.
+            if trust["identity_status"] != "VERIFIED":
+                return {
+                    "affected": False,
+                    "via": None,
+                    "relationship": "RELATED",
+                    "detail": (
+                        f"{ref} resolves to {slug} only via {trust['via']} "
+                        f"({trust['identity_status']}); not a proven exclusion from "
+                        f"{event.project_slug} version scope {scope['versions']}"
+                    ),
+                }
             return {
                 "affected": False,
                 "via": None,
@@ -242,6 +301,15 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
             "detail": f"{ref} tag {tag} is outside event scope versions {scope['versions']}",
         }
     if kind == "package" and scope["packages"]:
+        if resolve_project(ref) != event.project_slug:
+            # A package scope belongs to the event's project; an image of
+            # another project has no association with it at all.
+            return {
+                "affected": False,
+                "via": None,
+                "relationship": "UNKNOWN",
+                "detail": f"{ref} matches nothing in {event.id}",
+            }
         return {
             "affected": False,
             "via": None,
