@@ -23,14 +23,19 @@ jobs:
       # `python -m pip`: on Windows pip refuses to replace itself through the
       # pip.exe launcher, which fails the job whenever the runner image's pip
       # differs from the pinned one.
-      - run: python -m pip install -U -c .github/ci-constraints.txt pip "setuptools>=83" && python -m pip install -e ".[dev]" && python -m pip install -c .github/ci-constraints.txt pip-audit
-      # Threat: floated transitive deps — the lock is the reviewed set.
-      - run: python -m pip install -r requirements.lock && python scripts/check_lock.py
+      # Threat: re-uploaded or tampered artifacts with the same version, and
+      # floated transitive deps. Every install is hash-checked
+      # (--require-hashes), every transitive dependency must be in the lock,
+      # and --exact fails on anything installed that the lock doesn't list.
+      # Regenerate the locks with scripts/compile_locks.py.
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - run: python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .
+      - run: python -m pip check && python scripts/check_lock.py --exact
       - run: ruff check .
       # Threat: a written-but-excluded test is not a test (F7).
       - run: python scripts/check_ci_runs_all_tests.py
       - run: pytest -q
-      - run: pip-audit --desc
+      - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
       # Threat: accidental credential commits — stdlib tripwire ( complements,
       # not replaces, GitHub push protection, which should stay enabled).
       - run: python scripts/scan_secrets.py .
@@ -143,8 +148,8 @@ jobs:
         with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: '3.11'}
-      - run: python -m pip install -U -c .github/ci-constraints.txt pip "setuptools>=83"
-      - run: python -m pip install -r requirements.lock -r requirements-mcp.lock && python -m pip install --no-deps -e .
-      - run: python -m pip check && python scripts/check_lock.py requirements.lock requirements-mcp.lock
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - run: python -m pip install --require-hashes -r requirements.lock -r requirements-mcp.lock && python -m pip install --no-deps -e .
+      - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-mcp.lock
       - run: python -m pytest -q tests/test_mcp_server.py tests/test_agent_tools.py
-      - run: python -m pip install -c .github/ci-constraints.txt pip-audit && pip-audit --desc
+      - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
