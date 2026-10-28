@@ -10,7 +10,7 @@ security issue, even if nothing crashes. That includes a silent
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| latest 0.6.x release | ✅ |
+| latest 0.7.x release | ✅ |
 | older releases | ❌ (upgrade to the latest release) |
 
 ## Reporting a vulnerability
