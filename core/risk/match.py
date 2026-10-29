@@ -38,12 +38,16 @@ def split_image_ref(ref: str) -> tuple[str, str, str]:
         if r.startswith(scheme):
             r = r[len(scheme) :]
     parts = r.split("/")
-    if len(parts) >= 3 and ("." in parts[0] or ":" in parts[0] or parts[0] == "localhost"):
+    # A first segment with a dot, a port or "localhost" is a registry host,
+    # also in a two-segment ref: `docker.io/redis` is Docker's spelling of
+    # `docker.io/library/redis`, not namespace "docker.io" (TR-2026-01 D12).
+    if len(parts) >= 2 and ("." in parts[0] or ":" in parts[0] or parts[0] == "localhost"):
         registry, rest = parts[0], parts[1:]
     else:
         registry, rest = "docker.io", parts
     if len(rest) == 1:
-        namespace, name = "library", rest[0]
+        # Only Docker Hub puts single-name repositories under "library".
+        namespace, name = ("library" if registry == "docker.io" else ""), rest[0]
     else:
         namespace, name = "/".join(rest[:-1]), rest[-1]
     return registry, namespace, name
@@ -270,6 +274,16 @@ def _artifact_candidates(
             continue
         if not match_artifact(ref, candidate):
             continue
+        if digest_of(candidate) is None and element_tag in (None, TAG_ANY):
+            # A repository element covers every reference to the repository,
+            # whatever its tag or digest: no pinning comparison to make
+            # (TR-2026-01 D14).
+            return {
+                "affected": True,
+                "via": "artifact",
+                "relationship": "AFFECTS_ARTIFACT",
+                "detail": f"{ref} {inside} {candidate}",
+            }
         policy = tag_vs_digest_policy(ref, candidate)
         if policy:
             if policy["relationship"] == "RELATED":

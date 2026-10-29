@@ -66,8 +66,10 @@ def test_unreachable_source_is_unknown_never_safe():
         err = {"collector": "endoflife", "error": True, "safe_message": "ConnectError"}
         return {"endoflife": [err], "osv": [], "github_meta": []}
 
+    # A curated package with no applicable event: an unmapped one would be
+    # unresolved (RELATED), not unknown (TR-2026-01 D13).
     out = dependency_status(
-        package="leftpad-x", version="1.0.0", ecosystem="npm", lookups=Lookups(fetch=down)
+        package="serde", version="1.0.0", ecosystem="crates.io", lookups=Lookups(fetch=down)
     )
     assert out["verdict"]["affected"] is False
     assert out["verdict"]["relationship"] == "UNKNOWN"

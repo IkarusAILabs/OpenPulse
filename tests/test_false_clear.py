@@ -514,6 +514,65 @@ def test_package_name_inequality_is_undetermined():
     assert verdict.relationship == "RELATED"
 
 
+# D12-D14 -- found by the specification-conformance matrix
+
+
+def test_d12_docker_hub_short_spelling_is_the_library_repository():
+    from core.risk.match import split_image_ref
+
+    # docker.io/redis is Docker's own spelling of docker.io/library/redis;
+    # it was parsed as namespace "docker.io" and cleared by complete scopes.
+    assert split_image_ref("docker.io/redis:7.2") == ("docker.io", "library", "redis")
+    assert split_image_ref("ghcr.io/app") == ("ghcr.io", "", "app")
+    event = _event(
+        "d12",
+        scope=Scope(
+            kind="artifact",
+            artifacts=["docker.io/library/redis"],
+            exhaustive=True,
+            basis="definitional",
+        ),
+    )
+    assert check_dependency(_image("docker.io/redis:7.2"), [event]).affected
+
+
+def test_d13_unmapped_package_is_unresolved_not_unassociated():
+    eol = _event(
+        "d13", scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional")
+    )
+    unmapped = check_dependency(
+        {"kind": "package", "package": "zzzpkg", "ecosystem": "PyPI", "version": "9.1"}, [eol]
+    )
+    curated_other = check_dependency(
+        {"kind": "package", "package": "mysql", "ecosystem": "PyPI", "version": "9.1"}, [eol]
+    )
+    assert unmapped.relationship == "RELATED"
+    assert curated_other.relationship == "UNKNOWN"
+
+
+def test_d13_package_has_no_association_with_container_scopes():
+    import json
+
+    bitnami = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    verdict = check_dependency(
+        {"kind": "package", "package": "zzzpkg", "ecosystem": "npm", "version": "1.0"}, [bitnami]
+    )
+    assert verdict.relationship == "UNKNOWN"
+
+
+def test_d14_repository_element_covers_digest_pins():
+    event = _event(
+        "d14",
+        scope=Scope(
+            kind="artifact",
+            artifacts=["docker.io/acme/app"],
+            exhaustive=True,
+            basis="definitional",
+        ),
+    )
+    assert check_dependency(_image(f"docker.io/acme/app@{D1}"), [event]).affected
+
+
 # Interim conservative measures (TR-2026-01 rev. 5, Table 8)
 
 

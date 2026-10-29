@@ -287,6 +287,32 @@
   website: https://coredns.io
   aliases: [coredns, core-dns]
   docker_images: []
+- slug: boto3
+  display_name: boto3 (AWS SDK for Python)
+  github: boto/boto3
+  website: https://aws.amazon.com/sdk-for-python/
+  aliases: [boto3]
+  docker_images: []
+  identity:
+    status: VERIFIED
+    source: "boto/boto3 publishes the boto3 package on PyPI"
+    reviewed_at: "2026-10-29"
+    maintainer: IkarusAILabs
+    confidence: high
+    note: "curated so that boto3 resolves to a project rather than to itself (TR-2026-01 D13)"
+- slug: serde
+  display_name: Serde
+  github: serde-rs/serde
+  website: https://serde.rs
+  aliases: [serde]
+  docker_images: []
+  identity:
+    status: VERIFIED
+    source: "serde-rs/serde publishes the serde crate on crates.io"
+    reviewed_at: "2026-10-29"
+    maintainer: IkarusAILabs
+    confidence: high
+    note: "curated so that serde resolves to a project rather than to itself (TR-2026-01 D13)"
 - slug: valkey
   display_name: Valkey
   github: valkey-io/valkey
