@@ -314,11 +314,13 @@ forms carry an explicit policy (`tag_vs_digest_policy`):
 - **Pinned digests match exactly.** Two refs that pin the same
   digest are the same immutable bytes — AFFECTS_ARTIFACT, the only
   form of exact artifact identity besides tag equality.
-- **Different digests are provably different content.** NOT_AFFECTED:
-  the pinned bytes are not the artifact the event names — but only
-  once **every** artifact the event names has been compared. Any
-  equal digest is AFFECTS_ARTIFACT, and any digest-vs-tag element
-  keeps the verdict RELATED.
+- **Different digests of one repository are RELATED, not a
+  clearance.** Different bytes, but OCI object levels are not
+  recorded: one digest may be an image index and the other one of
+  its platform manifests -- the same image. Until levels are
+  resolved, digest inequality never clears. Every artifact the event
+  names is compared; any equal digest is AFFECTS_ARTIFACT. (A digest
+  of a *different repository* is still decisively outside.)
 - **A digest on one side and a tag on the other is RELATED, never
   AFFECTS_ARTIFACT and never NOT_AFFECTED.** The refs agree on the
   repository, but a tag can move onto (or away from) the pinned
@@ -464,14 +466,24 @@ NOT_AFFECTED (`winning_cause`). UNKNOWN causes ("matches nothing in
 this event") do not block a clearance. Every cause stays in
 `verdicts`.
 
-**When a negative is admissible.** NOT_AFFECTED requires (1) an
-exhaustive scope (`Scope.exhaustive`, default true; a scope declared
-non-exhaustive lists known members only, so outside it is RELATED);
-(2) every scope element evaluated and decisively excluded, with no
-early return on the first element; and (3) an identity exclusion
-("this ref is another project") resting on a VERIFIED resolution. A
-heuristic mapping such as the generic Bitnami namespace rule is
-RELATED, never an exclusion. The match implies a confidence *ceiling*
+**When a negative is admissible.** NOT_AFFECTED requires (1) a
+scope the producer *declares* complete (`Scope.exhaustive: true`).
+Completeness is opt-in: unspecified means partial, and outside a
+partial scope is RELATED. Analysts declare it only where the scope
+is the event itself (one release line reaching EOL/EOS, one
+repository's distribution or registry change); curated events
+declare it explicitly, and a catalogue-wide change is stated with
+namespace elements (`docker.io/bitnami/*`), not example images.
+Nothing verifies a declaration. (2) Every scope element evaluated
+and decisively excluded, with no early return on the first element.
+(3) An identity exclusion ("this ref is another project") resting on
+a VERIFIED resolution. A heuristic mapping such as the generic
+Bitnami namespace rule is RELATED, never an exclusion, and so is an
+unmapped ref that resolves only to itself but is named like the
+event's project (`github.com/etcd-io/etcd` against etcd): its
+identity is unresolved, not another project. Unmapped refs with
+unrelated names keep "no association" -- the name is the only hint,
+which is the documented limit of this rule. The match implies a confidence *ceiling*
 (ARTIFACT → CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
 EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
 UNVERIFIED); the verdict takes the minimum of that ceiling and the

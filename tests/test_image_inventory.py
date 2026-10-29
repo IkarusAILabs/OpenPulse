@@ -188,11 +188,14 @@ class TestTagVsDigestPolicy:
     def test_digest_vs_digest_equal_is_exact(self):
         assert tag_vs_digest_policy("redis@sha256:aaa", "redis@sha256:aaa") == {}
 
-    def test_digest_vs_digest_different_is_not_affected(self, digest_event):
+    def test_digest_vs_digest_different_is_related(self, digest_event):
+        # FLIPPED (TR-2026-01 interim measure, OCI level): different digests
+        # of one repository may be an index and its platform manifest, the
+        # same image. Until levels are resolved this is never a clearance.
         result = event_affects_ref(digest_event, "docker.io/bitnami/redis@sha256:bbb")
-        assert result["relationship"] == "NOT_AFFECTED"
+        assert result["relationship"] == "RELATED"
         assert result["affected"] is False
-        assert "pins digest" in result["detail"]
+        assert "OCI object levels are unknown" in result["detail"]
 
     def test_digest_vs_digest_equal_still_affects_artifact(self, digest_event):
         result = event_affects_ref(digest_event, "docker.io/bitnami/redis@sha256:aaa")

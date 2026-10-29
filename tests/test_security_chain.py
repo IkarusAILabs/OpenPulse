@@ -202,7 +202,12 @@ def test_g_not_affected_is_consistent():
 
     event = _event(
         confidence="CORROBORATED",
-        scope={"kind": "artifact", "artifacts": ["docker.io/demo/app:1.0"]},
+        # A clearance needs a declared-complete scope (completeness is opt-in).
+        scope={
+            "kind": "artifact",
+            "artifacts": ["docker.io/demo/app:1.0"],
+            "exhaustive": True,
+        },
     )
     result = check_dependency({"kind": "image", "ref": "docker.io/demo/other:9.9"}, [event])
     assert result.relationship == "NOT_AFFECTED"

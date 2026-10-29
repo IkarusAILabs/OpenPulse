@@ -88,9 +88,10 @@ class Scope(BaseModel):
 
     Absent scope means project-wide (legacy behavior). Populated scope
     narrows matching: version lists, explicit artifacts/packages, or
-    registries. A dependency outside a populated, exhaustive scope is
-    NOT_AFFECTED, not UNKNOWN; outside a non-exhaustive scope it is
-    RELATED (the list names known members only).
+    registries. A dependency outside a populated scope is NOT_AFFECTED
+    only when the producer declares the scope complete
+    (``exhaustive=True``); otherwise -- including when unspecified -- it
+    is RELATED (the list names known members only).
     """
 
     kind: Literal["project", "package", "artifact", "version", "registry"] = "project"
@@ -99,10 +100,12 @@ class Scope(BaseModel):
     packages: list[str] = Field(default_factory=list)
     registries: list[str] = Field(default_factory=list)
     exhaustive: bool = Field(
-        default=True,
+        default=False,
         description=(
-            "Whether the listed elements are every member of the scope. "
-            "False: known members only, so exclusion is never a clearance."
+            "Producer declaration that the listed elements are every member of "
+            "the scope (declared completeness; nothing verifies it). Default "
+            "False: unspecified completeness is partial, so exclusion is never "
+            "a clearance."
         ),
     )
 

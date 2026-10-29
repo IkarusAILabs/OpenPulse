@@ -102,6 +102,8 @@ def _scope(finding: dict[str, Any]) -> dict[str, Any] | None:
         "artifacts": [str(a) for a in scope.get("artifacts") or []],
         "packages": [str(p) for p in scope.get("packages") or []],
         "registries": [str(r) for r in scope.get("registries") or []],
+        # Completeness is the analyst's declaration, never inferred here.
+        "exhaustive": scope.get("exhaustive") is True,
     }
 
 
