@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.6.0 — pydantic models (source of truth)."""
+"""OpenPulse Intelligence Schema v0.7.0 — pydantic models (source of truth)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from .enums import Confidence, EventType, Impact
 
-SCHEMA_VERSION = "0.6.0"
+SCHEMA_VERSION = "0.7.0"
 
 
 class Source(BaseModel):
@@ -108,6 +108,21 @@ class Scope(BaseModel):
             "a clearance."
         ),
     )
+    basis: Literal["definitional", "announced", "corroborated", "verified"] | None = Field(
+        default=None,
+        description=(
+            "Why the scope is complete: 'definitional' (the scope is the event "
+            "itself, e.g. one release line's EOL), 'announced' (a named source "
+            "states the extent), 'corroborated' (an independent source family "
+            "states the same extent), 'verified' (established by a verifier). "
+            "A declaration without a basis is not admissible: exhaustive=True "
+            "with no basis never clears (TR-2026-01 N3)."
+        ),
+    )
+
+    def admits_negative(self) -> bool:
+        """Declared complete *and* the declaration's basis is recorded."""
+        return self.exhaustive and self.basis is not None
 
 
 class OSSEvent(BaseModel):
@@ -125,7 +140,19 @@ class OSSEvent(BaseModel):
     claims: list[Claim] = Field(default_factory=list)
     attribution: Attribution | None = None
     scope: Scope | None = None
+    withdrawn: bool = Field(
+        default=False,
+        description="Retracted by its source: asserts nothing and is not evaluated",
+    )
+    superseded_by: str | None = Field(
+        default=None,
+        description="Id of the event that corrects or replaces this one; not evaluated",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def requires_action(self) -> bool:
         return self.impact in (Impact.ACTION, Impact.CRITICAL)
+
+    def is_current_record(self) -> bool:
+        """Neither withdrawn nor superseded (TR-2026-01 N4)."""
+        return not self.withdrawn and self.superseded_by is None

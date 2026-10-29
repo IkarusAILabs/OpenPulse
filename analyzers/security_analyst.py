@@ -225,7 +225,9 @@ def _absorb_osv(
     slot["affected_package"] = slot["affected_package"] or package
     evaluated, applies, undecided, fixed = False, False, False, None
     for affected in e.get("affected", []) or []:
-        result = osv_applicable(version, affected) if version else None
+        result = (
+            osv_applicable(version, affected, ecosystem=e.get("ecosystem")) if version else None
+        )
         if result is None:
             undecided = True
         if result is True:

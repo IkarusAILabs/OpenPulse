@@ -1,4 +1,4 @@
-# Methodology — how OpenPulse knows what it claims (schema v0.6.0)
+# Methodology — how OpenPulse knows what it claims (schema v0.7.0)
 
 ## Sources
 
@@ -88,7 +88,14 @@ numeric core with at most one known prerelease marker (`dev`, `a`,
 rc2`). A bare numeric or build suffix (`1.0.0-1`, `2.4.1-1`,
 `1.0.0+5`) is not comparable, because ecosystems disagree on it: SemVer
 reads `1.0.0-1` as a prerelease below `1.0.0`, Debian as a revision
-above it.
+above it. Accepting a form is not enough: it must be ordered as the
+range's scheme orders it. So each OSV range is compared under its own
+scheme. `SEMVER` ranges use SemVer 2.0 precedence, where prerelease
+identifiers order lexically (`1.0.0-dev` above `1.0.0-beta`).
+`ECOSYSTEM` ranges use the advisory's ecosystem: PyPI the generic
+grammar above, npm/Go/crates.io SemVer, and anything else plain dotted
+numbers only, with padding-only equality (`1.0` vs `1.0.0`)
+undetermined.
 
 Event version scopes name **release lines** (endoflife.date cycles such
 as `4.2`, `13`, `18`), while dependencies pin releases. A line covers
@@ -481,7 +488,13 @@ is the event itself (one release line reaching EOL/EOS, one
 repository's distribution or registry change); curated events
 declare it explicitly, and a catalogue-wide change is stated with
 namespace elements (`docker.io/bitnami/*`), not example images.
-Nothing verifies a declaration. (2) Every scope element evaluated
+Nothing verifies a declaration, but every declaration must record
+its basis (`Scope.basis`: definitional, announced, corroborated,
+verified); `exhaustive` without a basis never clears. Withdrawn and
+superseded events are not evaluated, and an event whose own evidence
+contradicts it can associate but never clear. An optional freshness
+bound (`as_of`, `max_evidence_age`) turns negatives from events with
+older evidence into RELATED. (2) Every scope element evaluated
 and decisively excluded, with no early return on the first element.
 (3) An identity exclusion ("this ref is another project") resting on
 a VERIFIED resolution. A heuristic mapping such as the generic

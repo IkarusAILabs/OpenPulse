@@ -18,6 +18,7 @@ tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -174,13 +175,18 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
     cause = _scope_cause(dep, event)
     if cause is None or cause["relationship"] != "NOT_AFFECTED":
         return cause
-    if event.scope is not None and event.scope.exhaustive:
+    if event.scope is not None and event.scope.admits_negative():
         return cause
+    why = (
+        "scope completeness has no recorded basis"
+        if event.scope is not None and event.scope.exhaustive
+        else "scope is not exhaustive"
+    )
     return {
         **cause,
         "relationship": "RELATED",
         "match_method": "project_scope",
-        "reason": f"{cause['reason']}; scope is not exhaustive, so not a clearance",
+        "reason": f"{cause['reason']}; {why}, so not a clearance",
     }
 
 
@@ -262,12 +268,19 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
                 "match_method": "event_scope_package",
                 "reason": f"{dep['package']} is inside event scope packages {scope.packages}",
             }
+        # Package names are not canonicalised per ecosystem (PEP 503
+        # folding, Maven group:artifact, npm scopes...), so a name that
+        # differs from every listed one may still be the same package:
+        # inequality is undetermined, never an exclusion.
         return {
             **base,
-            "relationship": "NOT_AFFECTED",
+            "relationship": "RELATED",
             "affected": False,
             "match_method": "event_scope_package",
-            "reason": f"{dep['package']} is outside event scope packages {scope.packages}",
+            "reason": (
+                f"{dep['package']} is not listed in event scope packages {scope.packages}; "
+                "package names are not canonicalised, so not a clearance"
+            ),
         }
     if kind == "artifact":
         return {
@@ -474,18 +487,74 @@ def strict_affected(results: list[DependencyVerdict]) -> bool:
 Verdict = DependencyVerdict
 
 
+def inadmissible_reason(
+    event: OSSEvent,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
+) -> str | None:
+    """Why ``event`` may not support a negative, or None if it may.
+
+    Layer 1 of the applicability policy (TR-2026-01 N4, N5): an event
+    whose extent is contested by its own evidence, or whose newest
+    evidence is older than the caller's freshness bound, can still
+    associate a dependency but never clear one. Withdrawn and
+    superseded events are dropped before evaluation (``check_dependency``).
+    The freshness bound is opt-in: replaying recorded evidence offline
+    would otherwise make every negative stale.
+    """
+    if any(e.relation == "contradicts" for e in event.evidences):
+        return "the event's extent is contested by contradicting evidence"
+    if as_of is not None and max_evidence_age is not None:
+        newest = max(e.source.fetched_at for e in event.evidences)
+        if newest.tzinfo is None:
+            newest = newest.replace(tzinfo=timezone.utc)
+        if as_of - newest > max_evidence_age:
+            return (
+                f"newest evidence was fetched {newest.date()}, older than the "
+                f"{max_evidence_age.days}-day freshness bound (stale)"
+            )
+    return None
+
+
+def _admit(
+    cause: Cause, event: OSSEvent, as_of: datetime | None, max_age: timedelta | None
+) -> Cause:
+    """Turn a negative from an inadmissible event into RELATED."""
+    if cause.get("relationship") != "NOT_AFFECTED":
+        return cause
+    why = inadmissible_reason(event, as_of, max_age)
+    if why is None:
+        return cause
+    return {
+        **cause,
+        "relationship": "RELATED",
+        "reason": f"{cause['reason']}; {why}, so not a clearance",
+    }
+
+
 def check_dependency(
-    dep: dict[str, Any], events: list[OSSEvent], bundles: dict[str, dict[str, Any]] | None = None
+    dep: dict[str, Any],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
 ) -> DependencyVerdict:
-    """One dep vs events (+ optional raw bundles) -> explicit verdict."""
+    """One dep vs events (+ optional raw bundles) -> explicit verdict.
+
+    Withdrawn and superseded events are not evaluated. With ``as_of``
+    and ``max_evidence_age`` both given, a negative from an event whose
+    newest evidence is older than the bound becomes RELATED (stale).
+    """
     bundles = bundles or {}
+    events = [event for event in events if event.is_current_record()]
     causes: list[Cause] = []
     if dep["kind"] == "image":
         trust = resolution_trust(str(dep["ref"]))
         for event in events:
             match = event_affects_ref(event, dep["ref"])
             exact = match["via"] == "artifact"
-            causes.append(
+            cause = _admit(
                 {
                     "cause": "upstream_change",
                     "relationship": match["relationship"],
@@ -505,13 +574,17 @@ def check_dependency(
                     "identity_status": "VERIFIED" if exact else trust["identity_status"],
                     "identity_via": "exact-artifact" if exact else trust["via"],
                     "reason": str(match["detail"]),
-                }
+                },
+                event,
+                as_of,
+                max_evidence_age,
             )
+            causes.append(cause)
     else:
         for event in events:
             cause = _event_scope_cause(dep, event)
             if cause is not None:
-                causes.append(cause)
+                causes.append(_admit(cause, event, as_of, max_evidence_age))
         causes.extend(_security_causes(dep, bundles))
     return _combine(dep, causes)
 
@@ -520,9 +593,15 @@ def check_watchlist(
     deps: list[dict[str, Any]],
     events: list[OSSEvent],
     bundles: dict[str, dict[str, Any]] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
 ) -> list[DependencyVerdict]:
     """Whole watchlist -> one verdict per dependency."""
-    return [check_dependency(dep, events, bundles) for dep in deps]
+    return [
+        check_dependency(dep, events, bundles, as_of=as_of, max_evidence_age=max_evidence_age)
+        for dep in deps
+    ]
 
 
 #: Durable lifecycle fact types: one set, owned by the ledger (the

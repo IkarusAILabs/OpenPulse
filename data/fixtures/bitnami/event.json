@@ -18,6 +18,7 @@
   "scope": {
     "kind": "artifact",
     "exhaustive": true,
+    "basis": "announced",
     "artifacts": [
       "docker.io/bitnami/*",
       "docker.io/bitnamilegacy/*",

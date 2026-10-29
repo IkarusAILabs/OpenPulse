@@ -82,6 +82,7 @@ def test_d1_digest_outside_every_named_digest_is_undetermined():
             kind="artifact",
             artifacts=[f"docker.io/acme/app@{D1}", f"docker.io/acme/app@{D2}"],
             exhaustive=True,
+            basis="definitional",
         ),
     )
     verdict = check_dependency(_image(f"docker.io/acme/app@{D3}"), [event])
@@ -197,7 +198,10 @@ def test_d2_withdrawn_advisory_never_asserts_impact():
 
 
 def test_d3_unresolved_event_beats_a_clear_from_another_event():
-    cleared = _event("d3-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    cleared = _event(
+        "d3-cleared",
+        scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional"),
+    )
     unresolved = _event("d3-project-wide")
     verdict = check_dependency(
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"},
@@ -218,7 +222,8 @@ def test_d3_unrelated_event_does_not_block_a_clear():
     cleared = OSSEvent(
         **{
             **_event(
-                "d3-image-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True)
+                "d3-image-cleared",
+                scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional"),
             ).model_dump(),
             "project_slug": "redis",
         }
@@ -240,8 +245,12 @@ def test_package_scoped_event_has_no_association_with_other_projects_images():
 
 
 def test_d3_all_causes_negative_still_clears():
-    first = _event("d3-a", scope=Scope(kind="version", versions=["9"], exhaustive=True))
-    second = _event("d3-b", scope=Scope(kind="version", versions=["10"], exhaustive=True))
+    first = _event(
+        "d3-a", scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional")
+    )
+    second = _event(
+        "d3-b", scope=Scope(kind="version", versions=["10"], exhaustive=True, basis="definitional")
+    )
     verdict = check_dependency(
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"},
         [first, second],
@@ -296,7 +305,10 @@ def test_d5_namespace_rule_identity_cannot_exclude():
 
 
 def test_d5_verified_identity_still_excludes():
-    event = _event("d5-verified", scope=Scope(kind="version", versions=["6.2"], exhaustive=True))
+    event = _event(
+        "d5-verified",
+        scope=Scope(kind="version", versions=["6.2"], exhaustive=True, basis="definitional"),
+    )
     verdict = check_dependency(_image("docker.io/redis:6.2"), [event])
     assert verdict.relationship == "NOT_AFFECTED"
 
@@ -353,10 +365,14 @@ def test_d8_prerelease_number_orders_within_a_marker():
     from core.versions import compare
 
     # rc1 < rc2: ignoring the number made them equal, so a fix in rc2
-    # cleared rc1.
+    # cleared rc1. Under SemVer and under PEP 440 alike.
     events = [{"introduced": "0"}, {"fixed": "1.0.0-rc2"}]
-    assert osv_applicable("1.0.0-rc1", _range(events)) is True
-    assert osv_applicable("1.0.0-rc2", _range(events)) is False
+    assert osv_applicable("1.0.0-rc1", _range(events, "SEMVER")) is True
+    assert osv_applicable("1.0.0-rc2", _range(events, "SEMVER")) is False
+    pypi = [{"introduced": "0"}, {"fixed": "1.0rc2"}]
+    assert osv_applicable("1.0rc1", _range(pypi), ecosystem="PyPI") is True
+    # No ecosystem: a marker's ordering is unknown, so never a clearance.
+    assert osv_applicable("1.0rc1", _range(pypi)) is None
     assert compare("1.0.0-rc.1", "1.0.0-rc.2") == -1
     assert compare("1.0b2", "1.0b10") == -1
 
@@ -369,6 +385,135 @@ def test_d8_known_prerelease_forms_stay_comparable():
     assert compare("v1.2", "1.2.0") == 0
 
 
+# D11 -- each range is compared under its own scheme
+
+
+def test_d11_semver_prerelease_identifiers_order_lexically():
+    # The generic marker table put dev < beta and a == alpha, c == rc;
+    # SemVer orders identifiers lexically. Each case used to be cleared.
+    cases = [
+        ("1.0.0-dev", [{"introduced": "1.0.0-beta"}, {"fixed": "1.0.1"}]),
+        ("1.0.0-a", [{"introduced": "0"}, {"fixed": "1.0.0-alpha"}]),
+        ("1.0.0-c", [{"introduced": "0"}, {"fixed": "1.0.0-rc"}]),
+        ("1.0.0-1", [{"introduced": "0"}, {"fixed": "1.0.0"}]),
+    ]
+    for version, events in cases:
+        assert osv_applicable(version, _range(events, "SEMVER")) is True, version
+
+
+def test_d11_semver_precedence_follows_the_specification():
+    from core.versions import compare
+
+    # semver.org section 11, in increasing precedence.
+    ordered = [
+        "1.0.0-alpha",
+        "1.0.0-alpha.1",
+        "1.0.0-alpha.beta",
+        "1.0.0-beta",
+        "1.0.0-beta.2",
+        "1.0.0-beta.11",
+        "1.0.0-rc.1",
+        "1.0.0",
+    ]
+    for low, high in zip(ordered, ordered[1:]):
+        assert compare(low, high, "semver") == -1, (low, high)
+    assert compare("1.0.0+build.5", "1.0.0", "semver") == 0
+
+
+def test_d11_unmodelled_ecosystem_compares_plain_numbers_only():
+    events = [{"introduced": "0"}, {"fixed": "1.0.0"}]
+    # Debian sorts 1.0 below 1.0.0; equality by padding is undetermined.
+    assert osv_applicable("1.0", _range(events), ecosystem="Debian") is None
+    assert osv_applicable("1.0.0~rc1", _range(events), ecosystem="Debian") is None
+    assert osv_applicable("1.1", _range(events), ecosystem="Maven") is False
+    assert osv_applicable("0.9", _range(events), ecosystem="Maven") is True
+
+
+# N3 -- a completeness declaration must record its basis
+
+
+def test_n3_declaration_without_basis_never_clears():
+    event = _event("no-basis", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    verdict = check_dependency(
+        {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"}, [event]
+    )
+    assert verdict.relationship == "RELATED"
+    assert "no recorded basis" in verdict.reason
+
+
+# N4, N5 -- event admissibility: withdrawn, superseded, contested, stale
+
+
+def _cleared_scope_event(event_id: str, **kwargs) -> OSSEvent:
+    return _event(
+        event_id,
+        scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional"),
+        **kwargs,
+    )
+
+
+_ACME_8 = {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"}
+
+
+def test_n4_admissible_event_still_clears():
+    assert check_dependency(_ACME_8, [_cleared_scope_event("ok")]).relationship == "NOT_AFFECTED"
+
+
+def test_n4_withdrawn_and_superseded_events_are_not_evaluated():
+    withdrawn = _cleared_scope_event("gone", withdrawn=True)
+    superseded = _cleared_scope_event("old", superseded_by="new")
+    for event in (withdrawn, superseded):
+        assert check_dependency(_ACME_8, [event]).relationship == "UNKNOWN"
+
+
+def test_n4_stale_event_never_clears_under_a_freshness_bound():
+    from datetime import timedelta
+
+    event = _cleared_scope_event("stale")  # evidence fetched 2026-10-28
+    as_of = datetime(2027, 1, 1, tzinfo=timezone.utc)
+    stale = check_dependency(_ACME_8, [event], as_of=as_of, max_evidence_age=timedelta(days=30))
+    fresh = check_dependency(_ACME_8, [event], as_of=as_of, max_evidence_age=timedelta(days=90))
+    assert stale.relationship == "RELATED" and "stale" in stale.reason
+    assert fresh.relationship == "NOT_AFFECTED"
+
+
+def test_n5_contested_event_never_clears():
+    base = _cleared_scope_event("contested")
+    contradiction = base.evidences[0].model_copy(update={"relation": "contradicts"})
+    event = base.model_copy(update={"evidences": [*base.evidences, contradiction]})
+    verdict = check_dependency(_ACME_8, [event])
+    assert verdict.relationship == "RELATED" and "contested" in verdict.reason
+
+
+def test_n5_contested_event_never_clears_an_image():
+    base = _event(
+        "contested-image",
+        scope=Scope(
+            kind="artifact",
+            artifacts=["docker.io/acme/app"],
+            exhaustive=True,
+            basis="announced",
+        ),
+    )
+    contradiction = base.evidences[0].model_copy(update={"relation": "contradicts"})
+    event = base.model_copy(update={"evidences": [*base.evidences, contradiction]})
+    assert check_dependency(_image("docker.io/acme/other:1"), [event]).relationship == "RELATED"
+
+
+# Package names are not canonicalised: inequality never clears
+
+
+def test_package_name_inequality_is_undetermined():
+    event = _event(
+        "pkg-scope",
+        scope=Scope(kind="package", packages=["acme-core"], exhaustive=True, basis="announced"),
+    )
+    verdict = check_dependency(
+        {"kind": "package", "package": "acme", "ecosystem": "PyPI", "version": "1.0"}, [event]
+    )
+    assert verdict.relationship == "RELATED"
+
+
 # Interim conservative measures (TR-2026-01 rev. 5, Table 8)
 
 
@@ -376,7 +521,12 @@ def test_interim_oci_digest_of_another_repository_still_clears():
     # Repository triples differ: decisive regardless of OCI level.
     event = _event(
         "oci-other-repo",
-        scope=Scope(kind="artifact", artifacts=[f"docker.io/acme/app@{D1}"], exhaustive=True),
+        scope=Scope(
+            kind="artifact",
+            artifacts=[f"docker.io/acme/app@{D1}"],
+            exhaustive=True,
+            basis="definitional",
+        ),
     )
     verdict = check_dependency(_image(f"docker.io/other/app@{D2}"), [event])
     assert verdict.relationship == "NOT_AFFECTED"
@@ -386,7 +536,12 @@ def test_interim_oci_named_artifact_digest_inequality_is_undetermined():
     event = _event(
         "oci-named",
         affected_artifacts=[Artifact(kind="docker-image", ref=f"docker.io/acme/app@{D1}")],
-        scope=Scope(kind="artifact", artifacts=[f"docker.io/acme/app@{D1}"], exhaustive=True),
+        scope=Scope(
+            kind="artifact",
+            artifacts=[f"docker.io/acme/app@{D1}"],
+            exhaustive=True,
+            basis="definitional",
+        ),
     )
     verdict = check_dependency(_image(f"docker.io/acme/app@{D2}"), [event])
     assert verdict.relationship == "RELATED"
@@ -401,7 +556,10 @@ def test_interim_unspecified_completeness_never_clears():
 
 
 def test_interim_declared_complete_scope_still_clears():
-    event = _event("declared", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    event = _event(
+        "declared",
+        scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional"),
+    )
     package = check_dependency(
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"}, [event]
     )
@@ -424,7 +582,9 @@ def test_interim_unlisted_bitnami_image_is_not_cleared_by_example_scope():
 def test_namespace_scope_element_covers_every_repository_under_it():
     event = _event(
         "ns-scope",
-        scope=Scope(kind="artifact", artifacts=["docker.io/acme/*"], exhaustive=True),
+        scope=Scope(
+            kind="artifact", artifacts=["docker.io/acme/*"], exhaustive=True, basis="definitional"
+        ),
     )
     inside = check_dependency(_image(f"docker.io/acme/anything@{D1}"), [event])
     outside = check_dependency(_image("docker.io/other/anything:1.0"), [event])
@@ -456,7 +616,10 @@ def test_interim_definitional_lifecycle_scope_is_declared_complete():
 def test_interim_unmapped_reference_named_like_the_project_is_undetermined():
     # github.com/etcd-io/etcd resolves only to itself, yet names the project:
     # its identity is unresolved, not "another project".
-    event = _event("named-like", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    event = _event(
+        "named-like",
+        scope=Scope(kind="version", versions=["9"], exhaustive=True, basis="definitional"),
+    )
     unresolved = check_dependency(_image("ghcr.io/someorg/acme:8.1"), [event])
     assert unresolved.relationship == "RELATED"
 
@@ -509,7 +672,10 @@ def test_d9_host_aliases_canonicalise_identity_too():
 def test_d10_unmapped_reference_is_never_excluded_by_a_version_scope():
     # Self-resolution is not a different project: an unmapped mirror of
     # the event's project used to be cleared by its version scope.
-    eol = _event("d10-eol", scope=Scope(kind="version", versions=["3.5"], exhaustive=True))
+    eol = _event(
+        "d10-eol",
+        scope=Scope(kind="version", versions=["3.5"], exhaustive=True, basis="definitional"),
+    )
     verdict = check_dependency(_image("docker.io/zzz/kvstore:3.5"), [eol])
     assert verdict.relationship == "RELATED"
 
@@ -529,7 +695,10 @@ def test_d10_curated_other_project_still_excludes():
     eol = OSSEvent(
         **{
             **_event(
-                "d10-tf-eol", scope=Scope(kind="version", versions=["1.14"], exhaustive=True)
+                "d10-tf-eol",
+                scope=Scope(
+                    kind="version", versions=["1.14"], exhaustive=True, basis="definitional"
+                ),
             ).model_dump(),
             "project_slug": "terraform",
         }

@@ -207,6 +207,7 @@ def test_g_not_affected_is_consistent():
             "kind": "artifact",
             "artifacts": ["docker.io/demo/app:1.0"],
             "exhaustive": True,
+            "basis": "definitional",
         },
     )
     result = check_dependency({"kind": "image", "ref": "docker.io/demo/other:9.9"}, [event])
