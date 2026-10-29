@@ -1,0 +1,70 @@
+# Cost measurements — TR-2026-01
+
+Implementation: `main` at `5e369ae`. Machine: Windows 11, Intel 64-bit (12 logical CPUs), Python 3.14.6. Measured 2026-10-29. Single machine, single session: absolute numbers depend on hardware; the shapes are the result.
+
+```bash
+python benchmarks/cost.py          # offline: matching and history growth
+python benchmarks/cost.py --live   # also live acquisition through the agent interface
+```
+
+Raw results are in `benchmarks/results/cost.json`.
+
+## Matching (offline, `check_watchlist`)
+
+Synthetic inventories are half container images and half packages. Synthetic events are artifact-scoped and declared complete. Timings are the median of 3 runs.
+
+| Varying | Setting | Pairs | Time | µs per pair |
+|---|---|---:|---:|---:|
+| Inventory size (10 events, 5-element scopes) | 10 | 100 | 0.005 s | 48 |
+| | 100 | 1,000 | 0.040 s | 40 |
+| | 1,000 | 10,000 | 0.41 s | 41 |
+| | 5,000 | 50,000 | 2.06 s | 41 |
+| Event count (1,000 dependencies) | 1 | 1,000 | 0.066 s | 66 |
+| | 10 | 10,000 | 0.41 s | 41 |
+| | 100 | 100,000 | 3.87 s | 39 |
+| Scope size (1,000 dependencies, 1 event) | 1 element | 1,000 | 0.053 s | 53 |
+| | 10 | 1,000 | 0.078 s | 78 |
+| | 100 | 1,000 | 0.32 s | 315 |
+| | 1,000 | 1,000 | 2.61 s | 2,607 |
+
+- **Cost is linear in pairs,** at about 40 µs per dependency–event pair.
+- **Peak memory** for 5,000 dependencies × 10 events is 24.6 MiB.
+- **Scope size is the expensive dimension.** Every element is evaluated for every dependency, with no index, which costs about 2.6 µs per element per pair. An index from repository to elements would make large catalogue-wide scopes cheap, but there is none yet. In practice, namespace elements keep scopes small: the Bitnami event has 4.
+
+## History growth (offline, `sweep_catalog` with the production observation store)
+
+50 repositories with 51 tags each, swept 20 times on consecutive days. In one mode nothing changes; in the other, every repository gains one tag per run.
+
+| Mode | Run 1 (baseline) | Runs 2–20, median per sweep | Range | Per repository | Store growth |
+|---|---:|---:|---:|---:|---:|
+| Steady | 0.11 s | 1.73 s | 1.59–1.91 s | 35 ms | 6.1 KB per repository per run |
+| One new tag per run | 0.11 s | 1.77 s | 0.64–1.98 s | 35 ms | 7.1 KB per repository per run |
+
+- **The store keeps a full snapshot per run,** so it grows linearly even when nothing changes. At daily sweeps that is about 2.2 MB per repository per year at this tag count.
+- **Each sweep reads the repository's whole history** (`load_all`), so sweep time also grows slowly with history length. A 60-run series of 20 repositories went from 0.71 s at run 11 to 0.84 s at run 60.
+- **Run 1 is cheap** because it only records a baseline.
+- **Timings vary between runs on this machine,** probably from file-system scanning. Medians are reported.
+
+## Live acquisition (agent interface, `--live`)
+
+`dependency_status` for five PyPI packages, each looked up cold and then warm, with every HTTP request counted.
+
+| Package | Cold | Requests | Warm | Requests |
+|---|---:|---:|---:|---:|
+| django | 2.45 s | 3 | 0.005 s | 0 |
+| redis | 0.79 s | 3 | 0.002 s | 0 |
+| flask | 0.48 s | 2 | 0.003 s | 0 |
+| celery | 0.50 s | 2 | 0.003 s | 0 |
+| requests | 0.53 s | 2 | 0.003 s | 0 |
+
+- **HTTP statuses:** 9 × 200 and 3 × 404, the 404s being sources that do not track a package. There were no errors and no rate limiting.
+- The first cold lookup includes connection setup.
+- Warm lookups are served from the one-hour per-process cache and make no requests.
+- An unauthenticated GitHub client allows 60 requests per hour, which at 1–3 requests per package is 20–60 cold lookups per hour without a token.
+
+## What is not measured
+
+- Registry tag walks for large repositories, and acquisition under rate limiting: none occurred.
+- Scheduled monitoring of a large population.
+- Dependency on network conditions: the live numbers are one session from one location.
+- Indexed matching, which does not exist yet.
