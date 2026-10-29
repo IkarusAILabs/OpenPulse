@@ -117,7 +117,12 @@ def test_golden_redis_eol_pins_and_namespaces():
     # Q1 -- what changed: one lifecycle finding, scoped to cycle 6.2.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["6.2"], "exhaustive": True}
+    assert findings[0]["scope"] == {
+        "kind": "version",
+        "versions": ["6.2"],
+        "exhaustive": True,
+        "basis": "definitional",
+    }
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "redis", today=today)
@@ -185,7 +190,12 @@ def test_golden_postgresql_eol_pins_and_namespaces():
     # The 17 cycle (EOL 2029) is far out, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["13"], "exhaustive": True}
+    assert findings[0]["scope"] == {
+        "kind": "version",
+        "versions": ["13"],
+        "exhaustive": True,
+        "basis": "definitional",
+    }
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "postgresql", today=today)
@@ -270,7 +280,12 @@ def test_golden_kubernetes_eol_pins_and_skew():
     # The 1.37 cycle (EOL 2027) is far out, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["1.31"], "exhaustive": True}
+    assert findings[0]["scope"] == {
+        "kind": "version",
+        "versions": ["1.31"],
+        "exhaustive": True,
+        "basis": "definitional",
+    }
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "kubernetes", today=today)
@@ -354,7 +369,12 @@ def test_golden_kafka_eol_pins_and_namespaces():
     # The 4.3 cycle has no announced date, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["3.8"], "exhaustive": True}
+    assert findings[0]["scope"] == {
+        "kind": "version",
+        "versions": ["3.8"],
+        "exhaustive": True,
+        "basis": "definitional",
+    }
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "kafka", today=today)

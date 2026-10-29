@@ -220,16 +220,22 @@ def _exclusion(
 
     Completeness is opt-in (``Scope.exhaustive`` defaults to False): an
     unspecified or partial scope lists known members only, so absence
-    from it is not evidence of exclusion -- RELATED instead.
+    from it is not evidence of exclusion -- RELATED instead. A
+    declaration must also record its basis (TR-2026-01 N3).
     """
     if result.get("relationship") != "NOT_AFFECTED":
         return result
-    if event.scope is not None and event.scope.exhaustive:
+    if event.scope is not None and event.scope.admits_negative():
         return result
+    why = (
+        "scope completeness has no recorded basis"
+        if event.scope is not None and event.scope.exhaustive
+        else "scope is not exhaustive"
+    )
     return {
         **result,
         "relationship": "RELATED",
-        "detail": f"{result['detail']}; scope is not exhaustive, so not a clearance",
+        "detail": f"{result['detail']}; {why}, so not a clearance",
     }
 
 

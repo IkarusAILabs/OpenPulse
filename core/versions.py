@@ -29,7 +29,21 @@ _PRE = {
 
 # Ecosystem schemes OpenPulse understands. Anything else (apk/rpm
 # suffixes, distro tags, date revisions) is UNKNOWN — never guessed.
-KNOWN_SCHEMES = ("generic", "semver", "pep440")
+# "generic"/"pep440" use the closed generic grammar, whose orderings
+# agree with PEP 440 on every form it accepts; "semver" is SemVer 2.0
+# precedence; "numeric" accepts plain dotted numbers only.
+KNOWN_SCHEMES = ("generic", "semver", "pep440", "numeric")
+
+#: OSV ``ECOSYSTEM`` ranges are ordered by their ecosystem's own rules.
+#: Only ecosystems whose ordering one of our schemes reproduces get it;
+#: every other ecosystem (Maven, Debian, RubyGems, ...) or a missing one
+#: falls back to "numeric" (TR-2026-01 D11).
+_ECOSYSTEM_SCHEMES = {
+    "pypi": "pep440",
+    "npm": "semver",
+    "go": "semver",
+    "crates.io": "semver",
+}
 
 
 #: Epoch separators: Debian/RPM ``1:2.3`` and PEP 440 ``1!2.3``. An
@@ -84,6 +98,10 @@ def compare(a: str, b: str, scheme: str | None = None) -> int | None:
     """
     if scheme is not None and scheme not in KNOWN_SCHEMES:
         return None
+    if scheme == "semver":
+        return _semver_compare(a, b)
+    if scheme == "numeric":
+        return _numeric_compare(a, b)
     if detect_scheme(a) != "generic" or detect_scheme(b) != "generic":
         return None
     ka, kb = _key(a), _key(b)
@@ -98,6 +116,91 @@ def compare(a: str, b: str, scheme: str | None = None) -> int | None:
     if (ra, pa) != (rb, pb):
         return -1 if (ra, pa) < (rb, pb) else 1
     return 0
+
+
+#: SemVer 2.0 (https://semver.org), leniently allowing a ``v`` prefix and
+#: a one- or two-part core (``1``, ``1.2`` read as ``1.0.0``, ``1.2.0``).
+_SEMVER = re.compile(
+    r"v?(?P<core>\d+(?:\.\d+){0,2})"
+    r"(?:-(?P<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+
+
+def _semver_key(version: str) -> tuple[tuple[int, int, int], list[str] | None] | None:
+    match = _SEMVER.fullmatch(str(version).strip())
+    if match is None:
+        return None
+    parts = [int(n) for n in match["core"].split(".")]
+    core = (parts + [0, 0])[:3]
+    pre = match["pre"].split(".") if match["pre"] else None
+    for ident in pre or []:
+        if ident.isdigit() and len(ident) > 1 and ident.startswith("0"):
+            return None  # leading zeros are invalid in numeric identifiers
+    return (core[0], core[1], core[2]), pre
+
+
+def _semver_compare(a: str, b: str) -> int | None:
+    """SemVer 2.0 precedence; None unless both sides are SemVer.
+
+    A release outranks its prereleases. Prerelease identifiers compare
+    left to right: numeric ones numerically, alphanumeric ones in ASCII
+    order, numeric below alphanumeric, and a shorter list below a longer
+    one it prefixes. So ``1.0.0-dev`` sorts above ``1.0.0-beta`` and
+    ``1.0.0-a`` below ``1.0.0-alpha`` -- unlike the generic marker table
+    (TR-2026-01 D11). Build metadata is ignored.
+    """
+    ka, kb = _semver_key(a), _semver_key(b)
+    if ka is None or kb is None:
+        return None
+    (ca, pa), (cb, pb) = ka, kb
+    if ca != cb:
+        return -1 if ca < cb else 1
+    if pa is None or pb is None:
+        if pa is pb:
+            return 0
+        return 1 if pa is None else -1
+    for x, y in zip(pa, pb):
+        if x == y:
+            continue
+        if x.isdigit() and y.isdigit():
+            return -1 if int(x) < int(y) else 1
+        if x.isdigit() != y.isdigit():
+            return -1 if x.isdigit() else 1
+        return -1 if x < y else 1
+    if len(pa) != len(pb):
+        return -1 if len(pa) < len(pb) else 1
+    return 0
+
+
+_NUMERIC = re.compile(r"v?\d+(?:\.\d+)*")
+
+
+def _numeric_compare(a: str, b: str) -> int | None:
+    """Plain dotted numbers only, for ecosystems we do not model.
+
+    Numeric segments order the same way in every common scheme, but
+    zero padding does not: Debian sorts ``1.0`` below ``1.0.0`` where
+    PEP 440 and Maven call them equal. Equality reached only by padding
+    is therefore undetermined.
+    """
+    if _NUMERIC.fullmatch(str(a).lower()) is None or _NUMERIC.fullmatch(str(b).lower()) is None:
+        return None
+    na = [int(n) for n in str(a).lower().lstrip("v").split(".")]
+    nb = [int(n) for n in str(b).lower().lstrip("v").split(".")]
+    length = max(len(na), len(nb))
+    pa = na + [0] * (length - len(na))
+    pb = nb + [0] * (length - len(nb))
+    if pa != pb:
+        return -1 if pa < pb else 1
+    return 0 if len(na) == len(nb) else None
+
+
+def range_scheme(range_type: str | None, ecosystem: str | None = None) -> str:
+    """Comparison scheme for one OSV range (``SEMVER`` or ``ECOSYSTEM``)."""
+    if str(range_type or "ECOSYSTEM").upper() == "SEMVER":
+        return "semver"
+    return _ECOSYSTEM_SCHEMES.get(str(ecosystem or "").strip().lower(), "numeric")
 
 
 def in_release_line(version: str, line: str) -> bool | None:
@@ -164,20 +267,30 @@ def satisfies(version: str, constraint: dict[str, Any], scheme: str | None = Non
 
 
 def osv_applicable(
-    version: str | None, affected: dict[str, Any], scheme: str | None = None
+    version: str | None,
+    affected: dict[str, Any],
+    scheme: str | None = None,
+    ecosystem: str | None = None,
 ) -> bool | None:
-    """OSV affected entry vs a deployed version."""
+    """OSV affected entry vs a deployed version.
+
+    Each range is compared under its own scheme (``range_scheme``):
+    SemVer for ``SEMVER`` ranges, the advisory ecosystem's ordering for
+    ``ECOSYSTEM`` ranges. An explicit ``scheme`` overrides that choice.
+    """
     if not version:
         return None
+    ecosystem = ecosystem or (affected.get("package") or {}).get("ecosystem")
     for known in affected.get("versions", []) or []:
-        if compare(version, str(known), scheme) == 0:
+        listed_scheme = scheme or range_scheme("ECOSYSTEM", ecosystem)
+        if str(version) == str(known) or compare(version, str(known), listed_scheme) == 0:
             return True
     ranges = affected.get("ranges", []) or []
     if not ranges:
         return None
     undecided = False
     for rng in ranges:
-        result = _osv_range(version, rng, scheme)
+        result = _osv_range(version, rng, scheme or range_scheme(rng.get("type"), ecosystem))
         if result is True:
             return True
         if result is None:
