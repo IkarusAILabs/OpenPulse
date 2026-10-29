@@ -487,7 +487,15 @@ partial scope is RELATED. Analysts declare it only where the scope
 is the event itself (one release line reaching EOL/EOS, one
 repository's distribution or registry change); curated events
 declare it explicitly, and a catalogue-wide change is stated with
-namespace elements (`docker.io/bitnami/*`), not example images.
+namespace elements (`docker.io/bitnami/*`), not example images. Each
+artifact element has a role. A plain namespace is an *envelope*: it
+bounds the affected set, so membership is only RELATED ("possibly in
+scope") while exclusion from it is decisive. Every other element is
+*exact*, and membership is a positive. Tag predicates make exact
+namespace elements expressible: `:<version>` covers version-like tags
+(not `latest`) and `:*` every tag, so the Bitnami move is
+`docker.io/bitnami/*:<version>` (exact) plus `docker.io/bitnami/*`
+(envelope). A named artifact's literal tag establishes that tag only.
 Nothing verifies a declaration, but every declaration must record
 its basis (`Scope.basis`: definitional, announced, corroborated,
 verified); `exhaustive` without a basis never clears. Withdrawn and
