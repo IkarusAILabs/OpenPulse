@@ -139,6 +139,19 @@
     maintainer: choksi2212
     confidence: high
     note: "OpenTofu (ghcr.io/opentofu/opentofu) is a fork with its own version line that numerically collides with Terraform core versions; it must never inherit a terraform EOL"
+- slug: opentofu
+  display_name: OpenTofu
+  github: opentofu/opentofu
+  website: https://opentofu.org
+  aliases: [opentofu, opentofu/opentofu, ghcr.io/opentofu/opentofu]
+  docker_images: [ghcr.io/opentofu/opentofu]
+  identity:
+    status: VERIFIED
+    source: "opentofu/opentofu is the Linux Foundation fork of Terraform maintained as its own project at opentofu.org, publishing ghcr.io/opentofu/opentofu"
+    reviewed_at: "2026-10-29"
+    maintainer: IkarusAILabs
+    confidence: high
+    note: "fork of terraform with its own release line; distinct from the terraform slug. Curated so that an identity-based exclusion from terraform events rests on a mapping, not on an unmapped self-resolution (TR-2026-01 D10)"
 - slug: mysql
   display_name: MySQL
   github: mysql/mysql-server

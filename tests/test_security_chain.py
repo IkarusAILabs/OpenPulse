@@ -231,7 +231,9 @@ def test_g_not_affected_is_consistent():
 def test_h_unknown_is_not_not_affected():
     from core.risk.check import check_dependency
 
-    result = check_dependency({"kind": "image", "ref": "docker.io/stranger/app:1.0"}, [_event()])
+    # A curated ref of another project: an unmapped one would be
+    # unresolved (RELATED), not unknown (TR-2026-01 D10).
+    result = check_dependency({"kind": "image", "ref": "docker.io/library/mysql:8"}, [_event()])
     assert result.relationship == "UNKNOWN"
     assert result.relationship != "NOT_AFFECTED"
     assert result.affected is False

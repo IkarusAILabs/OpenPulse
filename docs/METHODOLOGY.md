@@ -485,12 +485,15 @@ Nothing verifies a declaration. (2) Every scope element evaluated
 and decisively excluded, with no early return on the first element.
 (3) An identity exclusion ("this ref is another project") resting on
 a VERIFIED resolution. A heuristic mapping such as the generic
-Bitnami namespace rule is RELATED, never an exclusion, and so is an
-unmapped ref that resolves only to itself but is named like the
-event's project (`github.com/etcd-io/etcd` against etcd): its
-identity is unresolved, not another project. Unmapped refs with
-unrelated names keep "no association" -- the name is the only hint,
-which is the documented limit of this rule. The match implies a confidence *ceiling*
+Bitnami namespace rule is RELATED, never an exclusion, and so is any
+unmapped ref that resolves only to itself, whatever its name
+(`github.com/etcd-io/etcd` against etcd, or a mirror called
+`zzz/kvstore`): its identity is unresolved, not another project. Only
+a curated mapping to a different project gives "no association" or an
+identity exclusion; the OpenTofu fork, for example, is curated as its
+own project so terraform events exclude it. Registry hosts are
+canonical before any comparison: `index.docker.io` and
+`registry-1.docker.io` are `docker.io`. The match implies a confidence *ceiling*
 (ARTIFACT → CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
 EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
 UNVERIFIED); the verdict takes the minimum of that ceiling and the
