@@ -13,6 +13,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 - **A clearance from one event hid an unresolved one (D3).** The headline verdict is no longer NOT_AFFECTED while another event's cause is RELATED or AFFECTS_PROJECT. Per-cause verdicts were already kept, and `affected` is unchanged.
 - **Heuristic identity excluded dependencies (D5).** "This image is a different project" now needs a VERIFIED resolution. `docker.io/bitnami/<x>` images that resolve only through the generic Bitnami namespace rule are RELATED to upstream `<x>` lifecycle events, not NOT_AFFECTED: they package that upstream release. Four goldens flipped, with the justification recorded in `tests/test_golden.py`.
 - **Package-scoped events associated with every image.** An event scoped to packages (the iText licence change, for example) marked unrelated images RELATED. Only images of the event's project are now associated.
+- **Version epochs were read as extra version segments (D6).** `1:1.0` (Debian/RPM) and `1!1.0` (PEP 440) were compared as `1.1.0`, so `2.5` against an OSV range `fixed: 1:1.0` was cleared although epoch 1 sorts above every epoch-0 version. Versions with an epoch separator are now not comparable: undetermined, never a clearance.
 
 ### Added
 

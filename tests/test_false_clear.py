@@ -285,3 +285,30 @@ def test_d5_verified_identity_still_excludes():
     event = _event("d5-verified", scope=Scope(kind="version", versions=["6.2"]))
     verdict = check_dependency(_image("docker.io/redis:6.2"), [event])
     assert verdict.relationship == "NOT_AFFECTED"
+
+
+# D6 -- version epochs are not comparable, never read as extra dotted segments
+
+
+def test_d6_debian_epoch_bound_never_clears():
+    # 2.5 sorts below 1:1.0 (epoch 1 beats every epoch-0 version), so it
+    # is inside the range; reading "1:1.0" as "1.1.0" used to clear it.
+    events = [{"introduced": "0"}, {"fixed": "1:1.0"}]
+    assert osv_applicable("2.5", _range(events)) is None
+
+
+def test_d6_epoch_versions_are_not_comparable():
+    from core.versions import compare, detect_scheme, in_release_line
+
+    for epoch_version in ("1:2.3", "2!1.0"):
+        assert detect_scheme(epoch_version) == "unknown"
+        assert compare(epoch_version, "1.5") is None
+        assert in_release_line(epoch_version, "2") is None
+
+
+def test_d6_epoch_dependency_is_related_not_cleared():
+    event = _event("d6-version", scope=Scope(kind="version", versions=["9"]))
+    verdict = check_dependency(
+        {"kind": "package", "package": "acme", "ecosystem": "", "version": "1:8.1"}, [event]
+    )
+    assert verdict.relationship == "RELATED"
