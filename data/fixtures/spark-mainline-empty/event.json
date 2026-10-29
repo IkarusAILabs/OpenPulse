@@ -21,6 +21,7 @@
   }
  ],
  "scope": {
+    "exhaustive": true,
   "kind": "artifact",
   "artifacts": [
    "docker.io/bitnami/spark:<version>",

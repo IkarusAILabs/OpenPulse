@@ -9,7 +9,7 @@
   "impact": "ACTION",
   "affected_versions": ["4.2"],
   "affected_artifacts": [],
-  "scope": {"kind": "version", "versions": ["4.2"]},
+  "scope": {"exhaustive": true, "kind": "version", "versions": ["4.2"]},
   "evidences": [
     {
       "source": {

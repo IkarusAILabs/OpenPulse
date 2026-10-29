@@ -168,13 +168,13 @@ def _dep_label(dep: dict[str, Any]) -> str:
 def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     """Package dep vs one event's scope. None when the event says nothing usable.
 
-    A negative stands only against an exhaustive scope; outside a
-    non-exhaustive one the cause is RELATED (see ``_exclusion``).
+    A negative stands only against a declared-complete scope; outside
+    a partial or unspecified one the cause is RELATED (see ``_exclusion``).
     """
     cause = _scope_cause(dep, event)
     if cause is None or cause["relationship"] != "NOT_AFFECTED":
         return cause
-    if event.scope is None or event.scope.exhaustive:
+    if event.scope is not None and event.scope.exhaustive:
         return cause
     return {
         **cause,

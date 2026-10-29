@@ -30,7 +30,7 @@ def test_matrix_eol_upcoming():
 
     out = analyze_endoflife([_eol_entry(eol="2026-12-01")], today=TODAY)
     assert out[0]["lifecycle_state"] == "UPCOMING"
-    assert out[0]["scope"] == {"kind": "version", "versions": ["5.0"]}
+    assert out[0]["scope"] == {"kind": "version", "versions": ["5.0"], "exhaustive": True}
     assessed = evaluate_impact(out[0], today=TODAY)
     assert assessed["assessment"] == "PROJECT_CHANGE"
     assert assessed["eligibility"] == "WATCH"
@@ -109,7 +109,7 @@ def test_matrix_tag_disappeared():
     assert out[0]["impact"] == "REVIEW"
     assert out[0]["significance"] == "high"
     assert out[0]["scope"] == {
-        "kind": "artifact", "artifacts": ["docker.io/library/redis:7.2"]}
+        "kind": "artifact", "artifacts": ["docker.io/library/redis:7.2"], "exhaustive": True}
     assessed = evaluate_impact(out[0], today=TODAY)
     assert assessed["eligibility"] == "REVIEW"
 

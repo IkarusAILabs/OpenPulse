@@ -73,16 +73,19 @@ def test_d1_second_scope_digest_is_affected():
     assert (verdict.relationship, verdict.affected) == ("AFFECTS_ARTIFACT", True)
 
 
-def test_d1_digest_outside_every_named_digest_still_clears():
+def test_d1_digest_outside_every_named_digest_is_undetermined():
+    # Interim measure: OCI object levels are not recorded, so a different
+    # digest of the same repository may be a child manifest of a named index.
     event = _event(
         "d1-clear",
         scope=Scope(
             kind="artifact",
             artifacts=[f"docker.io/acme/app@{D1}", f"docker.io/acme/app@{D2}"],
+            exhaustive=True,
         ),
     )
     verdict = check_dependency(_image(f"docker.io/acme/app@{D3}"), [event])
-    assert verdict.relationship == "NOT_AFFECTED"
+    assert verdict.relationship == "RELATED"
 
 
 def test_d1_undetermined_element_blocks_the_clear():
@@ -194,7 +197,7 @@ def test_d2_withdrawn_advisory_never_asserts_impact():
 
 
 def test_d3_unresolved_event_beats_a_clear_from_another_event():
-    cleared = _event("d3-cleared", scope=Scope(kind="version", versions=["9"]))
+    cleared = _event("d3-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True))
     unresolved = _event("d3-project-wide")
     verdict = check_dependency(
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"},
@@ -209,7 +212,9 @@ def test_d3_unresolved_event_beats_a_clear_from_another_event():
 
 
 def test_d3_unrelated_event_does_not_block_a_clear():
-    cleared = _event("d3-image-cleared", scope=Scope(kind="version", versions=["9"]))
+    cleared = _event(
+        "d3-image-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True)
+    )
     unrelated = OSSEvent(**{**_event("d3-other").model_dump(), "project_slug": "zzz-other"})
     verdict = check_dependency(_image("docker.io/acme/app:8.1"), [cleared, unrelated])
     relationships = {c["event_id"]: c["relationship"] for c in verdict.verdicts}
@@ -227,8 +232,8 @@ def test_package_scoped_event_has_no_association_with_other_projects_images():
 
 
 def test_d3_all_causes_negative_still_clears():
-    first = _event("d3-a", scope=Scope(kind="version", versions=["9"]))
-    second = _event("d3-b", scope=Scope(kind="version", versions=["10"]))
+    first = _event("d3-a", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    second = _event("d3-b", scope=Scope(kind="version", versions=["10"], exhaustive=True))
     verdict = check_dependency(
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"},
         [first, second],
@@ -239,8 +244,9 @@ def test_d3_all_causes_negative_still_clears():
 # D4 -- a scope declared non-exhaustive never yields NOT_AFFECTED
 
 
-def test_d4_scope_defaults_to_exhaustive():
-    assert Scope().exhaustive is True
+def test_d4_scope_defaults_to_partial():
+    # Interim measure: unspecified completeness is partial, never a clearance.
+    assert Scope().exhaustive is False
 
 
 def test_d4_non_exhaustive_version_scope_is_related():
@@ -282,7 +288,7 @@ def test_d5_namespace_rule_identity_cannot_exclude():
 
 
 def test_d5_verified_identity_still_excludes():
-    event = _event("d5-verified", scope=Scope(kind="version", versions=["6.2"]))
+    event = _event("d5-verified", scope=Scope(kind="version", versions=["6.2"], exhaustive=True))
     verdict = check_dependency(_image("docker.io/redis:6.2"), [event])
     assert verdict.relationship == "NOT_AFFECTED"
 
@@ -312,3 +318,107 @@ def test_d6_epoch_dependency_is_related_not_cleared():
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "1:8.1"}, [event]
     )
     assert verdict.relationship == "RELATED"
+
+
+# Interim conservative measures (TR-2026-01 rev. 5, Table 8)
+
+
+def test_interim_oci_digest_of_another_repository_still_clears():
+    # Repository triples differ: decisive regardless of OCI level.
+    event = _event(
+        "oci-other-repo",
+        scope=Scope(kind="artifact", artifacts=[f"docker.io/acme/app@{D1}"], exhaustive=True),
+    )
+    verdict = check_dependency(_image(f"docker.io/other/app@{D2}"), [event])
+    assert verdict.relationship == "NOT_AFFECTED"
+
+
+def test_interim_oci_named_artifact_digest_inequality_is_undetermined():
+    event = _event(
+        "oci-named",
+        affected_artifacts=[Artifact(kind="docker-image", ref=f"docker.io/acme/app@{D1}")],
+        scope=Scope(kind="artifact", artifacts=[f"docker.io/acme/app@{D1}"], exhaustive=True),
+    )
+    verdict = check_dependency(_image(f"docker.io/acme/app@{D2}"), [event])
+    assert verdict.relationship == "RELATED"
+
+
+def test_interim_unspecified_completeness_never_clears():
+    event = _event("partial-default", scope=Scope(kind="version", versions=["9"]))
+    package = check_dependency(
+        {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"}, [event]
+    )
+    assert package.relationship == "RELATED"
+
+
+def test_interim_declared_complete_scope_still_clears():
+    event = _event("declared", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    package = check_dependency(
+        {"kind": "package", "package": "acme", "ecosystem": "", "version": "8.1"}, [event]
+    )
+    assert package.relationship == "NOT_AFFECTED"
+
+
+def test_interim_unlisted_bitnami_image_is_not_cleared_by_example_scope():
+    # The curated Bitnami event used to list five example images of a
+    # catalogue-wide change, read as complete: an unlisted bitnami image was
+    # cleared. Its scope is now the namespaces the announcement covers.
+    import json
+
+    event = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    unlisted = check_dependency(_image("docker.io/bitnami/nginx:1.25"), [event])
+    upstream = check_dependency(_image("docker.io/redis:7.2"), [event])
+    assert (unlisted.relationship, unlisted.affected) == ("AFFECTS_ARTIFACT", True)
+    assert upstream.relationship == "NOT_AFFECTED"
+
+
+def test_namespace_scope_element_covers_every_repository_under_it():
+    event = _event(
+        "ns-scope",
+        scope=Scope(kind="artifact", artifacts=["docker.io/acme/*"], exhaustive=True),
+    )
+    inside = check_dependency(_image(f"docker.io/acme/anything@{D1}"), [event])
+    outside = check_dependency(_image("docker.io/other/anything:1.0"), [event])
+    assert inside.relationship == "AFFECTS_ARTIFACT"
+    assert outside.relationship == "NOT_AFFECTED"
+
+
+def test_interim_definitional_lifecycle_scope_is_declared_complete():
+    from analyzers.lifecycle_events import finding_to_event
+
+    finding = {
+        "analyst": "change",
+        "event_type": "EOL",
+        "title": "acme 9 is end-of-life",
+        "summary": "acme 9 is end-of-life",
+        "impact": "ACTION",
+        "effective_at": "2026-01-01",
+        "observed_at": "2026-10-29",
+        "lifecycle_state": "EFFECTIVE",
+        "scope": {"kind": "version", "versions": ["9"], "exhaustive": True},
+        "affected_versions": ["9"],
+        "affected_artifacts": [],
+        "supporting": [],
+    }
+    event = finding_to_event(finding, "acme")
+    assert event.scope is not None and event.scope.exhaustive is True
+
+
+def test_interim_unmapped_reference_named_like_the_project_is_undetermined():
+    # github.com/etcd-io/etcd resolves only to itself, yet names the project:
+    # its identity is unresolved, not "another project".
+    event = _event("named-like", scope=Scope(kind="version", versions=["9"], exhaustive=True))
+    unresolved = check_dependency(_image("ghcr.io/someorg/acme:8.1"), [event])
+    assert unresolved.relationship == "RELATED"
+
+
+def test_interim_unmapped_reference_named_like_the_project_blocks_project_wide_drop():
+    project_wide = _event("project-wide")
+    verdict = check_dependency(_image("github.com/someorg/acme"), [project_wide])
+    assert verdict.relationship == "RELATED"
+
+
+def test_interim_unmapped_reference_with_unrelated_name_stays_unassociated():
+    project_wide = _event("project-wide-2")
+    verdict = check_dependency(_image("ghcr.io/someorg/billing-service:1.0"), [project_wide])
+    assert verdict.relationship == "UNKNOWN"

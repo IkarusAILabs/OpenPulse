@@ -117,7 +117,7 @@ def test_golden_redis_eol_pins_and_namespaces():
     # Q1 -- what changed: one lifecycle finding, scoped to cycle 6.2.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["6.2"]}
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["6.2"], "exhaustive": True}
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "redis", today=today)
@@ -185,7 +185,7 @@ def test_golden_postgresql_eol_pins_and_namespaces():
     # The 17 cycle (EOL 2029) is far out, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["13"]}
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["13"], "exhaustive": True}
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "postgresql", today=today)
@@ -270,7 +270,7 @@ def test_golden_kubernetes_eol_pins_and_skew():
     # The 1.37 cycle (EOL 2027) is far out, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["1.31"]}
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["1.31"], "exhaustive": True}
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "kubernetes", today=today)
@@ -354,7 +354,7 @@ def test_golden_kafka_eol_pins_and_namespaces():
     # The 4.3 cycle has no announced date, so it yields no finding.
     findings = [f for f in analyze(raw, today=today) if f["event_type"] == "EOL"]
     assert len(findings) == 1
-    assert findings[0]["scope"] == {"kind": "version", "versions": ["3.8"]}
+    assert findings[0]["scope"] == {"kind": "version", "versions": ["3.8"], "exhaustive": True}
     assert findings[0]["lifecycle_state"] == "EFFECTIVE"
 
     event = finding_to_event(findings[0], "kafka", today=today)
@@ -569,7 +569,10 @@ def test_golden_capa_ownership_move():
     old_ref = check_dependency({"kind": "image", "ref": "github.com/fireeye/capa"}, [event])
     new_ref = check_dependency({"kind": "image", "ref": "github.com/mandiant/capa"}, [event])
     assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
-    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    # FLIPPED (TR-2026-01 interim measure, unresolved identity): the new
+    # canonical path resolves only to itself while naming the project, so
+    # its identity is unresolved -- RELATED, never dropped as unrelated.
+    assert (new_ref.affected, new_ref.relationship) == (False, "RELATED")
 
     # Q4 + Q5 -- dependency verdicts: the old path is the affected
     # dependency; the new path and a bare package pin are not impact.
@@ -653,7 +656,10 @@ def test_golden_etcd_namespace_move():
         {"kind": "package", "package": "etcd", "ecosystem": "", "version": None}, [event]
     )
     assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
-    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    # FLIPPED (TR-2026-01 interim measure, unresolved identity): the new
+    # canonical path resolves only to itself while naming the project, so
+    # its identity is unresolved -- RELATED, never dropped as unrelated.
+    assert (new_ref.affected, new_ref.relationship) == (False, "RELATED")
     assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
 
     # Q6 -- when: the move already happened.
@@ -740,7 +746,10 @@ def test_golden_traefik_ownership_move():
         {"kind": "package", "package": "traefik", "ecosystem": "", "version": None}, [event]
     )
     assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
-    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    # FLIPPED (TR-2026-01 interim measure, unresolved identity): the new
+    # canonical path resolves only to itself while naming the project, so
+    # its identity is unresolved -- RELATED, never dropped as unrelated.
+    assert (new_ref.affected, new_ref.relationship) == (False, "RELATED")
     assert (package_pin.affected, package_pin.relationship) == (False, "AFFECTS_PROJECT")
     assert old_ref.confidence == "EMERGING"
 
@@ -848,7 +857,10 @@ def test_golden_fbsdk_archive_and_move():
         [arch_event],
     )
     assert (old_ref.affected, old_ref.relationship) == (True, "AFFECTS_ARTIFACT")
-    assert (new_ref.affected, new_ref.relationship) == (False, "UNKNOWN")
+    # FLIPPED (TR-2026-01 interim measure, unresolved identity): the new
+    # canonical path resolves only to itself while naming the project, so
+    # its identity is unresolved -- RELATED, never dropped as unrelated.
+    assert (new_ref.affected, new_ref.relationship) == (False, "RELATED")
     assert (npm_pin.affected, npm_pin.relationship) == (False, "AFFECTS_PROJECT")
     assert moved["scope"] == {"kind": "project", "versions": []}
 

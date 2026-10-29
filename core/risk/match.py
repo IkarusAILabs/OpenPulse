@@ -89,6 +89,17 @@ def match_artifact(ref: str, artifact_ref: str) -> bool:
     return split_image_ref(ref) == split_image_ref(artifact_ref)
 
 
+def namespace_pattern(artifact_ref: str) -> tuple[str, str] | None:
+    """(registry, namespace) for a `<registry>/<namespace>/*` scope element.
+
+    A namespace element covers every repository under it, whatever the
+    tag or digest -- how a catalogue-wide change (the Bitnami move) is
+    stated without listing example images as if they were the scope.
+    """
+    registry, namespace, name = split_image_ref(artifact_ref)
+    return (registry, namespace) if name == "*" else None
+
+
 def _scope(event: OSSEvent) -> dict:
     scope = event.scope
     if scope is None:
@@ -117,8 +128,10 @@ def tag_vs_digest_policy(ref: str, artifact_ref: str) -> dict[str, str | bool | 
 
     - digest vs digest, equal: the same immutable bytes — the only
       form that is exact artifact identity.
-    - digest vs digest, different: provably different content; the
-      pinned bytes are not the artifact the event names.
+    - digest vs digest, different: different bytes, but not proof of
+      exclusion. OCI object levels are not recorded, so one digest may
+      be an image index and the other one of its platform manifests --
+      the same image. RELATED until levels are resolved, never a clear.
     - digest vs tag (or tag vs digest): the refs agree on the
       repository but one side pins bytes while the other names a
       moving pointer. A tag can move onto (or away from) the pinned
@@ -150,10 +163,11 @@ def tag_vs_digest_policy(ref: str, artifact_ref: str) -> dict[str, str | bool | 
     return {
         "affected": False,
         "via": None,
-        "relationship": "NOT_AFFECTED",
+        "relationship": "RELATED",
         "detail": (
-            f"{ref} pins digest {dep_digest}, not the bytes the event names "
-            f"({artifact_ref} pins {art_digest})"
+            f"{ref} pins digest {dep_digest} and {artifact_ref} pins {art_digest}; "
+            "OCI object levels are unknown (an index and its platform manifest "
+            "differ in digest), so this is not a clearance"
         ),
     }
 
@@ -172,6 +186,16 @@ def _artifact_candidates(
     undetermined = None
     excluded = None
     for candidate in candidates:
+        pattern = namespace_pattern(candidate)
+        if pattern is not None:
+            if split_image_ref(ref)[:2] == pattern:
+                return {
+                    "affected": True,
+                    "via": "artifact",
+                    "relationship": "AFFECTS_ARTIFACT",
+                    "detail": f"{ref} is inside event namespace scope {candidate}",
+                }
+            continue
         if not match_artifact(ref, candidate):
             continue
         policy = tag_vs_digest_policy(ref, candidate)
@@ -192,14 +216,15 @@ def _artifact_candidates(
 def _exclusion(
     event: OSSEvent, result: dict[str, str | bool | None]
 ) -> dict[str, str | bool | None]:
-    """A NOT_AFFECTED result stands only against an exhaustive scope.
+    """A NOT_AFFECTED result stands only against a declared-complete scope.
 
-    A scope declared non-exhaustive lists known members only, so
-    absence from it is not evidence of exclusion: RELATED instead.
+    Completeness is opt-in (``Scope.exhaustive`` defaults to False): an
+    unspecified or partial scope lists known members only, so absence
+    from it is not evidence of exclusion -- RELATED instead.
     """
     if result.get("relationship") != "NOT_AFFECTED":
         return result
-    if event.scope is None or event.scope.exhaustive:
+    if event.scope is not None and event.scope.exhaustive:
         return result
     return {
         **result,
@@ -245,6 +270,9 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
             }
         slug = resolve_project(ref)
         if slug != event.project_slug:
+            unresolved = _unresolved_identity(event, ref)
+            if unresolved:
+                return unresolved
             trust = resolution_trust(ref)
             # A version scope belongs to the event's project. A tag that
             # merely collides with a scope version of a different project
@@ -304,6 +332,9 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
         if resolve_project(ref) != event.project_slug:
             # A package scope belongs to the event's project; an image of
             # another project has no association with it at all.
+            unresolved = _unresolved_identity(event, ref)
+            if unresolved:
+                return unresolved
             return {
                 "affected": False,
                 "via": None,
@@ -340,9 +371,51 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
                 f"{ref} resolves to event project {event.project_slug}; impact not established"
             ),
         }
+    unresolved = _unresolved_identity(event, ref)
+    if unresolved:
+        return unresolved
     return {
         "affected": False,
         "via": None,
         "relationship": "UNKNOWN",
         "detail": f"{ref} matches nothing in {event.id}",
+    }
+
+
+def _project_names(slug: str) -> set[str]:
+    """Bare names the event's project is known by: slug, alias and image tails."""
+    from core.entities.identity import catalog_entry_for_slug
+
+    entry = catalog_entry_for_slug(slug)
+    names = {slug.lower()}
+    for value in [*(entry.get("aliases") or []), *(entry.get("docker_images") or [])]:
+        names.add(split_image_ref(str(value))[2].lower())
+    return names
+
+
+def _unresolved_identity(event: OSSEvent, ref: str) -> dict[str, str | bool | None] | None:
+    """RELATED when ref's identity is unresolved yet named like the project.
+
+    An unmapped ref resolves only to itself ("self" identity). That is
+    not evidence of *another* project: github.com/etcd-io/etcd is
+    self-resolved while naming etcd. When the ref's repository name is
+    one the event's project is known by, the association is undetermined
+    -- never dropped as unrelated, never excluded. Unmapped refs with
+    unrelated names keep "no association" (a name is the only hint we
+    have; this is the documented limit of the rule).
+    """
+    trust = resolution_trust(ref)
+    if trust["via"] != "self":
+        return None
+    name = split_image_ref(ref)[2].lower()
+    if name not in _project_names(event.project_slug):
+        return None
+    return {
+        "affected": False,
+        "via": None,
+        "relationship": "RELATED",
+        "detail": (
+            f"{ref} resolves only to itself but is named like project "
+            f"{event.project_slug}; identity unresolved, not a different project"
+        ),
     }
