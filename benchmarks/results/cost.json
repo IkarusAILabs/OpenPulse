@@ -1,0 +1,522 @@
+{
+ "machine": {
+  "python": "3.14.6",
+  "system": "Windows-11-10.0.26300-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel"
+ },
+ "measured_at": "2026-10-29T19:56:08+00:00",
+ "matching": {
+  "by_inventory_size": [
+   {
+    "dependencies": 10,
+    "events": 10,
+    "pairs": 100,
+    "seconds": 0.004,
+    "microseconds_per_pair": 39.8
+   },
+   {
+    "dependencies": 100,
+    "events": 10,
+    "pairs": 1000,
+    "seconds": 0.0411,
+    "microseconds_per_pair": 41.1
+   },
+   {
+    "dependencies": 1000,
+    "events": 10,
+    "pairs": 10000,
+    "seconds": 0.415,
+    "microseconds_per_pair": 41.5
+   },
+   {
+    "dependencies": 5000,
+    "events": 10,
+    "pairs": 50000,
+    "seconds": 2.0738,
+    "microseconds_per_pair": 41.5
+   }
+  ],
+  "by_event_count": [
+   {
+    "dependencies": 1000,
+    "events": 1,
+    "pairs": 1000,
+    "seconds": 0.0655,
+    "microseconds_per_pair": 65.5
+   },
+   {
+    "dependencies": 1000,
+    "events": 10,
+    "pairs": 10000,
+    "seconds": 0.4273,
+    "microseconds_per_pair": 42.7
+   },
+   {
+    "dependencies": 1000,
+    "events": 100,
+    "pairs": 100000,
+    "seconds": 3.9187,
+    "microseconds_per_pair": 39.2
+   }
+  ],
+  "by_scope_size": [
+   {
+    "scope_size": 1,
+    "dependencies": 1000,
+    "events": 1,
+    "pairs": 1000,
+    "seconds": 0.0531,
+    "microseconds_per_pair": 53.1
+   },
+   {
+    "scope_size": 10,
+    "dependencies": 1000,
+    "events": 1,
+    "pairs": 1000,
+    "seconds": 0.0801,
+    "microseconds_per_pair": 80.1
+   },
+   {
+    "scope_size": 100,
+    "dependencies": 1000,
+    "events": 1,
+    "pairs": 1000,
+    "seconds": 0.3088,
+    "microseconds_per_pair": 308.8
+   },
+   {
+    "scope_size": 1000,
+    "dependencies": 1000,
+    "events": 1,
+    "pairs": 1000,
+    "seconds": 2.5834,
+    "microseconds_per_pair": 2583.4
+   }
+  ],
+  "mixed_with_version_scope": {
+   "dependencies": 1000,
+   "events": 6,
+   "pairs": 6000,
+   "seconds": 0.2657,
+   "microseconds_per_pair": 44.3
+  },
+  "peak_memory_mib_5000x10": 24.6
+ },
+ "history": {
+  "repositories": 50,
+  "tags_per_repository": 50,
+  "runs": 20,
+  "steady": [
+   {
+    "run": 1,
+    "seconds": 0.114,
+    "store_bytes": 305170,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 2,
+    "seconds": 1.587,
+    "store_bytes": 609440,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 3,
+    "seconds": 1.685,
+    "store_bytes": 913710,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 4,
+    "seconds": 1.658,
+    "store_bytes": 1217980,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 5,
+    "seconds": 1.664,
+    "store_bytes": 1522250,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 6,
+    "seconds": 1.654,
+    "store_bytes": 1826520,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 7,
+    "seconds": 1.694,
+    "store_bytes": 2130790,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 8,
+    "seconds": 1.729,
+    "store_bytes": 2435060,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 9,
+    "seconds": 1.772,
+    "store_bytes": 2739330,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 10,
+    "seconds": 1.73,
+    "store_bytes": 3043600,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 11,
+    "seconds": 1.689,
+    "store_bytes": 3347870,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 12,
+    "seconds": 1.695,
+    "store_bytes": 3652140,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 13,
+    "seconds": 1.792,
+    "store_bytes": 3956410,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 14,
+    "seconds": 1.769,
+    "store_bytes": 4260680,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 15,
+    "seconds": 1.807,
+    "store_bytes": 4564950,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 16,
+    "seconds": 1.768,
+    "store_bytes": 4869220,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 17,
+    "seconds": 1.875,
+    "store_bytes": 5173490,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 18,
+    "seconds": 1.823,
+    "store_bytes": 5477760,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 19,
+    "seconds": 1.827,
+    "store_bytes": 5782030,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 20,
+    "seconds": 1.914,
+    "store_bytes": 6086300,
+    "changes": 0,
+    "errors": 0
+   }
+  ],
+  "one_new_tag_per_run": [
+   {
+    "run": 1,
+    "seconds": 0.108,
+    "store_bytes": 305170,
+    "changes": 0,
+    "errors": 0
+   },
+   {
+    "run": 2,
+    "seconds": 0.642,
+    "store_bytes": 614590,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 3,
+    "seconds": 1.658,
+    "store_bytes": 929160,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 4,
+    "seconds": 1.654,
+    "store_bytes": 1248880,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 5,
+    "seconds": 1.721,
+    "store_bytes": 1573750,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 6,
+    "seconds": 1.697,
+    "store_bytes": 1903770,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 7,
+    "seconds": 1.716,
+    "store_bytes": 2238940,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 8,
+    "seconds": 1.741,
+    "store_bytes": 2579260,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 9,
+    "seconds": 1.767,
+    "store_bytes": 2924730,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 10,
+    "seconds": 1.77,
+    "store_bytes": 3275350,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 11,
+    "seconds": 1.859,
+    "store_bytes": 3631170,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 12,
+    "seconds": 1.72,
+    "store_bytes": 3992190,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 13,
+    "seconds": 1.795,
+    "store_bytes": 4358410,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 14,
+    "seconds": 1.87,
+    "store_bytes": 4729830,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 15,
+    "seconds": 1.884,
+    "store_bytes": 5106450,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 16,
+    "seconds": 1.952,
+    "store_bytes": 5488270,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 17,
+    "seconds": 1.976,
+    "store_bytes": 5875290,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 18,
+    "seconds": 1.924,
+    "store_bytes": 6267510,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 19,
+    "seconds": 1.932,
+    "store_bytes": 6664930,
+    "changes": 50,
+    "errors": 0
+   },
+   {
+    "run": 20,
+    "seconds": 1.972,
+    "store_bytes": 7067550,
+    "changes": 50,
+    "errors": 0
+   }
+  ]
+ },
+ "live": {
+  "rows": [
+   {
+    "package": "django",
+    "phase": "cold",
+    "seconds": 2.45,
+    "http_requests": 3,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "ok",
+     "osv.dev": "ok",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "django",
+    "phase": "warm",
+    "seconds": 0.005,
+    "http_requests": 0,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "ok",
+     "osv.dev": "ok",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "redis",
+    "phase": "cold",
+    "seconds": 0.786,
+    "http_requests": 3,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "ok",
+     "osv.dev": "ok",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "redis",
+    "phase": "warm",
+    "seconds": 0.002,
+    "http_requests": 0,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "ok",
+     "osv.dev": "ok",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "flask",
+    "phase": "cold",
+    "seconds": 0.48,
+    "http_requests": 2,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "flask",
+    "phase": "warm",
+    "seconds": 0.003,
+    "http_requests": 0,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "celery",
+    "phase": "cold",
+    "seconds": 0.498,
+    "http_requests": 2,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "celery",
+    "phase": "warm",
+    "seconds": 0.003,
+    "http_requests": 0,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "requests",
+    "phase": "cold",
+    "seconds": 0.531,
+    "http_requests": 2,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   },
+   {
+    "package": "requests",
+    "phase": "warm",
+    "seconds": 0.003,
+    "http_requests": 0,
+    "sources": {
+     "curated-events": "ok",
+     "endoflife.date": "no-data",
+     "osv.dev": "no-data",
+     "github": "ok"
+    }
+   }
+  ],
+  "http_statuses": {
+   "200": 9,
+   "404": 3
+  }
+ }
+}
