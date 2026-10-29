@@ -1,0 +1,202 @@
+{
+ "mutants": [
+  {
+   "mutant": "D1",
+   "reintroduces": "first unequal digest of a repository excludes",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D3",
+   "reintroduces": "a clearance headlines over an unresolved event",
+   "matrix": false,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D4",
+   "reintroduces": "unspecified completeness admits negatives",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "N3",
+   "reintroduces": "a declaration without a basis admits negatives",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D10",
+   "reintroduces": "unmapped references are unrelated",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D7",
+   "reintroduces": "tags are ignored",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "Roles",
+   "reintroduces": "envelopes give positives",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D8",
+   "reintroduces": "pre-release numbers are ignored",
+   "matrix": false,
+   "randomized": false,
+   "regression_tests": true,
+   "version_differential": true,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D9",
+   "reintroduces": "Docker Hub host aliases are other registries",
+   "matrix": true,
+   "randomized": false,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D11",
+   "reintroduces": "SEMVER ranges use the generic marker table",
+   "matrix": false,
+   "randomized": false,
+   "regression_tests": true,
+   "version_differential": true,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D12",
+   "reintroduces": "docker.io/<name> is namespace docker.io",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D13",
+   "reintroduces": "unmapped packages are unrelated",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D14",
+   "reintroduces": "repository elements do not cover digest pins",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D15",
+   "reintroduces": "a named example hides the scope",
+   "matrix": false,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "N4-withdrawn",
+   "reintroduces": "withdrawn and superseded events are evaluated",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "N4-stale",
+   "reintroduces": "stale events may clear",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "N5",
+   "reintroduces": "contested events may clear",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "Package",
+   "reintroduces": "package-name inequality excludes",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "S2",
+   "reintroduces": "a curated other project is excluded, not unassociated",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  }
+ ],
+ "caught": 19,
+ "total": 19,
+ "caught_without_regression_tests": 19,
+ "not_reinjected": {
+  "D2": "union of OSV intervals: a multi-line walk, not a one-function change",
+  "D5": "heuristic exclusion: subsumed by D10 and S2 in the current resolver",
+  "D6": "epochs: the closed grammar rejects them before any comparison"
+ }
+}

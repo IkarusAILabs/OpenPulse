@@ -172,10 +172,24 @@ def semver_checks() -> dict:
             inconsistent += 1
         if compare(b, a, "semver") != -ab:
             inconsistent += 1
+    # OSV SEMVER ranges built from the vectors: inside iff low <= v < high
+    # in the specification's order. Exercises range dispatch, not only
+    # the comparator.
+    range_failures = []
+    for i, low in enumerate(SEMVER_PRECEDENCE):
+        for j in range(i + 1, len(SEMVER_PRECEDENCE)):
+            high = SEMVER_PRECEDENCE[j]
+            affected = {
+                "ranges": [{"type": "SEMVER", "events": [{"introduced": low}, {"fixed": high}]}]
+            }
+            for k, version in enumerate(SEMVER_PRECEDENCE):
+                if osv_applicable(version, affected) != (i <= k < j):
+                    range_failures.append({"version": version, "introduced": low, "fixed": high})
     return {
         "specification_vectors": len(SEMVER_PRECEDENCE),
         "vector_failures": failures,
         "order_inconsistencies": inconsistent,
+        "range_failures": range_failures,
     }
 
 
@@ -202,7 +216,8 @@ if __name__ == "__main__":
     s = result["semver"]
     print(
         f"SemVer: vector failures {len(s['vector_failures'])}, "
-        f"order inconsistencies {s['order_inconsistencies']}"
+        f"order inconsistencies {s['order_inconsistencies']}, "
+        f"range failures {len(s['range_failures'])}"
     )
     for d in (p["disagreements"] + r["disagreements"])[:15]:
         print("  ", d)

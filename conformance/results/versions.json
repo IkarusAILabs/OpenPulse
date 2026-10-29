@@ -15,6 +15,7 @@
  "semver": {
   "specification_vectors": 11,
   "vector_failures": [],
-  "order_inconsistencies": 0
+  "order_inconsistencies": 0,
+  "range_failures": []
  }
 }

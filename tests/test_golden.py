@@ -143,7 +143,9 @@ def test_golden_redis_eol_pins_and_namespaces():
     assert (upstream_old.affected, upstream_old.relationship) == (True, "AFFECTS_VERSION")
     assert upstream_old.confidence == "EMERGING"
     assert (upstream_new.affected, upstream_new.relationship) == (False, "NOT_AFFECTED")
-    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "NOT_AFFECTED")
+    # Curated as another project (bitnami-redis-stack): no association with
+    # an upstream redis release line, which needs no complete scope (S2).
+    assert (bitnami_old.affected, bitnami_old.relationship) == (False, "UNKNOWN")
 
     # Q6 -- when: effective in the past, in force now.
     assert findings[0]["effective_at"] == "2024-01-01"
@@ -1190,7 +1192,8 @@ def test_golden_terraform_eol_pins_and_fork_line():
     assert (pinned_old.affected, pinned_old.relationship) == (True, "AFFECTS_VERSION")
     assert pinned_old.confidence == "EMERGING"
     assert (pinned_new.affected, pinned_new.relationship) == (False, "NOT_AFFECTED")
-    assert (fork_same_tag.affected, fork_same_tag.relationship) == (False, "NOT_AFFECTED")
+    # The fork is curated as its own project: no association (S2).
+    assert (fork_same_tag.affected, fork_same_tag.relationship) == (False, "UNKNOWN")
 
     # Q6 -- when: effective in the past, in force now.
     assert findings[0]["effective_at"] == "2026-08-26"
