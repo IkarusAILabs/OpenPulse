@@ -79,7 +79,9 @@ commit-graph reasoning and are `None`, as is any unknown range type
 and any version at or past a `limit`. An advisory is cleared for a
 version only when **every** affected entry decides `False`; one
 undetermined entry withholds the clearance. Withdrawn advisories
-assert nothing.
+assert nothing. Versions carrying an epoch (`1:2.3`, `1!2.3`) are not
+comparable: an epoch outranks every release number, so it is never
+read as one more dotted segment.
 
 Event version scopes name **release lines** (endoflife.date cycles such
 as `4.2`, `13`, `18`), while dependencies pin releases. A line covers

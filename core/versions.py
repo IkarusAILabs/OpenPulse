@@ -32,9 +32,18 @@ _PRE = {
 KNOWN_SCHEMES = ("generic", "semver", "pep440")
 
 
+#: Epoch separators: Debian/RPM ``1:2.3`` and PEP 440 ``1!2.3``. An
+#: epoch outranks every release number, so reading it as one more
+#: dotted segment (``1.2.3``) inverts orderings -- never comparable.
+_EPOCH_SEPARATORS = (":", "!")
+
+
 def detect_scheme(version: str) -> str:
     """generic: leading numeric core + optional known prerelease marker.
-    Everything else (distro/build suffixes, unknown alphas) is unknown."""
+    Everything else (distro/build suffixes, epochs, unknown alphas) is
+    unknown."""
+    if any(sep in str(version) for sep in _EPOCH_SEPARATORS):
+        return "unknown"
     tokens = re.findall(r"\d+|[a-z]+", str(version).lower().lstrip("v"))
     if not tokens or not tokens[0].isdigit():
         return "unknown"
