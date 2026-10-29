@@ -81,7 +81,14 @@ version only when **every** affected entry decides `False`; one
 undetermined entry withholds the clearance. Withdrawn advisories
 assert nothing. Versions carrying an epoch (`1:2.3`, `1!2.3`) are not
 comparable: an epoch outranks every release number, so it is never
-read as one more dotted segment.
+read as one more dotted segment. The only comparable form is a dotted
+numeric core with at most one known prerelease marker (`dev`, `a`,
+`b`, `rc`, `pre` and their long forms) and an optional number:
+`2.0.0-rc.1`, `1.0b2`. The number orders within a marker (`rc1 <
+rc2`). A bare numeric or build suffix (`1.0.0-1`, `2.4.1-1`,
+`1.0.0+5`) is not comparable, because ecosystems disagree on it: SemVer
+reads `1.0.0-1` as a prerelease below `1.0.0`, Debian as a revision
+above it.
 
 Event version scopes name **release lines** (endoflife.date cycles such
 as `4.2`, `13`, `18`), while dependencies pin releases. A line covers
