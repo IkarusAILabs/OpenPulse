@@ -28,7 +28,7 @@ import re
 from core.entities.identity import resolution_trust
 from core.entities.resolve import normalize_ref, resolve_project
 from core.schema.models import OSSEvent
-from core.versions import in_release_line
+from core.versions import detect_scheme, in_release_line
 
 
 def split_image_ref(ref: str) -> tuple[str, str, str]:
@@ -92,12 +92,59 @@ def match_artifact(ref: str, artifact_ref: str) -> bool:
 def namespace_pattern(artifact_ref: str) -> tuple[str, str] | None:
     """(registry, namespace) for a `<registry>/<namespace>/*` scope element.
 
-    A namespace element covers every repository under it, whatever the
-    tag or digest -- how a catalogue-wide change (the Bitnami move) is
-    stated without listing example images as if they were the scope.
+    A namespace element names every repository under it -- how a
+    catalogue-wide change (the Bitnami move) is stated without listing
+    example images as if they were the scope. Without a tag predicate it
+    is an *envelope* (see ``element_role``).
     """
     registry, namespace, name = split_image_ref(artifact_ref)
     return (registry, namespace) if name == "*" else None
+
+
+#: Tag predicates an artifact element may carry instead of a literal tag:
+#: ``<version>`` -- every version-like tag (``1.25``, ``7.2.4-debian-12-r3``,
+#: not ``latest``); ``*`` -- every tag.
+TAG_VERSION = "<version>"
+TAG_ANY = "*"
+
+
+def _version_like(tag: str) -> bool:
+    return detect_scheme(_tag_version(tag)) == "generic"
+
+
+def element_role(artifact_ref: str) -> str:
+    """``envelope`` or ``exact`` (TR-2026-01, element roles).
+
+    An exact element claims everything it denotes is in scope, so
+    membership is a positive. An envelope only bounds the affected set:
+    membership is "possibly in scope" (RELATED), and only exclusion from
+    it is decisive. The role follows from the element's form: a
+    namespace without a tag predicate is an envelope -- a catalogue-wide
+    change rarely reaches every tag (Bitnami's ``latest`` stayed) -- and
+    every other element is exact.
+    """
+    if namespace_pattern(artifact_ref) is not None and tag_of(artifact_ref) is None:
+        return "envelope"
+    return "exact"
+
+
+def _tag_membership(ref: str, element_tag: str | None) -> bool | None:
+    """Does ref's tag fall under the element's tag or tag predicate?
+
+    True / False when decided. None when ref pins only a digest: its tag,
+    and so its membership in a tag-restricted element, is unknown. A ref
+    with neither tag nor digest is ``latest``, as Docker reads it.
+    """
+    if element_tag in (None, TAG_ANY):
+        return True
+    dep_tag = tag_of(ref)
+    if dep_tag is None:
+        if digest_of(ref):
+            return None
+        dep_tag = "latest"
+    if element_tag == TAG_VERSION:
+        return _version_like(dep_tag)
+    return dep_tag == element_tag
 
 
 def _scope(event: OSSEvent) -> dict:
@@ -173,44 +220,104 @@ def tag_vs_digest_policy(ref: str, artifact_ref: str) -> dict[str, str | bool | 
 
 
 def _artifact_candidates(
-    ref: str, candidates: list[str], inside: str
+    ref: str, candidates: list[str], inside: str, *, examples: bool = False
 ) -> dict[str, str | bool | None] | None:
-    """Every candidate sharing ref's repository, evaluated -- no early return.
+    """Every candidate evaluated against ref -- no early return.
 
-    Any exact match wins (AFFECTS_ARTIFACT). Otherwise an undetermined
-    pinning comparison (digest vs tag) beats a decisive exclusion
-    (different digests): one element that may point at the pinned
-    bytes is enough to withhold a clearance. None when no candidate
-    shares the repository at all.
+    Membership in an exact element is AFFECTS_ARTIFACT. Membership in an
+    envelope, an undetermined pinning comparison (digest vs tag), or an
+    unknown tag is RELATED, and RELATED beats a decisive exclusion. With
+    ``examples`` (an event's named ``affected_artifacts``, which
+    illustrate a change rather than bound it), another tag of a named
+    repository is RELATED rather than excluded: naming ``redis:7.2``
+    says nothing either way about ``redis:latest`` (TR-2026-01 D7).
+    None when no candidate relates to ref at all.
     """
     undetermined = None
     excluded = None
     for candidate in candidates:
+        element_tag = tag_of(candidate)
         pattern = namespace_pattern(candidate)
         if pattern is not None:
-            if split_image_ref(ref)[:2] == pattern:
+            if split_image_ref(ref)[:2] != pattern:
+                continue
+            if element_role(candidate) == "envelope":
+                undetermined = undetermined or {
+                    "affected": False,
+                    "via": None,
+                    "relationship": "RELATED",
+                    "detail": (
+                        f"{ref} is inside envelope {candidate}: possibly in scope, "
+                        "but the envelope may include unaffected tags"
+                    ),
+                }
+                continue
+            member = _tag_membership(ref, element_tag)
+            if member:
                 return {
                     "affected": True,
                     "via": "artifact",
                     "relationship": "AFFECTS_ARTIFACT",
                     "detail": f"{ref} is inside event namespace scope {candidate}",
                 }
+            if member is None:
+                undetermined = undetermined or {
+                    "affected": False,
+                    "via": None,
+                    "relationship": "RELATED",
+                    "detail": f"{ref} pins a digest; its tag under {candidate} is unknown",
+                }
             continue
         if not match_artifact(ref, candidate):
             continue
         policy = tag_vs_digest_policy(ref, candidate)
-        if not policy:
+        if policy:
+            if policy["relationship"] == "RELATED":
+                undetermined = undetermined or policy
+            else:
+                excluded = excluded or policy
+            continue
+        if digest_of(candidate) and digest_of(ref):
+            member = True  # equal pinned digests: exact identity
+        else:
+            member = _tag_membership(ref, element_tag)
+        if member:
             return {
                 "affected": True,
                 "via": "artifact",
                 "relationship": "AFFECTS_ARTIFACT",
                 "detail": f"{ref} {inside} {candidate}",
             }
-        if policy["relationship"] == "RELATED":
-            undetermined = undetermined or policy
+        if member is None or examples:
+            undetermined = undetermined or {
+                "affected": False,
+                "via": None,
+                "relationship": "RELATED",
+                "detail": (
+                    f"{ref} shares the repository of {candidate} but not its tag; "
+                    "the named tag does not establish the others"
+                ),
+            }
         else:
-            excluded = excluded or policy
+            excluded = excluded or {
+                "affected": False,
+                "via": None,
+                "relationship": "NOT_AFFECTED",
+                "detail": f"{ref} carries a tag outside event element {candidate}",
+            }
     return undetermined or excluded
+
+
+def _strongest(
+    *results: dict[str, str | bool | None] | None,
+) -> dict[str, str | bool | None] | None:
+    """Affected beats undetermined beats excluded; None if all are None."""
+    present = [r for r in results if r]
+    for wanted in ("AFFECTS_ARTIFACT", "RELATED"):
+        for result in present:
+            if result.get("relationship") == wanted:
+                return result
+    return present[0] if present else None
 
 
 def _exclusion(
@@ -249,16 +356,22 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
     # forms or disagree on bytes: a moving tag never reports
     # digest-level certainty.
     named = _artifact_candidates(
-        ref, [a.ref for a in event.affected_artifacts], "matches affected artifact"
+        ref,
+        [a.ref for a in event.affected_artifacts],
+        "matches affected artifact",
+        examples=True,
     )
-    if named is not None:
-        return named
     scope = _scope(event)
     kind = scope["kind"]
+    inside = (
+        _artifact_candidates(ref, scope["artifacts"], "is inside event artifact scope")
+        if kind == "artifact" and scope["artifacts"]
+        else None
+    )
+    best = _strongest(named, inside)
+    if best is not None:
+        return best
     if kind == "artifact" and scope["artifacts"]:
-        inside = _artifact_candidates(ref, scope["artifacts"], "is inside event artifact scope")
-        if inside is not None:
-            return inside
         return {
             "affected": False,
             "via": None,

@@ -583,13 +583,86 @@ def test_namespace_scope_element_covers_every_repository_under_it():
     event = _event(
         "ns-scope",
         scope=Scope(
-            kind="artifact", artifacts=["docker.io/acme/*"], exhaustive=True, basis="definitional"
+            kind="artifact", artifacts=["docker.io/acme/*:*"], exhaustive=True, basis="definitional"
         ),
     )
     inside = check_dependency(_image(f"docker.io/acme/anything@{D1}"), [event])
     outside = check_dependency(_image("docker.io/other/anything:1.0"), [event])
     assert inside.relationship == "AFFECTS_ARTIFACT"
     assert outside.relationship == "NOT_AFFECTED"
+
+
+# Element roles -- an envelope bounds the affected set, an exact element asserts it
+
+
+def _ns_event(*artifacts: str) -> OSSEvent:
+    return _event(
+        "roles",
+        scope=Scope(kind="artifact", artifacts=list(artifacts), exhaustive=True, basis="announced"),
+    )
+
+
+def test_envelope_membership_is_possibly_in_scope_not_affected():
+    from core.risk.match import element_role
+
+    assert element_role("docker.io/acme/*") == "envelope"
+    assert element_role("docker.io/acme/*:<version>") == "exact"
+    assert element_role("docker.io/acme/app") == "exact"
+    event = _ns_event("docker.io/acme/*")
+    inside = check_dependency(_image("docker.io/acme/app:1.0"), [event])
+    outside = check_dependency(_image("docker.io/other/app:1.0"), [event])
+    assert (inside.relationship, inside.affected) == ("RELATED", False)
+    assert "envelope" in inside.reason
+    assert outside.relationship == "NOT_AFFECTED"  # exclusion from an envelope is decisive
+
+
+def test_version_tag_predicate_is_exact_for_versioned_tags_only():
+    event = _ns_event("docker.io/acme/*:<version>", "docker.io/acme/*")
+    expected = {
+        "docker.io/acme/app:1.25": "AFFECTS_ARTIFACT",
+        "docker.io/acme/app:7.2.4-debian-12-r3": "AFFECTS_ARTIFACT",
+        "docker.io/acme/app:latest": "RELATED",  # envelope only
+        "docker.io/acme/app": "RELATED",  # no tag is latest
+        f"docker.io/acme/app@{D1}": "RELATED",  # tag unknown
+        "docker.io/other/app:1.25": "NOT_AFFECTED",
+    }
+    for ref, relationship in expected.items():
+        assert check_dependency(_image(ref), [event]).relationship == relationship, ref
+
+
+def test_bitnami_versioned_images_affected_latest_only_possibly():
+    import json
+
+    event = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    expected = {
+        "docker.io/bitnami/nginx:1.25": "AFFECTS_ARTIFACT",
+        "docker.io/bitnami/redis:latest": "RELATED",
+        "docker.io/bitnamilegacy/redis:latest": "AFFECTS_ARTIFACT",
+        "docker.io/redis:7.2": "NOT_AFFECTED",
+    }
+    for ref, relationship in expected.items():
+        assert check_dependency(_image(ref), [event]).relationship == relationship, ref
+
+
+# D7 -- a named tag does not establish the repository's other tags
+
+
+def test_d7_named_tag_does_not_match_other_tags():
+    event = _event(
+        "d7", affected_artifacts=[Artifact(kind="docker-image", ref="docker.io/acme/app:7.2")]
+    )
+    same = check_dependency(_image("docker.io/acme/app:7.2"), [event])
+    other = check_dependency(_image("docker.io/acme/app:latest"), [event])
+    assert same.relationship == "AFFECTS_ARTIFACT"
+    assert (other.relationship, other.affected) == ("RELATED", False)
+
+
+def test_d7_literal_tag_scope_element_excludes_other_tags():
+    event = _ns_event("docker.io/acme/app:7.2")
+    assert check_dependency(_image("docker.io/acme/app:7.2"), [event]).affected
+    assert check_dependency(_image("docker.io/acme/app:8.0"), [event]).relationship == (
+        "NOT_AFFECTED"
+    )
 
 
 def test_interim_definitional_lifecycle_scope_is_declared_complete():
