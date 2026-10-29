@@ -38,38 +38,41 @@ KNOWN_SCHEMES = ("generic", "semver", "pep440")
 _EPOCH_SEPARATORS = (":", "!")
 
 
+#: The whole generic grammar: a dotted numeric core, then at most one
+#: known prerelease marker with an optional number (``2.0.0-rc.1``,
+#: ``1.0b2``). Anything else is unknown, in particular a bare numeric
+#: suffix: SemVer ``1.0.0-1`` is a prerelease *below* 1.0.0, a Debian
+#: ``1.0.0-1`` is a revision *above* it, and ``1.0.0+5`` is build
+#: metadata that SemVer ignores -- folding any of them into the core
+#: (``1.0.0.1``) can clear an affected version (TR-2026-01 D8).
+_GENERIC = re.compile(
+    r"v?(?P<core>\d+(?:\.\d+)*)"
+    r"(?:[-._]?(?P<pre>" + "|".join(sorted(_PRE, key=len, reverse=True)) + r")"
+    r"[-._]?(?P<num>\d+)?)?"
+)
+
+
 def detect_scheme(version: str) -> str:
-    """generic: leading numeric core + optional known prerelease marker.
-    Everything else (distro/build suffixes, epochs, unknown alphas) is
-    unknown."""
-    if any(sep in str(version) for sep in _EPOCH_SEPARATORS):
+    """generic: numeric core + optional known prerelease marker and
+    number (``_GENERIC``). Everything else (distro/build suffixes,
+    numeric suffixes, epochs, unknown alphas) is unknown."""
+    if _GENERIC.fullmatch(str(version).lower()) is None:
         return "unknown"
-    tokens = re.findall(r"\d+|[a-z]+", str(version).lower().lstrip("v"))
-    if not tokens or not tokens[0].isdigit():
-        return "unknown"
-    for token in tokens:
-        if not token.isdigit() and token not in _PRE:
-            return "unknown"
     return "generic"
 
 
-def _key(version: str) -> tuple[tuple[int, ...], int] | None:
-    """(numeric core, prerelease rank); None when no digits at all."""
-    tokens = re.findall(r"\d+|[a-z]+", str(version).lower())
-    nums: list[int] = []
-    for token in tokens:
-        if token.isdigit():
-            nums.append(int(token))
-        else:
-            break
-    if not nums:
+def _key(version: str) -> tuple[tuple[int, ...], int, int] | None:
+    """(numeric core, prerelease rank, prerelease number); None unless generic.
+
+    The prerelease number orders ``rc1`` below ``rc2``; a release has
+    rank 0 and sorts above every prerelease of the same core.
+    """
+    match = _GENERIC.fullmatch(str(version).lower())
+    if match is None:
         return None
-    rank = 0
-    for token in tokens[len(nums) :]:
-        if not token.isdigit() and token in _PRE:
-            rank = _PRE[token]
-            break
-    return (tuple(nums), rank)
+    nums = tuple(int(n) for n in match["core"].split("."))
+    rank = _PRE[match["pre"]] if match["pre"] else 0
+    return (nums, rank, int(match["num"] or 0))
 
 
 def compare(a: str, b: str, scheme: str | None = None) -> int | None:
@@ -86,14 +89,14 @@ def compare(a: str, b: str, scheme: str | None = None) -> int | None:
     ka, kb = _key(a), _key(b)
     if ka is None or kb is None:
         return None
-    (na, ra), (nb, rb) = ka, kb
+    (na, ra, pa), (nb, rb, pb) = ka, kb
     length = max(len(na), len(nb))
     na += (0,) * (length - len(na))
     nb += (0,) * (length - len(nb))
     if na != nb:
         return -1 if na < nb else 1
-    if ra != rb:
-        return -1 if ra < rb else 1
+    if (ra, pa) != (rb, pb):
+        return -1 if (ra, pa) < (rb, pb) else 1
     return 0
 
 

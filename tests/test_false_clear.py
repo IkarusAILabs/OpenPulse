@@ -1,4 +1,4 @@
-"""False-clear regressions (TR-2026-01 conformance audit, D1-D5).
+"""False-clear regressions (TR-2026-01 conformance audit, D1-D6, D8).
 
 A NOT_AFFECTED verdict is a clearance: it is admissible only when the
 event scope is exhaustive and every scope element is decisively
@@ -318,6 +318,47 @@ def test_d6_epoch_dependency_is_related_not_cleared():
         {"kind": "package", "package": "acme", "ecosystem": "", "version": "1:8.1"}, [event]
     )
     assert verdict.relationship == "RELATED"
+
+
+# D8 -- a numeric suffix is never folded into the core; prerelease numbers order
+
+
+def test_d8_numeric_prerelease_never_clears():
+    # SemVer 1.0.0-1 and 1.0.0-0 are prereleases below 1.0.0, so inside
+    # the range; reading them as 1.0.0.1 / 1.0.0.0 used to clear them.
+    events = [{"introduced": "0"}, {"fixed": "1.0.0"}]
+    for version in ("1.0.0-1", "1.0.0-0"):
+        assert osv_applicable(version, _range(events)) is None
+
+
+def test_d8_numeric_and_build_suffixes_are_not_comparable():
+    from core.versions import compare, detect_scheme
+
+    # SemVer prerelease, Debian revision, build metadata: the orderings
+    # disagree, so none of them is generic.
+    for version in ("1.0.0-1", "2.4.1-1", "1.0.0+5", "1.0.0-alpha.beta"):
+        assert detect_scheme(version) == "unknown"
+        assert compare(version, "1.0.0") is None
+
+
+def test_d8_prerelease_number_orders_within_a_marker():
+    from core.versions import compare
+
+    # rc1 < rc2: ignoring the number made them equal, so a fix in rc2
+    # cleared rc1.
+    events = [{"introduced": "0"}, {"fixed": "1.0.0-rc2"}]
+    assert osv_applicable("1.0.0-rc1", _range(events)) is True
+    assert osv_applicable("1.0.0-rc2", _range(events)) is False
+    assert compare("1.0.0-rc.1", "1.0.0-rc.2") == -1
+    assert compare("1.0b2", "1.0b10") == -1
+
+
+def test_d8_known_prerelease_forms_stay_comparable():
+    from core.versions import compare
+
+    assert compare("2.0.0-rc1", "2.0.0") == -1
+    assert compare("1.0.dev1", "1.0a1") == -1
+    assert compare("v1.2", "1.2.0") == 0
 
 
 # Interim conservative measures (TR-2026-01 rev. 5, Table 8)
