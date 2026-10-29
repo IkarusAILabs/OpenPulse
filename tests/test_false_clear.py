@@ -1,4 +1,4 @@
-"""False-clear regressions (TR-2026-01 conformance audit, D1-D6, D8).
+"""False-clear regressions (TR-2026-01 conformance audit, D1-D6, D8-D10).
 
 A NOT_AFFECTED verdict is a clearance: it is admissible only when the
 event scope is exhaustive and every scope element is decisively
@@ -212,11 +212,19 @@ def test_d3_unresolved_event_beats_a_clear_from_another_event():
 
 
 def test_d3_unrelated_event_does_not_block_a_clear():
-    cleared = _event(
-        "d3-image-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True)
+    # "Unrelated" needs a curated identity: docker.io/redis is redis, so a
+    # mysql event has no association with it (an unmapped ref would be
+    # unresolved instead, TR-2026-01 D10).
+    cleared = OSSEvent(
+        **{
+            **_event(
+                "d3-image-cleared", scope=Scope(kind="version", versions=["9"], exhaustive=True)
+            ).model_dump(),
+            "project_slug": "redis",
+        }
     )
-    unrelated = OSSEvent(**{**_event("d3-other").model_dump(), "project_slug": "zzz-other"})
-    verdict = check_dependency(_image("docker.io/acme/app:8.1"), [cleared, unrelated])
+    unrelated = OSSEvent(**{**_event("d3-other").model_dump(), "project_slug": "mysql"})
+    verdict = check_dependency(_image("docker.io/redis:8.1"), [cleared, unrelated])
     relationships = {c["event_id"]: c["relationship"] for c in verdict.verdicts}
     assert relationships["d3-other"] == "UNKNOWN"
     assert verdict.relationship == relationships["d3-image-cleared"]
@@ -459,7 +467,72 @@ def test_interim_unmapped_reference_named_like_the_project_blocks_project_wide_d
     assert verdict.relationship == "RELATED"
 
 
-def test_interim_unmapped_reference_with_unrelated_name_stays_unassociated():
+def test_d10_unmapped_reference_with_unrelated_name_is_undetermined():
+    # A mirror, fork or rename can carry any name: an unmapped ref is
+    # unresolved whatever it is called, never "no association".
     project_wide = _event("project-wide-2")
     verdict = check_dependency(_image("ghcr.io/someorg/billing-service:1.0"), [project_wide])
-    assert verdict.relationship == "UNKNOWN"
+    assert verdict.relationship == "RELATED"
+
+
+# D9 -- Docker Hub host aliases canonicalise to docker.io
+
+
+def test_d9_docker_hub_host_aliases_are_the_same_image():
+    import json
+
+    event = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    for ref in (
+        "docker.io/bitnami/nginx:1.25",
+        "index.docker.io/bitnami/nginx:1.25",
+        "registry-1.docker.io/bitnami/nginx:1.25",
+    ):
+        verdict = check_dependency(_image(ref), [event])
+        assert (verdict.relationship, verdict.affected) == ("AFFECTS_ARTIFACT", True), ref
+
+
+def test_d9_host_aliases_canonicalise_identity_too():
+    from core.entities.resolve import normalize_ref, resolve_project
+
+    assert normalize_ref("index.docker.io/library/redis:7") == "docker.io/library/redis"
+    assert normalize_ref("oci://registry-1.docker.io/bitnamicharts/redis") == (
+        "oci://docker.io/bitnamicharts/redis"
+    )
+    assert resolve_project("registry-1.docker.io/library/redis:7") == resolve_project(
+        "docker.io/library/redis:7"
+    )
+
+
+# D10 -- an unmapped ref is unresolved, never excluded or dropped
+
+
+def test_d10_unmapped_reference_is_never_excluded_by_a_version_scope():
+    # Self-resolution is not a different project: an unmapped mirror of
+    # the event's project used to be cleared by its version scope.
+    eol = _event("d10-eol", scope=Scope(kind="version", versions=["3.5"], exhaustive=True))
+    verdict = check_dependency(_image("docker.io/zzz/kvstore:3.5"), [eol])
+    assert verdict.relationship == "RELATED"
+
+
+def test_d10_unmapped_reference_blocks_another_events_clearance():
+    import json
+
+    bitnami = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    project_wide = _event("d10-project-wide")
+    verdict = check_dependency(_image("docker.io/zzz/kvstore:3.5"), [project_wide, bitnami])
+    assert verdict.relationship == "RELATED"
+
+
+def test_d10_curated_other_project_still_excludes():
+    # Positive evidence still clears: the OpenTofu fork is curated as its
+    # own project, so a terraform version scope excludes it.
+    eol = OSSEvent(
+        **{
+            **_event(
+                "d10-tf-eol", scope=Scope(kind="version", versions=["1.14"], exhaustive=True)
+            ).model_dump(),
+            "project_slug": "terraform",
+        }
+    )
+    verdict = check_dependency(_image("ghcr.io/opentofu/opentofu:1.14"), [eol])
+    assert verdict.relationship == "NOT_AFFECTED"

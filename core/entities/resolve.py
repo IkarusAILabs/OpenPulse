@@ -36,8 +36,16 @@ BITNAMI_NAMESPACES = (
 )
 
 
+#: Hosts that serve Docker Hub under another name. A reference spelled
+#: with one of them is the same image as its docker.io spelling, so it
+#: must canonicalise to docker.io: otherwise a docker.io namespace scope
+#: declared complete clears it (TR-2026-01 D9).
+_DOCKER_HUB_HOSTS = re.compile(r"^((?:[a-z][a-z0-9+.-]*://)?)(?:index|registry-1)\.docker\.io/")
+
+
 def normalize_ref(ref: str) -> str:
-    """Lowercase, strip `@digest`, then `:tag` from the LAST path segment.
+    """Lowercase, fold Docker Hub host aliases, strip `@digest`, then
+    `:tag` from the LAST path segment.
 
     A colon in an earlier segment is a registry port or URL scheme, never
     a tag: `localhost:5000/team/redis:7` is `localhost:5000/team/redis`,
@@ -46,6 +54,7 @@ def normalize_ref(ref: str) -> str:
     and maven `group:artifact` both cut at the first colon.
     """
     r = ref.strip().lower()
+    r = _DOCKER_HUB_HOSTS.sub(r"\1docker.io/", r)
     r = re.sub(r"@.*$", "", r)  # strip @digest
     head, sep, last = r.rpartition("/")
     return head + sep + re.sub(r":.*$", "", last)  # strip :tag

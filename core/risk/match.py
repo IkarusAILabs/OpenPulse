@@ -382,40 +382,26 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
     }
 
 
-def _project_names(slug: str) -> set[str]:
-    """Bare names the event's project is known by: slug, alias and image tails."""
-    from core.entities.identity import catalog_entry_for_slug
-
-    entry = catalog_entry_for_slug(slug)
-    names = {slug.lower()}
-    for value in [*(entry.get("aliases") or []), *(entry.get("docker_images") or [])]:
-        names.add(split_image_ref(str(value))[2].lower())
-    return names
-
-
 def _unresolved_identity(event: OSSEvent, ref: str) -> dict[str, str | bool | None] | None:
-    """RELATED when ref's identity is unresolved yet named like the project.
+    """RELATED whenever ref's identity is unresolved, whatever its name.
 
     An unmapped ref resolves only to itself ("self" identity). That is
     not evidence of *another* project: github.com/etcd-io/etcd is
-    self-resolved while naming etcd. When the ref's repository name is
-    one the event's project is known by, the association is undetermined
-    -- never dropped as unrelated, never excluded. Unmapped refs with
-    unrelated names keep "no association" (a name is the only hint we
-    have; this is the documented limit of the rule).
+    self-resolved while naming etcd, and a mirror, fork or rename of a
+    project can carry any name at all. Only a curated mapping to a
+    different project supports "no association" or an identity-based
+    exclusion; an unmapped ref is undetermined -- never dropped as
+    unrelated, never excluded (TR-2026-01 D10).
     """
     trust = resolution_trust(ref)
     if trust["via"] != "self":
-        return None
-    name = split_image_ref(ref)[2].lower()
-    if name not in _project_names(event.project_slug):
         return None
     return {
         "affected": False,
         "via": None,
         "relationship": "RELATED",
         "detail": (
-            f"{ref} resolves only to itself but is named like project "
-            f"{event.project_slug}; identity unresolved, not a different project"
+            f"{ref} resolves only to itself; identity unresolved, so it is "
+            f"neither excluded from nor unrelated to project {event.project_slug}"
         ),
     }
