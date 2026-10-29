@@ -1,10 +1,8 @@
 {
  "cases": 3995,
  "by_severity": {
-  "conform": 3935,
-  "label: both unresolved": 42,
-  "over-cautious: implementation withholds a decisive verdict": 16,
-  "label: both non-blocking (no association vs exclusion)": 2
+  "conform": 3947,
+  "label: both unresolved": 48
  },
  "disagreements": [
   {
@@ -74,202 +72,70 @@
    "reason": "redis belongs to event project redis; impact not established"
   },
   {
-   "scope": "release line 7.2",
+   "scope": "project+named-tag",
    "completeness": "partial",
    "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
+   "dependency": "redis==7.2.0",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
    "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope is not exhaustive, so not a clearance"
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
   },
   {
-   "scope": "release line 7.2",
-   "completeness": "partial",
-   "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope is not exhaustive, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "partial",
-   "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope is not exhaustive, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, no basis",
-   "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, no basis",
-   "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, no basis",
-   "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, definitional",
-   "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "NOT_AFFECTED",
-   "severity": "label: both non-blocking (no association vs exclusion)",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, definitional",
-   "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; the event's extent is contested by contradicting evidence, so not a clearance"
-  },
-  {
-   "scope": "release line 7.2",
-   "completeness": "declared, definitional",
-   "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7.2'] excludes it; newest evidence was fetched 2026-10-28, older than the 30-day freshness bound (stale), so not a clearance"
-  },
-  {
-   "scope": "release line 7",
+   "scope": "project+named-tag",
    "completeness": "partial",
    "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
+   "dependency": "redis==None",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
    "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope is not exhaustive, so not a clearance"
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
   },
   {
-   "scope": "release line 7",
+   "scope": "project+named-tag",
    "completeness": "partial",
    "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
+   "dependency": "redis==7.2.0",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
    "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope is not exhaustive, so not a clearance"
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
   },
   {
-   "scope": "release line 7",
+   "scope": "project+named-tag",
+   "completeness": "partial",
+   "admissibility": "contested",
+   "dependency": "redis==None",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
+   "implementation": "RELATED",
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
+  },
+  {
+   "scope": "project+named-tag",
    "completeness": "partial",
    "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
+   "dependency": "redis==7.2.0",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
    "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope is not exhaustive, so not a clearance"
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
   },
   {
-   "scope": "release line 7",
-   "completeness": "declared, no basis",
-   "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7",
-   "completeness": "declared, no basis",
-   "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7",
-   "completeness": "declared, no basis",
+   "scope": "project+named-tag",
+   "completeness": "partial",
    "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
+   "dependency": "redis==None",
+   "identity": "project",
+   "specification": "AFFECTS_PROJECT",
    "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; scope completeness has no recorded basis, so not a clearance"
-  },
-  {
-   "scope": "release line 7",
-   "completeness": "declared, definitional",
-   "admissibility": "current",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "NOT_AFFECTED",
-   "severity": "label: both non-blocking (no association vs exclusion)",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it"
-  },
-  {
-   "scope": "release line 7",
-   "completeness": "declared, definitional",
-   "admissibility": "contested",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; the event's extent is contested by contradicting evidence, so not a clearance"
-  },
-  {
-   "scope": "release line 7",
-   "completeness": "declared, definitional",
-   "admissibility": "stale",
-   "dependency": "docker.io/library/mysql:8.0",
-   "identity": "other",
-   "specification": "UNKNOWN",
-   "implementation": "RELATED",
-   "severity": "over-cautious: implementation withholds a decisive verdict",
-   "reason": "docker.io/library/mysql:8.0 resolves to project mysql, not redis; version scope ['7'] excludes it; newest evidence was fetched 2026-10-28, older than the 30-day freshness bound (stale), so not a clearance"
+   "severity": "label: both unresolved",
+   "reason": "redis belongs to event project redis; impact not established"
   },
   {
    "scope": "registry docker.io",

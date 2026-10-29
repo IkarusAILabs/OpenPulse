@@ -304,13 +304,15 @@ def test_d5_namespace_rule_identity_cannot_exclude():
     assert verdict.relationship == "RELATED"
 
 
-def test_d5_verified_identity_still_excludes():
+def test_d5_curated_other_project_has_no_association():
     event = _event(
         "d5-verified",
         scope=Scope(kind="version", versions=["6.2"], exhaustive=True, basis="definitional"),
     )
+    # docker.io/redis is curated as redis, not acme: no association with
+    # acme's release line, decided by identity before the tag is read.
     verdict = check_dependency(_image("docker.io/redis:6.2"), [event])
-    assert verdict.relationship == "NOT_AFFECTED"
+    assert verdict.relationship == "UNKNOWN"
 
 
 # D6 -- version epochs are not comparable, never read as extra dotted segments
@@ -821,9 +823,9 @@ def test_d10_unmapped_reference_blocks_another_events_clearance():
     assert verdict.relationship == "RELATED"
 
 
-def test_d10_curated_other_project_still_excludes():
-    # Positive evidence still clears: the OpenTofu fork is curated as its
-    # own project, so a terraform version scope excludes it.
+def test_d10_curated_other_project_has_no_association():
+    # Positive evidence settles it: the OpenTofu fork is curated as its own
+    # project, so a terraform release line has no association with it.
     eol = OSSEvent(
         **{
             **_event(
@@ -836,4 +838,4 @@ def test_d10_curated_other_project_still_excludes():
         }
     )
     verdict = check_dependency(_image("ghcr.io/opentofu/opentofu:1.14"), [eol])
-    assert verdict.relationship == "NOT_AFFECTED"
+    assert verdict.relationship == "UNKNOWN"

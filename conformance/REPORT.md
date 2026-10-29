@@ -57,22 +57,47 @@ Results are written to `conformance/results/`: the counts and every disagreement
 | S3 | Across kinds, a package reference has no association with container-image, object or registry elements, whatever its identity. It is ? against a source-repository element (a Go module path may name the repository), and ? whenever identity is the event's own project or unresolved. |
 | S4 | A named example artefact illustrates a change and never bounds it. Non-membership in an example gives 0, not N. Another tag of a named repository gives ?. |
 
-## Final run (implementation with D12–D14 fixed, oracle with S1–S4)
+## Final run
 
-**3,935 of 3,995 cases conform (98.5%).**
+The implementation has D12–D15 fixed and the image path aligned with S2; the oracle includes S1–S4 and the example rule.
 
-| Severity | Cases |
-|---|---:|
-| unsafe (clears or drops an association) | **0** |
-| false impact | **0** |
-| under-positive | **0** |
-| over-cautious | 16 |
-| label: both unresolved | 42 |
-| label: both non-blocking | 2 |
+**Matrix: 3,947 of 3,995 cases conform (98.8%).** The 48 remaining cases are one documented label difference. For a package of the event's own project, against a registry scope or a project-wide event, the specification gives a project tie (AFFECTS_PROJECT) and the code gives RELATED. Both are unresolved, and both block a clearance. There are no unsafe, false-impact, under-positive or over-cautious cases.
 
-The 60 remaining disagreements come from two mechanisms, both safe:
-- **42 labels.** For a package of the event's own project against a registry scope or a project-wide event, the code reports the project tie (AFFECTS_PROJECT) where the specification says RELATED, or the other way round. Both are unresolved, and both block a clearance.
-- **18 over-cautious or non-blocking cases.** For an *image* curated as another project, against a release-line scope, the code makes an identity exclusion that still needs a complete scope, so it gives RELATED under a partial scope and NOT_AFFECTED under a complete one. The specification gives "no association" in both. Package references already follow the specification here.
+## Randomised differential testing
+
+`conformance/randomized.py` generates cases that combine everything at once:
+- one to three events per dependency, from two projects;
+- each event with a scope of one to four elements of mixed kinds, random named examples, random completeness, basis and admissibility;
+- a random dependency: tag-pinned, digest-pinned or untagged image, or a package with or without a version, of either project, a curated third project, or unmapped.
+
+Each case compares both the per-event verdicts and the cross-event summary. The generator is seeded, so every run is reproducible.
+
+| Seed | Cases | Summaries conform | Per-event verdicts conform |
+|---|---:|---:|---:|
+| 2026 | 20,000 | 20,000 | all |
+| 7 | 100,000 | 100,000 | 200,272 of 200,272 |
+
+The first randomised run found:
+- **D15, an implementation defect.** When a named example left a reference undetermined, the event's scope was never evaluated, so a release-line member was only RELATED (24 under-positive cases).
+- **S2 on the image path.** An image curated as another project was turned into an identity exclusion that needed a complete scope, instead of "no association" (7,446 per-event cases). The version branch now decides identity before reading the tag.
+- **Two oracle errors, both corrected.** The generator labelled `docker.io/bitnami/redis` unmapped, though it is curated as `bitnami-redis-stack`. And the oracle let a package match a named example image; examples never bound a scope, and a package is never an image.
+
+## Defect re-injection
+
+`conformance/mutation.py` re-introduces each historical defect (D1, D3, D4, D7–D15) and disables each enforced rule (N3, N4 withdrawn, N4 stale, N5, element roles, the package-name rule, S2). Each mutant is a single-function patch of the running code. Four detectors then run against it:
+- **A:** the matrix (any change from the clean baseline);
+- **B:** 5,000 randomised cases;
+- **C:** the false-clear regression tests;
+- **D:** the version differential tests.
+
+**All 19 mutants are caught, and all 19 are caught even without the regression tests (C).** The oracle detectors (A, B) catch the matching and policy mutants. The version detector (D) catches the comparator mutants D8 and D11. D2, D5 and D6 are not re-injected, because none is a single-function change of the current code: D2 is a multi-line walk, D5 is subsumed by D10 and S2, and D6 is rejected by the closed grammar before any comparison.
+
+## Continuous enforcement
+
+`tests/test_conformance_gate.py` runs in the normal test suite, in about 3 seconds. It fails the build on:
+- any matrix disagreement other than the documented label;
+- any disagreement on 5,000 seeded random cases;
+- any disagreement with `packaging`, or with the SemVer vectors, comparator and ranges alike.
 
 ## Differential version results
 
@@ -80,7 +105,7 @@ The 60 remaining disagreements come from two mechanisms, both safe:
 |---|---|
 | PEP 440 vs `packaging` 26.2 (PyPA), 233,289 ordered pairs over 483 generated versions | **224,676 agree, 0 disagree**; 6,685 abstain (OpenPulse undetermined: post, local, epoch, multi-marker forms); 1,928 pairs invalid in `packaging`, on all of which OpenPulse also abstains |
 | OSV `ECOSYSTEM` ranges, PyPI, against intervals evaluated with `packaging` | **7,110 agree, 0 disagree**; 105 abstain |
-| SemVer: semver.org §11 precedence vectors, plus antisymmetry and transitivity over a 16-version pool | 0 failures, 0 inconsistencies |
+| SemVer: semver.org §11 precedence vectors, antisymmetry and transitivity over a 16-version pool, and OSV `SEMVER` ranges built from the vectors | 0 failures, 0 inconsistencies, 0 range failures |
 
 **What is not covered.**
 - No independent SemVer library or Node runtime was available offline, so SemVer was checked against the specification's vectors and for consistency, not differentially.

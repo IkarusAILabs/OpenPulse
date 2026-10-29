@@ -327,10 +327,12 @@ def _strongest(
 ) -> dict[str, str | bool | None] | None:
     """Affected beats undetermined beats excluded; None if all are None."""
     present = [r for r in results if r]
-    for wanted in ("AFFECTS_ARTIFACT", "RELATED"):
-        for result in present:
-            if result.get("relationship") == wanted:
-                return result
+    for result in present:
+        if result.get("affected"):
+            return result
+    for result in present:
+        if result.get("relationship") == "RELATED":
+            return result
     return present[0] if present else None
 
 
@@ -366,6 +368,13 @@ def event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]
 
 
 def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
+    """Named examples and the scope, evaluated together; the strongest wins.
+
+    A named example that leaves ref undetermined (a tag against an
+    example digest) must not hide what the scope decides: a member of
+    the event's release line is affected whatever the examples say
+    (TR-2026-01 D15).
+    """
     # The pinning policy owns the verdict whenever the two refs mix
     # forms or disagree on bytes: a moving tag never reports
     # digest-level certainty.
@@ -375,6 +384,14 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
         "matches affected artifact",
         examples=True,
     )
+    if named is not None and named.get("affected"):
+        return named
+    scoped = _scope_result(event, ref)
+    return _strongest(named, scoped) or scoped
+
+
+def _scope_result(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
+    """What the event's scope (not its named examples) says about ref."""
     scope = _scope(event)
     kind = scope["kind"]
     inside = (
@@ -382,9 +399,8 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
         if kind == "artifact" and scope["artifacts"]
         else None
     )
-    best = _strongest(named, inside)
-    if best is not None:
-        return best
+    if inside is not None:
+        return inside
     if kind == "artifact" and scope["artifacts"]:
         return {
             "affected": False,
@@ -393,14 +409,6 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
             "detail": f"{ref} is outside the event artifact scope",
         }
     if kind == "version" and scope["versions"]:
-        tag = tag_of(ref)
-        if not tag or tag == "latest":
-            return {
-                "affected": False,
-                "via": None,
-                "relationship": "RELATED",
-                "detail": f"{ref} carries no comparable version for scope {scope['versions']}",
-            }
         slug = resolve_project(ref)
         if slug != event.project_slug:
             unresolved = _unresolved_identity(event, ref)
@@ -409,11 +417,11 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
             trust = resolution_trust(ref)
             # A version scope belongs to the event's project. A tag that
             # merely collides with a scope version of a different project
-            # is identity-excluded: docker.io/bitnami/redis:6.2 must not
-            # inherit an upstream redis EOL, and docker.io/postgres:6.2
-            # must not match anything by tag alone. The exclusion is only
-            # as good as the resolution behind it: a heuristic or
-            # distrusted mapping cannot prove a different project.
+            # has nothing to do with it: docker.io/bitnami/redis:6.2 must
+            # not inherit an upstream redis EOL, and docker.io/postgres:6.2
+            # must not match anything by tag alone. Identity decides before
+            # the tag is read, and only a curated mapping proves another
+            # project: a heuristic or distrusted one is undetermined.
             if trust["identity_status"] != "VERIFIED":
                 return {
                     "affected": False,
@@ -425,14 +433,24 @@ def _event_affects_ref(event: OSSEvent, ref: str) -> dict[str, str | bool | None
                         f"{event.project_slug} version scope {scope['versions']}"
                     ),
                 }
+            # A curated mapping to another project is positive evidence of
+            # no association; it needs no complete scope (TR-2026-01 S2).
             return {
                 "affected": False,
                 "via": None,
-                "relationship": "NOT_AFFECTED",
+                "relationship": "UNKNOWN",
                 "detail": (
-                    f"{ref} resolves to project {slug}, not {event.project_slug}; "
-                    f"version scope {scope['versions']} excludes it"
+                    f"{ref} resolves to project {slug}, not {event.project_slug}: "
+                    f"no association with version scope {scope['versions']}"
                 ),
+            }
+        tag = tag_of(ref)
+        if not tag or tag == "latest":
+            return {
+                "affected": False,
+                "via": None,
+                "relationship": "RELATED",
+                "detail": f"{ref} carries no comparable version for scope {scope['versions']}",
             }
         tag_version = _tag_version(tag)
         comparable = True

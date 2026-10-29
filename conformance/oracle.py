@@ -154,6 +154,8 @@ def _across_kinds(dep: Dependency, may_be_same_object: bool) -> str:
 
 def _test_artifact(dep: Dependency, x: Element) -> str:
     if dep.kind != "image":
+        if x.example:
+            return Z  # an example illustrates an image event; never a package's
         # A package is never a container image or object; it may be the
         # same object as a source repository.
         return _across_kinds(dep, parse_ref(x.value).registry in _SOURCE_HOSTS)
