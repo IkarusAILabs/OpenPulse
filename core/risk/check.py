@@ -193,7 +193,35 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
 def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     slug = resolve_project(str(dep["package"]))
     if slug != event.project_slug:
-        return None
+        trust = resolution_trust(str(dep["package"]))
+        if trust["via"] != "self":
+            return None  # curated as another project: no association
+        if event.scope is not None and event.scope.kind in ("artifact", "registry"):
+            # Container-image and registry scopes name locations a package
+            # reference never is: no association, whatever its identity.
+            return None
+        # An unmapped package resolves only to itself. That is not
+        # evidence of another project, so against the project, its
+        # release lines or its packages the association is undetermined,
+        # never dropped (TR-2026-01 D13; D10 for images).
+        return {
+            "cause": "upstream_change",
+            "event_id": event.id,
+            "event_type": event.event_type.value,
+            "project": event.project_slug,
+            "impact": event.impact.value,
+            "evidence": [e.source.name for e in event.evidences],
+            "evidence_confidence": event.confidence.value,
+            "identity_status": trust["identity_status"],
+            "identity_via": trust["via"],
+            "relationship": "RELATED",
+            "affected": False,
+            "match_method": "project_scope",
+            "reason": (
+                f"{dep['package']} resolves only to itself; identity unresolved, so it is "
+                f"neither excluded from nor unrelated to project {event.project_slug}"
+            ),
+        }
     trust = resolution_trust(str(dep["package"]))
     scope = event.scope
     version = dep.get("version")

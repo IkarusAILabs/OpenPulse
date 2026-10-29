@@ -132,9 +132,31 @@ class Event:
     notes: list[str] = field(default_factory=list)
 
 
+#: Hosts of source repositories, whose elements a package reference may
+#: name (a Go module path names its repository).
+_SOURCE_HOSTS = {"github.com", "gitlab.com", "bitbucket.org"}
+
+
+def _across_kinds(dep: Dependency, may_be_same_object: bool) -> str:
+    """Section 5.3, across reference kinds (S2, S3).
+
+    A curated mapping to another project is positive evidence of no
+    association. A package is never a container image or registry
+    location, so an unresolved package has no association with those
+    elements either. Otherwise the association is undetermined (?).
+    """
+    if dep.identity == "other":
+        return Z
+    if dep.identity == "unresolved" and dep.kind == "package" and not may_be_same_object:
+        return Z
+    return U
+
+
 def _test_artifact(dep: Dependency, x: Element) -> str:
     if dep.kind != "image":
-        return U  # across reference kinds
+        # A package is never a container image or object; it may be the
+        # same object as a source repository.
+        return _across_kinds(dep, parse_ref(x.value).registry in _SOURCE_HOSTS)
     d, e = parse_ref(dep.ref), parse_ref(x.value)
     if e.name == "*":  # namespace element
         if (d.registry, d.namespace) != (e.registry, e.namespace):
@@ -143,7 +165,7 @@ def _test_artifact(dep: Dependency, x: Element) -> str:
             return U
         return _tag_member(d, e.tag)
     if (d.registry, d.namespace, d.name) != (e.registry, e.namespace, e.name):
-        return N
+        return Z if x.example else N  # an example illustrates, never bounds (S4)
     if e.digest is not None:  # object element
         if d.digest is None:
             return U  # a tag can move onto the digest
@@ -165,7 +187,7 @@ def _release(version: str) -> list[int] | None:
 
 def _test_release_line(dep: Dependency, x: Element) -> str:
     if dep.identity == "other":
-        return N
+        return Z  # curated as another project: no association (S2)
     if dep.identity == "unresolved":
         return U
     if dep.kind == "image":
@@ -185,13 +207,17 @@ def _test_release_line(dep: Dependency, x: Element) -> str:
 
 def _test_package(dep: Dependency, x: Element) -> str:
     if dep.kind != "package":
-        return U  # across reference kinds
-    return M if dep.package.lower() == x.value.lower() else U  # names not canonical
+        return _across_kinds(dep, may_be_same_object=False)
+    if dep.package.lower() == x.value.lower():
+        return M
+    # Names are not canonical, so inequality alone is ?; a curated other
+    # project is positive evidence of exclusion (S2).
+    return Z if dep.identity == "other" else U
 
 
 def _test_registry(dep: Dependency, x: Element) -> str:
     if dep.kind != "image":
-        return U
+        return _across_kinds(dep, may_be_same_object=False)
     return U if parse_ref(dep.ref).registry == x.value.lower() else N
 
 
@@ -210,11 +236,12 @@ _TESTS = {
 
 def applicability(dep: Dependency, event: Event) -> str:
     """Algorithm 1 with its three layers."""
-    # Layer 1: event admissibility.
+    # Layer 1: event admissibility. Withdrawn and superseded events are
+    # not evaluated; contested or stale ones may not clear (S1: layer 1
+    # withholds negatives only).
     if event.admissibility in ("withdrawn", "superseded"):
         return "UNLOADED"
-    if event.admissibility in ("contested", "stale"):
-        return "RELATED"
+    negatives_admissible = event.admissibility not in ("contested", "stale")
     # Layer 2: every element, no early return.
     results = {_TESTS[x.kind](dep, x) for x in event.elements}
     # Layer 3: per-event aggregation.
@@ -224,7 +251,7 @@ def applicability(dep: Dependency, event: Event) -> str:
         return "RELATED"
     if N in results:
         admissible = event.chi == "declared" and event.basis is not None
-        if results <= {N, Z} and admissible:
+        if results <= {N, Z} and admissible and negatives_admissible:
             return "NOT_AFFECTED"
         return "RELATED"
     if P in results:

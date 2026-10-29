@@ -1,13 +1,13 @@
 # Conformance and differential results — TR-2026-01
 
-Implementation: `main` at `f6e6ffc`. Run from the repository root:
+Run from the repository root:
 
 ```bash
 python conformance/matrix.py
 python conformance/versions_differential.py
 ```
 
-Raw results are written to `conformance/results/`. Every disagreement is listed there; none is filtered out.
+Results are written to `conformance/results/`: the counts and every disagreement. None is filtered out.
 
 ## Method
 
@@ -16,7 +16,6 @@ Raw results are written to `conformance/results/`. Every disagreement is listed 
   - **Scopes:** project; named example tag; repository; literal tag; `:<version>`; `:*`; object; namespace envelope; `namespace:<version>`; both together; another repository; two release lines; two package lists; two registries.
   - **Completeness:** partial; declared without basis; declared with basis.
   - **Admissibility:** current; contested; withdrawn; superseded; stale.
-  - **References:** tag-pinned, digest-pinned and untagged images; Docker's `docker.io/<name>` spelling; a Docker Hub alias host; another project; unmapped references.
 
   This gives **3,995 cases**. Each runs through the oracle and through `check_dependency` on the equivalent `OSSEvent`.
 - **Severity.** Each disagreement is classified from the implementation's side:
@@ -24,24 +23,56 @@ Raw results are written to `conformance/results/`. Every disagreement is listed 
   - *false impact*;
   - *under-positive*;
   - *over-cautious*;
-  - *label* — the two verdicts differ in name, but both are unresolved or both are non-blocking.
+  - *label* — the verdicts differ in name, but both are unresolved or both are non-blocking.
 
-## Matrix results
+## First run (implementation at `f6e6ffc`, report text as written)
 
-**3,350 of 3,995 cases conform (83.9%).** All 645 disagreements fall into six mechanisms:
+3,350 of 3,995 cases conformed. The 645 disagreements fell into six mechanisms:
 
-| Id | Mechanism | Cases | Severity | Where the fault lies |
-|---|---|---:|---|---|
-| **D12** | `docker.io/redis` parsed as namespace `docker.io`, not `library`, so it differs from `docker.io/library/redis` in location matching. Identity resolution is correct. | 37 | **8 unsafe clears**, 12 false impacts, 13 under-positive, 4 label | Implementation (open) |
-| **D13** | An unmapped *package* (`zzzpkg`) gets "no applicable evidence" (UNKNOWN), not unresolved. This is the package-side twin of D10, which was fixed only for images. It can let another event's clearance headline. | 47 | unsafe (drops an association) | Implementation (open) |
-| **D14** | A digest-pinned reference under a repository-wide element (`docker.io/library/redis`, `:*`) gets RELATED. The pinning-mix policy applies even though the element names no tag. | 12 | under-positive (safe direction) | Implementation (open) |
-| **S1** | Algorithm 1's layer-1 guard returns RELATED for *every* dependency of a contested or stale event, including members and unrelated references. The report's own prose (§4.4; N4 and N5 as *negative*-admission conditions) withholds only negatives, and so does the implementation. | 482 | — | **Specification**: the algorithm contradicts its prose |
-| **S2** | A dependency *curated as another project* (`mysql`) gets ? from the cross-kind rule and the package-inequality rule, so the specification says RELATED. The implementation says "no association". Under N2, a curated mapping to another project is exactly the evidence that justifies exclusion, so the rules should give 0. | 53 | — | **Specification**: the rules ignore a curated distinct identity |
-| L1 | Project tie vs RELATED for a package against a registry scope, or against a project-wide event. | 14 | label: both unresolved | Neither (representation) |
+| Id | Mechanism | Cases | Fault |
+|---|---|---:|---|
+| **D12** | `docker.io/redis` parsed as namespace `docker.io`, not `library`. This gave **8 unsafe clears** against complete `docker.io/library/redis` scopes. | 37 | implementation |
+| **D13** | An unmapped *package* was dropped as "no applicable evidence" instead of unresolved: the package-side twin of D10. | 47 | implementation |
+| **D14** | A digest-pinned reference under a repository-wide element got RELATED, though a repository element covers every pin. | 12 | implementation |
+| **S1** | Algorithm 1's layer-1 guard made *every* verdict RELATED for contested or stale events. The prose (§4.4; N4 and N5) and the code withhold only negatives. | 482 | specification |
+| **S2** | A dependency *curated as another project* got ? from the cross-kind and package-inequality rules. A curated mapping to another project is the evidence that justifies "no association" (N2). | 53 | specification |
+| L1 | Project tie vs RELATED | 14 | label |
 
-### Unsafe cases
+## What was changed
 
-Only D12 makes the implementation clear a dependency the specification puts in scope. All 8 cases have the same shape: `docker.io/redis:7.2` against a complete scope naming `docker.io/library/redis` (repository, tag, `:<version>`, `:*`, object, the namespace envelope, or `namespace:<version>`). D13 drops an association, which affects summaries, not pair verdicts. No other mechanism yields an unsafe implementation result.
+**Implementation**
+
+| Id | Change |
+|---|---|
+| D12 | A first segment with a dot, port or `localhost` is a registry host also in a two-segment reference, so `docker.io/redis` is `docker.io/library/redis`. Single-name repositories go under `library` only on Docker Hub. The registry sweep's bare-namespace rule, which had relied on the old parse, is now stated explicitly. |
+| D13 | An unmapped package is RELATED against project-wide, release-line and package scopes. It has no association with container-image and registry scopes, since a package is never one of those. `boto3` and `serde` are now curated as their own projects. Four tests had used them as "a dependency nothing applies to". |
+| D14 | A repository element without a tag or digest (or with `:*`) covers digest-pinned references to the repository. |
+
+**Specification** (the corrections the oracle now implements; the report's text is to be updated to match)
+
+| Id | Correction |
+|---|---|
+| S1 | Layer 1 drops withdrawn and superseded events, and withholds *negatives* from contested or stale events. It does not change positives. |
+| S2 | A dependency curated as another project gives 0 (no association) for project-owned elements (project, release line, package) and across reference kinds. This exclusion needs no complete scope. |
+| S3 | Across kinds, a package reference has no association with container-image, object or registry elements, whatever its identity. It is ? against a source-repository element (a Go module path may name the repository), and ? whenever identity is the event's own project or unresolved. |
+| S4 | A named example artefact illustrates a change and never bounds it. Non-membership in an example gives 0, not N. Another tag of a named repository gives ?. |
+
+## Final run (implementation with D12–D14 fixed, oracle with S1–S4)
+
+**3,935 of 3,995 cases conform (98.5%).**
+
+| Severity | Cases |
+|---|---:|
+| unsafe (clears or drops an association) | **0** |
+| false impact | **0** |
+| under-positive | **0** |
+| over-cautious | 16 |
+| label: both unresolved | 42 |
+| label: both non-blocking | 2 |
+
+The 60 remaining disagreements come from two mechanisms, both safe:
+- **42 labels.** For a package of the event's own project against a registry scope or a project-wide event, the code reports the project tie (AFFECTS_PROJECT) where the specification says RELATED, or the other way round. Both are unresolved, and both block a clearance.
+- **18 over-cautious or non-blocking cases.** For an *image* curated as another project, against a release-line scope, the code makes an identity exclusion that still needs a complete scope, so it gives RELATED under a partial scope and NOT_AFFECTED under a complete one. The specification gives "no association" in both. Package references already follow the specification here.
 
 ## Differential version results
 
@@ -53,14 +84,8 @@ Only D12 makes the implementation clear a dependency the specification puts in s
 
 **What is not covered.**
 - No independent SemVer library or Node runtime was available offline, so SemVer was checked against the specification's vectors and for consistency, not differentially.
-- Debian, Maven and other ecosystems are not modelled. They compare plain numbers only and otherwise abstain, so they were not tested differentially.
+- Ecosystems the comparator does not model compare plain numbers only and otherwise abstain, so they were not tested differentially.
 
-## Consequences
+## Limits
 
-1. **Fix in the implementation:** D12 (unsafe), D13 (summary-unsafe) and D14 (over-cautious). After the fixes, re-run the matrix, which should leave only S1, S2 and L1.
-2. **Fix in the specification:**
-   - S1: layer 1 withholds negatives only.
-   - S2: a curated mapping to another project gives 0 for project-owned and cross-kind elements.
-
-   Then update the oracle to the corrected text and re-run. The target is zero disagreements other than documented labels.
-3. The matrix covers chosen dimensions, not every input. It is a conformance check of the specified semantics on that matrix, not a proof.
+The matrix covers chosen dimensions, not every input. It checks the specified semantics on that matrix and is not a proof. Identity is supplied as ground truth, so resolver errors are outside it. The oracle and the implementation were written by the same team, which limits independence. An external re-implementation of the oracle would strengthen the result.
