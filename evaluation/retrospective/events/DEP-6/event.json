@@ -1,0 +1,40 @@
+{
+ "id": "retro-dep-6",
+ "project_slug": "golint",
+ "event_type": "DEPRECATION",
+ "title": "golint frozen and deprecated",
+ "summary": "A Go proposal to freeze and deprecate golang.org/x/lint was accepted (2020-06-03); the GitHub mirror was archived on 2021-05-08.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/golang/lint"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "golang/go#38968",
+    "url": "https://github.com/golang/go/issues/38968",
+    "authority": "official",
+    "fetched_at": "2021-05-11T08:28:34Z",
+    "acquisition_method": "wayback:20210511082834 http://web.archive.org/web/20210511082834/https://github.com/golang/go/issues/38968",
+    "family": "golang"
+   },
+   "excerpt": "This proposal - to freeze and deprecate x/lint - is accepted.",
+   "relation": "supports",
+   "announcement_date": "2020-06-03",
+   "effective_date": "2021-05-08"
+  }
+ ],
+ "created_at": "2021-05-11T08:28:34Z",
+ "scope": {
+  "kind": "package",
+  "packages": [
+   "pkg:golang/golang.org/x/lint"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

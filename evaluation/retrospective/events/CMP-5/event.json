@@ -1,0 +1,35 @@
+{
+ "id": "retro-cmp-5",
+ "project_slug": "event-stream",
+ "event_type": "SECURITY",
+ "title": "Malicious flatmap-stream dependency in event-stream 3.3.6",
+ "summary": "event-stream 3.3.6 depended on the malicious flatmap-stream 0.1.1, which targeted the Copay wallet.",
+ "confidence": "CONFIRMED",
+ "impact": "CRITICAL",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "npm-blog/event-stream-incident",
+    "url": "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident",
+    "authority": "official",
+    "fetched_at": "2018-11-29T01:30:28Z",
+    "acquisition_method": "wayback:20181129013028 http://web.archive.org/web/20181129013028/https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident",
+    "family": "npm"
+   },
+   "excerpt": "The malicious package was version 0.1.1 of flatmap-stream.",
+   "relation": "supports",
+   "announcement_date": "2018-11-27",
+   "effective_date": "2018-09-09"
+  }
+ ],
+ "created_at": "2018-11-29T01:30:28Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "3.3.6"
+  ],
+  "exhaustive": true,
+  "basis": "announced"
+ }
+}

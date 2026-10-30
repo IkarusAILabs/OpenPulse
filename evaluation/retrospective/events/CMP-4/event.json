@@ -1,0 +1,37 @@
+{
+ "id": "retro-cmp-4",
+ "project_slug": "ua-parser-js",
+ "event_type": "SECURITY",
+ "title": "Hijacked ua-parser-js versions",
+ "summary": "The maintainer's npm account was hijacked and ua-parser-js 0.7.29, 0.8.0 and 1.0.0 published with malware.",
+ "confidence": "CONFIRMED",
+ "impact": "CRITICAL",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "faisalman/ua-parser-js#536",
+    "url": "https://github.com/faisalman/ua-parser-js/issues/536",
+    "authority": "official",
+    "fetched_at": "2021-10-23T19:36:59Z",
+    "acquisition_method": "wayback:20211023193659 http://web.archive.org/web/20211023193659/https://github.com/faisalman/ua-parser-js/issues/536",
+    "family": "ua-parser-js"
+   },
+   "excerpt": "Published some compromised packages (0.7.29, 0.8.0, 1.0.0).",
+   "relation": "supports",
+   "announcement_date": "2021-10-22",
+   "effective_date": "2021-10-22"
+  }
+ ],
+ "created_at": "2021-10-23T19:36:59Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "0.7.29",
+   "0.8.0",
+   "1.0.0"
+  ],
+  "exhaustive": true,
+  "basis": "announced"
+ }
+}

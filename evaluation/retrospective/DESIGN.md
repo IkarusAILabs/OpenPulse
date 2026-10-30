@@ -6,7 +6,7 @@
 
 The study evaluates OpenPulse on **real upstream changes of the past**, judged on what was knowable at the time. It answers the external recommendation's Priority 2.
 
-- **Exploratory, not confirmatory.** The registered evaluation (`evaluation/REGISTRATION.md`) takes its primary evidence from a *prospective* window, with independent annotators. This study is retrospective and mostly developer-labelled, so it is reported as exploratory, in its own section, and is never pooled with the registered result.
+- **Exploratory, not confirmatory.** The registered evaluation (`evaluation/REGISTRATION.md`) takes its primary evidence from a *prospective* window, with independent annotators. This study is retrospective and developer-labelled, so it is reported as exploratory, in its own section, and is never pooled with the registered result.
 - **It cannot show advance warning.** These events are past, so any detection today is late by construction. Lead time is not measured.
 - **It is disjoint from both other data sets.** Its events are excluded from the development set and the case ledger (§3, X1), and, being historical, from the registered prospective window.
 
@@ -131,11 +131,35 @@ The reproducibility package is:
 
 ## 11. Changes to this design
 
-None yet.
+- **2026-10-30, owner decision, before any data collection:**
+  - The study runs on the **27 events** that passed screening (`SHORTLIST.md`), not the target of 30.
+  - Relocation and end of life keep **3 events each**, below §3's minimum of 4. No further events are researched.
+  - The report states the shortfall and its effect: per-class results for those two classes rest on 3 events and are descriptive only.
+  - X1 is unchanged. The Terraform and Grafana licence events stay included.
+- **2026-10-30, amendment before any dependent is used:** §5 assumed every in-scope reference comes from a commit dated before the effective date. That is impossible where the affected versions are published only at or after it: licence changes (a version >= 7.11 exists only once released) and compromised versions (a lockfile can resolve a bad version only once it is published).
+  - For licence events (LIC-1 to LIC-4), in-scope references come from commits dated between the first affected release and the end of that calendar year.
+  - For compromised versions (CMP-1 to CMP-5), they come from commits dated between publication of the bad version and its removal or disclosure.
+  - Neighbours on the unaffected side of a boundary still come from commits dated before the effective date.
+  - The windows are fixed by date alone, never by outcome.
+- **2026-10-30, clarification before any label exists:** "between publication of the bad version and its removal or disclosure" did not say which applies when the two differ. The window for compromised versions ends **30 days after the first public disclosure** (the maintainer's or registry's statement, or the first advisory, whichever is earliest). Every reference collected for CMP-1 to CMP-5 falls inside it.
+- **2026-10-30, dependents collected:** 102 in-scope references and 65 neighbours, all real (none synthetic), are in `dependents/*.json`.
+  - Each was fetched at its commit; 16 were re-checked by the author against the file at the commit, and all held.
+  - One reference was excluded by the licence window (LIC-4: marcusdacoregio, 2019-04-16).
+  - Every event has at least 2 in-scope references, so §9 drops none.
+- **2026-10-30, second labelling round, before any policy run:** L2's first round (κ = 0.722 on 42 pairs; `labelling/round-1/`) cited sources outside the packet, and in 5 of its 6 disagreements judged a different event. The owner decided to re-label the same 42 pairs (same seed) under stricter rules: only the packet's sources, only the stated event, no assistants, with sources used and real time recorded per pair. Each packet line now carries the event's title and source quotations. Round 2's κ is the registered agreement figure; round 1's is reported alongside it. No round-1 label enters the analysis.
+- **2026-10-30, no independent labels, before any policy run:** Round 2's method note states it was produced with ChatGPT, and round 1's provenance is undocumented. The owner decided to report both rounds as an AI-assisted pilot (`labelling/PILOT.md`) rather than wait for a human labeller. Consequences:
+  - every pair keeps `independent_label: false`;
+  - the analysis uses L1's labels;
+  - no `independent_label: true` subset is reported;
+  - κ is reported as L1-versus-pilot agreement, never as inter-rater reliability.
+
+  L1 reviewed the pilot's four disagreements against the sources and changed no label. LIC-4's release dates, which the labels rely on but SOURCES.md did not archive, are now in `evidence/mongodb-release-tags.txt`.
+- **2026-10-30, case file frozen, before any policy run:** `cases/retro-2026-11.json` has 167 pairs over 27 events (103 in scope, 62 out of scope, 2 undeterminable). Its SHA-256 is `70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83`, also in `cases/retro-2026-11.json.sha256`. `.gitattributes` keeps its bytes unchanged on checkout.
+- **2026-10-30, run executed:** The run was CI run 41098336270 at the freeze tag, with `--require-comparators` and all three comparators available. The results file `results/openpulse-retro-2026-11.json` has SHA-256 `2bce9237cc617afa9b5c529af855137c972cef1d3c971d8727b74359a7ed1376`; run 41098862646 reproduced it byte for byte and also recorded discovery (`results/discovery.json`). No event or pair was changed after the run. Two defects were found, D-R1 and D-R2 (REPORT §7). Their fixes go in separate PRs, with a run reported as "after fixes".
 
 ## 12. Known limitations
 
-- **Labels are mostly the developer's.** Only the 25% sample is independent.
+- **Labels are the developer's.** No independent human labels were obtained. An AI-assisted pilot on the 25% sample (κ = 0.825 against L1) is a consistency check, not inter-rater reliability (§11).
 - **Representativeness.** Events were researched rather than sampled from a defined population, so this is not a representative sample of upstream changes. The class quotas and §3's rules limit selection effects, but do not remove them.
 - **Fixture authorship.** The author of the event fixtures knows OpenPulse's scope language. That can make representation look easier than it is for a real producer, which is why RQ-R2 records every gap.
 - **Hindsight in dependent selection.** It is limited, not removed. Dependents are found today, among repositories that still exist, although their references are read at pre-event commits.

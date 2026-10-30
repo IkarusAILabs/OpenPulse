@@ -1,0 +1,52 @@
+{
+ "id": "retro-dep-3",
+ "project_slug": "tslint",
+ "event_type": "DEPRECATION",
+ "title": "TSLint deprecated in favour of ESLint",
+ "summary": "Palantir deprecated TSLint on a phased roadmap (announced 2019-02-19; no PRs accepted from 2020-12-01); the repository was later archived.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "npm",
+   "ref": "npm:tslint"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "palantir/tslint-in-2019",
+    "url": "https://medium.com/palantir/tslint-in-2019-1a144c2317a9",
+    "authority": "official",
+    "fetched_at": "2019-02-19T20:17:34Z",
+    "acquisition_method": "wayback:20190219201734 http://web.archive.org/web/20190219201734/https://medium.com/palantir/tslint-in-2019-1a144c2317a9",
+    "family": "palantir"
+   },
+   "excerpt": "TSLint will be deprecated in favor of supporting typescript-eslint.",
+   "relation": "supports",
+   "announcement_date": "2019-02-19"
+  },
+  {
+   "source": {
+    "name": "palantir/tslint#4534",
+    "url": "https://github.com/palantir/tslint/issues/4534",
+    "authority": "official",
+    "fetched_at": "2019-05-08T12:08:33Z",
+    "acquisition_method": "wayback:20190508120833 http://web.archive.org/web/20190508120833/https://github.com/palantir/tslint/issues/4534",
+    "family": "palantir"
+   },
+   "excerpt": "Roadmap: stop accepting any PRs on 2020-12-01.",
+   "relation": "supports",
+   "effective_date": "2020-12-01"
+  }
+ ],
+ "created_at": "2019-05-08T12:08:33Z",
+ "scope": {
+  "kind": "package",
+  "packages": [
+   "pkg:npm/tslint"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

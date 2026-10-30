@@ -1,0 +1,44 @@
+{
+ "id": "retro-eol-2",
+ "project_slug": "centos",
+ "event_type": "EOL",
+ "title": "CentOS Linux 8 end of life",
+ "summary": "CentOS Linux 8 ended on 2021-12-31 in favour of CentOS Stream 8; CentOS Linux 7 continued separately.",
+ "confidence": "CONFIRMED",
+ "impact": "ACTION",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "centos/future-is-centos-stream",
+    "url": "https://blog.centos.org/2020/12/future-is-centos-stream/",
+    "authority": "official",
+    "fetched_at": "2020-12-11T01:43:54Z",
+    "acquisition_method": "wayback:20201211014354 http://web.archive.org/web/20201211014354/https://blog.centos.org/2020/12/future-is-centos-stream/",
+    "family": "centos"
+   },
+   "excerpt": "CentOS Linux 8, as a rebuild of RHEL 8, will end at the end of 2021.",
+   "relation": "supports",
+   "announcement_date": "2020-12-08",
+   "effective_date": "2021-12-31"
+  }
+ ],
+ "created_at": "2020-12-11T01:43:54Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "docker.io/library/centos:8",
+   "docker.io/library/centos:8.1.1911",
+   "docker.io/library/centos:8.2.2004",
+   "docker.io/library/centos:8.3.2011",
+   "docker.io/library/centos:8.4.2105",
+   "docker.io/library/centos:centos8",
+   "docker.io/library/centos:centos8.1.1911",
+   "docker.io/library/centos:centos8.2.2004",
+   "docker.io/library/centos:centos8.3.2011",
+   "docker.io/library/centos:centos8.4.2105"
+  ],
+  "exhaustive": false,
+  "basis": null
+ }
+}

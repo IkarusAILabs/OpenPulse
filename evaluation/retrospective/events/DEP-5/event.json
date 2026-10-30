@@ -1,0 +1,53 @@
+{
+ "id": "retro-dep-5",
+ "project_slug": "go-yaml",
+ "event_type": "PROJECT_ARCHIVED",
+ "title": "go-yaml/yaml unmaintained and archived",
+ "summary": "The author labelled go-yaml/yaml (gopkg.in/yaml.v2 and v3) unmaintained on 2025-04-01; the repository was then archived.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/go-yaml/yaml"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "go-yaml/yaml@944c86a",
+    "url": "https://github.com/go-yaml/yaml/commit/944c86a7d29391925ed6ac33bee98a0516f1287a",
+    "authority": "official",
+    "fetched_at": "2025-04-01T17:00:11Z",
+    "acquisition_method": "record:github commit 944c86a (README)",
+    "family": "go-yaml"
+   },
+   "excerpt": "THIS PROJECT IS UNMAINTAINED.",
+   "relation": "supports",
+   "announcement_date": "2025-04-01"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-go-yaml-yaml",
+    "url": "https://github.com/go-yaml/yaml",
+    "authority": "primary",
+    "fetched_at": "2025-04-01T15:16:49Z",
+    "acquisition_method": "wayback:20250401151649 http://web.archive.org/web/20250401151649/https://github.com/go-yaml/yaml",
+    "family": "wayback"
+   },
+   "excerpt": "README with the unmaintained notice.",
+   "relation": "context",
+   "effective_date": "2025-04-25"
+  }
+ ],
+ "created_at": "2025-04-01T17:00:11Z",
+ "scope": {
+  "kind": "package",
+  "packages": [
+   "pkg:golang/gopkg.in/yaml.v3",
+   "pkg:golang/gopkg.in/yaml.v2"
+  ],
+  "exhaustive": false,
+  "basis": null
+ }
+}

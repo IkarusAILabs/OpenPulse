@@ -1,0 +1,52 @@
+{
+ "id": "retro-rel-3",
+ "project_slug": "distribution",
+ "event_type": "OWNERSHIP_CHANGE",
+ "title": "docker/distribution repository relocated to distribution/distribution",
+ "summary": "Docker donated Distribution to the CNCF; github.com/docker/distribution was transferred to github.com/distribution/distribution.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/docker/distribution"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "docker/blog-donating-distribution",
+    "url": "https://www.docker.com/blog/donating-docker-distribution-to-the-cncf/",
+    "authority": "official",
+    "fetched_at": "2021-02-05T00:53:03Z",
+    "acquisition_method": "wayback:20210205005303 http://web.archive.org/web/20210205005303/https://www.docker.com/blog/donating-docker-distribution-to-the-cncf/",
+    "family": "docker"
+   },
+   "excerpt": "The project is now simply called Distribution, at github.com/distribution/distribution.",
+   "relation": "supports",
+   "announcement_date": "2021-02-04"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-docker-distribution-301",
+    "url": "https://github.com/docker/distribution",
+    "authority": "primary",
+    "fetched_at": "2021-01-29T09:34:12Z",
+    "acquisition_method": "wayback:20210129093412 http://web.archive.org/web/20210129093412/https://github.com/docker/distribution",
+    "family": "wayback"
+   },
+   "excerpt": "First archived HTTP 301 for github.com/docker/distribution.",
+   "relation": "context",
+   "effective_date": "2021-01-29"
+  }
+ ],
+ "created_at": "2021-02-05T00:53:03Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "github.com/docker/distribution"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}
