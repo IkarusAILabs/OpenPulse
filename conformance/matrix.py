@@ -203,7 +203,9 @@ def run() -> dict:
             impl_dep = {
                 "kind": "package",
                 "package": dep.package,
-                "ecosystem": "PyPI",
+                # No ecosystem: the matrix's packages stand for the projects
+                # named in PACKAGES, by name. PyPI `redis` is redis-py (F1).
+                "ecosystem": "",
                 "version": dep.version,
             }
         stale = case["admissibility"] == "stale"

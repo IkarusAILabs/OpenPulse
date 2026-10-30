@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import re
 
-from core.entities.identity import resolution_trust
+from core.entities.identity import UNRESOLVED_IDENTITY, resolution_trust
 from core.entities.resolve import normalize_ref, resolve_project
 from core.schema.models import OSSEvent
 from core.versions import detect_scheme, in_release_line
@@ -545,7 +545,7 @@ def _unresolved_identity(event: OSSEvent, ref: str) -> dict[str, str | bool | No
     unrelated, never excluded (TR-2026-01 D10).
     """
     trust = resolution_trust(ref)
-    if trust["via"] != "self":
+    if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
         return None
     return {
         "affected": False,

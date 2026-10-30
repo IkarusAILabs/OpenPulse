@@ -28,8 +28,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "conformance"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import oracle  # noqa: E402
+from strong_baseline import strong_conservative  # noqa: E402
 
 from core.risk.check import check_dependency  # noqa: E402
 from core.schema.models import OSSEvent  # noqa: E402
@@ -175,9 +177,16 @@ def openpulse(
     *,
     as_of: datetime | None = None,
     max_evidence_age: timedelta | None = None,
+    unresolved_identity: str = "undetermined",
 ) -> dict[str, Any]:
     """Policy C: the production verdict engine, freshness bound set."""
-    verdict = check_dependency(dep, events, as_of=as_of, max_evidence_age=max_evidence_age)
+    verdict = check_dependency(
+        dep,
+        events,
+        as_of=as_of,
+        max_evidence_age=max_evidence_age,
+        unresolved_identity=unresolved_identity,
+    )
     outcome = _OPENPULSE_OUTCOME.get(verdict.relationship, UNRESOLVED)
     justification = _justification(verdict, events)
     return {
@@ -231,14 +240,25 @@ def openpulse_no_completeness_no_freshness(dep, events, **_):
     return openpulse(dep, _assume_complete(events))
 
 
+def openpulse_no_identity(dep, events, **kw):
+    """Ablation: an unresolved identity may exclude (D10/D13 off).
+
+    The one ablation that needs an engine switch rather than an input
+    transform: ``check_dependency(unresolved_identity="unrelated")``.
+    """
+    return openpulse(dep, events, unresolved_identity="unrelated", **kw)
+
+
 Policy = Callable[..., dict[str, Any]]
 
 #: Registered before any case is run (PROTOCOL.md). Order is report order.
 POLICIES: dict[str, Policy] = {
     "A-naive": naive,
     "B-conservative": conservative,
+    "V-strong-conservative": strong_conservative,
     "C-openpulse": openpulse,
     "C-ablate-completeness": openpulse_no_completeness,
     "C-ablate-freshness": openpulse_no_freshness,
     "C-ablate-both": openpulse_no_completeness_no_freshness,
+    "C-ablate-identity": openpulse_no_identity,
 }

@@ -19,14 +19,13 @@ tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
-from core.entities.identity import resolution_trust
-from core.entities.resolve import resolve_project
+from core.entities.identity import UNRESOLVED_IDENTITY, package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
 from core.versions import in_release_line
@@ -191,10 +190,10 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
 
 
 def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
-    slug = resolve_project(str(dep["package"]))
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
     if slug != event.project_slug:
-        trust = resolution_trust(str(dep["package"]))
-        if trust["via"] != "self":
+        if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
             return None  # curated as another project: no association
         if event.scope is not None and event.scope.kind in ("artifact", "registry"):
             # Container-image and registry scopes name locations a package
@@ -222,7 +221,6 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
                 f"neither excluded from nor unrelated to project {event.project_slug}"
             ),
         }
-    trust = resolution_trust(str(dep["package"]))
     scope = event.scope
     version = dep.get("version")
     base: dict[str, Any] = {
@@ -334,7 +332,8 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
     """CVE/package/version applicability stream (independent of events)."""
     if dep["kind"] != "package":
         return []
-    slug = resolve_project(str(dep["package"]))
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
     raw = bundles.get(slug)
     if raw is None:
         return []
@@ -345,7 +344,6 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
         "version": dep.get("version"),
     }
     causes = []
-    trust = resolution_trust(str(dep["package"]))
     for finding in correlate(raw, context):
         relationship = str(finding.get("relationship", "UNKNOWN"))
         if relationship == "UNKNOWN":
@@ -567,13 +565,33 @@ def check_dependency(
     *,
     as_of: datetime | None = None,
     max_evidence_age: timedelta | None = None,
+    unresolved_identity: Literal["undetermined", "unrelated"] = "undetermined",
 ) -> DependencyVerdict:
     """One dep vs events (+ optional raw bundles) -> explicit verdict.
 
     Withdrawn and superseded events are not evaluated. With ``as_of``
     and ``max_evidence_age`` both given, a negative from an event whose
     newest evidence is older than the bound becomes RELATED (stale).
+    ``unresolved_identity="unrelated"`` is the evaluation's identity
+    ablation (``core.entities.identity.UNRESOLVED_IDENTITY``): unsound by
+    design, never for production use.
     """
+    if unresolved_identity not in ("undetermined", "unrelated"):
+        raise ValueError(f"unresolved_identity: {unresolved_identity!r}")
+    token = UNRESOLVED_IDENTITY.set(unresolved_identity)
+    try:
+        return _check_dependency(dep, events, bundles, as_of, max_evidence_age)
+    finally:
+        UNRESOLVED_IDENTITY.reset(token)
+
+
+def _check_dependency(
+    dep: dict[str, Any],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None,
+    as_of: datetime | None,
+    max_evidence_age: timedelta | None,
+) -> DependencyVerdict:
     bundles = bundles or {}
     events = [event for event in events if event.is_current_record()]
     causes: list[Cause] = []

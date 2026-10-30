@@ -254,7 +254,9 @@ def run(cases: int, seed: int) -> dict:
         dep = random_dependency(rng)
         events = [random_event(rng, i) for i in range(rng.randint(1, 3))]
         spec = [oracle_verdict(dep, ev) for ev in events]
-        impl_dep = dep if dep["kind"] == "image" else {**dep, "ecosystem": "PyPI"}
+        # Packages carry no ecosystem: the generator's identities are by name
+        # (PROJECTS), and PyPI `redis` would be redis-py (F1).
+        impl_dep = dep if dep["kind"] == "image" else {**dep, "ecosystem": ""}
         verdict = check_dependency(
             impl_dep,
             [implementation_event(ev) for ev in events],

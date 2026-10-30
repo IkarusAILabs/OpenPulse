@@ -27,10 +27,12 @@ Every policy receives the same replayed events and the same dependency. None rec
 |---|---|---|
 | **A-naive** | Affected if the dependency is *listed* by any current event, otherwise **NotAffected**. | The risk of reading absence from a list as absence of impact. |
 | **B-conservative** | Affected if listed, otherwise **unresolved** (an abstention). | The cost of never clearing anything. |
+| **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, ecosystem comparators (PyPI: `packaging`; elsewhere plain dotted numbers only), and every undecidable relation undetermined. | **The primary comparison:** what C's engine adds beyond a careful conservative consumer of the same model. |
 | **C-openpulse** | The production engine (`check_dependency`), freshness bound set. | Whether structured scope, completeness, identity and freshness conditions buy decisiveness without false clears. |
 | C-ablate-completeness | C on inputs where every populated scope is declared complete (basis `announced`). | Premise N3. |
 | C-ablate-freshness | C with no freshness bound. | Premise N4 (freshness). |
 | C-ablate-both | Both of the above. | Whether either premise masks the other. |
+| C-ablate-identity | C with `check_dependency(unresolved_identity="unrelated")`: a self-resolved reference counts as another project. | Premise N2 and the D10/D13 rule. |
 
 **Listed** (A and B share it, `policies.listed`): the dependency matches the union of the event's scope values and its named affected artefacts, read literally:
 
@@ -39,9 +41,11 @@ Every policy receives the same replayed events and the same dependency. None rec
 - identity is **by name**: an image's repository name, or a package's name, equal to the event's project slug or to a listed package. That is how an affected-product list is commonly read, and it is the identity information a list-reading consumer actually has;
 - versions compare by numeric release-line prefix (`6.2` covers `6.2.14`).
 
-Ablations change the *input events*, never the code, so each ablation is reproducible from its transform alone (`policies._assume_complete`).
+The completeness and freshness ablations change the *input events*, never the code, so each is reproducible from its transform alone (`policies._assume_complete`). The identity ablation cannot be an input transform, because identity is resolved inside the engine. It is an explicit, call-scoped engine parameter (`unresolved_identity`), unsound by design and never a production setting.
 
-**Not yet implemented:** TR-2026-01 §10 baseline (v), the *strong conservative* baseline (same scope language and admissibility, curated exact identities, the ecosystems' own pinned comparators). It is the primary comparison of the paper's draft protocol, because A and B can be beaten by construction on identity. It is the next harness item (ROADMAP R-B4). Until it runs, a C-over-B result says that OpenPulse's richer machinery beats a list reader, not that it beats a careful conservative consumer.
+V shares C's model: the typed scope, completeness with a basis, and curated identities. So a C-over-V result measures the *engine* (matching semantics, version grammar), not the *model*. The model's value shows in the comparison of V and C with A and B.
+
+Not yet pinned for V: comparators for npm (node-semver), Go (`x/mod/semver`), Maven (`ComparableVersion`) and Debian (`dpkg --compare-versions`). Until they are pinned, V abstains on those ecosystems' non-numeric versions.
 
 ## 3. Labels
 
@@ -100,13 +104,16 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 |---|---|---|---|---|---|---|
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
 | B-conservative | 0 | 0.0 | 0.25 | 0.431 | 0.433 | 0.667 |
-| C-openpulse | 0 | 0.0 | 0.042 | 0.588 | 0.467 | 0.0 |
-| C-ablate-both | 1 | 0.037 | 0.042 | 0.608 | 0.433 | 0.0 |
+| V-strong-conservative | 0 | 0.0 | 0.0 | 0.569 | 0.483 | 0.0 |
+| C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.588 | 0.467 | 0.0 |
+| C-ablate-both | 1 | 0.037 | 0.0 | 0.608 | 0.433 | 0.0 |
+| C-ablate-identity | 0 (silent misses 0.111) | 0.0 | 0.0 | 0.588 | 0.183 | 0.0 |
 
 What this set shows, and what it does not:
 
+- **C vs V (the primary comparison).** They differ on one pair of 60. On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly. On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
 - **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.59 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. Its abstention rate, however, is *higher* than B's. Most of the abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
-- **E1: a defect the evaluation found.** C marks the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause is that package identity resolves by name across ecosystems. This is a false impact, not a false clear. It is pinned as a known finding in `tests/test_evaluation.py`.
-- **Under-positive.** fa-01, a reference to the archived fbsdk repository, is unresolved because the reference resolves only to itself. This is the coverage cost of the D10 rule, which TR-2026-01 §11 lists as unmeasured.
+- **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
+- **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but 3 of 27 in-scope pairs then silently get no association: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). With D10, C reports them as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back.
 - **Sample size.** With 13 events, the rule-of-three bound on per-event false clears is about 0.23. The set cannot support any claim about rates.

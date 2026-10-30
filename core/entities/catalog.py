@@ -6,6 +6,7 @@ file must be lowercase and tag/digest-free (enforced by tests).
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Any
 
@@ -59,6 +60,49 @@ def osv_map(catalog: list[dict[str, Any]] | None = None) -> dict[str, tuple[str,
         if package and ecosystem:
             out[str(e["slug"])] = (str(package), str(ecosystem))
     return out
+
+
+def package_name_key(ecosystem: str, name: str) -> tuple[str, str]:
+    """(ecosystem, name) as compared: lowercase, PyPI names PEP 503-folded."""
+    eco = ecosystem.strip().lower()
+    key = name.strip().lower()
+    if eco == "pypi":
+        key = re.sub(r"[-_.]+", "-", key)
+    return eco, key
+
+
+def package_map(catalog: list[dict[str, Any]] | None = None) -> dict[tuple[str, str], str]:
+    """(ecosystem, name) -> slug, from `packages` lists and `osv` blocks.
+
+    A package name is an identity only inside its ecosystem: PyPI `redis`
+    (redis-py) and the Redis server share a name, not a project.
+    """
+    out: dict[tuple[str, str], str] = {}
+    for e in catalog if catalog is not None else load_catalog():
+        slug = str(e.get("slug", ""))
+        if not slug:
+            continue
+        pairs = [(p.get("ecosystem"), p.get("name")) for p in e.get("packages") or []]
+        block = e.get("osv")
+        if isinstance(block, dict):
+            pairs.append((block.get("ecosystem"), block.get("package")))
+        for ecosystem, name in pairs:
+            if ecosystem and name:
+                out.setdefault(package_name_key(str(ecosystem), str(name)), slug)
+    return out
+
+
+def package_curated_slugs(catalog: list[dict[str, Any]] | None = None) -> set[str]:
+    """Slugs whose published packages are curated (`packages` or `osv` present).
+
+    For these, a package that merely shares an alias is not the project:
+    only a listed (ecosystem, name) is.
+    """
+    return {
+        str(e["slug"])
+        for e in (catalog if catalog is not None else load_catalog())
+        if e.get("slug") and ("packages" in e or isinstance(e.get("osv"), dict))
+    }
 
 
 def purl_for(kind: str, namespace: str, name: str, version: str | None = None) -> str:

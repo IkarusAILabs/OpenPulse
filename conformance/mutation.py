@@ -96,7 +96,7 @@ MUTANTS = [
         "unmapped references are unrelated",
         "core.risk.match",
         "_unresolved_identity",
-        """    if trust["via"] != "self":
+        """    if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
         return None""",
         """    if True:
         return None""",
@@ -154,7 +154,7 @@ MUTANTS = [
         "unmapped packages are unrelated",
         "core.risk.check",
         "_scope_cause",
-        """        if trust["via"] != "self":
+        """        if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
             return None  # curated as another project: no association""",
         """        if True:
             return None  # curated as another project: no association""",
@@ -179,7 +179,7 @@ MUTANTS = [
         "N4-withdrawn",
         "withdrawn and superseded events are evaluated",
         "core.risk.check",
-        "check_dependency",
+        "_check_dependency",
         "    events = [event for event in events if event.is_current_record()]",
         "    events = list(events)",
     ),
