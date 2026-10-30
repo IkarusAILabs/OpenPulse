@@ -44,7 +44,7 @@
 \newcommand{\dtwelvecommit}{\code{784fed8}}
 \newcommand{\dfifteencommit}{\code{d4f7d1f}}
 \newcommand{\pincommit}{\code{8a9c3a8}}
-\newcommand{\currentcommit}{\code{85627cf}}
+\newcommand{\currentcommit}{\code{a1ecc58}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -58,7 +58,7 @@ integrations described in this report: \url{https://ikaruslabs.net/}.}\\
 \href{mailto:mehmet@ikaruslabs.net}{\texttt{mehmet@ikaruslabs.net}}\quad
 \url{https://ikaruslabs.net/}}
 
-\date{Technical Report TR-2026-01\quad 30 October 2026\quad audit snapshot \code{8a9c3a8}, current \code{85627cf}}
+\date{Technical Report TR-2026-01\quad 30 October 2026\quad audit snapshot \code{8a9c3a8}, current \code{a1ecc58}}
 
 \begin{document}
 \maketitle
@@ -93,11 +93,11 @@ aggregation is sound under stated premises and where the
 implementation does and does not establish them, not how often those
 premises hold in deployment. An executable oracle written from the
 specification agrees with the implementation on all 100{,}000 seeded
-random cases and on every verdict of a 3{,}995-case matrix, apart from
-one documented label difference. It catches all 19 historical defects
-when they are re-injected, and it runs as a build gate. The version
+random cases and on every verdict of a 6{,}195-case matrix, apart from
+one documented label difference. It catches all 22 re-injected
+defects and rule removals, and it runs as a build gate. The version
 comparator agrees with the reference PEP~440 implementation on all
-224{,}676 pairs it decides. Matching costs about 40\,\textmu{}s per
+224{,}676 pairs it decides. Matching costs about 75\,\textmu{}s per
 dependency--event pair. An exploratory retrospective study on 27 real
 upstream changes and 167 real dependency references, with
 developer-assigned labels, found no false clear by the event-scope
@@ -243,12 +243,13 @@ question for Section~\ref{sec:evalplan}. Limitations are collected in Section~\r
 and are not repeated throughout. The report uses two snapshots of
 \url{https://github.com/IkarusAILabs/OpenPulse} (Appendix~\ref{app:repro}).
 The \emph{audit snapshot} \pincommit{} is the commit every statement
-``at \pincommit{}'' and every measurement of the audit refers to: the
-twelve defects, the conformance and random-case counts, the comparator
-agreement and the costs. The \emph{current snapshot} \currentcommit{}
-adds the changes in Table~\ref{tab:since}, made after the audit; the
-audit's measurements were not repeated there, but the conformance
-oracle still runs as a build gate on every change. The retrospective
+``at \pincommit{}'' refers to, and the commit at which the twelve
+defects were found and fixed. The \emph{current snapshot}
+\currentcommit{} adds the changes in Table~\ref{tab:since}, made after
+the audit. The conformance, randomised, re-injection, version and cost
+measurements were repeated at \currentcommit{}, and the counts reported
+for them are from that run; where they differ from the audit
+snapshot, both are given. The retrospective
 study of Section~\ref{sec:retro} is pinned to its own freeze tag
 \code{retro-freeze-2026-10-30} (\code{3639a0f}), between the two. The
 latest tagged release, v0.7.1, predates the fixes. \op{} is released
@@ -297,9 +298,9 @@ Evaluation & Strong baseline (v) with pinned comparators, an
 \bottomrule
 \end{tabularx}
 \caption{Changes from the audit snapshot \pincommit{} to the current
-snapshot \currentcommit{}. Each has regression tests; the oracle and
-the strong baseline were extended for F2--F4. None is reflected in the
-audit's counts.}
+snapshot \currentcommit{}. Each has regression tests; the oracle, the
+conformance matrix, the randomised generator, defect re-injection and
+the strong baseline were extended for F2--F4.}
 \label{tab:since}
 \end{table}
 
@@ -1619,6 +1620,12 @@ cases conform. The other 48 share one label difference: for a package
 of the event's own project, against a registry scope or a project-wide
 event, the specification gives a project tie and the implementation
 \textsc{Related}. Both are unresolved, and both block a clearance.
+At \currentcommit{} the matrix has 21 scopes, adding qualified and
+mixed package values (F3) and an uncatalogued project's package (F4),
+and 21 dependency references, adding packages with a stated ecosystem
+and a package whose name is not its project's slug (F2): 6{,}195
+cases. Of these, 6{,}123 conform and 72 show the same label
+difference; none is unsafe.
 
 A hand-designed matrix tests chosen cases, so we added three further
 checks. \emph{Randomised differential testing}
@@ -1635,12 +1642,16 @@ so a release-line member was only \textsc{Related}. It also found that
 the image path still made an identity exclusion for an image curated
 as another project, which needs a complete scope, where S2 gives no
 association. After both fixes, all 100{,}000 cases of a seed-7 run
-agree, in the summary and in all 200{,}272 per-event verdicts.
+agree, in the summary and in all 200{,}272 per-event verdicts. At
+\currentcommit{}, with the generator extended for F2--F4, the seed-7
+run again agrees on all 100{,}000 summaries and all 200{,}070
+per-event verdicts.
 \emph{Defect re-injection} (\code{conformance/mutation.py}) tests the
 tests. It patches the running code to re-introduce each historical
 defect (D1, D3, D4, D7--D15) or to disable each enforced rule (N3, N4,
 N5, element roles, the package-name rule, S2): 19 single-function
-mutants in all. Every mutant is caught, and every one without help
+mutants at \pincommit{}, and 22 at \currentcommit{} with F2--F4 added.
+Every mutant is caught, and every one without help
 from the regression tests: by the matrix, by the randomised cases, or,
 for the comparator mutants D8 and D11, by the version differential
 below (Table~\ref{tab:mutation}). D2, D5 and D6 are not re-injected,
@@ -1663,25 +1674,27 @@ team, so an external re-implementation would strengthen the result.
 \begin{table}[t]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}X r r@{}}
+\begin{tabularx}{\linewidth}{@{}X r r r@{}}
 \toprule
-Severity of disagreement (implementation vs oracle) & First run & After fixes \\
+Severity of disagreement (implementation vs oracle) & First run & After fixes & At \currentcommit{} \\
 \midrule
-Conforming cases & 3{,}350 & 3{,}947 \\
-Unsafe: clears, or drops an association & 310 & 0 \\
-False impact & 250 & 0 \\
-Under-positive (a member left unresolved) & 25 & 0 \\
-Over-cautious & 0 & 0 \\
-Label (both unresolved, or both non-blocking) & 60 & 48 \\
+Matrix cases & 3{,}995 & 3{,}995 & 6{,}195 \\
+Conforming cases & 3{,}350 & 3{,}947 & 6{,}123 \\
+Unsafe: clears, or drops an association & 310 & 0 & 0 \\
+False impact & 250 & 0 & 0 \\
+Under-positive (a member left unresolved) & 25 & 0 & 0 \\
+Over-cautious & 0 & 0 & 0 \\
+Label (both unresolved, or both non-blocking) & 60 & 48 & 72 \\
 \midrule
-Randomised, seed 7: summaries agreeing & -- & 100{,}000 / 100{,}000 \\
-Randomised, seed 7: per-event verdicts agreeing & -- & 200{,}272 / 200{,}272 \\
+Randomised, seed 7: summaries agreeing & -- & 100{,}000 / 100{,}000 & 100{,}000 / 100{,}000 \\
+Randomised, seed 7: per-event verdicts agreeing & -- & 200{,}272 / 200{,}272 & 200{,}070 / 200{,}070 \\
 \bottomrule
 \end{tabularx}
-\caption{Specification conformance: the 3{,}995-case matrix and
-randomised differential testing. The first run used the implementation
-before D12--D15 and the specification before S1--S4. Most of its
-disagreements came from S1.}
+\caption{Specification conformance: the matrix and randomised
+differential testing. The first run used the implementation before
+D12--D15 and the specification before S1--S4; most of its
+disagreements came from S1. ``After fixes'' is at \pincommit{}. The
+last column is the extended matrix and generator at \currentcommit{}.}
 \label{tab:conformance}
 \end{table}
 
@@ -1709,13 +1722,18 @@ N4 & Withdrawn, superseded or stale events clear & \checkmark & \checkmark & & \
 N5 & Contested events clear & \checkmark & \checkmark & & \checkmark \\
 Package & Name inequality excludes & \checkmark & \checkmark & & \checkmark \\
 S2 & Curated other project excluded & \checkmark & \checkmark & & \checkmark \\
+F2 & Project package element ignored & \checkmark & \checkmark & & \checkmark \\
+F3 & Qualified value matched by name alone & \checkmark & \checkmark & & \checkmark \\
+F4 & Self-resolved package named like the project is the project & & \checkmark & & \checkmark \\
 \bottomrule
 \end{tabularx}
-\caption{Defect re-injection: 19 mutants (two N4 mutants and the D4/N3
-pair shown together), all caught, and all caught without the
-regression tests (``Tests''). Detectors: the conformance matrix, 5{,}000
-randomised cases, and the version differential against
-\code{packaging} and the SemVer vectors.}
+\caption{Defect re-injection at \currentcommit{}: 22 mutants (two N4
+mutants and the D4/N3 pair shown together), all caught, and all caught
+without the regression tests (``Tests''). The F2--F4 rows were added
+after the audit snapshot, where the other 19 were caught in the same
+way. Detectors: the conformance matrix, 5{,}000 randomised cases, and
+the version differential against \code{packaging} and the SemVer
+vectors.}
 \label{tab:mutation}
 \end{table}
 
@@ -2396,11 +2414,19 @@ the evaluation must produce, not one we can assume.
 run, on one machine (Windows~11, 12 logical CPUs, Python~3.14) with
 the production engine and store (\code{benchmarks/cost.py};
 Table~\ref{tab:cost}). Matching is linear in the number of
-dependency--event pairs, at about 40\,\textmu{}s per pair: 5{,}000
-dependencies against 10 events take 2.1\,s, with a peak of 25\,MiB.
+dependency--event pairs, at about 40\,\textmu{}s per pair at
+\pincommit{} and about 75\,\textmu{}s at \currentcommit{}: 5{,}000
+dependencies against 10 events take 2.1\,s and 3.8\,s, with a peak of
+25\,MiB in both. The added cost is a fixed overhead per package
+dependency, not per scope element: since F1, resolving a package's
+identity rebuilds the catalogue's package and alias maps on every
+call, which takes about three quarters of the matching time in a
+profile. Caching those maps is the obvious remedy and has not been
+applied at \currentcommit{}.
 Scope size is the expensive dimension. Every element is evaluated for
 every dependency, with no index, which costs about 2.6\,\textmu{}s per
-element per pair, so a 1{,}000-element scope costs 2.6\,ms per
+element per pair at \pincommit{} and about 3\,\textmu{}s at
+\currentcommit{}, so a 1{,}000-element scope costs about 3\,ms per
 dependency. Namespace elements keep real scopes small (the Bitnami
 event has four), and an index from repository to elements is the
 obvious remedy. The observation store writes a full snapshot on every
@@ -2422,22 +2448,26 @@ machine and the network; the shapes of the curves are the result.
 \begin{table}[t]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
 \toprule
-Measurement & Setting & Result \\
+Measurement & Setting & At \pincommit{} & At \currentcommit{} \\
 \midrule
-Matching, by inventory size (10 events) & 100 / 1{,}000 / 5{,}000 deps & 0.04 / 0.41 / 2.06\,s \\
-Matching, by event count (1{,}000 deps) & 1 / 10 / 100 events & 0.07 / 0.41 / 3.87\,s \\
-Matching, by scope size (1{,}000 deps, 1 event) & 1 / 100 / 1{,}000 elements & 0.05 / 0.32 / 2.61\,s \\
-Peak memory & 5{,}000 deps $\times$ 10 events & 24.6\,MiB \\
-Sweep, per repository (51 tags) & median of runs 2--20 & 35\,ms \\
-Store growth, per repository per run & steady / one new tag per run & 6.1 / 7.1\,KB \\
-Agent lookup, cold & 5 packages & 0.5--2.5\,s, 2--3 requests \\
-Agent lookup, warm & same packages & 2--5\,ms, 0 requests \\
+Matching, by inventory size (10 events) & 100 / 1{,}000 / 5{,}000 deps & 0.04 / 0.41 / 2.06\,s & 0.07 / 0.75 / 3.78\,s \\
+Matching, by event count (1{,}000 deps) & 1 / 10 / 100 events & 0.07 / 0.41 / 3.87\,s & 0.14 / 0.76 / 6.85\,s \\
+Matching, by scope size (1{,}000 deps, 1 event) & 1 / 100 / 1{,}000 elements & 0.05 / 0.32 / 2.61\,s & 0.14 / 0.46 / 3.29\,s \\
+Peak memory & 5{,}000 deps $\times$ 10 events & 24.6\,MiB & 24.6\,MiB \\
+Sweep, per repository (51 tags) & median of runs 2--20 & 35\,ms & 34\,ms \\
+Store growth, per repository per run & steady / one new tag per run & 6.1 / 7.1\,KB & 6.1 / 7.1\,KB \\
+Agent lookup, cold & 5 packages & 0.5--2.5\,s, 2--3 requests & not repeated \\
+Agent lookup, warm & same packages & 2--5\,ms, 0 requests & not repeated \\
 \bottomrule
 \end{tabularx}
 \caption{Basic cost measurements (\code{benchmarks/REPORT.md}). One
-machine and one session; medians of three runs for matching.}
+machine; medians of three runs for matching. The \currentcommit{}
+column is the median of three runs interleaved with two fresh runs of
+\pincommit{} on the same machine, which reproduced the earlier
+\pincommit{} figures within about 15\%. Agent lookups are live and
+were not repeated.}
 \label{tab:cost}
 \end{table}
 
@@ -2939,11 +2969,13 @@ the repository, though it covers every pin. All three are fixed in
     Audited commit:
     \code{a461bc99a6edebbdb124e4b9a3c477282aae45a6}. The latest
     tagged release, v0.7.1, predates the fixes. Licence: Apache-2.0.
-  \item Current snapshot: \code{85627cf} (\code{main}, 30 October
+  \item Current snapshot: \code{a1ecc58} (\code{main}, 30 October
     2026), with the changes of Table~\ref{tab:since}; evidence contract
-    1.2.0, intelligence schema 0.7.0, 1{,}079 tests collected, all
-    passing in CI. The audit's counts below refer to the pinned commit
-    and were not re-measured here.
+    1.2.0, intelligence schema 0.7.0, 1{,}080 tests collected, all
+    passing in CI. The conformance matrix, randomised cases,
+    re-injection, version differential, aggregation check and cost
+    benchmark were re-run there with the commands below; the audit
+    harness and the 953-test count refer to the pinned commit.
   \item Retrospective study (Section~\ref{sec:retro}): freeze tag
     \code{retro-freeze-2026-10-30} (\code{3639a0f}); case file, its
     SHA-256, results and the CI workflow that reproduces them in
