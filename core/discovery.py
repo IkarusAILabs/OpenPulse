@@ -69,7 +69,7 @@ def _github_repo(path: str) -> str | None:
 def go_module_repository(module: str) -> str | None:
     """The GitHub owner/repo a Go module path is hosted at, by convention only."""
     path = module.strip().lower()
-    if path.startswith("github.com/"):
+    if path.split("/", 1)[0] == "github.com":
         return _github_repo(path)
     m = _GOPKG.match(path)
     if m:
@@ -98,7 +98,7 @@ def target_for(dep: dict[str, Any]) -> tuple[Target | None, str]:
         return Target("github", repo), ""
     ref = normalize_ref(str(dep.get("ref") or ""))
     ref = re.sub(r"^[a-z][a-z0-9+.-]*://", "", ref)
-    if ref.startswith("github.com/"):
+    if ref.split("/", 1)[0] == "github.com":
         repo = _github_repo(ref)
         return (Target("github", repo), "") if repo else (None, "not an owner/repo path")
     first, _, rest = ref.partition("/")
