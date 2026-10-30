@@ -8,7 +8,7 @@
 - the review-burden measures W1–W3: the inventory run per weekly cycle, and W3's seeded sample and summary;
 - the reliability measures D1–D2, tabulated from the annotators' records.
 
-What remains is what was always to be filled at archiving: the registry fields of the table below, the stopping number (§6), and the inclusion criteria per event class (§7).
+The stopping rule (§6) and the inclusion criteria per event class (§7) are drafted (2026-10-30) for the author to confirm or change before archiving. What remains is the registry fields of the table below: registry and identifier, archive date, implementation freeze, event-window start, and annotators.
 
 | Field | Value |
 |---|---|
@@ -159,14 +159,18 @@ The soundness lemma makes a negative sound only if its inputs are true of the re
 **Events.** The target is **60–80 independent events at risk**.
 - At 60 events with zero false-clear events, the exact bound is 0.049, which meets δ.
 - **A single false-clear event fails H1 at 60 events** (bound 0.0766). Tolerating one needs at least 93 events. That strictness is intended, and the author may choose to sample more events.
-- Collection stops at a pre-set number of events, fixed at archiving (**to fill**: 60, 80 or more). It never stops at a result.
+- **Stopping rule** (drafted 2026-10-30; the author confirms or changes it at archiving):
+  - Collection stops when **80 events** meet the inclusion criteria (§7), counted in order of first observation.
+  - If fewer than 60 of those 80 are at risk (at least one in-scope pair), sampling continues in the same order until 60 are at risk, or until the window closes. Whether an event is at risk is read from its adjudicated labels alone, and no policy runs before collection stops. So the rule depends on labels, never on a result.
+  - If the window closes with fewer than 60 events at risk, the result is "not decidable" (§3).
+- **Why 80:** some included events will have no in-scope pair among their drawn pairs, so stopping at 60 events would risk a "not decidable" result. 80 leaves about a quarter for that. One false-clear event still fails H1 at 80 (bound 0.058); tolerating one needs at least 93 events, at about 1.5 times the labelling and encoding budget of 60.
 
 **Pairs.** 6–10 pairs per event, about 500 pairs in all.
 
 **Power for H2** (rough, stated so it can be checked):
 - **Assumptions:** a design effect of 2–3 for clustering, giving about 200 effective pairs, and C and B disagreeing on 20–30% of pairs.
 - **Result:** the standard error of the paired difference is about 0.035, so a true gain of 0.10 gives roughly 80% one-sided power.
-- **Caveat:** the design effect is the weakest assumption. The development set (13 event sets) gave a C-minus-B difference of 0.196, 95% interval 0.02–0.34. That is far too few events to estimate the design effect.
+- **Caveat:** the design effect is the weakest assumption. The development set (13 event sets) gave a C-minus-B difference of 0.196, 95% interval 0.02–0.34, in the run that informed this draft (revision 2, 2026-10-30). The current code gives 0.216, 0.07–0.34, because one pair (fa-01) is now resolved (PROTOCOL §7). Either way, that is far too few events to estimate the design effect.
 
 **Labelling budget.** About 500 pairs × 2 annotators at 3–5 minutes per pair, so 25–40 hours per annotator, plus adjudication. The amendments add, roughly:
 - **R encoding:** 15–25 minutes per event, about 20 hours for one encoder at 60 events;
@@ -174,13 +178,47 @@ The soundness lemma makes a negative sound only if its inputs are true of the re
 - **D2:** 2–5 minutes per mapping;
 - **W3:** 100 timed reviews, about 8 hours.
 
+At the drafted 80 events and 8 pairs per event: about 640 pairs, so 32–53 hours per annotator, and 20–33 hours of R encoding.
+
 ## 7. Population and sampling
 
 **Events.**
 - **Sources:** events are sampled from sources that do not feed OpenPulse: vendor and project announcements, distribution changelogs, and platform transfer and archival records.
 - **Window:** a **prospective** observation window that starts after the implementation freeze (§1 table). OpenPulse cannot replay registry state it never recorded, and reconstructing past state from today's invites hindsight bias. A retrospective event is admitted only with archived contemporaneous evidence, and is reported separately.
 - **Classes:** repository relocation, repository archival, distribution change (images or tags withdrawn or moved), lifecycle end (EOL/EOS), licence change, and breaking release.
-- **Inclusion criteria per class** (**to complete at archiving**): what counts as one event, which source dates it, and the minimum evidence needed to include it. They are fixed before sampling.
+- **Inclusion criteria** (drafted 2026-10-30; the author confirms or changes them at archiving). They are fixed before sampling, and adapted from the retrospective study's (`evaluation/retrospective/DESIGN.md` §3) to a prospective window.
+
+  **Every event must meet all of these:**
+
+  | | Criterion |
+  |---|---|
+  | I1 | A **primary source** states the change and its scope: the vendor, the maintainer, or the registry's or platform's own record. A news article or a third-party database alone is not enough. |
+  | I2 | The event is **first observed within the window**, and announced or effective no more than 30 days before it is first observed. |
+  | I3 | Its primary sources are **archived when first observed**: a snapshot (Wayback Machine, or a copy stored with the fixture) taken within 7 days, or a permanent record whose own history shows the text then (a commit, a release tag, a registry record with timestamps). |
+  | I4 | The affected identifiers are **machine-identifiable**: a repository path, a package with its ecosystem, an image reference, namespace or registry, and a version boundary where the scope is versioned. |
+  | I5 | It was found in a source that does **not feed OpenPulse**. Feeds OpenPulse consumes (endoflife.date, OSV, NVD, GitHub repository metadata as collected) may corroborate it, never establish it. |
+  | I6 | At least one participating inventory has a reference whose repository, package or image name matches a project or artefact the source names. This is a name search done before labelling, never a policy run. |
+
+  **Exclusions:**
+
+  | | Exclusion |
+  |---|---|
+  | X1 | The same change of the same project is in the development set, the case ledger or the retrospective study. |
+  | X2 | The primary source leaves the event's extent undefined, so no scope can be written down. *Within* an included event, a dependency whose membership the source does not settle is kept and labelled `undeterminable`. |
+  | X3 | OpenPulse, or any policy, was run on the candidate before its case file was frozen. Selection must not see how a policy handles an event. |
+
+  **Per class: what counts as one event, what dates it, and the minimum evidence:**
+
+  | Class | One event | Dated by | Minimum evidence |
+  |---|---|---|---|
+  | Repository relocation | One announcement or platform record moving one or more repositories to a new owner or path. Repositories moved together are one event, with each repository a scope element. | The platform's transfer or redirect record, or the maintainer's announcement, whichever is earlier | The old and new paths, from the platform's record (redirect or repository metadata) or the maintainer's statement |
+  | Repository archival | One repository marked archived or read-only, or declared unmaintained by its maintainers | The platform's archive timestamp, or the statement's date | The platform's archived flag as observed, or the maintainers' statement |
+  | Distribution change | One publisher's announcement that images, tags, charts or packages are withdrawn, moved, or no longer published in a registry or namespace | The announcement, or the first observed registry change if there is none | The publisher's statement naming the registry, namespace or artefacts, and the registry listing when first observed |
+  | Lifecycle end | One release line reaching end of life or end of support on the vendor's own schedule | The end date the vendor states | The vendor's lifecycle page or announcement naming the line and the date |
+  | Licence change | One change of licence terms for a project's releases from a stated version or date | The release or announcement that introduces it | The project's licence text at the boundary, and the maintainers' statement of the boundary |
+  | Breaking release | One major release that its maintainers declare breaking | The release tag's date | Release notes or a migration guide naming the breaking changes and the release line |
+
+  **Balance across classes:** no class contributes more than 20 of the 80 events. A class with fewer than 8 included events by the end of the window is reported as such. It is never filled by relaxing a criterion.
 
 **Dependencies.**
 - **Inventories:** from collaborators and public projects that contain container images, distributions and embedded components.
@@ -250,7 +288,7 @@ A developer-labelled development set (`evaluation/cases/dev-2026-10.json`, 60 pa
 
 The thresholds were set after those results were seen:
 - **0.05 and 60 events:** what a realistic labelling budget can demonstrate.
-- **+0.10:** a practitioner-meaningful gain, well below the development set's 0.196, so it was not set to match it.
+- **+0.10:** a practitioner-meaningful gain, well below the development set's 0.196 (0.216 with the current code), so it was not set to match it.
 - **±0.05, 0.02, +0.05 and 0.60:** judgement, stated here so that readers can weigh them.
 
 Development-set results are illustrative, never evidence. They are in `evaluation/PROTOCOL.md` §7.
@@ -263,6 +301,8 @@ Development-set results are illustrative, never evidence. They are in `evaluatio
 4. **Reliability measures D1–D2 added** (§5a). The soundness lemma's premises were unmeasured.
 
 None of the primary hypotheses, margins, sample-size rules or thresholds of §3 changed.
+
+**Drafted 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
 
 ## 13. Known limitations of the design
 
