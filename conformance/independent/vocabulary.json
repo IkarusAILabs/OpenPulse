@@ -1,0 +1,41 @@
+{
+ "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. Projects with events: redis, mysql.",
+ "projects": {
+  "redis": {
+   "release_lines_seen": [
+    "6",
+    "6.2",
+    "7",
+    "7.2",
+    "8"
+   ]
+  },
+  "mysql": {
+   "release_lines_seen": [
+    "5.7",
+    "8",
+    "8.0"
+   ]
+  }
+ },
+ "image_repositories": {
+  "docker.io/library/redis": "redis",
+  "docker.io/redis": "redis",
+  "docker.io/library/mysql": "mysql",
+  "docker.io/bitnami/redis": "bitnami-redis-stack",
+  "docker.io/zzz/kvstore": null,
+  "ghcr.io/zzz/redis": null,
+  "github.com/zzz/kvstore": null
+ },
+ "packages": {
+  "redis": "redis",
+  "mysql": "mysql",
+  "zzzpkg": null,
+  "redis-py": null
+ },
+ "registries": [
+  "docker.io",
+  "ghcr.io",
+  "github.com"
+ ]
+}

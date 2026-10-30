@@ -50,7 +50,13 @@ STATUS: ACTIVE
 - [DONE 2026-10-30] **R-B4:** Strong conservative baseline V (`evaluation/strong_baseline.py`): the same typed scopes, admissibility and curated identities as C, exact identity only, `packaging` for PyPI, and plain numbers elsewhere. On the development set it differs from C on 1 of 60 pairs, so the contribution to claim is the model, not the engine. Remaining: pin node-semver, Go `x/mod/semver`, Maven `ComparableVersion` and `dpkg` comparators before the freeze.
 - [DONE 2026-10-30] **R-B5:** Identity ablation as an explicit, call-scoped engine parameter: `check_dependency(unresolved_identity="unrelated")`. On the development set it cuts abstention from 0.47 to 0.18 at the cost of silent misses on 3 of 27 in-scope pairs, which is the measured coverage cost of D10.
 - [DONE 2026-10-30] **R-B6:** Decisions expose their limitations. Evidence contract 1.2.0 adds `verdict_meaning` (direct scope, plus embedded components, availability, maintenance and security consequence, all `not_evaluated`, and a fixed statement with no upstream text), `scope.completeness` (state, basis, admits_negative) and `evaluation_context` (freshness bound and identity policy). The MCP response carries the same `verdict.meaning`, and its fixed note now qualifies NOT_AFFECTED too. The evaluation's evidence-completeness metric reads these contract fields. The JCS hash moves to contract 2.0.0, because hash changes are breaking under the versioning policy.
-- [NEXT] **R-B7:** Independent specification check. Hand a second engineer the specification text, Algorithm 1 and the membership tests, but not the code. They write their own oracle and an edge-case set with expected outcomes and rationale, and we publish both, including disagreements. This addresses the circularity of an oracle written by the team that wrote the engine.
+- [ACTIVE 2026-10-30, waiting on an outside author] **R-B7:** Independent specification check. The kit is ready in `conformance/independent/`:
+  - `SPEC.md`: the decision rules, self-contained;
+  - `README.md`: the process, deliverables, case format, attestation and adjudication;
+  - `vocabulary.json`: the references a case may use;
+  - `kit.py`: `export` (seeded random cases), `validate` (fails closed), and `compare` (expected, independent oracle, team oracle and implementation side by side, with severities, and judgement-vs-rules conflicts listed as candidate specification defects).
+
+  A throwaway oracle written from SPEC.md alone agreed with both team sources on 20,000 exported cases, so the text has no transcription errors that random cases expose. That is not independent evidence. Next: recruit the author, agree the export seed, and publish the submission and its adjudication.
 - [LATER, only if R-C needs it] Ecosystem expansion beyond the current three change classes on two platforms.
 
 ### R-C — Empirical evaluation
