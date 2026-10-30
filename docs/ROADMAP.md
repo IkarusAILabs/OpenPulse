@@ -79,6 +79,10 @@ STATUS: ACTIVE
 ### R-C — Empirical evaluation
 STATUS: NEXT (blocked on archiving the R-A2 registration, and on annotators)
 
+- [ACTIVE 2026-10-30, design awaiting approval] **R-C0:** Retrospective study on real historical changes. It answers the recommendation's Priority 2. It is exploratory, reported separately, and never pooled with the registered result.
+  - Rules: `evaluation/retrospective/DESIGN.md`. Screened candidates: `evaluation/retrospective/SHORTLIST.md`, with 27 of 33 included or provisional across 6 classes.
+  - The implementation is frozen at `retro-freeze-2026-10-30`.
+  - Next, after approval: fill the gaps (relocation, end of life), build the fixtures, sample dependents, label (with a 25% outside sample), freeze the case file, run, and report.
 - **R-C1:** Held-out event set. Sample from sources that do not feed OpenPulse, with per-class inclusion criteria fixed first, over a window after the implementation freeze. A prospective window is preferred: OpenPulse cannot replay registry state it never recorded, and reconstructing past state from today's state invites hindsight bias. Retrospective events are admitted only with archived contemporaneous evidence.
 - **R-C2:** Independent labels. Two annotators outside the detector's development, adjudication by a third, and Cohen's κ. Undeterminable is a first-class label. This needs external collaborators (see Availability and Collaboration in the report) and is the schedule's critical path.
 - **R-C3:** Comparison. Run A, B, the strong baseline v and C, plus the ablations (completeness, freshness, identity, the gate), with event-clustered intervals and stratification by event class, identity status and completeness basis. Include error analysis of every wrong or unresolved decision.
