@@ -28,7 +28,9 @@ INSTRUCTIONS = (
     "exact version, with the evidence. Call dependency_status before adding or upgrading "
     "a dependency, check_dependency_file after editing a manifest or lockfile, and "
     "project_lifecycle to pick a supported release line. Verdicts are evidence, not "
-    "decisions: UNKNOWN means not established, never safe."
+    "decisions: UNKNOWN means not established, never safe, and NOT_AFFECTED is not a "
+    "clearance. Answers are current assessments: a negative needs evidence within the "
+    "freshness bound stated in evaluation_context."
 )
 
 

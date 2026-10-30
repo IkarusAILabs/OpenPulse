@@ -13,6 +13,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - `evaluation_context`: whether a freshness bound was applied.
 
   `openpulse attest` emits 1.2. The 1.1 and 1.0 schemas are unchanged and their documents still validate and verify. **Upgrade note:** a consumer that validates against the 1.1 schema must switch to `schemas/evidence-contract/v1.2/schema.json`, because a 1.2 document fails 1.1 validation (`additionalProperties: false`).
+- **MCP answers bound evidence age (TR-2026-01 N4).** This changes verdicts. `dependency_status` and `check_dependency_file` now run in a current-assessment mode: a negative needs evidence fetched within 90 days (configurable) of now, so a stale event can associate a dependency but no longer clear it. Answers carry an `evaluation_context` block (contract 1.2 fields plus `mode`), and every cause carries its `scope_completeness`. An explicit replay mode (Python API only) disables the bound and says so in `evaluation_context`, `not_established` and `note`.
 - **MCP responses state verdict meaning.** `verdict.meaning` carries the same closed vocabularies, every cause carries `direct_scope`, and the fixed note now says that NOT_AFFECTED is not a clearance either.
 
 ### Fixed
