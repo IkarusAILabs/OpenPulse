@@ -63,11 +63,15 @@ def osv_map(catalog: list[dict[str, Any]] | None = None) -> dict[str, tuple[str,
 
 
 def package_name_key(ecosystem: str, name: str) -> tuple[str, str]:
-    """(ecosystem, name) as compared: lowercase, PyPI names PEP 503-folded."""
+    """(ecosystem, name) as compared: lowercase, PyPI names PEP 503-folded,
+    and Maven `groupId:artifactId` (as manifests and SBOMs spell it) in the
+    catalog's `groupId/artifactId` form."""
     eco = ecosystem.strip().lower()
     key = name.strip().lower()
     if eco == "pypi":
         key = re.sub(r"[-_.]+", "-", key)
+    elif eco == "maven":
+        key = key.replace(":", "/", 1)
     return eco, key
 
 

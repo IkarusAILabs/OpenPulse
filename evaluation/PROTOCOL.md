@@ -105,15 +105,19 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
 | B-conservative | 0 | 0.0 | 0.25 | 0.431 | 0.433 | 0.667 |
 | V-strong-conservative | 0 | 0.0 | 0.0 | 0.569 | 0.483 | 0.0 |
-| C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.588 | 0.467 | 0.0 |
-| C-ablate-both | 1 | 0.037 | 0.0 | 0.608 | 0.433 | 0.0 |
-| C-ablate-identity | 0 (silent misses 0.111) | 0.0 | 0.0 | 0.588 | 0.183 | 0.0 |
+| C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.627 (0.588 before package curation) | 0.433 | 0.0 |
+| C-ablate-both | 1 | 0.037 | 0.0 | 0.647 | 0.4 | 0.0 |
+| C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.183 | 0.0 |
 
 What this set shows, and what it does not:
 
-- **C vs V (the primary comparison).** They differ on one pair of 60. On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly. On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
+- **C vs V (the primary comparison).** They differ on three pairs of 60.
+  - On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly.
+  - On two iText modules (it-02, it-03), C is affected through a rule outside the specification, finding **F2** (ROADMAP): a package is a member when the scope lists its project's slug. V, following the specification, abstains.
+
+  So one difference is the engine and two are an unspecified rule. On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
 - **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.59 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. Its abstention rate, however, is *higher* than B's. Most of the abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
 - **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
-- **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but 3 of 27 in-scope pairs then silently get no association: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). With D10, C reports them as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back.
+- **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but in-scope pairs then silently get no association. Before package curation there were 3 of 27: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). After curation, only fa-01 remains, because the iText modules are curated and resolve. With D10, C reports the uncurated ones as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back, and package curation already turned two of the three into correct positives.
 - **Sample size.** With 13 events, the rule-of-three bound on per-event false clears is about 0.23. The set cannot support any claim about rates.

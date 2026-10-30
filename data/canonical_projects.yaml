@@ -25,11 +25,13 @@
   website: https://bitnami.com
   aliases: [bitnami]
   docker_images: []
+  packages: []
 - slug: bitnami-redis-stack
   display_name: Bitnami Redis stack
   github: bitnami/containers
   aliases: [bitnami/redis, bitnamilegacy/redis, bitnamisecure/redis]
   docker_images: [docker.io/bitnami/redis, docker.io/bitnamilegacy/redis, docker.io/bitnamisecure/redis]
+  packages: []
   identity:
     status: VERIFIED
     source: "curated distribution aliases for the Bitnami Redis stack (bitnami/containers)"
@@ -89,6 +91,8 @@
   website: https://www.postgresql.org
   aliases: [postgres, postgresql, postgresql-server, docker.io/postgres, docker.io/library/postgres]
   docker_images: [docker.io/library/postgres]
+  # npm `postgres` and PyPI `postgres` are client libraries, not the server
+  packages: []
 - slug: kafka
   display_name: Apache Kafka
   github: apache/kafka
@@ -96,6 +100,8 @@
   endoflife: apache-kafka
   aliases: [kafka, apache/kafka]
   docker_images: []
+  # PyPI `kafka` is an old name of kafka-python, a separate client
+  packages: [{ecosystem: Maven, name: "org.apache.kafka/kafka-clients"}, {ecosystem: Maven, name: "org.apache.kafka/kafka-streams"}]
   identity:
     status: VERIFIED
     source: "apache-kafka maps to the Kafka project (not a separate product)"
@@ -108,12 +114,15 @@
   website: https://www.keycloak.org
   aliases: [keycloak]
   docker_images: []
+  packages: []
 - slug: nodejs
   display_name: Node.js
   github: nodejs/node
   website: https://nodejs.org
   aliases: [nodejs, node, docker.io/library/node]
   docker_images: [docker.io/library/node]
+  # npm `node` is not the Node.js runtime project
+  packages: []
   identity:
     status: VERIFIED
     source: "nodejs/node is the Node.js runtime repo and node is its binary and docker.io/library/node image name"
@@ -126,18 +135,21 @@
   website: https://www.openssl.org
   aliases: [openssl]
   docker_images: []
+  packages: []
 - slug: prometheus
   display_name: Prometheus
   github: prometheus/prometheus
   website: https://prometheus.io
   aliases: [prometheus]
   docker_images: []
+  packages: []
 - slug: grafana
   display_name: Grafana
   github: grafana/grafana
   website: https://grafana.com
   aliases: [grafana, grafana/grafana, docker.io/grafana/grafana, grafana/grafana-enterprise, docker.io/grafana/grafana-enterprise]
   docker_images: [docker.io/grafana/grafana, docker.io/grafana/grafana-enterprise]
+  packages: []
   identity:
     status: VERIFIED
     source: "grafana/grafana is the upstream OSS repo and publishes docker.io/grafana/grafana; grafana-enterprise is the closed-source distribution of the same releases"
@@ -151,18 +163,23 @@
   website: https://kubernetes.io
   aliases: [kubernetes, k8s]
   docker_images: []
+  # PyPI `kubernetes` is the Python client (kubernetes-client/python)
+  packages: []
 - slug: helm
   display_name: Helm
   github: helm/helm
   website: https://helm.sh
   aliases: [helm]
   docker_images: []
+  packages: []
 - slug: terraform
   display_name: Terraform
   github: hashicorp/terraform
   website: https://www.terraform.io
   aliases: [terraform, hashicorp/terraform, docker.io/hashicorp/terraform]
   docker_images: [docker.io/hashicorp/terraform]
+  # PyPI `terraform` is an unrelated wrapper package, not HashiCorp Terraform
+  packages: []
   identity:
     status: VERIFIED
     source: "hashicorp/terraform is the upstream repo and publishes docker.io/hashicorp/terraform"
@@ -176,6 +193,7 @@
   website: https://opentofu.org
   aliases: [opentofu, opentofu/opentofu, ghcr.io/opentofu/opentofu]
   docker_images: [ghcr.io/opentofu/opentofu]
+  packages: []
   identity:
     status: VERIFIED
     source: "opentofu/opentofu is the Linux Foundation fork of Terraform maintained as its own project at opentofu.org, publishing ghcr.io/opentofu/opentofu"
@@ -189,30 +207,37 @@
   website: https://www.mysql.com
   aliases: [mysql, docker.io/library/mysql]
   docker_images: [docker.io/library/mysql]
+  # npm `mysql` and PyPI `mysql` are client libraries, not the server
+  packages: []
 - slug: mongodb
   display_name: MongoDB
   github: mongodb/mongo
   website: https://www.mongodb.com
   aliases: [mongodb, mongo, docker.io/library/mongo]
   docker_images: [docker.io/library/mongo]
+  # npm `mongodb` is the Node.js driver, a separate project from the server
+  packages: []
 - slug: rabbitmq
   display_name: RabbitMQ
   github: rabbitmq/rabbitmq-server
   website: https://www.rabbitmq.com
   aliases: [rabbitmq]
   docker_images: []
+  packages: []
 - slug: opentelemetry
   display_name: OpenTelemetry
   github: open-telemetry/opentelemetry-collector
   website: https://opentelemetry.io
   aliases: [opentelemetry, otel]
   docker_images: []
+  packages: []
 - slug: django
   display_name: Django
   github: django/django
   website: https://www.djangoproject.com
   aliases: [django]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "django"}]
   osv:
     package: django
     ecosystem: PyPI
@@ -222,6 +247,7 @@
   website: https://fastapi.tiangolo.com
   aliases: [fastapi]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "fastapi"}]
   osv:
     package: fastapi
     ecosystem: PyPI
@@ -231,6 +257,8 @@
   website: https://pytorch.org
   aliases: [pytorch, torch]
   docker_images: []
+  # PyPI `pytorch` is a placeholder; the project publishes `torch`
+  packages: [{ecosystem: PyPI, name: "torch"}]
   identity:
     status: VERIFIED
     source: "pytorch/pytorch is the project repo and torch is the PyPI distribution name for it"
@@ -244,12 +272,14 @@
   website: https://www.langchain.com
   aliases: [langchain]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "langchain"}]
 - slug: spring-boot
   display_name: Spring Boot
   github: spring-projects/spring-boot
   website: https://spring.io/projects/spring-boot
   aliases: [spring-boot, spring]
   docker_images: []
+  packages: [{ecosystem: Maven, name: "org.springframework.boot/spring-boot"}]
   identity:
     status: REVIEW_REQUIRED
     source: "spring maps to Spring Boot (spring-projects/spring-boot), not the wider Spring portfolio"
@@ -263,36 +293,45 @@
   website: https://nginx.org
   aliases: [nginx, docker.io/library/nginx]
   docker_images: [docker.io/library/nginx]
+  packages: []
 - slug: etcd
   display_name: etcd
   github: etcd-io/etcd
   website: https://etcd.io
   aliases: [etcd]
   docker_images: []
+  # PyPI `etcd` is a client library; Go modules are under go.etcd.io
+  packages: []
 - slug: vault
   display_name: HashiCorp Vault
   github: hashicorp/vault
   website: https://www.vaultproject.io
   aliases: [vault]
   docker_images: []
+  packages: []
 - slug: consul
   display_name: HashiCorp Consul
   github: hashicorp/consul
   website: https://www.consul.io
   aliases: [consul]
   docker_images: []
+  # PyPI `consul` is a client library, not the server
+  packages: []
 - slug: elasticsearch
   display_name: Elasticsearch
   github: elastic/elasticsearch
   website: https://www.elastic.co/elasticsearch/
   aliases: [elasticsearch, elastic]
   docker_images: []
+  # PyPI and npm `elasticsearch` are the official clients, separate projects
+  packages: []
 - slug: envoy
   display_name: Envoy
   github: envoyproxy/envoy
   website: https://www.envoyproxy.io
   aliases: [envoy]
   docker_images: []
+  packages: []
 - slug: argocd
   display_name: Argo CD
   github: argoproj/argo-cd
@@ -300,30 +339,35 @@
   endoflife: argo-cd
   aliases: [argocd, argo-cd]
   docker_images: []
+  packages: []
 - slug: cert-manager
   display_name: cert-manager
   github: cert-manager/cert-manager
   website: https://cert-manager.io
   aliases: [cert-manager]
   docker_images: []
+  packages: []
 - slug: containerd
   display_name: containerd
   github: containerd/containerd
   website: https://containerd.io
   aliases: [containerd]
   docker_images: []
+  packages: []
 - slug: coredns
   display_name: CoreDNS
   github: coredns/coredns
   website: https://coredns.io
   aliases: [coredns, core-dns]
   docker_images: []
+  packages: []
 - slug: boto3
   display_name: boto3 (AWS SDK for Python)
   github: boto/boto3
   website: https://aws.amazon.com/sdk-for-python/
   aliases: [boto3]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "boto3"}]
   identity:
     status: VERIFIED
     source: "boto/boto3 publishes the boto3 package on PyPI"
@@ -337,6 +381,7 @@
   website: https://serde.rs
   aliases: [serde]
   docker_images: []
+  packages: [{ecosystem: crates.io, name: "serde"}]
   identity:
     status: VERIFIED
     source: "serde-rs/serde publishes the serde crate on crates.io"
@@ -350,6 +395,7 @@
   website: https://valkey.io
   aliases: [valkey]
   docker_images: []
+  packages: []
   identity:
     status: VERIFIED
     source: "valkey-io/valkey is the Linux Foundation fork of Redis 7.2 maintained as its own project at valkey.io"
@@ -363,66 +409,77 @@
   website: https://memcached.org
   aliases: [memcached]
   docker_images: []
+  packages: []
 - slug: haproxy
   display_name: HAProxy
   github: haproxy/haproxy
   website: https://www.haproxy.org
   aliases: [haproxy, ha-proxy]
   docker_images: []
+  packages: []
 - slug: traefik
   display_name: Traefik
   github: traefik/traefik
   website: https://traefik.io
   aliases: [traefik]
   docker_images: []
+  packages: []
 - slug: istio
   display_name: Istio
   github: istio/istio
   website: https://istio.io
   aliases: [istio]
   docker_images: []
+  packages: []
 - slug: cilium
   display_name: Cilium
   github: cilium/cilium
   website: https://cilium.io
   aliases: [cilium]
   docker_images: []
+  packages: []
 - slug: opa
   display_name: Open Policy Agent
   github: open-policy-agent/opa
   website: https://www.openpolicyagent.org
   aliases: [opa, open-policy-agent]
   docker_images: []
+  packages: []
 - slug: kyverno
   display_name: Kyverno
   github: kyverno/kyverno
   website: https://kyverno.io
   aliases: [kyverno]
   docker_images: []
+  packages: []
 - slug: falco
   display_name: Falco
   github: falcosecurity/falco
   website: https://falco.org
   aliases: [falco]
   docker_images: []
+  packages: []
 - slug: trivy
   display_name: Trivy
   github: aquasecurity/trivy
   website: https://trivy.dev
   aliases: [trivy]
   docker_images: []
+  packages: []
 - slug: kustomize
   display_name: Kustomize
   github: kubernetes-sigs/kustomize
   website: https://kustomize.io
   aliases: [kustomize]
   docker_images: []
+  packages: []
 - slug: linkerd
   display_name: Linkerd
   github: linkerd/linkerd2
   website: https://linkerd.io
   aliases: [linkerd]
   docker_images: []
+  packages: []
   identity:
     status: REVIEW_REQUIRED
     source: "linkerd/linkerd2 is the current service-mesh repo and linkerd is the product name"
@@ -436,6 +493,7 @@
   website: https://www.tigera.io/project-calico/
   aliases: [calico, project-calico]
   docker_images: []
+  packages: []
 
 - slug: airflow
   display_name: Apache Airflow
@@ -444,6 +502,7 @@
   endoflife: apache-airflow
   aliases: [airflow, apache/airflow]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "apache-airflow"}]
 - slug: spark
   display_name: Apache Spark
   github: apache/spark
@@ -451,30 +510,37 @@
   endoflife: apache-spark
   aliases: [spark, apache/spark]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "pyspark"}]
 - slug: minio
   display_name: MinIO
   github: minio/minio
   website: https://min.io
   aliases: [minio, minio/minio]
   docker_images: [docker.io/minio/minio]
+  # PyPI `minio` is the Python SDK (minio/minio-py), not the server
+  packages: []
 - slug: celery
   display_name: Celery
   github: celery/celery
   website: https://docs.celeryq.dev
   aliases: [celery]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "celery"}]
 - slug: zookeeper
   display_name: Apache ZooKeeper
   github: apache/zookeeper
   website: https://zookeeper.apache.org
   aliases: [zookeeper, apache/zookeeper]
   docker_images: []
+  packages: []
 - slug: nats
   display_name: NATS
   github: nats-io/nats-server
   website: https://nats.io
   aliases: [nats, nats-server]
   docker_images: []
+  # npm `nats` and PyPI `nats-py` are clients, not the server
+  packages: []
   identity:
     status: REVIEW_REQUIRED
     source: "nats-io/nats-server is the NATS server repo this slug maps"
@@ -488,6 +554,7 @@
   website: https://clickhouse.com
   aliases: [clickhouse]
   docker_images: []
+  packages: []
   identity:
     status: VERIFIED
     source: "ClickHouse/ClickHouse is the canonical repo since the move out of the yandex org; GitHub redirects the old yandex/ClickHouse path"
@@ -501,12 +568,14 @@
   website: https://grafana.com/oss/loki/
   aliases: [loki]
   docker_images: []
+  packages: []
 - slug: jaeger
   display_name: Jaeger
   github: jaegertracing/jaeger
   website: https://www.jaegertracing.io
   aliases: [jaeger, jaegertracing]
   docker_images: []
+  packages: []
   identity:
     status: VERIFIED
     source: "jaegertracing is the CNCF GitHub org for Jaeger and jaeger is the project's own name"
@@ -519,12 +588,14 @@
   website: https://vitess.io
   aliases: [vitess]
   docker_images: []
+  packages: []
 - slug: solr
   display_name: Apache Solr
   github: apache/solr
   website: https://solr.apache.org
   aliases: [solr, apache/solr]
   docker_images: []
+  packages: []
 - slug: cassandra
   display_name: Apache Cassandra
   github: apache/cassandra
@@ -532,6 +603,7 @@
   endoflife: apache-cassandra
   aliases: [cassandra, apache/cassandra]
   docker_images: []
+  packages: []
 - slug: couchdb
   display_name: Apache CouchDB
   github: apache/couchdb
@@ -539,18 +611,23 @@
   endoflife: apache-couchdb
   aliases: [couchdb, apache/couchdb]
   docker_images: []
+  packages: []
 - slug: neo4j
   display_name: Neo4j
   github: neo4j/neo4j
   website: https://neo4j.com
   aliases: [neo4j]
   docker_images: []
+  # PyPI `neo4j` is the Python driver, not the database
+  packages: []
 - slug: influxdb
   display_name: InfluxDB
   github: influxdata/influxdb
   website: https://www.influxdata.com
   aliases: [influxdb, influx]
   docker_images: []
+  # PyPI `influxdb` is a client library, not the database
+  packages: []
 - slug: cpython
   display_name: CPython
   github: python/cpython
@@ -558,6 +635,7 @@
   endoflife: python
   aliases: [cpython, python]
   docker_images: [docker.io/library/python]
+  packages: []
   identity:
     status: VERIFIED
     source: "python here means the CPython implementation (python/cpython, docker.io/library/python, endoflife.date product python)"
@@ -571,18 +649,21 @@
   website: https://www.php.net
   aliases: [php, php-src]
   docker_images: []
+  packages: []
 - slug: ruby
   display_name: Ruby
   github: ruby/ruby
   website: https://www.ruby-lang.org
   aliases: [ruby]
   docker_images: []
+  packages: []
 - slug: go
   display_name: Go
   github: golang/go
   website: https://go.dev
   aliases: [go, golang]
   docker_images: [docker.io/library/golang]
+  packages: []
   identity:
     status: REVIEW_REQUIRED
     source: "golang/go is the Go language repo; go is its own name and golang is the ecosystem alias"
@@ -596,6 +677,7 @@
   website: https://www.rust-lang.org
   aliases: [rust]
   docker_images: []
+  packages: []
 - slug: maven
   display_name: Apache Maven
   github: apache/maven
@@ -603,18 +685,21 @@
   endoflife: apache-maven
   aliases: [maven, apache/maven]
   docker_images: []
+  packages: []
 - slug: gradle
   display_name: Gradle
   github: gradle/gradle
   website: https://gradle.org
   aliases: [gradle]
   docker_images: []
+  packages: []
 - slug: junit
   display_name: JUnit
   github: junit-team/junit5
   website: https://junit.org
   aliases: [junit, junit5]
   docker_images: []
+  packages: []
   identity:
     status: REVIEW_REQUIRED
     source: "junit-team/junit5 is the repo behind the JUnit 5 line (org.junit.jupiter) that this slug tracks"
@@ -628,24 +713,28 @@
   website: https://www.ansible.com
   aliases: [ansible]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "ansible"}, {ecosystem: PyPI, name: "ansible-core"}]
 - slug: k9s
   display_name: K9s
   github: derailed/k9s
   website: https://k9scli.io
   aliases: [k9s]
   docker_images: []
+  packages: []
 - slug: react
   display_name: React
   github: facebook/react
   website: https://react.dev
   aliases: [react]
   docker_images: []
+  packages: [{ecosystem: npm, name: "react"}, {ecosystem: npm, name: "react-dom"}]
 - slug: vue
   display_name: Vue
   github: vuejs/core
   website: https://vuejs.org
   aliases: [vue, vuejs/vue, vuejs/core]
   docker_images: []
+  packages: [{ecosystem: npm, name: "vue"}]
   identity:
     status: REVIEW_REQUIRED
     source: "the slug maps the npm name vue to vuejs/core (Vue 3), which is where the vue package is published from"
@@ -659,6 +748,8 @@
   website: https://angular.dev
   aliases: [angular]
   docker_images: []
+  # npm `angular` is AngularJS 1.x, a different, end-of-life project
+  packages: [{ecosystem: npm, name: "@angular/core"}]
   identity:
     status: REVIEW_REQUIRED
     source: "angular/angular is the modern Angular framework repo and angular is its project name"
@@ -672,60 +763,70 @@
   website: https://webpack.js.org
   aliases: [webpack]
   docker_images: []
+  packages: [{ecosystem: npm, name: "webpack"}]
 - slug: express
   display_name: Express
   github: expressjs/express
   website: https://expressjs.com
   aliases: [express]
   docker_images: []
+  packages: [{ecosystem: npm, name: "express"}]
 - slug: typescript
   display_name: TypeScript
   github: microsoft/TypeScript
   website: https://www.typescriptlang.org
   aliases: [typescript]
   docker_images: []
+  packages: [{ecosystem: npm, name: "typescript"}]
 - slug: vite
   display_name: Vite
   github: vitejs/vite
   website: https://vite.dev
   aliases: [vite]
   docker_images: []
+  packages: [{ecosystem: npm, name: "vite"}]
 - slug: nest
   display_name: Nest
   github: nestjs/nest
   website: https://nestjs.com
   aliases: [nest, nestjs]
   docker_images: []
+  packages: [{ecosystem: npm, name: "@nestjs/core"}]
 - slug: flask
   display_name: Flask
   github: pallets/flask
   website: https://flask.palletsprojects.com
   aliases: [flask]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "flask"}]
 - slug: requests
   display_name: Requests
   github: psf/requests
   website: https://requests.readthedocs.io
   aliases: [requests]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "requests"}]
 - slug: numpy
   display_name: NumPy
   github: numpy/numpy
   website: https://numpy.org
   aliases: [numpy]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "numpy"}]
 - slug: pandas
   display_name: pandas
   github: pandas-dev/pandas
   website: https://pandas.pydata.org
   aliases: [pandas]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "pandas"}]
 - slug: transformers
   display_name: Transformers
   github: huggingface/transformers
   website: https://huggingface.co
   aliases: [transformers, huggingface-transformers]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "transformers"}]
   identity:
     status: VERIFIED
     source: "huggingface/transformers is the project repo and transformers is its PyPI distribution name"
@@ -739,36 +840,43 @@
   website: https://www.tensorflow.org
   aliases: [tensorflow]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "tensorflow"}]
 - slug: ollama
   display_name: Ollama
   github: ollama/ollama
   website: https://ollama.com
   aliases: [ollama]
   docker_images: []
+  # PyPI and npm `ollama` are client libraries (ollama-python, ollama-js)
+  packages: []
 - slug: qdrant
   display_name: Qdrant
   github: qdrant/qdrant
   website: https://qdrant.tech
   aliases: [qdrant]
   docker_images: []
+  packages: []
 - slug: pytest
   display_name: pytest
   github: pytest-dev/pytest
   website: https://docs.pytest.org
   aliases: [pytest, pytest-dev/pytest]
   docker_images: []
+  packages: [{ecosystem: PyPI, name: "pytest"}]
 - slug: cosign
   display_name: Cosign
   github: sigstore/cosign
   website: https://docs.sigstore.dev
   aliases: [cosign]
   docker_images: []
+  packages: []
 - slug: flux
   display_name: Flux
   github: fluxcd/flux2
   website: https://fluxcd.io
   aliases: [flux, fluxcd]
   docker_images: []
+  packages: []
   identity:
     status: REVIEW_REQUIRED
     source: "fluxcd/flux2 is the current Flux repo; flux and fluxcd are the names users write for it"
@@ -782,12 +890,14 @@
   website: https://www.jenkins.io
   aliases: [jenkins]
   docker_images: []
+  packages: []
 - slug: crossplane
   display_name: Crossplane
   github: crossplane/crossplane
   website: https://www.crossplane.io
   aliases: [crossplane]
   docker_images: []
+  packages: []
 - slug: pulsar
   display_name: Apache Pulsar
   github: apache/pulsar
@@ -795,12 +905,14 @@
   endoflife: apache-pulsar
   aliases: [pulsar, apache/pulsar]
   docker_images: []
+  packages: []
 - slug: redpanda
   display_name: Redpanda
   github: redpanda-data/redpanda
   website: https://redpanda.com
   aliases: [redpanda]
   docker_images: []
+  packages: []
   identity:
     status: VERIFIED
     source: "redpanda-data/redpanda is the only Redpanda repo; Redpanda is an independent streaming platform, not an Apache Kafka distribution"
@@ -814,6 +926,8 @@
   website: https://mariadb.org
   aliases: [mariadb]
   docker_images: []
+  # PyPI `mariadb` is MariaDB Connector/Python, a separate product
+  packages: []
   identity:
     status: VERIFIED
     source: "mariadb/server is the MariaDB Server repo; MariaDB is a community fork of MySQL maintained as a distinct project"
@@ -827,36 +941,42 @@
   website: https://www.cockroachlabs.com
   aliases: [cockroach, cockroachdb]
   docker_images: []
+  packages: []
 - slug: tidb
   display_name: TiDB
   github: pingcap/tidb
   website: https://pingcap.com
   aliases: [tidb]
   docker_images: []
+  packages: []
 - slug: timescaledb
   display_name: TimescaleDB
   github: timescale/timescaledb
   website: https://www.timescale.com
   aliases: [timescaledb, timescale]
   docker_images: []
+  packages: []
 - slug: crio
   display_name: CRI-O
   github: cri-o/cri-o
   website: https://cri-o.io
   aliases: [crio, cri-o]
   docker_images: []
+  packages: []
 - slug: buildkit
   display_name: BuildKit
   github: moby/buildkit
   website: https://docs.docker.com/build/buildkit/
   aliases: [buildkit]
   docker_images: []
+  packages: []
 - slug: itext
   display_name: iText
   github: itext/itext-java
   website: https://itextpdf.com
   aliases: [itext, itext7, itext-java, itext-core, com.itextpdf/itext-core, com.itextpdf/kernel]
   docker_images: []
+  packages: [{ecosystem: Maven, name: "com.itextpdf/itextpdf"}, {ecosystem: Maven, name: "com.itextpdf/itext7-core"}, {ecosystem: Maven, name: "com.itextpdf/itext-core"}, {ecosystem: Maven, name: "com.itextpdf/kernel"}, {ecosystem: Maven, name: "com.itextpdf/io"}, {ecosystem: Maven, name: "com.itextpdf/layout"}, {ecosystem: Maven, name: "com.itextpdf/forms"}, {ecosystem: Maven, name: "com.itextpdf/sign"}, {ecosystem: Maven, name: "com.itextpdf/pdfa"}]
   identity:
     status: VERIFIED
     source: "com.itextpdf is the Maven groupId for iText and itext/itext-java is the current repo name (itext/itext7 redirects there)"

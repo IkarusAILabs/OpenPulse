@@ -208,3 +208,51 @@ def test_redis_py_end_of_life_is_not_the_servers():
     unknown_eco = {"kind": "package", "package": "redis", "ecosystem": "Maven", "version": "6.2.0"}
     assert check_dependency(client, [event]).relationship == "UNKNOWN"
     assert check_dependency(unknown_eco, [event]).relationship == "RELATED"
+
+
+#: Ecosystem names as the readers emit them (manifest, lockfile, SBOM).
+_ECOSYSTEMS = {"PyPI", "npm", "Maven", "Go", "crates.io"}
+
+
+def test_every_catalog_entry_curates_its_packages():
+    """Package curation (2026-10-30): every entry states which packages ARE
+    the project, possibly none. A new entry without the list would let a
+    same-named package of another ecosystem resolve to it by name (F1)."""
+    from core.entities.catalog import load_catalog, package_name_key
+
+    claimed = {}
+    for entry in load_catalog():
+        assert "packages" in entry, entry["slug"]
+        for package in entry["packages"]:
+            assert package["ecosystem"] in _ECOSYSTEMS, (entry["slug"], package)
+            name = str(package["name"])
+            assert name == name.strip() and "@" not in name.lstrip("@"), (entry["slug"], name)
+            if package["ecosystem"] == "Maven":
+                assert name.count("/") == 1 and ":" not in name, (entry["slug"], name)
+            key = package_name_key(package["ecosystem"], name)
+            assert claimed.setdefault(key, entry["slug"]) == entry["slug"], key
+
+
+def test_registry_name_collisions_resolve_per_ecosystem():
+    from core.entities.identity import package_trust
+
+    resolved = {
+        ("npm", "@angular/core"): "angular",
+        ("PyPI", "torch"): "pytorch",
+        ("Maven", "org.apache.kafka:kafka-clients"): "kafka",
+        ("Maven", "com.itextpdf:sign"): "itext",
+        ("PyPI", "apache-airflow"): "airflow",
+        ("crates.io", "serde"): "serde",
+    }
+    for (ecosystem, name), slug in resolved.items():
+        assert package_trust(name, ecosystem)["slug"] == slug, (ecosystem, name)
+    # Same names, different projects: unresolved, never the server or framework.
+    for ecosystem, name in [
+        ("npm", "angular"),  # AngularJS 1.x
+        ("PyPI", "kubernetes"),  # the Python client
+        ("PyPI", "kafka"),  # an old kafka-python name
+        ("npm", "mongodb"),  # the Node.js driver
+        ("PyPI", "pytorch"),  # a placeholder
+        ("PyPI", "elasticsearch"),  # the Python client
+    ]:
+        assert package_trust(name, ecosystem)["via"] == "self", (ecosystem, name)

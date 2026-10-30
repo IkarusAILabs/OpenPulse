@@ -36,7 +36,18 @@ def test_golden_itext_license():
     event = _load("itext-license")
     assert event.event_type.value == "LICENSE_CHANGE"
     assert event.confidence.value == "CONFIRMED"
-    dep = {"kind": "package", "package": "itext-core", "ecosystem": "Maven", "version": "8.0.2"}
+    # FLIPPED (package curation, 2026-10-30): with a Maven ecosystem a
+    # package is identified by its groupId:artifactId coordinate, the form
+    # manifests and SBOMs emit. A bare `itext-core` is no Maven coordinate,
+    # so it is unresolved (RELATED, never a clearance), not iText.
+    dep = {
+        "kind": "package",
+        "package": "com.itextpdf:itext-core",
+        "ecosystem": "Maven",
+        "version": "8.0.2",
+    }
+    bare = {**dep, "package": "itext-core"}
+    assert check_dependency(bare, [event]).relationship == "RELATED"
     result = check_dependency(dep, [event])
     assert result.affected is True
     assert result.relationship == "AFFECTS_PACKAGE"
