@@ -723,9 +723,11 @@
   packages: []
 - slug: react
   display_name: React
-  github: facebook/react
+  # Moved from facebook/react (observed 2026-10-30, OWNERSHIP_CHANGE in
+  # reports/2026-11-openpulse.md); the old path stays an alias.
+  github: react/react
   website: https://react.dev
-  aliases: [react]
+  aliases: [react, facebook/react]
   docker_images: []
   packages: [{ecosystem: npm, name: "react"}, {ecosystem: npm, name: "react-dom"}]
 - slug: vue
