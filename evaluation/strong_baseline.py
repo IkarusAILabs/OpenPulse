@@ -152,13 +152,31 @@ def _test(dep: dict[str, Any], event: OSSEvent) -> set[str]:
         if is_image:
             results.add(Z if relation == "other" else U)
         else:
-            mine = package_name_key(ecosystem or "generic", str(dep["package"]))[1]
-            names = {package_name_key(ecosystem or "generic", p)[1] for p in scope.packages}
-            project_element = event.project_slug.lower() in {p.lower() for p in scope.packages}
-            if mine in names or (project_element and relation == "project"):
-                results.add(M)  # by name, or as a curated package of a named project (F2)
-            else:
-                results.add(Z if relation == "other" else U)
+            stated = bool(ecosystem) and ecosystem != "generic"
+            exact = oracle.canonical_package(ecosystem, str(dep["package"])) if stated else None
+            bare = [p for p in scope.packages if not p.startswith("pkg:")]
+            for value in scope.packages:
+                if not value.startswith("pkg:"):
+                    continue
+                key = oracle.parse_package_purl(value)  # F3: names one package
+                if key is not None and key == exact:
+                    results.add(M)
+                elif relation == "other":
+                    results.add(Z)
+                elif key is None or exact is None:
+                    results.add(U)
+                else:
+                    results.add(N if key[0] != exact[0] else U)
+            if bare:
+                mine = package_name_key(ecosystem or "generic", str(dep["package"]))[1]
+                names = {package_name_key(ecosystem or "generic", p)[1] for p in bare}
+                project_element = event.project_slug.lower() in {p.lower() for p in bare}
+                if relation != "project":
+                    results.add(Z if relation == "other" else U)  # bare: identity first (F3)
+                elif mine in names or project_element:
+                    results.add(M)  # by name, or as a curated package of a named project (F2)
+                else:
+                    results.add(U)
     elif kind == "version":
         if relation != "project":
             results.add(Z if relation == "other" else U)

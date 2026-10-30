@@ -132,12 +132,24 @@ A package *may* be the same object as a source-repository element (one on `githu
 - If `d` is a package: **?** if it has no version.
 - Then **M** if the version is in the line, **N** if not, and **?** if the comparison is undetermined.
 
-### 4.4 `package` element `x` (value: a package name)
+### 4.4 `package` element `x` (value: a package)
+
+A value is either **ecosystem-qualified**, written as a package URL without a version (`pkg:pypi/redis`, `pkg:npm/%40angular/core`, `pkg:maven/com.itextpdf/kernel`), or **bare** (`redis`). A dependency may state its `ecosystem` (PyPI, npm, Maven, Go). A stated ecosystem of `generic` counts as not stated.
+
+Names compare in **canonical form**: lowercase; PyPI folds runs of `-`, `_` and `.` to `-` (PEP 503); a Maven `groupId:artifactId` equals `groupId/artifactId`. The purl types read are `pypi`, `npm`, `maven` and `golang` (Go). The name of a purl with a namespace is `namespace/name`, after percent-decoding.
 
 - If `d` is an image: apply §4.1. A package element cannot name the same object as an image.
-- If `d`'s package name equals `x`: **M**. Names compare in canonical form: lowercase; when the ecosystem is known, PyPI names fold runs of `-`, `_` and `.` to `-` (PEP 503), and a Maven `groupId:artifactId` equals `groupId/artifactId`. Kit cases state no ecosystem, so for them this is a case-insensitive comparison.
-- **Project package element (F2).** If `x` is the event's own project (`x` equals `e.project`, case-insensitive), it denotes every package that a curated mapping assigns to that project. It is exact: the producer claims that all of the project's packages are in scope. The result is **M** if identity is *project*, **0** if *other*, and **?** if *unresolved*.
-- Otherwise **0** if identity is *other*, else **?**. Canonical folding does not cover npm scopes, Go module paths or other forms, so inequality alone never excludes.
+- **Qualified value (F3).** It names exactly one package, so it decides on (ecosystem, name) before identity:
+  - **M** if `d` states an ecosystem and its canonical (ecosystem, name) equals the value's. This holds whatever `d`'s identity: the event names this very package;
+  - else **0** if identity is *other*;
+  - else **?** if the value does not parse, carries a version, has an unsupported type, or `d` states no ecosystem;
+  - else **N** if the ecosystems differ (a package of another ecosystem is another object);
+  - else **?** (same ecosystem, different name: names are not fully canonical).
+- **Bare value.** It carries no ecosystem, so identity decides first. A bare `redis` cannot tell PyPI `redis` (redis-py) from the Redis server.
+  - **0** if identity is *other*, **?** if *unresolved*;
+  - **M** if `d`'s canonical name equals the value;
+  - **M** if the value is the event's own project (`x` equals `e.project`, case-insensitive). This is a **project package element (F2)**: it denotes every package that a curated mapping assigns to that project, and it is exact, since the producer claims all of the project's packages are in scope;
+  - otherwise **?**. Inequality alone never excludes.
 
 ### 4.5 `registry` element `x` (value: a registry host)
 
@@ -197,5 +209,6 @@ These are recorded, not hidden. Challenge any of them:
 - OCI object levels (index, manifest, layer) are not compared. Unequal digests are therefore **?**.
 - The version-like grammar and the release-prefix rule are generic. They are not any ecosystem's own ordering.
 - Package-name folding covers PyPI and Maven spelling only (npm scopes, Go module paths and other forms are not modelled), hence §4.4's **?** on inequality.
-- **F3, the order of name and identity.** §4.4 decides on name equality before identity. The implementation resolves identity first, so an *unresolved* package whose name is listed gives **?**, not **M**. The kit cannot show this, since its listed names are curated. The implementation's order is the safer one: scope package values carry no ecosystem, so a name-first rule would make PyPI `redis` (redis-py, the client) a member of a Redis server event that lists `redis`. The likely repair is ecosystem-qualified package values. Until then, treat name equality as **M** only when identity is not *unresolved*. Comment on which you think is right.
+- **Resolved (F3): the order of name and identity.** Qualified values decide on (ecosystem, name) first; bare values on identity first (§4.4). Bare values remain in existing events, so a producer that can state an ecosystem should.
+- **F4: an uncatalogued event project.** The implementation treats a package that resolves only to itself, and whose name equals the event's project, as that project. That is the package-side twin of D10, which made such image references **?**. The kit cannot show it, because every kit project is curated. In the specification its identity is *unresolved*.
 - A `verified` completeness state is defined, but nothing produces it. A `declared` scope is a producer's assertion, admitted here when it has a basis.

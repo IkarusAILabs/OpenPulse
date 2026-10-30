@@ -6,6 +6,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Ecosystem-qualified package scopes (F3).** A package-scope value may be a purl without a version (`pkg:pypi/redis`). It names exactly one package: a dependency of that ecosystem and name is AFFECTS_PACKAGE whatever its curated project, a package of another ecosystem is excluded (only from a scope declared complete with a basis), and anything unreadable is undetermined. Bare values keep working and are read through curated identity.
 - **Evidence contract 1.2.0: what a verdict does and does not assert** (TR-2026-01 sections 5.1-5.2, ROADMAP R-B6). Every document now carries three new things:
   - `verdict_meaning`: direct scope membership as a closed vocabulary; embedded components, availability, maintenance and security consequence marked `not_evaluated`; and a fixed statement with no upstream text;
   - `scope.completeness`: whether the scope was declared complete, its basis, and whether that admits a negative;

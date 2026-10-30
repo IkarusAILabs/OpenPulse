@@ -75,6 +75,30 @@ def package_name_key(ecosystem: str, name: str) -> tuple[str, str]:
     return eco, key
 
 
+def qualified_package(value: str) -> tuple[str, str] | None:
+    """A package-scope value written as a purl -> canonical (ecosystem, name).
+
+    ``pkg:pypi/redis`` names exactly one package (TR-2026-01 F3). None for
+    a purl that does not parse, maps to no supported ecosystem, or carries
+    a version: a scope value names a package, and versions belong in a
+    version scope. Callers treat None as undetermined, never as exclusion.
+    """
+    from core.sbom_reader import _dep_from_purl, _split_purl
+
+    parts = _split_purl(value)
+    if parts is None or parts["version"]:
+        return None
+    dep, _ = _dep_from_purl(value)
+    if dep is None or dep.get("kind") != "package":
+        return None
+    return package_name_key(str(dep["ecosystem"]), str(dep["package"]))
+
+
+def is_qualified(value: str) -> bool:
+    """Is a package-scope value ecosystem-qualified (a purl)?"""
+    return str(value).startswith("pkg:")
+
+
 def package_map(catalog: list[dict[str, Any]] | None = None) -> dict[tuple[str, str], str]:
     """(ecosystem, name) -> slug, from `packages` lists and `osv` blocks.
 

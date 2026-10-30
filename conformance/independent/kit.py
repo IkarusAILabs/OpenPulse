@@ -40,7 +40,7 @@ sys.path.insert(0, str(HERE.parent))
 import oracle  # noqa: E402
 import randomized  # noqa: E402
 
-from core.entities.identity import resolution_trust  # noqa: E402
+from core.entities.identity import package_trust, resolution_trust  # noqa: E402
 from core.risk.check import check_dependency  # noqa: E402
 
 SPEC = HERE / "SPEC.md"
@@ -49,6 +49,7 @@ VOCABULARY = HERE / "vocabulary.json"
 PER_EVENT = ("AFFECTS", "RELATED", "AFFECTS_PROJECT", "NOT_AFFECTED", "UNKNOWN", "UNLOADED")
 SUMMARIES = ("affected", "unresolved", "cleared", "no association")
 SCOPE_KINDS = ("artifact", "release_line", "package", "registry")
+ECOSYSTEMS = ("PyPI", "npm", "Maven", "Go")
 COMPLETENESS = ("partial", "declared")
 BASES = (None, "definitional", "announced", "corroborated", "verified")
 ADMISSIBILITY = ("current", "withdrawn", "superseded", "contested", "stale")
@@ -81,7 +82,10 @@ def spec_sha256() -> str:
 
 def _curated_project(dep: dict[str, Any]) -> str | None:
     """The project the catalog's curated mappings assign, or None."""
-    trust = resolution_trust(str(dep["ref"] if dep["kind"] == "image" else dep["package"]))
+    if dep["kind"] == "package":
+        trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    else:
+        trust = resolution_trust(str(dep["ref"]))
     if trust["via"] in ("explicit", "catalog") and trust["identity_status"] == "VERIFIED":
         return str(trust["slug"])
     return None
@@ -102,6 +106,8 @@ def validate_case(case: Any) -> list[str]:
         errors.append(f"{cid}: an image dependency needs a string ref")
     if dep["kind"] == "package" and not isinstance(dep.get("package"), str):
         errors.append(f"{cid}: a package dependency needs a string package")
+    if dep.get("ecosystem") not in (None, "", *ECOSYSTEMS):
+        errors.append(f"{cid}: dependency.ecosystem must be one of {ECOSYSTEMS} or absent")
     if errors:
         return errors
     curated = _curated_project(dep)
@@ -213,6 +219,7 @@ def team_oracle(case: dict[str, Any]) -> dict[str, Any]:
             package=dep.get("package", ""),
             version=dep.get("version"),
             identity=_identity(case, ev["project"]),
+            ecosystem=dep.get("ecosystem") or "",
         )
         o_event = oracle.Event(
             ev["project"],
@@ -242,7 +249,10 @@ def _impl_event(ev: dict[str, Any]) -> dict[str, Any]:
 def implementation(case: dict[str, Any]) -> dict[str, Any]:
     dep = dict(case["dependency"])
     if dep["kind"] == "package":
-        dep["ecosystem"] = ""  # identities are by name, as the vocabulary defines them
+        # Without an ecosystem a package is identified by name, as the
+        # vocabulary's `packages` table defines it; with one, by its
+        # `ecosystem_packages` table.
+        dep.setdefault("ecosystem", "")
     events = [randomized.implementation_event(_impl_event(ev)) for ev in case["events"]]
     verdict = check_dependency(
         dep, events, as_of=randomized.AS_OF, max_evidence_age=randomized.MAX_AGE

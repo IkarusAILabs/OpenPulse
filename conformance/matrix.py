@@ -60,6 +60,11 @@ PACKAGES = [
     ("redis-server", "7.2.0", "project"),  # a name that is not the slug (F2)
     ("mysql", "8.0.1", "other"),
     ("zzzpkg", "1.0", "unresolved"),
+    # With a stated ecosystem (F3): PyPI `redis` is redis-py and npm `redis`
+    # node-redis, both curated as other projects; PyPI `mysql` is unmapped.
+    ("redis", "6.2.0", "other", "PyPI"),
+    ("redis", "4.6.0", "other", "npm"),
+    ("mysql", "8.0.1", "unresolved", "PyPI"),
 ]
 
 #: Scopes, each as (label, implementation scope kind, values, named artifacts).
@@ -84,6 +89,10 @@ SCOPES = [
     ("release line 7", "version", ["7"], []),
     ("package redis", "package", ["redis"], []),
     ("package redis-py", "package", ["redis-py"], []),
+    ("package zzzpkg (bare)", "package", ["zzzpkg"], []),
+    ("package pkg:pypi/redis", "package", ["pkg:pypi/redis"], []),
+    ("package pkg:npm/redis", "package", ["pkg:npm/redis"], []),
+    ("package pkg:pypi/mysql + bare redis", "package", ["pkg:pypi/mysql", "redis"], []),
     ("registry docker.io", "registry", ["docker.io"], []),
     ("registry ghcr.io", "registry", ["ghcr.io"], []),
 ]
@@ -177,7 +186,11 @@ def classify(spec: str, impl: str) -> str:
 
 def cases():
     deps = [oracle.Dependency("image", ref=r, identity=i) for r, i in IMAGES]
-    deps += [oracle.Dependency("package", package=p, version=v, identity=i) for p, v, i in PACKAGES]
+    deps += [
+        oracle.Dependency("package", package=p, version=v, identity=i, ecosystem=e)
+        for p, v, i, *rest in PACKAGES
+        for e in [rest[0] if rest else ""]
+    ]
     for (label, kind, values, named), (clabel, chi, basis), adm in itertools.product(
         SCOPES, COMPLETENESS, ADMISSIBILITY
     ):
@@ -204,9 +217,9 @@ def run() -> dict:
             impl_dep = {
                 "kind": "package",
                 "package": dep.package,
-                # No ecosystem: the matrix's packages stand for the projects
-                # named in PACKAGES, by name. PyPI `redis` is redis-py (F1).
-                "ecosystem": "",
+                # Without an ecosystem the package stands for the project of
+                # its name; with one, PACKAGES records its curated identity.
+                "ecosystem": dep.ecosystem,
                 "version": dep.version,
             }
         stale = case["admissibility"] == "stale"

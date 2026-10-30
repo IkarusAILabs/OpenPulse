@@ -75,7 +75,8 @@ Put everything in one directory, `conformance/independent/submissions/<your-hand
 }
 ```
 
-- **`dependency`:** either `{"kind": "image", "ref": ...}` or `{"kind": "package", "package": ..., "version": ...}`; the `version` may be omitted or null.
+- **`dependency`:** either `{"kind": "image", "ref": ...}` or `{"kind": "package", "package": ..., "version": ..., "ecosystem": ...}`. The `version` and `ecosystem` may be omitted or null. A stated `ecosystem` (PyPI, npm, Maven, Go) changes identity: look the package up in `ecosystem_packages`, not `packages`.
+- **Package-scope values** may be bare (`redis`) or ecosystem-qualified purls without a version (`pkg:pypi/redis`); see SPEC §4.4.
 - **`belongs_to`:** the project a curated mapping assigns, or `null`. It must match `vocabulary.json`, because the implementation resolves identity from its catalog, and a mismatch would compare two different questions. Tags, digests and versions are free; only the repository path or package name must come from the vocabulary. If you need a reference that is not there, ask: the team will add one, curated or unmapped as you specify.
 - **`events[].scope`:** either `null` (a project-wide event) or one kind (`artifact`, `release_line`, `package` or `registry`) with a non-empty list of values. `artifact` values are references, including namespace forms such as `docker.io/library/*` and the tag predicates `:<version>` and `:*`.
 - **`completeness`:** `partial` (the default) or `declared`. A `basis` is required for a negative to be admissible, and is `null` when `completeness` is `partial`.

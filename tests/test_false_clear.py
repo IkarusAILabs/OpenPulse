@@ -879,3 +879,40 @@ def test_f2_package_names_compare_in_canonical_form():
     assert rel("com.itextpdf:kernel", "Maven", itext) == "AFFECTS_PACKAGE"
     assert rel("com.itextpdf:sign", "Maven", itext) == "RELATED"  # listed by name only
     assert rel("Apache.Airflow", "PyPI", airflow) == "AFFECTS_PACKAGE"
+
+
+def _package_scope(values, exhaustive=True):
+    scope = Scope(
+        kind="package",
+        packages=values,
+        exhaustive=exhaustive,
+        basis="definitional" if exhaustive else None,
+    )
+    return _event("f3", scope=scope).model_copy(update={"project_slug": "redis"})
+
+
+def _rel(package, ecosystem, event):
+    dep = {"kind": "package", "package": package, "ecosystem": ecosystem, "version": "6.2.0"}
+    return check_dependency(dep, [event]).relationship
+
+
+def test_f3_qualified_value_names_exactly_one_package():
+    """F3: `pkg:pypi/redis` is redis-py, whatever project the event is about;
+    a bare `redis` in a Redis server event is not redis-py."""
+    assert _rel("redis", "PyPI", _package_scope(["pkg:pypi/redis"])) == "AFFECTS_PACKAGE"
+    assert _rel("redis", "npm", _package_scope(["pkg:pypi/redis"])) == "UNKNOWN"  # node-redis
+    assert _rel("redis", "PyPI", _package_scope(["redis"])) == "UNKNOWN"  # bare: identity first
+
+
+def test_f3_another_ecosystem_excludes_only_from_a_complete_scope():
+    unmapped = ("zzzpkg", "PyPI")
+    assert _rel(*unmapped, _package_scope(["pkg:npm/zzzpkg"])) == "NOT_AFFECTED"
+    assert _rel(*unmapped, _package_scope(["pkg:npm/zzzpkg"], exhaustive=False)) == "RELATED"
+    # One bare value is enough to leave it undetermined.
+    assert _rel(*unmapped, _package_scope(["pkg:npm/zzzpkg", "other"])) == "RELATED"
+
+
+def test_f3_unreadable_qualified_values_are_undetermined_never_exclusions():
+    for value in ("pkg:pypi/zzzpkg@1.0", "pkg:nuget/zzzpkg", "pkg:"):
+        assert _rel("zzzpkg", "PyPI", _package_scope([value])) == "RELATED", value
+    assert _rel("zzzpkg", "", _package_scope(["pkg:npm/zzzpkg"])) == "RELATED"  # no ecosystem

@@ -97,7 +97,16 @@ class Scope(BaseModel):
     kind: Literal["project", "package", "artifact", "version", "registry"] = "project"
     versions: list[str] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
-    packages: list[str] = Field(default_factory=list)
+    packages: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Package-scope values. A purl without a version (pkg:pypi/redis) names "
+            "exactly one package of one ecosystem; a bare name (redis) carries no "
+            "ecosystem and is read through the dependency's curated identity. A bare "
+            "value equal to the event's project covers every package curated as it "
+            "(TR-2026-01 F2, F3)."
+        ),
+    )
     registries: list[str] = Field(default_factory=list)
     exhaustive: bool = Field(
         default=False,

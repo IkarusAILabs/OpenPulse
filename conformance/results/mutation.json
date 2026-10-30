@@ -181,6 +181,16 @@
    "caught_without_regression_tests": true
   },
   {
+   "mutant": "F3",
+   "reintroduces": "an ecosystem-qualified value matches by name alone",
+   "matrix": true,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
    "mutant": "Package",
    "reintroduces": "package-name inequality excludes",
    "matrix": true,
@@ -201,9 +211,9 @@
    "caught_without_regression_tests": true
   }
  ],
- "caught": 20,
- "total": 20,
- "caught_without_regression_tests": 20,
+ "caught": 21,
+ "total": 21,
+ "caught_without_regression_tests": 21,
  "not_reinjected": {
   "D2": "union of OSV intervals: a multi-line walk, not a one-function change",
   "D5": "heuristic exclusion: subsumed by D10 and S2 in the current resolver",

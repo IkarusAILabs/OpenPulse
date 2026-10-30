@@ -1,5 +1,5 @@
 {
- "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. Projects with events: redis, mysql.",
+ "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. A package without an ecosystem is identified by name (packages); with one, by ecosystem_packages. Projects with events: redis, mysql.",
  "projects": {
   "redis": {
    "release_lines_seen": [
@@ -38,5 +38,17 @@
   "docker.io",
   "ghcr.io",
   "github.com"
+ ],
+ "ecosystem_packages": {
+  "PyPI:redis": "redis-py",
+  "npm:redis": "node-redis",
+  "PyPI:mysql": null,
+  "PyPI:zzzpkg": null
+ },
+ "qualified_scope_values_seen": [
+  "pkg:pypi/redis",
+  "pkg:npm/redis",
+  "pkg:pypi/mysql",
+  "pkg:maven/com.acme/redis"
  ]
 }

@@ -154,10 +154,12 @@ MUTANTS = [
         "unmapped packages are unrelated",
         "core.risk.check",
         "_scope_cause",
-        """        if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
-            return None  # curated as another project: no association""",
-        """        if True:
-            return None  # curated as another project: no association""",
+        """        trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated"
+    ):
+        return None  # curated as another project: no association""",
+        """        True
+    ):
+        return None  # curated as another project: no association""",
     ),
     (
         "D14",
@@ -206,6 +208,14 @@ MUTANTS = [
         "_scope_cause",
         "        if event.project_slug.lower() in {str(p).lower() for p in scope.packages}:",
         "        if False:",
+    ),
+    (
+        "F3",
+        "an ecosystem-qualified value matches by name alone",
+        "core.risk.check",
+        "_qualified_results",
+        "        elif key == mine:",
+        "        elif key[1] == mine[1]:",
     ),
     (
         "Package",

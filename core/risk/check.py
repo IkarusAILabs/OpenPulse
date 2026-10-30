@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
-from core.entities.catalog import package_name_key
+from core.entities.catalog import is_qualified, package_name_key, qualified_package
 from core.entities.identity import UNRESOLVED_IDENTITY, package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
@@ -190,12 +190,82 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
     }
 
 
+def _qualified_results(dep: dict[str, Any], event: OSSEvent) -> list[str]:
+    """Element results for ecosystem-qualified package-scope values (F3).
+
+    A purl value names exactly one package, so it decides by (ecosystem,
+    canonical name) before identity: M when equal; N when the dependency
+    is a package of a different ecosystem (never the same object); ?
+    when the dependency states no ecosystem, the value does not parse,
+    or only the name differs (names are not fully canonical).
+    """
+    scope = event.scope
+    if scope is None or scope.kind != "package":
+        return []
+    ecosystem = str(dep.get("ecosystem") or "").strip()
+    mine = package_name_key(ecosystem, str(dep["package"])) if ecosystem else None
+    results = []
+    for value in scope.packages:
+        if not is_qualified(value):
+            continue
+        key = qualified_package(str(value))
+        if key is None or mine is None or ecosystem.lower() == "generic":
+            results.append("?")
+        elif key == mine:
+            results.append("M")
+        elif key[0] != mine[0]:
+            results.append("N")
+        else:
+            results.append("?")
+    return results
+
+
 def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
     slug = trust["slug"]
+    qualified = _qualified_results(dep, event)
+    exact = {
+        "cause": "upstream_change",
+        "event_id": event.id,
+        "event_type": event.event_type.value,
+        "project": event.project_slug,
+        "impact": event.impact.value,
+        "evidence": [e.source.name for e in event.evidences],
+        "evidence_confidence": event.confidence.value,
+        "match_method": "event_scope_package",
+    }
+    if "M" in qualified:
+        # The event names this exact (ecosystem, package): self-identity,
+        # no mapping involved, whatever the catalog says.
+        return {
+            **exact,
+            "identity_status": "VERIFIED",
+            "identity_via": "exact-artifact",
+            "relationship": "AFFECTS_PACKAGE",
+            "affected": True,
+            "reason": f"{dep['ecosystem']} package {dep['package']} is named in event scope "
+            f"packages {event.scope.packages}",
+        }
+    if slug != event.project_slug and (
+        trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated"
+    ):
+        return None  # curated as another project: no association
+    bare = [p for p in (event.scope.packages if qualified else []) if not is_qualified(p)]
+    if qualified and not bare and set(qualified) == {"N"}:
+        # Every value names a package of another ecosystem: an exclusion by
+        # object kind, not by identity, so it needs no resolved identity.
+        # Admissibility (complete scope, basis, currency) is applied by
+        # _event_scope_cause.
+        return {
+            **exact,
+            "identity_status": trust["identity_status"],
+            "identity_via": trust["via"],
+            "relationship": "NOT_AFFECTED",
+            "affected": False,
+            "reason": f"{dep['ecosystem']} package {dep['package']} is not a package of the "
+            f"ecosystems named in event scope packages {event.scope.packages}",
+        }
     if slug != event.project_slug:
-        if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
-            return None  # curated as another project: no association
         if event.scope is not None and event.scope.kind in ("artifact", "registry"):
             # Container-image and registry scopes name locations a package
             # reference never is: no association, whatever its identity.
@@ -289,7 +359,9 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
         # Names compare in canonical form: lowercase, PEP 503 folding for
         # PyPI, Maven groupId:artifactId = groupId/artifactId.
         ecosystem = str(dep.get("ecosystem") or "generic")
-        names = {package_name_key(ecosystem, str(p))[1] for p in scope.packages}
+        names = {
+            package_name_key(ecosystem, str(p))[1] for p in scope.packages if not is_qualified(p)
+        }
         if package_name_key(ecosystem, str(dep["package"]))[1] in names:
             return {
                 **base,
