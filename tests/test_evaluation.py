@@ -7,7 +7,7 @@ change in them is a deliberate, reviewed flip.
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -226,3 +226,96 @@ def test_dev_set_f1_redis_py_is_not_the_redis_server(dev):
     row = next(r for r in dev["pairs"]["C-openpulse"] if r["case"] == "re-06")
     assert (row["label"], row["relationship"]) == ("out_of_scope", "UNKNOWN")
     assert dev["policies"]["C-openpulse"]["overall"]["false_impact_rate"] == 0.0
+
+
+# --- policy V, the strong conservative baseline (R-B4) ------------------------
+
+
+def test_strong_baseline_clears_only_from_an_admissible_complete_scope():
+    import strong_baseline
+
+    event = _bitnami()
+    official = {"kind": "image", "ref": "docker.io/redis:7.2"}
+    assert strong_baseline.strong_conservative(official, [event])["outcome"] == "cleared"
+    scope = event.scope.model_copy(update={"exhaustive": False})
+    partial = event.model_copy(update={"scope": scope})
+    assert strong_baseline.strong_conservative(official, [partial])["outcome"] == "unresolved"
+
+
+def test_strong_baseline_withholds_negatives_from_stale_evidence():
+    import strong_baseline
+
+    event = _bitnami()
+    official = {"kind": "image", "ref": "docker.io/redis:7.2"}
+    later = datetime(2027, 6, 1, tzinfo=timezone.utc)
+    decision = strong_baseline.strong_conservative(
+        official, [event], as_of=later, max_evidence_age=timedelta(days=30)
+    )
+    assert decision["outcome"] == "unresolved"
+
+
+def test_strong_baseline_envelope_membership_is_not_a_positive():
+    import strong_baseline
+
+    latest = {"kind": "image", "ref": "docker.io/bitnami/redis:latest"}
+    assert strong_baseline.strong_conservative(latest, [_bitnami()])["outcome"] == "unresolved"
+
+
+def test_strong_baseline_uses_pep440_for_pypi_and_abstains_elsewhere():
+    import strong_baseline
+
+    assert strong_baseline._in_line("4.2.11", "4.2", "pypi") is True
+    assert strong_baseline._in_line("4.2rc1", "4.2", "pypi") is True
+    assert strong_baseline._in_line("4.20.1", "4.2", "pypi") is False
+    assert strong_baseline._in_line("1!4.2", "4.2", "pypi") is None  # epochs differ
+    assert strong_baseline._in_line("13.16", "13", "") is True
+    assert strong_baseline._in_line("13.16-alpine", "13", "") is None
+
+
+def test_strong_baseline_unresolved_identity_never_excluded():
+    import strong_baseline
+
+    event = replay.replay(
+        {
+            "source": "raw_bundle",
+            "fixture": "redis",
+            "event_type": "EOL",
+            "versions": ["6.2"],
+            "project": "redis",
+            "as_of": "2026-09-26",
+        }
+    )
+    mirror = {"kind": "image", "ref": "docker.io/zzz/kvstore:7.2"}
+    assert strong_baseline.strong_conservative(mirror, [event])["outcome"] == "unresolved"
+
+
+# --- identity ablation (R-B5) ----------------------------------------------------
+
+
+def test_identity_ablation_is_an_explicit_scoped_engine_switch():
+    from core.entities.identity import UNRESOLVED_IDENTITY
+    from core.risk.check import check_dependency
+
+    mirror = {"kind": "image", "ref": "github.com/etcd-io/etcd"}
+    event = replay.replay(
+        {
+            "source": "raw_bundle",
+            "fixture": "etcd-move",
+            "event_type": "OWNERSHIP_CHANGE",
+            "project": "etcd",
+            "as_of": "2026-10-06",
+        }
+    )
+    assert check_dependency(mirror, [event]).relationship == "RELATED"
+    ablated = check_dependency(mirror, [event], unresolved_identity="unrelated")
+    assert ablated.relationship == "UNKNOWN"
+    assert UNRESOLVED_IDENTITY.get() == "undetermined"  # reset after the call
+    with pytest.raises(ValueError):
+        check_dependency(mirror, [event], unresolved_identity="loose")
+
+
+def test_dev_set_identity_ablation_trades_abstention_for_silent_misses(dev):
+    full = dev["policies"]["C-openpulse"]["overall"]
+    ablated = dev["policies"]["C-ablate-identity"]["overall"]
+    assert ablated["abstention_rate"] < full["abstention_rate"]
+    assert full["silent_miss_rate"] == 0.0 < ablated["silent_miss_rate"]

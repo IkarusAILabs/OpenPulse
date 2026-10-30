@@ -25,6 +25,7 @@ self-identity, the strongest form.
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from typing import Any, Literal
 
 from core.entities.resolve import EXPLICIT_ALIASES, _bitnami_rule, _catalog_hit, normalize_ref
@@ -38,6 +39,14 @@ REVIEW_REQUIRED = "REVIEW_REQUIRED"
 UNVERIFIED = "UNVERIFIED"
 
 VALID_STATUSES = (VERIFIED, REVIEW_REQUIRED, UNVERIFIED)
+
+#: How a self-resolved (unmapped) reference is read. "undetermined" is the
+#: specification (TR-2026-01 D10, D13): it is neither excluded nor
+#: unrelated. "unrelated" reads self-resolution as a different project,
+#: the pre-D10 behaviour. It is unsound by design and exists only for the
+#: evaluation's identity ablation (ROADMAP R-B5); set it through
+#: ``check_dependency(unresolved_identity=...)``, never globally.
+UNRESOLVED_IDENTITY: ContextVar[str] = ContextVar("unresolved_identity", default="undetermined")
 
 
 def catalog_entry_for_slug(

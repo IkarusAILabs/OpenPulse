@@ -19,13 +19,13 @@ tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
-from core.entities.identity import package_trust, resolution_trust
+from core.entities.identity import UNRESOLVED_IDENTITY, package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
 from core.versions import in_release_line
@@ -193,7 +193,7 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
     slug = trust["slug"]
     if slug != event.project_slug:
-        if trust["via"] != "self":
+        if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
             return None  # curated as another project: no association
         if event.scope is not None and event.scope.kind in ("artifact", "registry"):
             # Container-image and registry scopes name locations a package
@@ -565,13 +565,33 @@ def check_dependency(
     *,
     as_of: datetime | None = None,
     max_evidence_age: timedelta | None = None,
+    unresolved_identity: Literal["undetermined", "unrelated"] = "undetermined",
 ) -> DependencyVerdict:
     """One dep vs events (+ optional raw bundles) -> explicit verdict.
 
     Withdrawn and superseded events are not evaluated. With ``as_of``
     and ``max_evidence_age`` both given, a negative from an event whose
     newest evidence is older than the bound becomes RELATED (stale).
+    ``unresolved_identity="unrelated"`` is the evaluation's identity
+    ablation (``core.entities.identity.UNRESOLVED_IDENTITY``): unsound by
+    design, never for production use.
     """
+    if unresolved_identity not in ("undetermined", "unrelated"):
+        raise ValueError(f"unresolved_identity: {unresolved_identity!r}")
+    token = UNRESOLVED_IDENTITY.set(unresolved_identity)
+    try:
+        return _check_dependency(dep, events, bundles, as_of, max_evidence_age)
+    finally:
+        UNRESOLVED_IDENTITY.reset(token)
+
+
+def _check_dependency(
+    dep: dict[str, Any],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None,
+    as_of: datetime | None,
+    max_evidence_age: timedelta | None,
+) -> DependencyVerdict:
     bundles = bundles or {}
     events = [event for event in events if event.is_current_record()]
     causes: list[Cause] = []
