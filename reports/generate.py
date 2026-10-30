@@ -789,7 +789,8 @@ def _executive_summary(
         f"- Background findings (effective over 12 months ago): {background}",
         "- Data gaps: "
         f"{_n(silent, 'project')} with no signals, {_n(held_back, 'record')} held back",
-        f"- What remains uncertain: {_n(unknown_dates, 'finding carries')} unknown dates, "
+        "- What remains uncertain: "
+        f"{_n(unknown_dates, 'finding carries', 'findings carry')} unknown dates, "
         f"{_n(held_back, 'record was', 'records were')} held back for weak evidence",
     ]
     return lines
