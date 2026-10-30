@@ -244,10 +244,26 @@ def test_osv_bundle_decides_an_uncatalogued_package_by_version(version, affected
 
 
 def test_unsafe_bundle_keys_are_reported_not_written():
-    dep = {"kind": "package", "package": "@colors/colors", "ecosystem": "npm", "version": "1.5.0"}
+    # npm `django` shares a name with a project whose packages are curated,
+    # so identity qualifies it as `npm:django`: not a safe file name.
+    dep = {"kind": "package", "package": "django", "ecosystem": "npm", "version": "1.0.0"}
     result = discover([dep], github=FakeGitHub, registries=FakeHub, osv=FakeOSV)
     assert result.bundles == {}
-    assert result.unmapped == [("@colors/colors", "no stable identity key for an OSV bundle")]
+    assert result.unmapped == [("django", "no stable identity key for an OSV bundle")]
+
+
+def test_scoped_npm_package_gets_its_own_bundle(monkeypatch):
+    """A scoped name used to resolve to the empty string, so it had no key."""
+    ADVISORIES[("@colors/colors", "npm")] = [
+        {**ADVISORIES[("colors", "npm")][0], "package": "@colors/colors"}
+    ]
+    try:
+        dep = {"kind": "package", "package": "@colors/colors", "ecosystem": "npm"}
+        result = discover([dep], github=FakeGitHub, registries=FakeHub, osv=FakeOSV)
+    finally:
+        del ADVISORIES[("@colors/colors", "npm")]
+    assert result.unmapped == []
+    assert list(result.bundles) == ["@colors/colors"]
 
 
 def test_cli_discover_writes_osv_bundles_check_reads(tmp_path, monkeypatch):
