@@ -53,6 +53,7 @@
 \newcommand{\currentcommit}{\code{a1ecc58}}
 \newcommand{\cachecommit}{\code{0174a26}}
 \newcommand{\agentcommit}{\code{323bb3c}}
+\newcommand{\evalcommit}{\code{56b88e5}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -98,8 +99,10 @@ clear by the event-scope engine, where a naive reading of the same
 events produced 35 in 10 events. It also exposed a silent-miss
 defect, a discovery gap and a false clear in the separate advisory
 path, each since addressed. Its labels are the developer's, so it is
-not an effectiveness result; we specify a prospective evaluation,
-drafted for registration, that would provide one.
+not an effectiveness result. We specify a prospective evaluation that
+would provide one. Its analysis code is implemented, including a
+baseline that reads the same events re-encoded as OSV and OpenVEX.
+Its registration awaits archiving.
 \end{abstract}
 
 \section{Introduction}
@@ -254,6 +257,8 @@ for them are from that run; where they differ from the audit
 snapshot, both are given. The retrospective
 study of Section~\ref{sec:retro} is pinned to its own freeze tag
 \code{retro-freeze-2026-10-30} (\code{3639a0f}), between the two. The
+evaluation code of Section~\ref{sec:evalplan} is described at
+\evalcommit{}, after \currentcommit{}. The
 latest tagged release, v0.7.1, predates the fixes. \op{} is released
 under the Apache License~2.0.
 
@@ -306,6 +311,11 @@ Agent freshness bound (\agentcommit{}, after \currentcommit{}) & The
 Evaluation & Strong baseline (v) with pinned comparators, an
   independent oracle kit, a registration draft and the retrospective
   study & -- \\
+Registered analysis (\evalcommit{}, after \currentcommit{}) & The
+  existing-representation baseline (vi) with written encoding rules;
+  tests S3 and G4; the burden (W1--W3) and input-reliability (D1--D2)
+  measures; the stopping rule and inclusion criteria
+  (Section~\ref{sec:evalplan}) & -- \\
 \bottomrule
 \end{tabularx}
 \caption{Changes from the audit snapshot \pincommit{} to the current
@@ -653,7 +663,8 @@ Identity, freshness and consistency in one decision &
 Implementation, audit and evaluation &
   Differential and mutation testing; prospective evaluation &
   An oracle written from the specification, a defect re-injection
-  suite, a registration draft, and an exploratory retrospective study
+  suite, a registration draft with its analysis code implemented, and
+  an exploratory retrospective study
   (Sections~\ref{sec:audit}, \ref{sec:evalplan} and~\ref{sec:retro}) &
   22 of 22 historical-defect and rule-disabling mutants caught. Retrospective: no false clear
   where a naive list reading had 35 (10 events). Pre-specified test not
@@ -2420,13 +2431,17 @@ and nothing in it is evidence of effectiveness. It fixes the metrics,
 annotation rules and analysis plan before any data are labelled,
 which reduces analytical flexibility but does not eliminate it. A
 registration draft now records the primary endpoint, the numeric
-margins, the guardrails, the sample-size reasoning and the analysis
+margins, the guardrails, the sample-size reasoning, the stopping rule,
+the inclusion criteria and the analysis
 code (\code{evaluation/REGISTRATION.md} and
 \code{evaluation/registration.py}), written before any held-out
 label exists; we call its values \emph{pre-specified}. It becomes a
 registered protocol only when it is archived (OSF Registries or Zenodo) with its registry
 identifier, freeze commit, event window and annotators filled in,
-before any held-out label exists. That has not happened yet. Before the
+before any held-out label exists. That has not happened yet. All of
+the analysis is implemented at \evalcommit{}: the baselines, the
+tests and guardrails, and the burden and reliability measures below.
+What remains before archiving is the registry record itself. Before the
 evaluation, the evaluated subset must enforce the full
 negative-admission policy, or abstain wherever it cannot. At
 \pincommit{} that holds with the gaps stated in
@@ -2611,8 +2626,8 @@ hides workload, so the draft adds three burden measures for \op{},
     cycle, counted over every reference of each participating
     inventory, which needs no labels;
   \item W2: unresolved references per event at risk;
-  \item W3: timed reviewer minutes per unresolved item, on a sample of
-    100.
+  \item W3: timed reviewer minutes per unresolved item, on a seeded
+    random sample of 50 of \op{}'s and 50 of (iv)'s unresolved items.
 \end{itemize}
 It also measures the premises of Lemma~\ref{lem:agg} on the held-out
 events, which oracle agreement cannot test. D1 has two annotators judge
@@ -2680,9 +2695,37 @@ with no loss, so that a poor encoding cannot flatter \op{}.
 The comparison chain (iv)$\to$(vi)$\to$(v)$\to$\op{} attributes
 resolution gains in turn to three sources: existing formats with a
 careful consumer, the typed model, and the engine. Each step is
-reported with its review cost (W1). Neither (vi) nor its encoding rules
-are implemented yet; the registration cannot be archived until they
-are. The comparison therefore evaluates matching
+reported with its review cost (W1).
+
+(vi) is implemented at \evalcommit{}. Its encoding rules
+(\code{evaluation/representations/ENCODING.md}) fix:
+\begin{itemize}[leftmargin=*,nosep]
+  \item which format each kind of change takes;
+  \item one purl construction, shared by the encoder and the consumer;
+  \item release-line boundaries per ecosystem. A line runs from its
+    lowest version to the next line's lowest, so npm's line 18 is
+    \code{18.0.0-0} to \code{19.0.0-0};
+  \item seven loss codes, from namespace scopes (L1) to subjects with
+    no format at all (L6).
+\end{itemize}
+Each event's encoding is frozen by SHA-256 before any policy runs, and
+the analysis refuses to run on an event without one. On the
+development set, six of 13 events were encoded. The developer encoded
+them after the other policies' results were known, so the figures
+illustrate the mechanism and are not evidence. Three encodings lost
+what decided their pairs: the Bitnami namespace (L1--L3), a server
+release line with no named package or image (L6), and a licence change
+that names a product rather than coordinates (L4). On the three
+lossless events (14 pairs), (vi) and \op{} each resolved 5 of 11
+decidable pairs. (vi) cleared a relocation's destination from an
+explicit \code{not\_affected} statement where \op{} abstained. \op{}
+decided an npm version that (vi) left unresolved, because that run
+had no pinned npm bridge. On that set, \op{}'s advantage over (vi)
+came from scopes the formats cannot express, not from reading the
+expressible ones better. S3 and (vi)'s results on lossless events
+test whether that holds.
+
+The comparison therefore evaluates matching
 and decision policy, not the whole intelligence pipeline, and its
 conclusion is stated that way. The ecosystem comparators are now
 pinned: \code{packaging} (hash-locked) for PEP~440, \code{node-semver}
@@ -2699,7 +2742,29 @@ and the coverage qualifier.
 feed \op{}: vendor and project announcements, distribution
 changelogs, and platform transfer and archival records, over an
 observation window that starts after the implementation freeze.
-Inclusion criteria are fixed per event class before sampling.
+The inclusion criteria are fixed before sampling. An event must meet
+all of these:
+\begin{itemize}[leftmargin=*,nosep]
+  \item a primary source states the change and its scope;
+  \item it is first observed in the window, and archived when first
+    observed;
+  \item its identifiers are machine-readable;
+  \item it is found outside \op{}'s own feeds, which may corroborate it
+    but not establish it;
+  \item a participating inventory references a project or artefact it
+    names, found by a name search, not a policy run.
+\end{itemize}
+Three kinds of event are excluded: events already studied, events
+whose extent no source defines, and events that any policy has seen
+before their case file is frozen. Each class states what counts as one
+event, which source dates it and what evidence is the minimum. No
+class contributes more than a quarter of the events.
+
+Collection stops at 80 included events. If fewer than 60 of them are
+at risk, it continues until 60 are. Whether an event is at risk is read
+from its adjudicated labels, and no policy runs before collection
+stops, so the stopping rule never depends on a result. At 80 events, a
+single false-clear event still fails H1 (bound $0.058$).
 Inventories come from collaborators and public projects that contain
 container images, distributions and embedded components. Pairs are
 drawn by stratified random sampling over event class and reference
@@ -2940,7 +3005,9 @@ abstains instead of clearing; it corresponds to the minimal reference
 (Section~\ref{sec:evalplan}). V is the strong conservative
 baseline~(v), compared with C by the equivalence test S1. C is \op{}.
 The registration draft's thresholds are applied below for
-illustration only.
+illustration only. Baseline (vi) is not applied here. The results on
+these events were known before any encoding could be written, so the
+encodings could not be blind.
 
 \begin{table}[t]
 \centering
@@ -3080,7 +3147,11 @@ dependents were found among repositories that still exist, and the
 fixtures were written by someone who knows the scope language. Its 27
 events cannot decide the pre-specified safety test, which needs 60. It
 measured the event-scope path only; the advisory path, which held a
-false-clear defect (Section~\ref{sec:retro}), was not exercised.
+false-clear defect (Section~\ref{sec:retro}), was not exercised. The
+existing-representation baseline (vi) is only as strong as its encoding
+rules and its encoder, and a weak encoding would flatter \op{}. That is
+why encoding loss is reported per event, and (vi) is also reported on
+the events with no loss.
 
 \paragraph{Soundness.} The lemma is conditional, and several premises
 are not established (Table~\ref{tab:premises}). The report shows that
@@ -3432,6 +3503,12 @@ the repository, though it covers every pin. All three are fixed in
     \code{retro-freeze-2026-10-30} (\code{3639a0f}); case file, its
     SHA-256, results and the CI workflow that reproduces them in
     \code{evaluation/retrospective/}.
+  \item Evaluation harness (Section~\ref{sec:evalplan}): \evalcommit{}
+    (\code{main}, 30 October 2026). \code{python evaluation/run.py}
+    reproduces the development-set illustration. The registered run
+    adds \code{--require-comparators --require-encodings}, with
+    \code{--inventories} and \code{--annotations} for W1--W3 and
+    D1--D2 (\code{evaluation/REGISTRATION.md} \S9).
   \item Environment: Python $\ge$3.10 with the hash-locked
     \code{requirements.lock}; all tests run offline. Intelligence
     schema 0.7.0, evidence contract v1.1 at \pincommit{} and 1.2.0 at
