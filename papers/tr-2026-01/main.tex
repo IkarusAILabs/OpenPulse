@@ -524,8 +524,9 @@ elements and $\chi$, the namespace element declared complete makes
 \code{bitnami/nginx} affected and clears \code{docker.io/redis}. The
 same five-element list with $\chi$ partial behaves like~(2). The
 difference between (2) and (3) is decisiveness at equal safety, not
-safety. That is exactly what the comparison with the strong conservative
-baseline in Section~\ref{sec:evalplan} measures. What (3) makes
+safety. The existing-representation baseline (vi) of
+Section~\ref{sec:evalplan} measures that difference. The strong
+conservative baseline (v) does not, because it already has~(3). What (3) makes
 machine-checkable is that the license to read absence as exclusion
 travels with the affected set, as data with a recorded basis, instead
 of living in each consumer's policy. A conservative consumer policy
@@ -2431,9 +2432,9 @@ negative-admission policy, or abstain wherever it cannot. At
 \pincommit{} that holds with the gaps stated in
 Section~\ref{sec:soundness}, and the evaluated configuration sets the
 freshness bound. The coverage cost of the policy, D10 and the
-package-name rule in particular, is among the first measurements, and
-it should be reported as unresolved references per inventory and per
-monitoring cycle, not only per pair.
+package-name rule in particular, is among the first measurements, and it
+is reported per inventory and per monitoring cycle (W1 below), not
+only per pair.
 Expanding this protocol further has diminishing
 returns. Conformance has been run (Section~\ref{sec:audit}). The next
 step is the primary applicability comparison, after the registration
@@ -2581,20 +2582,52 @@ one-sided 95\% lower bound above zero (4{,}000 resamples, fixed seed).
 At 60 events, one false-clear event already fails H1 (bound $0.077$).
 Secondary tests are Holm-corrected and never rescue a failed primary
 result: equivalence of \op{} and (v) within $\pm 0.05$ by two
-one-sided tests (S1), and the false-clear excess of the naive
-baseline (S2). Three guardrails are reported beside the verdict
-without changing it: silent misses at most $0.02$ of in-scope pairs
-(G1), \op{}'s unresolved rate at most (iv)'s plus $0.05$ (G2), and
-every class with an unresolved rate above $0.60$ flagged (G3). The
+one-sided tests (S1), the false-clear excess of the naive
+baseline (S2), and \op{}'s resolution gain over the
+existing-representation baseline (vi) (S3). Four guardrails are
+reported beside the verdict without changing it: silent misses at most
+$0.02$ of in-scope pairs (G1), \op{}'s unresolved rate at most (iv)'s
+plus $0.05$ (G2), every class with an unresolved rate above $0.60$
+flagged (G3), and \op{}'s median unresolved references per inventory
+and weekly cycle no higher than (iv)'s (G4). The
 registration states which of these values came from judgement. A
 result that improves coverage only by raising the false-clear rate
 beyond the margin counts as a failure.
 
+\paragraph{Scope of the claim.} The evaluated \op{} receives events
+and no advisory data, so the study concerns event-scope decisions
+only. The advisory path, which correlates OSV and NVD advisories by
+package and version, never runs. It is where the retrospective study
+found a false clear (Section~\ref{sec:retro}). Its evaluation needs a
+registration of its own, and advisories as they stood on each event's
+date, which \op{} has not recorded. No result of this protocol extends
+to it.
+
+\paragraph{Review burden and input reliability.} Per-pair abstention
+hides workload, so the draft adds three burden measures for \op{},
+(v), (vi) and (iv):
+\begin{itemize}[leftmargin=*,nosep]
+  \item W1: unresolved references per inventory and weekly monitoring
+    cycle, counted over every reference of each participating
+    inventory, which needs no labels;
+  \item W2: unresolved references per event at risk;
+  \item W3: timed reviewer minutes per unresolved item, on a sample of
+    100.
+\end{itemize}
+It also measures the premises of Lemma~\ref{lem:agg} on the held-out
+events, which oracle agreement cannot test. D1 has two annotators judge
+every completeness declaration that \op{} admits for a negative against
+its primary sources, and reports the under-inclusive rate per basis.
+An under-inclusive declaration is a false-clear risk whether or not a
+sampled pair hits it. D2 checks every curated identity mapping that a
+decisive verdict relies on, and reports the share that are wrong or
+stale. Both are reported with exact intervals and are not tests.
+
 \paragraph{Baselines.} The baselines are: (i)~direct metadata rules;
 (ii)~namespace-aware matching without completeness or identity caps;
 (iii)~curated feeds with SCA matching; (iv)~a \emph{minimal
-conservative reference}; and (v)~a \emph{strong conservative
-baseline}. Beating (ii) is expected by construction. The minimal
+conservative reference}; (v)~a \emph{strong conservative
+baseline}; and (vi)~an \emph{existing-representation baseline}. Beating (ii) is expected by construction. The minimal
 reference (iv) is the smallest implementation of the principle. It
 matches exact repository and package names only, with no aliases or
 identity mappings. It admits a negative only from a scope in the same
@@ -2621,7 +2654,35 @@ suffix (\code{node:12-alpine} as release 12), where (v) compares image
 tags only as plain dotted numbers. Pairs that exercise neither are expected to receive the same verdict
 from both. (v) is therefore the comparison that tests whether the
 engine adds anything (S1 above); the primary comparison is with (iv),
-for the reason given there. The comparison therefore evaluates matching
+for the reason given there.
+
+Because (v) shares the model, it cannot show what the model adds.
+Baseline (vi) can, and it is how the draft separates three
+contributions:
+\begin{itemize}[leftmargin=*,nosep]
+  \item what the model enables;
+  \item what its implementation adds;
+  \item what both cost.
+\end{itemize}
+Each held-out event is re-encoded, from its primary sources alone and
+under frozen written rules, as an OSV record or as OpenVEX statements.
+The encoder sees no labels or policy output. A conservative consumer
+then reads the encoding. It uses exact purl identity and the same
+pinned comparators as (v). It reports \textsc{NotAffected} only from an
+excluding OSV range or an explicit \code{not\_affected} statement, and
+abstains otherwise. It has no catalogue, no typed namespace elements
+and no completeness declaration. This is representation~(2) of
+Table~\ref{tab:vexcmp}, read with care. What each format cannot
+express, such as ``every image under this namespace'', is recorded per
+event as encoding loss. (vi)'s results are also reported on the events
+with no loss, so that a poor encoding cannot flatter \op{}.
+
+The comparison chain (iv)$\to$(vi)$\to$(v)$\to$\op{} attributes
+resolution gains in turn to three sources: existing formats with a
+careful consumer, the typed model, and the engine. Each step is
+reported with its review cost (W1). Neither (vi) nor its encoding rules
+are implemented yet; the registration cannot be archived until they
+are. The comparison therefore evaluates matching
 and decision policy, not the whole intelligence pipeline, and its
 conclusion is stated that way. The ecosystem comparators are now
 pinned: \code{packaging} (hash-locked) for PEP~440, \code{node-semver}

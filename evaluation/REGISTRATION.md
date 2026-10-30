@@ -1,6 +1,13 @@
 # Registration: completeness-aware applicability decisions (TR-2026-01 evaluation)
 
-**Status: drafted 2026-10-30, not yet archived.** This document becomes the registered protocol when the author archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
+**Status: drafted 2026-10-30, amended 2026-10-30 (§12), not yet archived.** This document becomes the registered protocol when the author archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
+
+**Not archivable yet.** The 2026-10-30 amendments add the following, none of which is implemented:
+- policy R and its encoding rules;
+- the review-burden measures W1–W3;
+- the reliability measures D1–D2.
+
+Each one needs its code in `evaluation/` and its constants in `registration.py` before archiving (§9).
 
 | Field | Value |
 |---|---|
@@ -26,6 +33,12 @@ Its evidence so far is conformance: the implementation follows the specification
 
 > Compared with simpler policies given the same evidence, does OpenPulse avoid false clears while deciding correctly more often?
 
+**Scope of the claim: event-scope decisions only.** C runs `check_dependency` with events and no advisory data. OpenPulse's second decision path never runs in this study: it correlates OSV and NVD advisories by package and version. The retrospective study found a false clear in that path (TR-2026-01 §11), so no result here extends to it.
+
+Evaluating the advisory path needs its own registration. It would also need advisories as they stood on each event's date, which OpenPulse has not recorded.
+
+The study also does not evaluate discovery (§13) or the agent interface.
+
 ## 2. Policies compared
 
 All policies receive the same replayed events and the same dependency, and none receives the label. Their definitions are in `evaluation/PROTOCOL.md` §2 and the code is in `evaluation/policies.py` and `evaluation/strong_baseline.py`.
@@ -36,6 +49,27 @@ All policies receive the same replayed events and the same dependency, and none 
 | **B** | conservative: affected if listed, otherwise abstain | primary comparator |
 | **A** | naive: affected if listed, otherwise not affected | safety comparator |
 | **V** | strong conservative baseline: C's model (typed scopes, completeness basis, curated identity) with ecosystem comparators and no engine-specific matching | equivalence comparator |
+| **R** | existing-representation baseline: each event re-encoded in OSV or OpenVEX and read by a careful conservative consumer, without C's model (below) | model comparator |
+
+**Policy R.** R asks what the model adds over formats that already exist, read with care.
+
+- **Encoding.** Each held-out event is re-encoded from its primary sources alone, following written rules (`evaluation/representations/ENCODING.md`, to be written before archiving). Version and package changes become an OSV record. Changes to images, repositories and distributions become OpenVEX statements, with products as purls and status `affected`, `not_affected` or `under_investigation`.
+- **The encoder.** The encoder is not an annotator, sees no labels and no policy output, and finishes before any policy runs. For each event, the encoder records what the format could not express (the *encoding loss*). An example is "every image under this namespace".
+- **The consumer.** It reports *affected* when an OSV range for the dependency's package includes its version under the pinned ecosystem comparator (the same pins as V), or when a statement with status `affected` names its exact purl. It reports *not affected* only in two cases:
+  - an OSV range for the same package excludes the version;
+  - a `not_affected` statement names the exact purl.
+
+  Everything else is unresolved.
+- **What R lacks.** Identity is exact purl equality. R has no curated catalogue, no typed namespace elements and no completeness declaration.
+
+R is code to be written: `evaluation/existing_representation.py`, frozen with the other policies (§10).
+
+**Attribution.** The four comparators separate the following contributions (reported in §4, never tested together):
+- B to R: what existing formats and a careful consumer add;
+- R to V: what the typed model adds (typed elements, completeness with a basis, curated identity);
+- V to C: what the engine adds.
+
+Each step is reported with its resolution gain and its review cost (W1–W3, §5).
 
 **Why B, not V, is primary.** This is a change from the draft in TR-2026-01 §10, and it is disclosed in §12. V shares C's model, so C against V measures only the engine. The claim under test is about the model, so the primary comparison sets OpenPulse against a policy without the model. C against V is kept as a secondary equivalence test.
 
@@ -70,12 +104,18 @@ Holm-corrected together at α = 0.05, and never used to rescue a failed primary 
 |---|---|---|
 | **S1:** C vs V equivalence | Two one-sided tests: the 90% bootstrap interval of the resolution difference, C minus V, lies within **±0.05** | whether the engine adds anything beyond a careful implementation of the same model |
 | **S2:** A vs C safety | The event-level false-clear share of A minus C is above 0, one-sided, by paired event bootstrap | whether reading absence as exclusion causes false clears that the model avoids |
+| **S3:** C vs R usefulness | The resolution difference, C minus R, is above 0: one-sided 95% lower bound of the event-clustered paired bootstrap | whether the model decides correctly more often than a careful consumer of existing formats |
+
+R's false-clear events and their exact bound are reported next to S3. A gain over R that comes with more false-clear events than R is reported as a trade-off, not as an improvement.
 
 **Reported but never tested:**
 - A's false-clear events and their bound;
 - C minus A in resolution rate. A answers everything, so this can favour A even while A falsely clears;
 - every metric of `evaluation/PROTOCOL.md` §4: pair-level FCR_affected and FCR_clear, false impact, decisive coverage, unsupported decisiveness, evidence completeness;
 - the ablations (completeness, freshness, both, identity);
+- the attribution steps B→R→V→C (§2), each with its resolution difference and interval and its review-burden difference (W1);
+- the encoding loss per event and event class (§2), and R's results restricted to events with no encoding loss;
+- the review-burden measures W1–W3 (§5) and the reliability measures D1–D2 (§5a);
 - every result stratified by event class, identity status, completeness basis and label independence.
 
 ## 5. Guardrails
@@ -87,8 +127,31 @@ These are conditions on how usable C is, reported next to the verdict.
 | **G1:** silent misses | C's no-association rate on in-scope pairs **≤ 0.02**, with every such case analysed. A consumer may read "no association" as "proceed". |
 | **G2:** abstention | C's unresolved rate on decidable pairs **≤ B's + 0.05**. A completeness-aware policy that abstains more than "abstain on everything unlisted" offers nothing. |
 | **G3:** per-class abstention | Reported for every event class, with any class **> 0.60** flagged. It shows where curation is the bottleneck. It is not a test. |
+| **G4:** review burden | C's median W1 across inventories **≤ B's median W1**. A policy that leaves more references for a person to review than "abstain on everything unlisted" has not reduced the work. |
 
-A failed G1 or G2 is reported as a limitation of the result. It changes neither the primary verdict nor its wording, which states the guardrail outcome next to it.
+A failed G1, G2 or G4 is reported as a limitation of the result. It changes neither the primary verdict nor its wording, which states the guardrail outcome next to it.
+
+**Review burden.** Per-pair rates hide workload: many defensible but uninformative associations can be burdensome even when each verdict is correct. These are reported for C, V, R and B:
+
+- **W1, unresolved per inventory and cycle.** Run every reference of each participating inventory (not only the sampled pairs) against every held-out event current in each weekly cycle of the window. Count the references whose cross-event summary is unresolved. Report:
+  - the count and its share of the inventory, as a median, interquartile range and maximum across inventories and cycles;
+  - the count of *new* unresolved references per cycle.
+
+  W1 needs no labels.
+- **W2, unresolved per event at risk.** The number of references an event leaves unresolved across all participating inventories.
+- **W3, minutes per review.** One annotator resolves a random sample of 50 of C's unresolved summaries and 50 of B's from primary sources, timing each. Report the mean minutes per item, with a bootstrap 95% interval, and the implied reviewer hours per inventory and cycle (W1 × W3).
+
+## 5a. Reliability of admitted inputs
+
+The soundness lemma makes a negative sound only if its inputs are true of the real change. Oracle agreement does not test that. These two measures do, on the held-out events. Both are reported with exact 95% intervals and counts; neither is a test.
+
+- **D1, completeness declarations.** Take every held-out event whose scope C admits for a negative (declared complete with a basis). Two annotators compare the declared scope with the affected set its primary sources establish, and judge it:
+  - **correct**;
+  - **under-inclusive:** it omits an affected artefact. That is a false-clear risk whether or not a sampled pair hit it;
+  - **over-inclusive.**
+
+  Report the under-inclusive rate per basis (definitional, announced, corroborated). If fewer than 10 events have an admitted declaration, say so. Do not pool across bases to inflate the count.
+- **D2, identity mappings.** Take every curated identity mapping (catalogue entry or package mapping) that a decisive verdict of C or V on a held-out pair relies on. Check it against the project's own sources and judge it **correct**, **wrong** or **stale** (correct once, not at the event date). Report the error rate, and list every wrong or stale mapping with the verdicts that relied on it.
 
 ## 6. Sample size
 
@@ -104,7 +167,11 @@ A failed G1 or G2 is reported as a limitation of the result. It changes neither 
 - **Result:** the standard error of the paired difference is about 0.035, so a true gain of 0.10 gives roughly 80% one-sided power.
 - **Caveat:** the design effect is the weakest assumption. The development set (13 event sets) gave a C-minus-B difference of 0.196, 95% interval 0.02–0.34. That is far too few events to estimate the design effect.
 
-**Labelling budget.** About 500 pairs × 2 annotators at 3–5 minutes per pair, so 25–40 hours per annotator, plus adjudication.
+**Labelling budget.** About 500 pairs × 2 annotators at 3–5 minutes per pair, so 25–40 hours per annotator, plus adjudication. The amendments add, roughly:
+- **R encoding:** 15–25 minutes per event, about 20 hours for one encoder at 60 events;
+- **D1:** 10 minutes per admitted declaration per annotator;
+- **D2:** 2–5 minutes per mapping;
+- **W3:** 100 timed reviews, about 8 hours.
 
 ## 7. Population and sampling
 
@@ -150,11 +217,13 @@ Specifically:
 - **Clusters:** a case's event set.
 - **Bootstrap:** seed and resample count are fixed in `registration.py`.
 - **Undeterminable pairs:** they never count as false clears or false impacts. They are reported as unsupported decisiveness.
+- **Code still to write before archiving:** policy R, the W1 inventory run, and the S3, G4, W and D tables in `registration.py`. The draft states their rules; their code is part of the analysis code frozen at archiving.
 
 ## 10. Freeze and leakage control
 
 - **Implementation:** the tested OpenPulse is frozen at a tag before labelling. A defect fixed after the freeze is reported as a separate, labelled run, and never replaces the registered one.
-- **Policies:** the definitions in `evaluation/policies.py` and `evaluation/strong_baseline.py`, and the event-replay code, are frozen with the implementation.
+- **Policies:** the definitions in `evaluation/policies.py`, `evaluation/strong_baseline.py` and `evaluation/existing_representation.py`, and the event-replay code, are frozen with the implementation.
+- **R encodings:** `ENCODING.md` is frozen at archiving. The per-event OSV and OpenVEX encodings are frozen, with their SHA-256 recorded, before any policy runs. They are never revised after a result is seen.
 - **Labels:** frozen independently, before any policy runs on the held-out pairs.
 - **Separation from the development set:** held-out events come from a later window, and from projects outside the development set.
 
@@ -184,10 +253,22 @@ The thresholds were set after those results were seen:
 
 Development-set results are illustrative, never evidence. They are in `evaluation/PROTOCOL.md` §7.
 
+**Amendments of 2026-10-30, before archiving.** These were made after an external review of TR-2026-01 and a follow-up recommendation. Both were read after the retrospective study (TR-2026-01 §11) had been run, so they are disclosed as informed by it. Four changes:
+
+1. **Scope narrowed to event-scope decisions** (§1). The advisory path is excluded, because the retrospective study found a false clear in it.
+2. **Policy R, test S3 and the attribution steps added** (§2, §4). In the retrospective study, C and V differed on only 23 of 167 pairs, all through two matching mechanisms (Go module to repository, and variant image tags). So V cannot show what the model adds, and R can.
+3. **Review burden W1–W3 and guardrail G4 added** (§5). Per-pair abstention (G2) does not measure workload per inventory. G4's threshold, "no worse than B", is judgement, set relative to B for the same reason as G2.
+4. **Reliability measures D1–D2 added** (§5a). The soundness lemma's premises were unmeasured.
+
+None of the primary hypotheses, margins, sample-size rules or thresholds of §3 changed.
+
 ## 13. Known limitations of the design
 
 - The policies are compared given the same events. Discovery (whether events are found at all) is measured separately, so a missed event is not a false clear here.
-- Identity mappings come from OpenPulse's curated catalog for both C and V. The comparison with V therefore cannot detect a curation error that both share. The independent oracle kit (`conformance/independent/`) and the annotators' labels are the checks on curation.
+- Identity mappings come from OpenPulse's curated catalog for both C and V. The comparison with V therefore cannot detect a curation error that both share. D2 measures those errors directly. R does not use the catalogue, and the annotators' labels are a further check.
+- R is only as good as its encoder and its encoding rules. A poor encoding would flatter C. That is why the encoding loss is reported per event, and R's results are reported on events with no loss.
+- D1 and D2 measure inputs on the held-out events only. They are not estimates for curated data in general.
+- The agent interface's freshness modes (TR-2026-01 §7) are not evaluated. C here is the engine with the freshness bound set, which corresponds to the interface's current mode.
 - The labelling budget, not the statistics, limits the number of events. A null result at 60 events is weak evidence of absence.
 - **Comparator choices.**
   - V counts a pre-release in its own core's line (the specification's rule). npm's `satisfies` would exclude it.
