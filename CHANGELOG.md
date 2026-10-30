@@ -17,6 +17,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **A package named like an uncatalogued event project was treated as that project (F4).** This changes verdicts. A package that resolves only to itself, because no curated mapping exists, is now RELATED (identity unresolved) against that project's events, even when its name is the project's. It was previously version-tested, and could be cleared. Images already behaved this way (D10). capa (PyPI `flare-capa`) and react-native-fbsdk (npm) are now curated, so their package pins keep their project tie.
 - **Package names in a package scope compare in canonical form (F2).** This changes verdicts. A Maven `groupId:artifactId` dependency now matches a listed `groupId/artifactId`, and PyPI names fold per PEP 503 (`Apache.Airflow` = `apache_airflow`). A scope value naming the event's own project still covers every package curated as that project; that rule is now part of the specification (TR-2026-01 §5.3, `conformance/independent/SPEC.md` §4.4) and of the conformance gate.
 - **Every catalog entry now curates its packages (F1, completed).** This changes verdicts.
   - Libraries list the packages that are the project, Maven coordinates included. `groupId:artifactId` from manifests and SBOMs now matches the catalog's `groupId/artifactId`.

@@ -3,7 +3,7 @@
  "dataset_version": "2026.10.30-2",
  "dataset_status": "development",
  "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
- "commit": "6d3a30c1206bbede888dc4f3fce4c76df6dca61d",
+ "commit": "08b448bd12b6981389579c5dc04266c7c9895d9e",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -1675,8 +1675,8 @@
     "outcomes": {
      "affected": 24,
      "cleared": 8,
-     "unresolved": 11,
-     "no_association": 17
+     "unresolved": 12,
+     "no_association": 16
     },
     "false_clears": 0,
     "fcr_affected": 0.0,
@@ -1686,8 +1686,8 @@
     "false_impact_rate": 0.0,
     "resolution_rate": 0.6275,
     "decisive_coverage": 0.5333,
-    "abstention_rate": 0.1833,
-    "no_association_rate": 0.2833,
+    "abstention_rate": 0.2,
+    "no_association_rate": 0.2667,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
     "evidence_completeness": null
@@ -1832,8 +1832,8 @@
      "outcomes": {
       "affected": 4,
       "cleared": 0,
-      "unresolved": 1,
-      "no_association": 8
+      "unresolved": 2,
+      "no_association": 7
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
@@ -1843,8 +1843,8 @@
      "false_impact_rate": 0.0,
      "resolution_rate": 0.3636,
      "decisive_coverage": 0.3077,
-     "abstention_rate": 0.0769,
-     "no_association_rate": 0.6154,
+     "abstention_rate": 0.1538,
+     "no_association_rate": 0.5385,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.75,
      "evidence_completeness": null
@@ -1860,8 +1860,8 @@
      "outcomes": {
       "affected": 24,
       "cleared": 8,
-      "unresolved": 11,
-      "no_association": 17
+      "unresolved": 12,
+      "no_association": 16
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
@@ -1871,8 +1871,8 @@
      "false_impact_rate": 0.0,
      "resolution_rate": 0.6275,
      "decisive_coverage": 0.5333,
-     "abstention_rate": 0.1833,
-     "no_association_rate": 0.2833,
+     "abstention_rate": 0.2,
+     "no_association_rate": 0.2667,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": null
@@ -3713,9 +3713,9 @@
     "independent": false,
     "label": "out_of_scope",
     "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "flare-capa belongs to capa; project ties are contextual, not impact",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -4795,9 +4795,9 @@
     "independent": false,
     "label": "out_of_scope",
     "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "flare-capa belongs to capa; project ties are contextual, not impact",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -5877,9 +5877,9 @@
     "independent": false,
     "label": "out_of_scope",
     "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "flare-capa belongs to capa; project ties are contextual, not impact",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -6959,9 +6959,9 @@
     "independent": false,
     "label": "out_of_scope",
     "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "flare-capa belongs to capa; project ties are contextual, not impact",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -7893,10 +7893,10 @@
     "class": "relocation",
     "independent": false,
     "label": "out_of_scope",
-    "outcome": "no_association",
-    "relationship": "UNKNOWN",
-    "confidence": "UNVERIFIED",
-    "reason": "no applicable evidence"
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "flare-capa belongs to capa; project ties are contextual, not impact"
    },
    {
     "case": "tr-01",

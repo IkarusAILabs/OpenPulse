@@ -210,5 +210,5 @@ These are recorded, not hidden. Challenge any of them:
 - The version-like grammar and the release-prefix rule are generic. They are not any ecosystem's own ordering.
 - Package-name folding covers PyPI and Maven spelling only (npm scopes, Go module paths and other forms are not modelled), hence §4.4's **?** on inequality.
 - **Resolved (F3): the order of name and identity.** Qualified values decide on (ecosystem, name) first; bare values on identity first (§4.4). Bare values remain in existing events, so a producer that can state an ecosystem should.
-- **F4: an uncatalogued event project.** The implementation treats a package that resolves only to itself, and whose name equals the event's project, as that project. That is the package-side twin of D10, which made such image references **?**. The kit cannot show it, because every kit project is curated. In the specification its identity is *unresolved*.
+- **Resolved (F4): an uncatalogued event project.** A package that resolves only to itself is *unresolved* even when its name equals the event's project, as §1 says and as D10 holds for image references. The implementation used to treat it as the project.
 - A `verified` completeness state is defined, but nothing produces it. A `declared` scope is a producer's assertion, admitted here when it has a basis.

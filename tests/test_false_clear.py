@@ -10,10 +10,39 @@ unresolved cause).
 import json
 from datetime import datetime, timezone
 
+import pytest
+
 from analyzers.security_analyst import correlate
 from core.risk.check import check_dependency
 from core.schema.models import Artifact, Evidence, OSSEvent, Scope, Source
 from core.versions import osv_applicable
+
+#: `acme` stands for a curated project in these tests (F4). An uncurated
+#: package named like the event's project is unresolved, which
+#: test_f4_uncurated_package_named_like_the_project_is_unresolved pins.
+ACME = {
+    "slug": "acme",
+    "aliases": ["acme"],
+    "docker_images": [],
+    "packages": [{"ecosystem": "PyPI", "name": "acme"}],
+    "identity": {"status": "VERIFIED", "reviewed_at": "2026-10-30", "source": "test fixture"},
+}
+
+
+@pytest.fixture(autouse=True)
+def _curated_acme(request, monkeypatch):
+    """Curate `acme` for the duration of each test, then restore the catalog."""
+    from core.entities import catalog, resolve
+
+    if "uncurated" in request.node.name:
+        yield
+        return
+    base = catalog.load_catalog()
+    monkeypatch.setattr(catalog, "load_catalog", lambda path=None: [*base, ACME])
+    resolve._catalog_map.cache_clear()
+    yield
+    resolve._catalog_map.cache_clear()
+
 
 D1 = "sha256:" + "1" * 64
 D2 = "sha256:" + "2" * 64
@@ -916,3 +945,21 @@ def test_f3_unreadable_qualified_values_are_undetermined_never_exclusions():
     for value in ("pkg:pypi/zzzpkg@1.0", "pkg:nuget/zzzpkg", "pkg:"):
         assert _rel("zzzpkg", "PyPI", _package_scope([value])) == "RELATED", value
     assert _rel("zzzpkg", "", _package_scope(["pkg:npm/zzzpkg"])) == "RELATED"  # no ecosystem
+
+
+def test_f4_uncurated_package_named_like_the_project_is_unresolved():
+    """F4: a package that resolves only to itself is unresolved even when its
+    name is the event's project, the package-side twin of D10. It is never
+    excluded by version, and never counted as the project."""
+    eol = _event(
+        "f4", scope=Scope(kind="version", versions=["8"], exhaustive=True, basis="definitional")
+    )
+    for version in ("8.1", "9.2"):
+        dep = {"kind": "package", "package": "acme", "ecosystem": "", "version": version}
+        verdict = check_dependency(dep, [eol])
+        assert verdict.relationship == "RELATED", version
+        assert "resolves only to itself" in verdict.reason
+    # An ecosystem-qualified value still names the exact package (F3).
+    named = _event("f4-named", scope=Scope(kind="package", packages=["pkg:pypi/acme"]))
+    dep = {"kind": "package", "package": "acme", "ecosystem": "PyPI", "version": "1.0"}
+    assert check_dependency(dep, [named]).relationship == "AFFECTS_PACKAGE"

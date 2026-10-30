@@ -139,3 +139,13 @@ Package-scope values may be purls (`pkg:pypi/redis`). A qualified value decides 
 
 Open: **F4**, an uncatalogued event project (`independent/SPEC.md` §8).
 
+## Update 2026-10-30: F4, an uncatalogued event project
+
+The engine treated a package that resolves only to itself, and whose name equals the event's project, as that project: version-tested, and clearable. The specification gives it unresolved identity (`independent/SPEC.md` §1), as D10 does for images. It now gives **?**. The randomised generator gained an event project that is not in the catalog (`zzzpkg`), which is the only way to reach the path.
+
+| Check | After F3 | After F4 |
+|---|---|---|
+| Matrix | 6,123 of 6,195 conform, 72 label | unchanged (its events are all about a curated project) |
+| Randomised, seed 7 | 100,000 summaries; 200,094 per-event | 100,000 summaries; 200,070 per-event (the generator changed) |
+| Re-injection | 21 of 21 | 22 of 22, including F4, caught by the random cases and a regression test |
+

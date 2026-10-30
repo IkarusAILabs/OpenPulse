@@ -984,3 +984,29 @@
     maintainer: choksi2212
     confidence: high
     note: "com.itextpdf/kernel and com.itextpdf/itext-core are Maven coordinates of the same library"
+- slug: capa
+  display_name: capa (Mandiant)
+  github: mandiant/capa
+  website: https://github.com/mandiant/capa
+  aliases: [capa]
+  docker_images: []
+  packages: [{ecosystem: PyPI, name: "flare-capa"}]
+  identity:
+    status: VERIFIED
+    source: "relocated from fireeye/capa to mandiant/capa (TR-2026-01 case 6); the PyPI distribution is flare-capa"
+    reviewed_at: "2026-10-30"
+    maintainer: openpulse
+    confidence: high
+- slug: react-native-fbsdk
+  display_name: React Native FBSDK
+  github: facebookarchive/react-native-fbsdk
+  website: https://github.com/facebookarchive/react-native-fbsdk
+  aliases: [react-native-fbsdk]
+  docker_images: []
+  packages: [{ecosystem: npm, name: "react-native-fbsdk"}]
+  identity:
+    status: VERIFIED
+    source: "relocated from facebook/ to facebookarchive/ and archived (TR-2026-01 case 9); npm package react-native-fbsdk is published from it"
+    reviewed_at: "2026-10-30"
+    maintainer: openpulse
+    confidence: high

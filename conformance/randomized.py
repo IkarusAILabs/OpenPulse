@@ -47,6 +47,14 @@ PROJECTS = {
         "packages": ["mysql"],
         "lines": ["5.7", "8", "8.0"],
     },
+    # An event project that is not in the catalog (F4): a package named like
+    # it resolves only to itself, so its identity is unresolved.
+    "zzzpkg": {
+        "repos": [],
+        "packages": ["zzzpkg"],
+        "lines": ["1"],
+        "curated": False,
+    },
 }
 UNMAPPED_REPOS = ["docker.io/zzz/kvstore", "ghcr.io/zzz/redis"]
 #: Curated as a third project (bitnami-redis-stack): "other" to both.
@@ -68,6 +76,8 @@ PKG_VERSIONS = [None, "7.2.0", "8.1", "6.2.14", "5.7.1"]
 
 def _owner(ref_or_package: str) -> str | None:
     for slug, p in PROJECTS.items():
+        if not p.get("curated", True):
+            continue
         if ref_or_package in p["packages"]:
             return slug
         base = ref_or_package.split("@")[0].rsplit(":", 1)[0] if "/" in ref_or_package else ""

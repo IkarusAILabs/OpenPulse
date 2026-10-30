@@ -246,8 +246,11 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             "reason": f"{dep['ecosystem']} package {dep['package']} is named in event scope "
             f"packages {event.scope.packages}",
         }
-    if slug != event.project_slug and (
-        trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated"
+    # A self-resolved package is unresolved even when its name is the event's
+    # project (F4): a name is not identity, as D10 holds for images.
+    unresolved = trust["via"] == "self"
+    if (slug != event.project_slug or unresolved) and (
+        not unresolved or UNRESOLVED_IDENTITY.get() == "unrelated"
     ):
         return None  # curated as another project: no association
     bare = [p for p in (event.scope.packages if qualified else []) if not is_qualified(p)]
@@ -265,7 +268,7 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             "reason": f"{dep['ecosystem']} package {dep['package']} is not a package of the "
             f"ecosystems named in event scope packages {event.scope.packages}",
         }
-    if slug != event.project_slug:
+    if slug != event.project_slug or unresolved:
         if event.scope is not None and event.scope.kind in ("artifact", "registry"):
             # Container-image and registry scopes name locations a package
             # reference never is: no association, whatever its identity.
