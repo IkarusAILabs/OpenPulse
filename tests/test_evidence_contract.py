@@ -17,6 +17,7 @@ from core.evidence_contract import (
     build_v1_contract,
     load_schema,
     load_v1_0_schema,
+    load_v1_1_schema,
     validate_v1_contract,
     verify_v1_content_hash,
 )
@@ -75,8 +76,8 @@ def test_builder_output_validates_across_shapes(django_event, bitnami_event):
         assert verify_v1_content_hash(doc)
 
 
-def test_contract_version_is_semver_1_1_0(django_doc):
-    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.1.0"
+def test_contract_version_is_semver_1_2_0(django_doc):
+    assert django_doc["contract_version"] == CONTRACT_VERSION == "1.2.0"
     assert django_doc["provenance"]["contract_version"] == CONTRACT_VERSION
 
 
@@ -101,29 +102,58 @@ def test_coverage_status_carried_from_partial_verdict(django_event):
     assert verify_v1_content_hash(doc)
 
 
-def test_v1_1_schema_is_published_beside_untouched_v1_0():
-    assert SCHEMA_PATH.parent.name == "v1.1"
+def _as_v1_1(doc):
+    """A 1.2 document stripped back to the 1.1 shape, re-hashed as 1.1."""
+    from core.evidence_contract import _set_content_hash
+
+    legacy = json.loads(json.dumps(doc))
+    legacy["contract_version"] = "1.1.0"
+    legacy["provenance"]["contract_version"] = "1.1.0"
+    del legacy["verdict_meaning"], legacy["evaluation_context"]
+    del legacy["scope"]["completeness"]
+    _set_content_hash(legacy)
+    return legacy
+
+
+def test_v1_2_schema_is_published_beside_untouched_v1_1_and_v1_0():
+    assert SCHEMA_PATH.parent.name == "v1.2"
+    assert (SCHEMA_PATH.parent.parent / "v1.1" / "schema.json").exists()
     assert (SCHEMA_PATH.parent.parent / "v1" / "schema.json").exists()
-    schema_11 = load_schema()
-    schema_10 = load_v1_0_schema()
+    schema_12, schema_11, schema_10 = load_schema(), load_v1_1_schema(), load_v1_0_schema()
+    assert schema_12["properties"]["contract_version"]["const"] == "1.2.0"
     assert schema_11["properties"]["contract_version"]["const"] == "1.1.0"
     assert schema_10["properties"]["contract_version"]["const"] == "1.0.0"
-    assert "inspection_coverage" in schema_11["required"]
+    for block in ("verdict_meaning", "evaluation_context", "inspection_coverage"):
+        assert block in schema_12["required"]
+    assert "verdict_meaning" not in schema_11["required"]
     assert "inspection_coverage" not in schema_10["required"]
+
+
+def test_v1_1_documents_keep_validating_and_verifying(django_doc):
+    """1.2 is additive: a 1.1 document is still valid against its own
+    schema, and its content hash still verifies."""
+    legacy = _as_v1_1(django_doc)
+    assert validate_v1_contract(legacy, schema=load_v1_1_schema()) == []
+    assert verify_v1_content_hash(legacy)
+    assert any(
+        "missing required property `verdict_meaning`" in e for e in validate_v1_contract(legacy)
+    )
+    assert validate_v1_contract(django_doc, schema=load_v1_1_schema())
 
 
 def test_v1_0_and_v1_1_are_not_interchangeable(django_doc):
     """The 1.1 addition is additive for consumers, not a silent overwrite."""
+    v11 = _as_v1_1(django_doc)
     # A 1.1 document must fail the untouched 1.0 schema.
-    assert validate_v1_contract(django_doc, schema=load_v1_0_schema())
+    assert validate_v1_contract(v11, schema=load_v1_0_schema())
     # A 1.0-shaped document must fail the 1.1 schema (missing coverage)...
-    legacy = json.loads(json.dumps(django_doc))
+    legacy = json.loads(json.dumps(v11))
     legacy["contract_version"] = "1.0.0"
     legacy["provenance"]["contract_version"] = "1.0.0"
     del legacy["inspection_coverage"]
     assert any(
         "missing required property `inspection_coverage`" in e
-        for e in validate_v1_contract(legacy)
+        for e in validate_v1_contract(legacy, schema=load_v1_1_schema())
     )
     # ...but still validates against its own untouched 1.0 schema.
     assert validate_v1_contract(legacy, schema=load_v1_0_schema()) == []
@@ -309,7 +339,7 @@ def test_validator_survives_junk_input():
 def test_schema_pins_draft_id_and_descriptions():
     schema = load_schema()
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
-    assert schema["$id"].endswith("/evidence-contract/v1.1/schema.json")
+    assert schema["$id"].endswith("/evidence-contract/v1.2/schema.json")
     assert load_v1_0_schema()["$id"].endswith("/evidence-contract/v1/schema.json")
     for name, node in schema["properties"].items():
         assert "description" in node, name
@@ -497,3 +527,73 @@ def test_attest_cli_lockfile_and_images(tmp_path):
     assert lines, "lockfile attest produced nothing"
     for ln in lines:
         assert validate_v1_contract(json.loads(ln)) == []
+
+
+# ---------------------------------------------------------------------------
+# 1.2: verdict meaning, scope completeness, evaluation context (R-B6)
+# ---------------------------------------------------------------------------
+
+
+def _bitnami_doc(ref, **kwargs):
+    event = OSSEvent(**json.load(open("data/fixtures/bitnami/event.json", encoding="utf-8")))
+    verdict = check_dependency({"kind": "image", "ref": ref}, [event])
+    return build_v1_contract(event, verdict, **kwargs)
+
+
+def test_negative_states_it_is_not_a_clearance():
+    doc = _bitnami_doc("docker.io/redis:7.2")
+    assert doc["assessment"]["relationship"] == "NOT_AFFECTED"
+    meaning = doc["verdict_meaning"]
+    assert meaning["direct_scope"] == "excluded"
+    for field in (
+        "embedded_components",
+        "availability",
+        "maintenance_or_support",
+        "security_consequence",
+    ):
+        assert meaning[field] == "not_evaluated"
+    assert "not a clearance" in meaning["statement"]
+    assert doc["scope"]["completeness"] == {
+        "state": "declared",
+        "basis": "announced",
+        "admits_negative": True,
+    }
+    assert validate_v1_contract(doc) == [] and verify_v1_content_hash(doc)
+
+
+def test_positive_states_membership_is_not_consequence():
+    doc = _bitnami_doc("docker.io/bitnami/nginx:1.25")
+    assert doc["verdict_meaning"]["direct_scope"] == "member"
+    assert "not a finding" in doc["verdict_meaning"]["statement"]
+
+
+def test_meaning_statement_carries_no_upstream_text():
+    from core.verdict_meaning import DIRECT_SCOPE, verdict_meaning
+
+    for relationship in DIRECT_SCOPE:
+        statement = verdict_meaning(relationship)["statement"]
+        assert "bitnami" not in statement.lower() and "/" not in statement
+
+
+def test_evaluation_context_records_the_freshness_bound():
+    from datetime import datetime, timedelta, timezone
+
+    unbounded = _bitnami_doc("docker.io/redis:7.2")
+    assert unbounded["evaluation_context"] == {
+        "as_of": None,
+        "max_evidence_age_days": None,
+        "freshness_bound_applied": False,
+        "unresolved_identity": "undetermined",
+    }
+    at = datetime(2026, 10, 30, tzinfo=timezone.utc)
+    bounded = _bitnami_doc("docker.io/redis:7.2", as_of=at, max_evidence_age=timedelta(days=90))
+    assert bounded["evaluation_context"]["as_of"] == "2026-10-30T00:00:00Z"
+    assert bounded["evaluation_context"]["freshness_bound_applied"] is True
+    assert validate_v1_contract(bounded) == []
+    assert bounded["provenance"]["content_hash"] != unbounded["provenance"]["content_hash"]
+
+
+def test_partial_scope_never_admits_a_negative():
+    from core.verdict_meaning import scope_completeness
+
+    assert scope_completeness(None) == {"state": "partial", "basis": None, "admits_negative": False}

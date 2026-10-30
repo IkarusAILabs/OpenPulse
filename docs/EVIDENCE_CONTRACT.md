@@ -7,8 +7,8 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema: [`schemas/evidence-contract/v1/schema.json`](../schemas/evidence-contract/v1/schema.json)
-  (JSON Schema draft 2020-12)
+- Schema (current, 1.2): [`schemas/evidence-contract/v1.2/schema.json`](../schemas/evidence-contract/v1.2/schema.json)
+  (JSON Schema draft 2020-12); 1.1 and 1.0 stay published beside it
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
 - CLI: `openpulse attest`
@@ -31,6 +31,10 @@ Top-level blocks:
 | `unknowns` | what the contract does NOT establish | derived from the verdict - never backfilled |
 | `recommendation` | one conditional next step | `analyzers/report_analyst.py` ADVICE keyed by impact |
 | `provenance` | generator, timestamp, integrity digest | package version, contract version, UTC now, content hash |
+| `inspection_coverage` (1.1) | how completely a source repository was read | `verdict.inspection_coverage` |
+| `verdict_meaning` (1.2) | what the verdict asserts and does not, as closed vocabularies | `core/verdict_meaning.py` |
+| `evaluation_context` (1.2) | freshness bound and identity policy the verdict was computed under | builder arguments |
+| `scope.completeness` (1.2) | declared or partial, its basis, and whether it admits a negative | `OSSEvent.scope.exhaustive/basis` |
 | `signature` / `signing_key_id` / `trust_root` | planned, **always `null` in v1** | out of scope per issue #53 |
 
 ## Integrity: `provenance.content_hash`
@@ -121,6 +125,20 @@ The 1.1 schema is published at
 byte-for-byte at 1.0 and remains the schema for 1.0 documents. A
 consumer pinned to 1.0 can keep validating 1.0 output; upgrading to 1.1
 means adopting the file with the higher `contract_version`.
+
+### 1.2.0 - verdict meaning (TR-2026-01 sections 5.1-5.2)
+
+Minor, additive. A bare relationship label invites over-reading. An agent may take NOT_AFFECTED as permission to proceed, and AFFECTS_ARTIFACT as a finding that a dependency is broken. 1.2 states what a verdict does and does not assert, in fields a consumer can decide on without reading free text:
+
+- **`verdict_meaning`:** `direct_scope` is one of `member`, `excluded`, `undetermined`, `project_tie` or `no_association`, derived from `assessment.relationship`.
+  - `embedded_components`, `availability`, `maintenance_or_support` and `security_consequence` are always `not_evaluated`. OpenPulse establishes none of them.
+  - `statement` is a fixed template per `direct_scope` and contains no upstream text.
+- **`scope.completeness`:** `state` is `partial` or `declared` (`verified` is reserved for a future verifier). It also carries the declaration's `basis` and `admits_negative`, which is true only for a declaration with a recorded basis (N3). NOT_AFFECTED can only follow from such a scope.
+- **`evaluation_context`:** the `as_of` time and `max_evidence_age_days` given to the freshness check, and whether a bound was applied at all. Without a bound, a negative may rest on evidence of any age, so compare `temporal.last_verified` or `evidence_refs[].fetched_at` with your own bound. `unresolved_identity` is the constant `undetermined`: an evaluation ablation can never be emitted as a contract.
+
+The content hash is computed exactly as in 1.1, over 1.1's fields plus the two new top-level blocks. `verify_v1_content_hash` picks the field set from the document's own `contract_version`, so 1.1 documents keep verifying. The 1.1 schema stays byte-for-byte at `schemas/evidence-contract/v1.1/schema.json`.
+
+**Canonical (RFC 8785, JCS) hashing is a 2.0.0 change.** It changes how `content_hash` is computed, which the versioning policy above classes as breaking. It was planned as "v1.2" in `docs/NEXT_PHASES.md` (B7) and is renumbered there.
 
 ## CLI
 

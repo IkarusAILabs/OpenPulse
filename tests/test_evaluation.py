@@ -62,8 +62,15 @@ def test_openpulse_policy_carries_its_justification():
     assert decision["justification"] == {
         "sources_named": True,
         "acquisition_time": True,
+        "meaning_stated": True,
         "completeness_basis": True,
+        "contracts_valid": True,
     }
+
+
+def test_ablated_verdicts_never_reach_a_contract():
+    dep = {"kind": "image", "ref": "docker.io/redis:7.2"}
+    assert "justification" not in policies.openpulse_no_identity(dep, [_bitnami()])
 
 
 def test_completeness_ablation_changes_inputs_not_code():

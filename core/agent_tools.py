@@ -46,7 +46,9 @@ _CACHE_TTL_SECONDS = 3600.0
 
 NOTE = (
     "OpenPulse evidence, not a decision: verdicts state what the cited sources "
-    "establish for this exact dependency; UNKNOWN means not established, never safe."
+    "establish for this exact dependency; UNKNOWN means not established, never safe. "
+    "NOT_AFFECTED means outside the cited evidence's directly named scope only, never "
+    "safe: decide from verdict.meaning, whose fields say what was not evaluated."
 )
 
 Bundle = dict[str, list[dict[str, Any]]]
@@ -193,19 +195,26 @@ def _dependency(
     return dep
 
 
+def _trust(dep: dict[str, Any]) -> dict[str, Any]:
+    """Identity the way the verdict engine resolves it: packages per ecosystem (F1)."""
+    from core.entities.identity import package_trust, resolution_trust
+
+    if dep["kind"] == "package":
+        return package_trust(str(dep["package"]), dep.get("ecosystem"))
+    return resolution_trust(str(dep["ref"]))
+
+
 def _assess(
     dep: dict[str, Any],
     lookups: Lookups | None,
     events: list[Any],
     today: date | None,
 ) -> dict[str, Any]:
-    from core.entities.identity import resolution_trust
-    from core.entities.resolve import resolve_project
     from core.risk.check import check_dependency
+    from core.verdict_meaning import DIRECT_SCOPE, verdict_meaning
 
-    ref = str(dep.get("ref") or dep.get("package"))
-    slug = resolve_project(ref)
-    trust = resolution_trust(ref)
+    trust = _trust(dep)
+    slug = str(trust["slug"])
     sources: list[dict[str, Any]] = [
         {"source": "curated-events", "status": "ok", "records": len(events)}
     ]
@@ -238,6 +247,7 @@ def _assess(
             "event": c.get("event_id"),
             "type": c.get("event_type"),
             "relationship": c.get("relationship"),
+            "direct_scope": DIRECT_SCOPE.get(str(c.get("relationship")), "undetermined"),
             "affected": c.get("affected"),
             "evidence_confidence": c.get("evidence_confidence"),
             "reason": c.get("reason"),
@@ -261,6 +271,7 @@ def _assess(
             "affected": verdict.affected,
             "relationship": verdict.relationship,
             "confidence": verdict.confidence,
+            "meaning": verdict_meaning(verdict.relationship),
             "reason": _short(verdict.reason),
         },
         "causes": causes,
@@ -310,10 +321,8 @@ def check_dependency_file(
     events = curated_events()
     results = []
     looked_up: set[str] = set()
-    from core.entities.resolve import resolve_project
-
     for dep in deps:
-        slug = resolve_project(str(dep.get("ref") or dep.get("package")))
+        slug = str(_trust(dep)["slug"])
         use_live = live and (slug in looked_up or len(looked_up) < MAX_LIVE_PROJECTS)
         if use_live:
             looked_up.add(slug)

@@ -102,6 +102,14 @@ All three are annotated read-only. Agents typically call `dependency_status` bef
     "affected": true,
     "relationship": "AFFECTS_VERSION",
     "confidence": "CORROBORATED",
+    "meaning": {
+      "direct_scope": "member",
+      "embedded_components": "not_evaluated",
+      "availability": "not_evaluated",
+      "maintenance_or_support": "not_evaluated",
+      "security_consequence": "not_evaluated",
+      "statement": "In the event's directly named scope. ..."
+    },
     "reason": "django==4.2.11 is within event scope version 4.2"
   },
   "causes": [
@@ -109,6 +117,7 @@ All three are annotated read-only. Agents typically call `dependency_status` bef
       "event": "evt-django-2026-eol-001",
       "type": "EOL",
       "relationship": "AFFECTS_VERSION",
+      "direct_scope": "member",
       "evidence_confidence": "CONFIRMED",
       "evidence_urls": ["https://www.djangoproject.com/download/", "https://endoflife.date/django"]
     }
@@ -119,7 +128,7 @@ All three are annotated read-only. Agents typically call `dependency_status` bef
     { "source": "live lookups", "status": "disabled" }
   ],
   "not_established": ["live lookups"],
-  "note": "OpenPulse evidence, not a decision: ... UNKNOWN means not established, never safe."
+  "note": "OpenPulse evidence, not a decision: ... UNKNOWN means not established, never safe. NOT_AFFECTED means outside the cited evidence's directly named scope only, never safe: ..."
 }
 ```
 
@@ -127,7 +136,8 @@ How to read an answer:
 
 | Field | Meaning |
 |---|---|
-| `verdict.relationship` | `AFFECTS_VERSION` / `AFFECTS_ARTIFACT` / `AFFECTS_PACKAGE` (affected), `RELATED` (a match without established impact), `NOT_AFFECTED` (explicitly cleared), `UNKNOWN` (nothing established) |
+| `verdict.relationship` | `AFFECTS_VERSION` / `AFFECTS_ARTIFACT` / `AFFECTS_PACKAGE` (affected), `RELATED` (a match without established impact), `NOT_AFFECTED` (outside the directly named scope; not a clearance), `UNKNOWN` (nothing established) |
+| `verdict.meaning` | Closed vocabularies to decide from, with no upstream text. `direct_scope` is member, excluded, undetermined, project_tie or no_association. `embedded_components`, `availability`, `maintenance_or_support` and `security_consequence` are `not_evaluated`: OpenPulse does not establish them, so neither a positive nor a negative says anything about them. `statement` is a fixed template. The same block is in evidence contract v1.2. |
 | `causes` | The upstream events behind the verdict, only those about this project, each with its evidence URLs |
 | `advisories` | OSV advisories whose ranges include this version, listed with links. Advisories that only name the package are counted separately: their version applicability is not established |
 | `sources` | Which sources answered, failed (`error`), had no data (`no-data`) or were off (`disabled`) |

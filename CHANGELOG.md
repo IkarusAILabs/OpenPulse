@@ -4,7 +4,19 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Added
+
+- **Evidence contract 1.2.0: what a verdict does and does not assert** (TR-2026-01 sections 5.1-5.2, ROADMAP R-B6). Every document now carries three new things:
+  - `verdict_meaning`: direct scope membership as a closed vocabulary; embedded components, availability, maintenance and security consequence marked `not_evaluated`; and a fixed statement with no upstream text;
+  - `scope.completeness`: whether the scope was declared complete, its basis, and whether that admits a negative;
+  - `evaluation_context`: whether a freshness bound was applied.
+
+  `openpulse attest` emits 1.2. The 1.1 and 1.0 schemas are unchanged and their documents still validate and verify. **Upgrade note:** a consumer that validates against the 1.1 schema must switch to `schemas/evidence-contract/v1.2/schema.json`, because a 1.2 document fails 1.1 validation (`additionalProperties: false`).
+- **MCP responses state verdict meaning.** `verdict.meaning` carries the same closed vocabularies, every cause carries `direct_scope`, and the fixed note now says that NOT_AFFECTED is not a clearance either.
+
 ### Fixed
+
+- **MCP tools resolved package identity by name (F1, follow-up).** `dependency_status` and `check_dependency_file` now resolve packages per ecosystem, as the verdict engine does. PyPI `redis` is reported, and looked up, as redis-py.
 
 - **A package name was an identity across ecosystems (F1).** This changes verdicts. Package dependencies resolved by name alone, so PyPI `redis` 6.2.0 was AFFECTS_VERSION under Redis server 6.2 end of life, although PyPI `redis` is redis-py, the Python client. The catalog also mapped the Redis server to PyPI `redis` for OSV queries, so redis-py advisories were attributed to the server. The decision-policy evaluation (`evaluation/`) found it; the conformance oracle could not, because it takes identity as given.
   - A package with a stated ecosystem now resolves through curated (ecosystem, name) mappings: the new `packages` list on catalog entries, plus their `osv` block.
