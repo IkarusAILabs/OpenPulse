@@ -45,6 +45,7 @@
 \newcommand{\dfifteencommit}{\code{d4f7d1f}}
 \newcommand{\pincommit}{\code{8a9c3a8}}
 \newcommand{\currentcommit}{\code{a1ecc58}}
+\newcommand{\cachecommit}{\code{0174a26}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -97,7 +98,7 @@ random cases and on every verdict of a 6{,}195-case matrix, apart from
 one documented label difference. It catches all 22 re-injected
 defects and rule removals, and it runs as a build gate. The version
 comparator agrees with the reference PEP~440 implementation on all
-224{,}676 pairs it decides. Matching costs about 75\,\textmu{}s per
+224{,}676 pairs it decides. Matching costs about 25\,\textmu{}s per
 dependency--event pair. An exploratory retrospective study on 27 real
 upstream changes and 167 real dependency references, with
 developer-assigned labels, found no false clear by the event-scope
@@ -292,6 +293,10 @@ Discovery & Targets come from the inventory (Go modules, repository
   references, Docker Hub images), and every npm, PyPI, Maven, Go and
   crates.io package is queried on OSV by name & Uncatalogued projects
   unseen \\
+Catalogue-map cache (\cachecommit{}, after \currentcommit{}) & The
+  package, curated-slug and alias maps are memoised per catalogue
+  object instead of rebuilt on every identity resolution &
+  1.8$\times$ matching slowdown from F1 \\
 Evaluation & Strong baseline (v) with pinned comparators, an
   independent oracle kit, a registration draft and the retrospective
   study & -- \\
@@ -2414,15 +2419,18 @@ the evaluation must produce, not one we can assume.
 run, on one machine (Windows~11, 12 logical CPUs, Python~3.14) with
 the production engine and store (\code{benchmarks/cost.py};
 Table~\ref{tab:cost}). Matching is linear in the number of
-dependency--event pairs, at about 40\,\textmu{}s per pair at
-\pincommit{} and about 75\,\textmu{}s at \currentcommit{}: 5{,}000
-dependencies against 10 events take 2.1\,s and 3.8\,s, with a peak of
-25\,MiB in both. The added cost is a fixed overhead per package
-dependency, not per scope element: since F1, resolving a package's
-identity rebuilds the catalogue's package and alias maps on every
-call, which takes about three quarters of the matching time in a
-profile. Caching those maps is the obvious remedy and has not been
-applied at \currentcommit{}.
+dependency--event pairs. It cost about 40\,\textmu{}s per pair at
+\pincommit{}, rose to about 75\,\textmu{}s at \currentcommit{}, and is
+about 25\,\textmu{}s with the catalogue-map cache (\cachecommit{}):
+5{,}000 dependencies against 10 events take 2.1, 3.8 and 1.9\,s, with
+a peak of 25\,MiB throughout. The rise was a fixed overhead per
+package dependency, not per scope element: since F1, resolving a
+package's identity rebuilt the catalogue's package and alias maps on
+every call, which took about three quarters of the matching time in a
+profile. Memoising those maps per catalogue object removes it; every
+decision is unchanged (the matrix, the 100{,}000 random cases, the
+re-injected mutants, and the development and retrospective case
+files).
 Scope size is the expensive dimension. Every element is evaluated for
 every dependency, with no index, which costs about 2.6\,\textmu{}s per
 element per pair at \pincommit{} and about 3\,\textmu{}s at
@@ -2448,26 +2456,29 @@ machine and the network; the shapes of the curves are the result.
 \begin{table}[t]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r@{}}
 \toprule
-Measurement & Setting & At \pincommit{} & At \currentcommit{} \\
+Measurement & Setting & At \pincommit{} & At \currentcommit{} & With cache \\
 \midrule
-Matching, by inventory size (10 events) & 100 / 1{,}000 / 5{,}000 deps & 0.04 / 0.41 / 2.06\,s & 0.07 / 0.75 / 3.78\,s \\
-Matching, by event count (1{,}000 deps) & 1 / 10 / 100 events & 0.07 / 0.41 / 3.87\,s & 0.14 / 0.76 / 6.85\,s \\
-Matching, by scope size (1{,}000 deps, 1 event) & 1 / 100 / 1{,}000 elements & 0.05 / 0.32 / 2.61\,s & 0.14 / 0.46 / 3.29\,s \\
-Peak memory & 5{,}000 deps $\times$ 10 events & 24.6\,MiB & 24.6\,MiB \\
-Sweep, per repository (51 tags) & median of runs 2--20 & 35\,ms & 34\,ms \\
-Store growth, per repository per run & steady / one new tag per run & 6.1 / 7.1\,KB & 6.1 / 7.1\,KB \\
-Agent lookup, cold & 5 packages & 0.5--2.5\,s, 2--3 requests & not repeated \\
-Agent lookup, warm & same packages & 2--5\,ms, 0 requests & not repeated \\
+Matching, by inventory size (10 events) & 100 / 1{,}000 / 5{,}000 deps & 0.04 / 0.41 / 2.06\,s & 0.07 / 0.75 / 3.78\,s & 0.02 / 0.25 / 1.87\,s \\
+Matching, by event count (1{,}000 deps) & 1 / 10 / 100 events & 0.07 / 0.41 / 3.87\,s & 0.14 / 0.76 / 6.85\,s & 0.04 / 0.25 / 2.66\,s \\
+Matching, by scope size (1{,}000 deps, 1 event) & 1 / 100 / 1{,}000 elements & 0.05 / 0.32 / 2.61\,s & 0.14 / 0.46 / 3.29\,s & 0.05 / 0.42 / 3.28\,s \\
+Peak memory & 5{,}000 deps $\times$ 10 events & 24.6\,MiB & 24.6\,MiB & 24.6\,MiB \\
+Sweep, per repository (51 tags) & median of runs 2--20 & 35\,ms & 34\,ms & 35--45\,ms \\
+Store growth, per repository per run & steady / one new tag per run & 6.1 / 7.1\,KB & 6.1 / 7.1\,KB & 6.1 / 7.1\,KB \\
+Agent lookup, cold & 5 packages & 0.5--2.5\,s, 2--3 requests & not repeated & not repeated \\
+Agent lookup, warm & same packages & 2--5\,ms, 0 requests & not repeated & not repeated \\
 \bottomrule
 \end{tabularx}
 \caption{Basic cost measurements (\code{benchmarks/REPORT.md}). One
 machine; medians of three runs for matching. The \currentcommit{}
 column is the median of three runs interleaved with two fresh runs of
 \pincommit{} on the same machine, which reproduced the earlier
-\pincommit{} figures within about 15\%. Agent lookups are live and
-were not repeated.}
+\pincommit{} figures within about 15\%. \emph{With cache} is
+\currentcommit{} plus the catalogue-map cache (\cachecommit{}), three
+runs on the same machine. The sweep code is unchanged across the three
+columns; its spread is run-to-run variation. Agent lookups are live
+and were not repeated.}
 \label{tab:cost}
 \end{table}
 
