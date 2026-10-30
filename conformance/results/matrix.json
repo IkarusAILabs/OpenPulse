@@ -1,7 +1,7 @@
 {
- "cases": 4230,
+ "cases": 6195,
  "by_severity": {
-  "conform": 4158,
+  "conform": 6123,
   "label: both unresolved": 72
  },
  "disagreements": [

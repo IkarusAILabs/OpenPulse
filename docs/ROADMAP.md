@@ -46,9 +46,14 @@ STATUS: ACTIVE
   - It is in SPEC §4.4, the team oracle and baseline V. The conformance vocabulary now includes `redis-server`, a package whose name is not its project's slug, and a new F2 mutant is caught by the matrix and the random cases.
   - Package names also compare in canonical form: Maven `group:artifact` = `group/artifact`, and PEP 503 for PyPI.
   - TR §5.3 needs the matching sentence (proposed in the PR).
-- [NEXT] **F3:** the order of name and identity for package elements. SPEC §4.4 decides on name equality first; the engine resolves identity first, so an unresolved but listed package gives **?**.
-  - The engine's order is the safer one, because scope package values carry no ecosystem.
-  - Repair: ecosystem-qualified package values in the scope (a schema change), then align the specification. Until then, SPEC §8 records the open point.
+- [DONE 2026-10-30] **F3:** Package-scope values may now be ecosystem-qualified purls (`pkg:pypi/redis`), with no schema change, since `Scope.packages` is a list of strings.
+  - A qualified value names exactly one package and decides on (ecosystem, canonical name) before identity: **M** when equal, **N** for another ecosystem, **?** otherwise.
+  - Bare values decide on identity first, and SPEC §4.4 is now aligned with the engine.
+  - It is in the engine, the team oracle, baseline V and the kit (dependencies may state an ecosystem). The matrix and generators gained packages with stated ecosystems and qualified values. A new F3 mutant (qualified values matched by name alone) is caught.
+  - Producers should qualify package values; the curated fixtures still use bare names.
+- [NEXT] **F4:** an uncatalogued event project. A package that resolves only to itself, and whose name equals the event's project, is treated as that project. This is the package-side twin of D10 for images.
+  - It only matters for events whose project is not in the catalog. Today that means test fixtures (`acme`).
+  - Fix: treat it as unresolved, and re-curate the fixtures that rely on it.
 - [DONE 2026-10-30] **R-B4:** Strong conservative baseline V (`evaluation/strong_baseline.py`): the same typed scopes, admissibility and curated identities as C, exact identity only, `packaging` for PyPI, and plain numbers elsewhere. On the development set it differs from C on 1 of 60 pairs, so the contribution to claim is the model, not the engine. Remaining: pin node-semver, Go `x/mod/semver`, Maven `ComparableVersion` and `dpkg` comparators before the freeze.
 - [DONE 2026-10-30] **R-B5:** Identity ablation as an explicit, call-scoped engine parameter: `check_dependency(unresolved_identity="unrelated")`. On the development set it cuts abstention from 0.47 to 0.18 at the cost of silent misses on 3 of 27 in-scope pairs, which is the measured coverage cost of D10.
 - [DONE 2026-10-30] **R-B6:** Decisions expose their limitations. Evidence contract 1.2.0 adds `verdict_meaning` (direct scope, plus embedded components, availability, maintenance and security consequence, all `not_evaluated`, and a fixed statement with no upstream text), `scope.completeness` (state, basis, admits_negative) and `evaluation_context` (freshness bound and identity policy). The MCP response carries the same `verdict.meaning`, and its fixed note now qualifies NOT_AFFECTED too. The evaluation's evidence-completeness metric reads these contract fields. The JCS hash moves to contract 2.0.0, because hash changes are breaking under the versioning policy.

@@ -121,6 +121,7 @@ class Dependency:
     package: str = ""
     version: str | None = None
     identity: str = "unresolved"  # "project" | "other" | "unresolved"
+    ecosystem: str = ""  # PyPI | npm | Maven | Go | crates.io | "" (not stated)
 
 
 @dataclass
@@ -208,18 +209,69 @@ def _test_release_line(dep: Dependency, x: Element) -> str:
     return M if release[: len(line)] == line else N
 
 
+#: purl types and the ecosystems they name (SPEC.md section 4.4).
+_PURL_TYPES = {"pypi": "pypi", "npm": "npm", "maven": "maven", "golang": "go"}
+
+
+def canonical_package(ecosystem: str, name: str) -> tuple[str, str]:
+    """Section 4.4 canonical form: lowercase; PEP 503 for PyPI; Maven g:a = g/a."""
+    eco, key = ecosystem.strip().lower(), name.strip().lower()
+    if eco == "pypi":
+        key = re.sub(r"[-_.]+", "-", key)
+    elif eco == "maven":
+        key = key.replace(":", "/", 1)
+    return eco, key
+
+
+def parse_package_purl(value: str) -> tuple[str, str] | None:
+    """`pkg:type/namespace/name` -> canonical (ecosystem, name), else None.
+
+    No version (a scope value names a package), no unsupported type.
+    Qualifiers and subpath carry no identity and are dropped.
+    """
+    from urllib.parse import unquote
+
+    if not value.startswith("pkg:"):
+        return None
+    body = value[4:].split("?", 1)[0].split("#", 1)[0]
+    if "@" in body.rsplit("/", 1)[-1]:
+        return None
+    parts = [unquote(p) for p in body.split("/") if p]
+    if len(parts) < 2 or parts[0].lower() not in _PURL_TYPES:
+        return None
+    return canonical_package(_PURL_TYPES[parts[0].lower()], "/".join(parts[1:]))
+
+
 def _test_package(dep: Dependency, x: Element) -> str:
     if dep.kind != "package":
         return _across_kinds(dep, may_be_same_object=False)
-    if dep.package.lower() == x.value.lower():
+    stated = dep.ecosystem.strip() and dep.ecosystem.strip().lower() != "generic"
+    if x.value.startswith("pkg:"):
+        # An ecosystem-qualified value names exactly one package (F3): it
+        # decides by (ecosystem, name) before identity.
+        key = parse_package_purl(x.value)
+        mine = canonical_package(dep.ecosystem, dep.package) if stated else None
+        if key is not None and key == mine:
+            return M
+        if dep.identity == "other":
+            return Z
+        if key is None or mine is None:
+            return U
+        return N if key[0] != mine[0] else U  # another ecosystem is another object
+    # A bare value carries no ecosystem, so identity decides first (F3):
+    # a name alone cannot tell PyPI `redis` (redis-py) from the server.
+    if dep.identity == "other":
+        return Z
+    if dep.identity == "unresolved":
+        return U
+    eco = dep.ecosystem if stated else ""
+    if canonical_package(eco, dep.package)[1] == canonical_package(eco, x.value)[1]:
         return M
     if x.project_element:
         # A project package element (F2) denotes every package curated as
-        # the event's project: a member exactly when identity says so.
-        return {"project": M, "other": Z}.get(dep.identity, U)
-    # Names are not canonical, so inequality alone is ?; a curated other
-    # project is positive evidence of exclusion (S2).
-    return Z if dep.identity == "other" else U
+        # the event's project.
+        return M
+    return U  # names are not fully canonical: inequality alone is ?
 
 
 def _test_registry(dep: Dependency, x: Element) -> str:
@@ -252,7 +304,9 @@ def applicability(dep: Dependency, event: Event) -> str:
     # Layer 2: every element, no early return.
     elements = [
         Element(x.kind, x.value, x.example, project_element=True)
-        if x.kind == "package" and x.value.lower() == event.project.lower()
+        if x.kind == "package"
+        and not x.value.startswith("pkg:")
+        and x.value.lower() == event.project.lower()
         else x
         for x in event.elements
     ]

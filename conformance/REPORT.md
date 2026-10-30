@@ -126,3 +126,16 @@ Figures above are those of the TR-2026-01 snapshot (`8a9c3a8`). Package curation
 | Re-injection | 19 of 19 mutants | 20 of 20, including F2 (a project package element ignored), caught by matrix, random cases and regression tests |
 
 Open: **F3**, the order of name and identity for package elements (`independent/SPEC.md` §8).
+
+## Update 2026-10-30: F3, ecosystem-qualified package scopes
+
+Package-scope values may be purls (`pkg:pypi/redis`). A qualified value decides on (ecosystem, canonical name) before identity; a bare value decides on identity first, as the engine always did. The specification is aligned. The matrix gained packages with a stated ecosystem (redis-py, node-redis, PyPI `mysql`) and qualified and bare package scopes; the generators draw from the same tables.
+
+| Check | After F2 | After F3 |
+|---|---|---|
+| Matrix | 4,158 of 4,230 conform, 72 label | 6,123 of 6,195 conform, the same 72 label rows |
+| Randomised, seed 7 | 100,000 summaries; 200,206 per-event | 100,000 summaries; 200,094 per-event (the generator changed) |
+| Re-injection | 20 of 20 | 21 of 21, including F3 (a qualified value matched by name alone) |
+
+Open: **F4**, an uncatalogued event project (`independent/SPEC.md` §8).
+
