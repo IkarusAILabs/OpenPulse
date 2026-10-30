@@ -594,3 +594,60 @@ def test_convergence_image_refs():
     assert v_watchlist.relationship == v_inventory.relationship
     assert v_watchlist.confidence == v_inventory.confidence
     assert v_watchlist.match_strength == v_inventory.match_strength
+
+
+# --- D-R1 (retrospective study R-C0): Go modules vs repository artifacts ---
+
+
+@pytest.fixture(scope="module")
+def etcd_move():
+    """OWNERSHIP_CHANGE from the etcd-move bundle: names github.com/coreos/etcd."""
+    from datetime import date
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+
+    raw = json.load(open("data/fixtures/etcd-move/raw_bundle.json", encoding="utf-8"))
+    today = date(2026, 10, 6)
+    (finding,) = [f for f in analyze(raw, today=today) if f["event_type"] == "OWNERSHIP_CHANGE"]
+    return finding_to_event(finding, "etcd", today=today)
+
+
+def _go(module, version="v3.3.10+incompatible"):
+    return {"kind": "package", "package": module, "ecosystem": "Go", "version": version}
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "github.com/coreos/etcd",  # the repository itself
+        "github.com/coreos/etcd/clientv3",  # a package inside it
+        "github.com/coreos/etcd/v3",  # a major-version suffix
+        "GitHub.com/CoreOS/etcd",  # code hosts resolve paths case-insensitively
+    ],
+)
+def test_go_module_in_moved_repository_is_affected(etcd_move, module):
+    """A go.mod require of the old path reaches the relocation's artifact.
+
+    Before the fix this was no association at all (a silent miss): 12 of
+    103 in-scope pairs in the retrospective study.
+    """
+    v = check_dependency(_go(module), [etcd_move])
+    assert (v.affected, v.relationship) == (True, "AFFECTS_ARTIFACT")
+    assert "github.com/coreos/etcd" in v.reason
+
+
+@pytest.mark.parametrize(
+    "dep",
+    [
+        _go("github.com/etcd-io/etcd"),  # the destination is not the stale path
+        _go("github.com/coreos/etcdctl"),  # a prefix that is not a path segment
+        _go("go.etcd.io/etcd/client/v3"),  # a vanity path: never cleared, never matched
+        {"kind": "package", "package": "github.com/coreos/etcd", "ecosystem": "npm"},
+    ],
+)
+def test_go_module_match_is_positive_only_and_exact(etcd_move, dep):
+    """Only a module at or below the named path matches; nothing is cleared."""
+    v = check_dependency(dep, [etcd_move])
+    assert v.relationship != "AFFECTS_ARTIFACT"
+    assert v.relationship != "NOT_AFFECTED"

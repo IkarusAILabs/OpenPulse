@@ -194,3 +194,73 @@ def test_registry_rejects_hostile_path_components(monkeypatch, namespace, repo):
     out = RegistryCollector().check_image(namespace, repo)
     assert out["error"] is True
     assert out["category"] == "parse"
+
+
+# --- D-R2 (retrospective study R-C0): transferred repositories ---
+
+
+def _repo_payload(full_name):
+    return {"full_name": full_name, "archived": False, "html_url": f"https://github.com/{full_name}"}
+
+
+def test_github_meta_follows_api_redirect_for_transferred_repo(monkeypatch):
+    """GitHub answers a transferred repository with a 301 to /repositories/<id>.
+
+    Followed once, the response carries the new full_name, so the ownership
+    drift rule can fire. Before the fix the 301 was recorded as an error.
+    """
+    import httpx
+
+    from analyzers.change_analyst import analyze_github_meta
+    from collectors.github.collector import GitHubCollector
+
+    calls = []
+
+    def fake_get(url, timeout=None, headers=None):
+        calls.append((url, (headers or {}).get("Authorization")))
+        req = httpx.Request("GET", url)
+        if url.endswith("/repos/docker/docker"):
+            moved = {"location": "https://api.github.com/repositories/7691631"}
+            return httpx.Response(301, headers=moved, request=req)
+        return httpx.Response(200, json=_repo_payload("moby/moby"), request=req)
+
+    monkeypatch.setattr(collectors_http, "get", fake_get)
+    meta = GitHubCollector({"moby": "docker/docker"}, token="t").fetch_repo_meta("moby")
+    assert meta["full_name"] == "moby/moby"
+    assert [u for u, _ in calls] == [
+        "https://api.github.com/repos/docker/docker",
+        "https://api.github.com/repositories/7691631",
+    ]
+    assert all(auth == "Bearer t" for _, auth in calls)
+    (finding,) = analyze_github_meta([meta])
+    assert finding["event_type"] == "OWNERSHIP_CHANGE"
+    assert finding["affected_artifacts"] == [
+        {"kind": "source-repository", "ref": "github.com/docker/docker"}
+    ]
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        "https://evil.example/repositories/1",
+        "http://api.github.com/repositories/1",
+        "https://api.github.com:8443/repositories/1",
+    ],
+)
+def test_github_redirect_off_origin_is_not_followed(monkeypatch, location):
+    """The token goes to https://api.github.com only; any other target stays an error."""
+    import httpx
+
+    from collectors.github.collector import GitHubCollector
+
+    calls = []
+
+    def fake_get(url, timeout=None, headers=None):
+        calls.append(url)
+        req = httpx.Request("GET", url)
+        return httpx.Response(301, headers={"location": location}, request=req)
+
+    monkeypatch.setattr(collectors_http, "get", fake_get)
+    meta = GitHubCollector({"x": "o/r"}, token="t").fetch_repo_meta("x")
+    assert calls == ["https://api.github.com/repos/o/r"]
+    assert meta.get("error") is True
