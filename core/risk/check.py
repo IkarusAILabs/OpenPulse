@@ -18,6 +18,7 @@ tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
@@ -220,6 +221,25 @@ def _qualified_results(dep: dict[str, Any], event: OSSEvent) -> list[str]:
     return results
 
 
+def _go_module_repository(dep: dict[str, Any], event: OSSEvent) -> str | None:
+    """The event's source-repository artifact a Go module lives in, or None.
+
+    The module path equals the repository path or extends it by a
+    subdirectory or major-version suffix (`github.com/o/r/v3`). Compared
+    case-insensitively, as code hosts resolve repository paths.
+    """
+    if str(dep.get("ecosystem") or "").strip().lower() not in ("go", "golang"):
+        return None
+    module = str(dep["package"]).strip().lower()
+    for artifact in event.affected_artifacts:
+        if artifact.kind != "source-repository":
+            continue
+        repo = re.sub(r"^[a-z][a-z0-9+.-]*://", "", str(artifact.ref).strip().lower()).rstrip("/")
+        if repo and (module == repo or module.startswith(repo + "/")):
+            return str(artifact.ref)
+    return None
+
+
 def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
     trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
     slug = trust["slug"]
@@ -245,6 +265,24 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             "affected": True,
             "reason": f"{dep['ecosystem']} package {dep['package']} is named in event scope "
             f"packages {event.scope.packages}",
+        }
+    repository = _go_module_repository(dep, event)
+    if repository is not None:
+        # A Go module path is a repository locator: a module at or below a
+        # named source repository lives in it (go.mod requires are what a
+        # relocation's repository artifact exists to reach). Self-identity,
+        # like the M case above. Positive only: a module outside the named
+        # paths may still be that repository under a vanity import path, so
+        # it is never cleared here.
+        return {
+            **exact,
+            "identity_status": "VERIFIED",
+            "identity_via": "exact-artifact",
+            "relationship": "AFFECTS_ARTIFACT",
+            "affected": True,
+            "match_method": "event_scope:artifact",
+            "reason": f"Go module {dep['package']} lives in affected source repository "
+            f"{repository}",
         }
     # A self-resolved package is unresolved even when its name is the event's
     # project (F4): a name is not identity, as D10 holds for images.
