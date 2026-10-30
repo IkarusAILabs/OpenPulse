@@ -101,6 +101,38 @@ class FakeGitHub:
         return {"collector": "github", "kind": "repo_meta", "repo": repo, **META[repo]}
 
 
+ADVISORIES = {
+    ("colors", "npm"): [
+        {
+            "collector": "osv",
+            "package": "colors",
+            "ecosystem": "npm",
+            "id": "GHSA-5rqg-jm4f-cqx7",
+            "cve_id": None,
+            "affected": [
+                {
+                    "package": "colors",
+                    "ecosystem": "npm",
+                    "ranges": [],
+                    "fixed": [],
+                    "versions": ["1.4.1", "1.4.2", "1.4.44-liberty-2"],
+                }
+            ],
+        }
+    ],
+}
+
+
+class FakeOSV:
+    def __init__(self, ecosystem_map, timeout=15.0):
+        self.ecosystem_map = ecosystem_map
+
+    def collect(self, slug):
+        name, ecosystem = self.ecosystem_map[slug]
+        found = ADVISORIES.get((name, ecosystem))
+        return found or [{"collector": "osv", "package": name, "ecosystem": ecosystem, "vulns": 0}]
+
+
 class FakeHub:
     def check_image(self, namespace, repo):
         return {"collector": "registries", "namespace": namespace, "repo": repo, "tags": ["1"]}
@@ -116,7 +148,9 @@ def found():
         _image("openjdk:11"),
         _image("k8s.gcr.io/pause:3.2"),
     ]
-    result = discover(deps, today=date(2026, 10, 30), github=FakeGitHub, registries=FakeHub)
+    result = discover(
+        deps, today=date(2026, 10, 30), github=FakeGitHub, registries=FakeHub, osv=FakeOSV
+    )
     return deps, result
 
 
@@ -162,11 +196,13 @@ def test_cli_discover_writes_events_check_can_load(tmp_path, monkeypatch):
     from click.testing import CliRunner
 
     import collectors.github.collector as gh
+    import collectors.osv.collector as osv
     import collectors.registries.docker as hub
     from cli.main import cli
 
     monkeypatch.setattr(gh, "GitHubCollector", FakeGitHub)
     monkeypatch.setattr(hub, "RegistryCollector", FakeHub)
+    monkeypatch.setattr(osv, "OSVCollector", FakeOSV)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GH_TOKEN", raising=False)
     gomod = tmp_path / "go.mod"
@@ -185,3 +221,66 @@ def test_cli_discover_writes_events_check_can_load(tmp_path, monkeypatch):
         cli, ["check", "--manifest", str(gomod), "--event", str(written), "--strict"]
     )
     assert "github.com/golang/dep==v0.5.4: AFFECTED" in res.output
+
+
+# --- OSV by package: compromised versions without a catalog entry --------
+
+
+@pytest.mark.parametrize(
+    "version,affected,relationship",
+    [
+        ("1.4.1", True, "AFFECTS_VERSION"),
+        ("1.4.44-liberty-2", True, "AFFECTS_VERSION"),
+        ("1.4.0", False, "NOT_AFFECTED"),  # outside the advisory's listed versions
+    ],
+)
+def test_osv_bundle_decides_an_uncatalogued_package_by_version(version, affected, relationship):
+    dep = {"kind": "package", "package": "colors", "ecosystem": "npm", "version": version}
+    result = discover([dep], github=FakeGitHub, registries=FakeHub, osv=FakeOSV)
+    assert result.unmapped == []  # npm is covered by OSV, not a repository convention
+    assert list(result.bundles) == ["colors"] and result.advisories == 1
+    v = check_dependency(dep, [], result.bundles)
+    assert (v.affected, v.relationship) == (affected, relationship)
+
+
+def test_unsafe_bundle_keys_are_reported_not_written():
+    dep = {"kind": "package", "package": "@colors/colors", "ecosystem": "npm", "version": "1.5.0"}
+    result = discover([dep], github=FakeGitHub, registries=FakeHub, osv=FakeOSV)
+    assert result.bundles == {}
+    assert result.unmapped == [("@colors/colors", "no stable identity key for an OSV bundle")]
+
+
+def test_cli_discover_writes_osv_bundles_check_reads(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    import collectors.osv.collector as osv
+    from cli.main import cli
+
+    monkeypatch.setattr(osv, "OSVCollector", FakeOSV)
+    lock = tmp_path / "package-lock.json"
+    lock.write_text(
+        json.dumps(
+            {
+                "name": "demo",
+                "lockfileVersion": 3,
+                "packages": {
+                    "": {"name": "demo"},
+                    "node_modules/colors": {"version": "1.4.1"},
+                    "node_modules/left-pad": {"version": "1.3.0"},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    res = CliRunner().invoke(cli, ["discover", "--lockfile", str(lock), "--out", str(out)])
+    assert res.exit_code == 0, res.output
+    assert "! unmapped" not in res.output
+    assert (out / "bundles" / "colors.json").exists()
+    res = CliRunner().invoke(
+        cli,
+        ["check", "--lockfile", str(lock), "--raw-bundle-dir", str(out / "bundles"),
+         "--ledger", ""],
+    )
+    assert "colors==1.4.1: AFFECTED (AFFECTS_VERSION)" in res.output
+    assert "left-pad==1.3.0: UNKNOWN" in res.output
