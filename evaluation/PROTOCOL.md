@@ -97,21 +97,21 @@ The replay uses the current code, and the results name the commit. This is the s
 
 The held-out set is frozen, and its SHA-256 recorded, before any policy runs on it. Fixes made after the freeze are reported as a separate run.
 
-## 7. Development-set results (2026.10.30-2, illustrative only)
+## 7. Development-set results (2026.10.30-3, illustrative only)
 
 60 pairs over 13 events. The labeller is not independent.
 
-The R row is from revision 3 (2026.10.30-3), which changes no case or label. The other rows are as recorded for revision 2. Later engine changes have since moved them: the current code gives V 0.627, C 0.647 resolved and 0.417 abstention, and an H2 gain of 0.216 (95% interval 0.07–0.34). Refreshing those rows is a separate change.
+Revision 3 changes no case or label of revision 2; it adds R's encodings. Every row is from one run of the current code (`evaluation/results/openpulse-dev-2026-10.json`, dataset SHA-256 `6676778c…09855b`), without the npm, Go and Maven bridges. One outcome changed since revision 2's recorded run (2026-10-30): **fa-01**, a reference to the archived react-native-fbsdk repository. Inventory discovery made an archived-repository finding name its repository, so C, its ablations and V now match it as an exact artefact and mark it affected. It was unresolved, and the identity ablation's silent miss. Each row's earlier value is given in parentheses.
 
 | Policy | False clears | FCR_aff | False impact | Resolved | Abstain | Unsupported decisive |
 |---|---|---|---|---|---|---|
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
 | B-conservative | 0 | 0.0 | 0.25 | 0.431 | 0.433 | 0.667 |
-| V-strong-conservative | 0 | 0.0 | 0.0 | 0.608 | 0.45 | 0.0 |
-| C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.627 (0.588 before package curation) | 0.433 | 0.0 |
-| C-ablate-both | 1 | 0.037 | 0.0 | 0.647 | 0.4 | 0.0 |
-| C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.2 (0.183 before F4 curation) | 0.0 |
-| R-existing-representation (revision 3; 6 of 13 events encoded) | 0 | 0.0 | 0.0 | 0.098 | 0.917 | 0.0 |
+| V-strong-conservative | 0 | 0.0 | 0.0 | 0.627 (0.608) | 0.433 | 0.0 |
+| C-openpulse | 0 | 0.0 | 0.0 (0.042 before F1) | 0.647 (0.627; 0.588 before package curation) | 0.417 (0.433) | 0.0 |
+| C-ablate-both | 1 | 0.037 | 0.0 | 0.667 (0.647) | 0.383 (0.4) | 0.0 |
+| C-ablate-identity | 0 (silent misses 0.0; 0.037) | 0.0 | 0.0 | 0.647 (0.627) | 0.2 (0.183 before F4 curation) | 0.0 |
+| R-existing-representation (6 of 13 events encoded) | 0 | 0.0 | 0.0 | 0.098 | 0.917 | 0.0 |
 
 What this set shows, and what it does not:
 
@@ -119,10 +119,12 @@ What this set shows, and what it does not:
   - On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly.
   - Before F2 was specified, C and V also differed on two iText modules (it-02 and it-03). C was affected through a then-unspecified rule: a package is a member when the scope lists its project. The rule is now specified (SPEC §4.4, project package element), and V applies it too.
  On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
-- **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.59 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. Its abstention rate, however, is *higher* than B's. Most of the abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
+- **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.65 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. It abstains about as often as B (0.42 vs 0.43; before fa-01 was matched, slightly more often). Most of its abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
 - **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
-- **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but in-scope pairs then silently get no association. Before package curation there were 3 of 27: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). After curation, only fa-01 remains, because the iText modules are curated and resolve. With D10, C reports the uncurated ones as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back, and package curation already turned two of the three into correct positives.
+- **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.42 to 0.20. The pairs it releases get no association, not a clear, so resolution does not change. The risk is an in-scope pair that silently gets no association.
+  - **History:** before package curation, 17 of 60 pairs (28%) were held unresolved by D10 alone, and 3 of them were in scope: fa-01 and two unlisted iText modules (it-02, it-03). Package curation turned the iText modules into correct positives. Inventory discovery turned fa-01 into one.
+  - **Now:** D10 holds 13 of 60 pairs (22%) unresolved, none of them in scope (12 out of scope, 1 undeterminable). That is the coverage cost TR-2026-01 §11 listed as unmeasured. Curation and exact artefacts are what win those pairs back. On this set they won back every in-scope one, which a set of 13 events cannot show will generalise.
 - **R (REGISTRATION S3): illustrative only, and weaker than that.** Dataset revision 3 adds OSV/OpenVEX encodings for six events (`representations/dev-2026-10/`). The developer wrote them, after the labels and after every other policy's results were seen, so they are neither blind nor independent. The other seven events have no encoding, and R leaves their pairs unresolved. The run had no npm, Go or Maven bridge installed.
   - **Overall:** no false clear and no false impact, but R resolves only 5 of 51 decidable pairs (0.098) and abstains on 55 of 60.
   - **Encoded events only (40 pairs, 7 event sets):** R resolves 0.15, B 0.45, C 0.70.
@@ -148,7 +150,7 @@ What this set shows, and what it does not:
 
 On the development set the registered result is **not decidable**. It has no independent labels, and only 13 event sets where 60 are needed. The all-labels illustration:
 - **H1:** C has no false-clear event (bound 0.206).
-- **H2:** gain 0.196, 95% interval 0.02–0.34.
+- **H2:** gain 0.216, 95% interval 0.07–0.34 (0.196, 0.02–0.34, in revision 2's recorded run).
 - **S1:** not established (C − V = 0.02, Holm p 0.08).
 - **S2:** A has false-clear events in 3 of 13 event sets (Holm p 0.06).
 - **S3:** C − R = 0.55, 95% interval 0.32–0.74 (Holm p < 0.001). This reflects the seven unencoded events and the lossy encodings above, not a measured advantage of the model.

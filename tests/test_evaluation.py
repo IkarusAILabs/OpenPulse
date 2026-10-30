@@ -207,6 +207,16 @@ def test_dev_set_runs_every_policy_on_every_case(dev):
     assert len(dev["dataset_sha256"]) == 64
 
 
+def test_hashed_case_and_encoding_files_keep_their_committed_bytes():
+    """A frozen file's SHA-256 must not depend on the checkout's line endings
+    (.gitattributes: -text), or a Windows run would record another hash."""
+    hashed = [*(EVALUATION / "cases").glob("*.json")]
+    hashed += [*(EVALUATION / "representations").rglob("*.json")]
+    assert hashed
+    for path in hashed:
+        assert b"\r" not in path.read_bytes(), path
+
+
 def test_dev_set_openpulse_issues_no_false_clear_and_no_unsupported_decision(dev):
     overall = dev["policies"]["C-openpulse"]["overall"]
     assert overall["false_clears"] == 0
