@@ -166,8 +166,10 @@ def label(event: str, r: dict) -> tuple[str, str]:
         return OUT, f"Grafana {version} < 8.0.0, Apache-2.0 (tag LICENSE)."
     if event == "LIC-4":
         if version == "4.0.4":
-            return IN, "MongoDB 4.0.4 was released after 2018-10-16 and is under the SSPL (tag LICENSE)."
-        return OUT, f"MongoDB {version} was released before 2018-10-16 and stays under the AGPL."
+            return IN, "MongoDB 4.0.4 was tagged on 2018-11-06, after 2018-10-16, so it is under the SSPL (evidence/mongodb-release-tags.txt)."
+        if version != "4.0.2":
+            raise ValueError(f"LIC-4: no archived release date for MongoDB {version}")
+        return OUT, f"MongoDB {version} was tagged on 2018-08-27, before 2018-10-16, so it stays under the AGPL (evidence/mongodb-release-tags.txt)."
     if event == "EOL-1":
         if ref.startswith("circleci/"):
             return UND, "A CircleCI convenience image that ships Python 2.7: a downstream distribution, whose support the upstream end of life does not settle (TR §5.1)."

@@ -6,7 +6,7 @@
 
 The study evaluates OpenPulse on **real upstream changes of the past**, judged on what was knowable at the time. It answers the external recommendation's Priority 2.
 
-- **Exploratory, not confirmatory.** The registered evaluation (`evaluation/REGISTRATION.md`) takes its primary evidence from a *prospective* window, with independent annotators. This study is retrospective and mostly developer-labelled, so it is reported as exploratory, in its own section, and is never pooled with the registered result.
+- **Exploratory, not confirmatory.** The registered evaluation (`evaluation/REGISTRATION.md`) takes its primary evidence from a *prospective* window, with independent annotators. This study is retrospective and developer-labelled, so it is reported as exploratory, in its own section, and is never pooled with the registered result.
 - **It cannot show advance warning.** These events are past, so any detection today is late by construction. Lead time is not measured.
 - **It is disjoint from both other data sets.** Its events are excluded from the development set and the case ledger (§3, X1), and, being historical, from the registered prospective window.
 
@@ -147,10 +147,18 @@ The reproducibility package is:
   - One reference was excluded by the licence window (LIC-4: marcusdacoregio, 2019-04-16).
   - Every event has at least 2 in-scope references, so §9 drops none.
 - **2026-10-30, second labelling round, before any policy run:** L2's first round (κ = 0.722 on 42 pairs; `labelling/round-1/`) cited sources outside the packet, and in 5 of its 6 disagreements judged a different event. The owner decided to re-label the same 42 pairs (same seed) under stricter rules: only the packet's sources, only the stated event, no assistants, with sources used and real time recorded per pair. Each packet line now carries the event's title and source quotations. Round 2's κ is the registered agreement figure; round 1's is reported alongside it. No round-1 label enters the analysis.
+- **2026-10-30, no independent labels, before any policy run:** Round 2's method note states it was produced with ChatGPT, and round 1's provenance is undocumented. The owner decided to report both rounds as an AI-assisted pilot (`labelling/PILOT.md`) rather than wait for a human labeller. Consequences:
+  - every pair keeps `independent_label: false`;
+  - the analysis uses L1's labels;
+  - no `independent_label: true` subset is reported;
+  - κ is reported as L1-versus-pilot agreement, never as inter-rater reliability.
+
+  L1 reviewed the pilot's four disagreements against the sources and changed no label. LIC-4's release dates, which the labels rely on but SOURCES.md did not archive, are now in `evidence/mongodb-release-tags.txt`.
+- **2026-10-30, case file frozen, before any policy run:** `cases/retro-2026-11.json` has 167 pairs over 27 events (103 in scope, 62 out of scope, 2 undeterminable). Its SHA-256 is `70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83`, also in `cases/retro-2026-11.json.sha256`. `.gitattributes` keeps its bytes unchanged on checkout.
 
 ## 12. Known limitations
 
-- **Labels are mostly the developer's.** Only the 25% sample is independent.
+- **Labels are the developer's.** No independent human labels were obtained. An AI-assisted pilot on the 25% sample (κ = 0.825 against L1) is a consistency check, not inter-rater reliability (§11).
 - **Representativeness.** Events were researched rather than sampled from a defined population, so this is not a representative sample of upstream changes. The class quotas and §3's rules limit selection effects, but do not remove them.
 - **Fixture authorship.** The author of the event fixtures knows OpenPulse's scope language. That can make representation look easier than it is for a real producer, which is why RQ-R2 records every gap.
 - **Hindsight in dependent selection.** It is limited, not removed. Dependents are found today, among repositories that still exist, although their references are read at pre-event commits.

@@ -1,0 +1,6 @@
+# MongoDB release tags: label basis for LIC-4 (SSPL applies to releases on or after 2018-10-16).
+# Source: GitHub git tag objects in mongodb/mongo, read 2026-10-30 via the REST API
+#   GET /repos/mongodb/mongo/git/tags/<tag object sha>
+# tag	tagger date (UTC)	tag object	commit
+r4.0.2	2018-08-27T22:58:10Z	77fd882e6837795736455c113ce815acfe6ea640	fc1573ba18aee42f97a3bb13b67af7d837826b47
+r4.0.4	2018-11-06T19:45:45Z	502ddb1538e64dd5e0ccf933894d17a81fa50464	f288a3bdf201007f3693c58e140056adf8b04839

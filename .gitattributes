@@ -1,0 +1,2 @@
+# Frozen evaluation case files are hashed (evaluation/retrospective/DESIGN.md section 7): keep their bytes.
+evaluation/retrospective/cases/retro-2026-11.json -text

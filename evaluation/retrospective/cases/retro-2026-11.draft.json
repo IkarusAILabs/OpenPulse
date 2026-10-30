@@ -2167,7 +2167,7 @@
     "ref": "mongo:4.0.4"
    },
    "label": "in_scope",
-   "rationale": "MongoDB 4.0.4 was released after 2018-10-16 and is under the SSPL (tag LICENSE).",
+   "rationale": "MongoDB 4.0.4 was tagged on 2018-11-06, after 2018-10-16, so it is under the SSPL (evidence/mongodb-release-tags.txt).",
    "label_source": "events/LIC-4/SOURCES.md; reference Den1al/JSShell@89800add6bc6 docker-compose.yml (2018-12-17)",
    "labelled_by": "L1",
    "independent_label": false,
@@ -2185,7 +2185,7 @@
     "ref": "mongo:4.0.4"
    },
    "label": "in_scope",
-   "rationale": "MongoDB 4.0.4 was released after 2018-10-16 and is under the SSPL (tag LICENSE).",
+   "rationale": "MongoDB 4.0.4 was tagged on 2018-11-06, after 2018-10-16, so it is under the SSPL (evidence/mongodb-release-tags.txt).",
    "label_source": "events/LIC-4/SOURCES.md; reference mydeveloperplanet/mydockercomposeplanet@5111bd128a6e docker-compose.yml (2018-11-25)",
    "labelled_by": "L1",
    "independent_label": false,
@@ -2203,7 +2203,7 @@
     "ref": "mongo:4.0.2"
    },
    "label": "out_of_scope",
-   "rationale": "MongoDB 4.0.2 was released before 2018-10-16 and stays under the AGPL.",
+   "rationale": "MongoDB 4.0.2 was tagged on 2018-08-27, before 2018-10-16, so it stays under the AGPL (evidence/mongodb-release-tags.txt).",
    "label_source": "events/LIC-4/SOURCES.md; reference NCBI-Hackathons/CTEligible@4182f482417b ct-eligible-flask/docker-compose.yml (2018-09-11)",
    "labelled_by": "L1",
    "independent_label": false,
@@ -2221,7 +2221,7 @@
     "ref": "mongo:4.0.2"
    },
    "label": "out_of_scope",
-   "rationale": "MongoDB 4.0.2 was released before 2018-10-16 and stays under the AGPL.",
+   "rationale": "MongoDB 4.0.2 was tagged on 2018-08-27, before 2018-10-16, so it stays under the AGPL (evidence/mongodb-release-tags.txt).",
    "label_source": "events/LIC-4/SOURCES.md; reference oktadev/okta-jhipster-microservices-oauth-example@70d4f0a65faa docker-compose/docker-compose.yml (2018-10-12)",
    "labelled_by": "L1",
    "independent_label": false,
