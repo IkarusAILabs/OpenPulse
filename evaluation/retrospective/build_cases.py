@@ -57,6 +57,11 @@ def module_root(path: str) -> str:
     return "/".join(parts[:3]) if parts[0] == "github.com" else path
 
 
+def host(ref: str) -> str:
+    """The first segment of a reference: its registry or code host."""
+    return ref.split("/", 1)[0]
+
+
 def dependency(r: dict) -> dict:
     ref, kind, version = r["reference"], r["kind"], r.get("version")
     if kind == "image":
@@ -70,7 +75,7 @@ def dependency(r: dict) -> dict:
     if kind == "tool-use":
         # A project's use of a tool has no reference form (SOURCES.md, DEP-2):
         # it is represented by the tool's repository path.
-        if ref.startswith("github.com/"):
+        if host(ref) == "github.com":
             return {"kind": "package", "package": module_root(ref), "ecosystem": "Go", "version": None}
         tool = "github.com/tools/godep" if "godep" in ref else "github.com/golang/dep"
         return {"kind": "image", "ref": tool}
@@ -88,7 +93,7 @@ def label(event: str, r: dict) -> tuple[str, str]:
         old = {"REL-1": "github.com/docker/docker", "REL-3": "github.com/docker/distribution", "REL-4": "github.com/coreos/prometheus-operator"}[event]
         if module_root(ref.removeprefix("https://")) == old:
             return IN, f"Names the relocated repository path {old}; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1)."
-        if ref.startswith("quay.io/"):
+        if host(ref) == "quay.io":
             return OUT, "A container image on quay.io, not the relocated GitHub repository; images kept being pushed to the old organisation."
         return OUT, f"Not a reference to {old}: the new location or a different project."
     if event == "DEP-1":
@@ -116,7 +121,7 @@ def label(event: str, r: dict) -> tuple[str, str]:
             return IN, "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal."
         return OUT, f"{ref} is a different linter."
     if event == "DIS-1":
-        if ref.startswith("k8s.gcr.io/"):
+        if host(ref) == "k8s.gcr.io":
             return IN, "An image on k8s.gcr.io: 'ALL images on k8s.gcr.io will be impacted' (redirect, then freeze)."
         return OUT, "Not on k8s.gcr.io: the new registry or another host."
     if event == "DIS-2":
