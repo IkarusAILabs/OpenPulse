@@ -7,7 +7,22 @@ python benchmarks/cost.py          # offline: matching and history growth
 python benchmarks/cost.py --live   # also live acquisition through the agent interface
 ```
 
-Raw results are in `benchmarks/results/cost.json`.
+Raw results are in `benchmarks/results/cost.json`. Since 2026-10-30 that file holds the re-measurement at `a1ecc58` below; the tables in the rest of this report are the original 2026-10-29 run.
+
+## Re-measurement at `a1ecc58` (2026-10-30)
+
+On the same machine, three runs at `a1ecc58` were interleaved with two fresh runs of the audit snapshot `8a9c3a8`. The fresh `8a9c3a8` runs reproduced the tables below within about 15%. Medians:
+
+| Setting | `8a9c3a8` | `a1ecc58` |
+|---|---:|---:|
+| µs per pair (inventory sizes 100–5,000, 10 events) | 42 | 75 |
+| 5,000 dependencies × 10 events | 2.1–2.6 s | 3.7–3.9 s |
+| 1,000 dependencies × 100 events | 3.98 s | 6.85 s |
+| Per scope element per pair | 2.6–2.8 µs | 2.9–3.4 µs |
+| Peak memory, 5,000 × 10 | 24.6 MiB | 24.6 MiB |
+| Sweep per repository / store growth per run | 34 ms / 6.1–7.1 KB | 34 ms / 6.1–7.1 KB |
+
+**Matching is about 1.8× slower** at `a1ecc58`. The cause is a fixed cost per package dependency, not per scope element. Since F1, `package_trust` rebuilds the catalogue's package map (`package_map`) on every call, and `resolution_trust` rebuilds the alias map (`catalog_alias_map`). In a profile of 1,000 dependencies × 10 events, these account for about 2.6 s of 3.5 s. Caching the derived maps per catalogue object would remove that cost; it has not been applied yet. Sweep and store costs are unchanged.
 
 ## Matching (offline, `check_watchlist`)
 
