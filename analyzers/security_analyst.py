@@ -41,6 +41,21 @@ def _cve_id(entry: dict[str, Any]) -> str | None:
     return None
 
 
+def _osv_advisory_id(entry: dict[str, Any]) -> str | None:
+    """An OSV advisory's own id (GHSA-..., MAL-...) when it has no CVE alias.
+
+    Malicious and compromised packages are mostly published without a CVE.
+    Dropping them made a clearance against an unrelated CVE the only
+    evidence: node-ipc 9.2.2, the protestware version, read NOT_AFFECTED
+    (D-S1, found in the retrospective study's follow-up). Such an advisory
+    stands on its own id; cross-source merging stays keyed by CVE.
+    """
+    if entry.get("collector") != "osv":
+        return None
+    value = entry.get("id")
+    return value.strip().upper() if isinstance(value, str) and value.strip() else None
+
+
 def _score(entry: dict[str, Any]) -> float | None:
     cvss = entry.get("cvss")
     if isinstance(cvss, dict) and isinstance(cvss.get("base_score"), (int, float)):
@@ -101,7 +116,7 @@ def correlate(
         for e in source_entries:
             if e.get("error") or e.get("skipped"):
                 continue
-            cid = _cve_id(e)
+            cid = _cve_id(e) or _osv_advisory_id(e)
             if not cid:
                 continue
             slot = merged.setdefault(
@@ -208,6 +223,15 @@ def _osv_identity(entry: dict[str, Any], names: set[str], pkg: str, eco: str) ->
     return True
 
 
+def _same_package(affected: dict[str, Any], package: str, ecosystem: str) -> bool:
+    """Does an OSV affected entry name the queried package? Unnamed entries do."""
+    name = str(affected.get("package") or "")
+    eco = str(affected.get("ecosystem") or "")
+    if name and _norm(name) != _norm(package):
+        return False
+    return not (eco and ecosystem and eco.lower() != ecosystem.lower())
+
+
 def _absorb_osv(
     slot: dict[str, Any],
     e: dict[str, Any],
@@ -225,6 +249,11 @@ def _absorb_osv(
     slot["affected_package"] = slot["affected_package"] or package
     evaluated, applies, undecided, fixed = False, False, False, None
     for affected in e.get("affected", []) or []:
+        if not _same_package(affected, package, str(e.get("ecosystem", ""))):
+            # One advisory can name several packages (event-stream's also
+            # lists flatmap-stream, affected at every version). Another
+            # package's range says nothing about this one (D-S2).
+            continue
         result = (
             osv_applicable(version, affected, ecosystem=e.get("ecosystem")) if version else None
         )

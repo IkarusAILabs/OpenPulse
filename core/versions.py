@@ -281,13 +281,23 @@ def osv_applicable(
     if not version:
         return None
     ecosystem = ecosystem or (affected.get("package") or {}).get("ecosystem")
-    for known in affected.get("versions", []) or []:
-        listed_scheme = scheme or range_scheme("ECOSYSTEM", ecosystem)
-        if str(version) == str(known) or compare(version, str(known), listed_scheme) == 0:
+    listed = [str(v) for v in affected.get("versions", []) or []]
+    listed_scheme = scheme or range_scheme("ECOSYSTEM", ecosystem)
+    comparable = True
+    for known in listed:
+        if str(version) == known:
             return True
+        result = compare(version, known, listed_scheme)
+        if result == 0:
+            return True
+        comparable = comparable and result is not None
     ranges = affected.get("ranges", []) or []
     if not ranges:
-        return None
+        # The affected set is the union of ranges and listed versions (OSV
+        # schema). With no range, a version comparable with, and unequal
+        # to, every listed one is outside this entry; any incomparable
+        # listed version withholds the negative.
+        return False if listed and comparable else None
     undecided = False
     for rng in ranges:
         result = _osv_range(version, rng, scheme or range_scheme(rng.get("type"), ecosystem))
