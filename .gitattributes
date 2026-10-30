@@ -2,3 +2,4 @@
 evaluation/retrospective/cases/retro-2026-11.json -text
 evaluation/retrospective/results/openpulse-retro-2026-11.json -text
 evaluation/retrospective/results/after-fixes/openpulse-retro-2026-11.json -text
+papers/tr-2026-01/*.pdf -text
