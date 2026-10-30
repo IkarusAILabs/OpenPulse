@@ -3,3 +3,5 @@ evaluation/retrospective/cases/retro-2026-11.json -text
 evaluation/retrospective/results/openpulse-retro-2026-11.json -text
 evaluation/retrospective/results/after-fixes/openpulse-retro-2026-11.json -text
 papers/tr-2026-01/*.pdf -text
+# Policy R's frozen encodings are hashed (evaluation/representations/ENCODING.md section 9).
+evaluation/representations/**/*.json -text

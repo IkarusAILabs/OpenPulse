@@ -2,12 +2,13 @@
 
 **Status: drafted 2026-10-30, amended 2026-10-30 (§12), not yet archived.** This document becomes the registered protocol when the author archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
 
-**Not archivable yet.** The 2026-10-30 amendments add the following, none of which is implemented:
-- policy R and its encoding rules;
-- the review-burden measures W1–W3;
-- the reliability measures D1–D2.
+**Not archivable yet: only the archiving fields remain.** The 2026-10-30 amendments are implemented, with their constants in `registration.py` (§9):
+- policy R: its encoding rules (`evaluation/representations/ENCODING.md`) and its consumer (`evaluation/existing_representation.py`), with each event's encoding frozen by SHA-256 in the case set;
+- S3, G4 and the attribution steps B→R→V→C;
+- the review-burden measures W1–W3: the inventory run per weekly cycle, and W3's seeded sample and summary;
+- the reliability measures D1–D2, tabulated from the annotators' records.
 
-Each one needs its code in `evaluation/` and its constants in `registration.py` before archiving (§9).
+What remains is what was always to be filled at archiving: the registry fields of the table below, the stopping number (§6), and the inclusion criteria per event class (§7).
 
 | Field | Value |
 |---|---|
@@ -53,7 +54,7 @@ All policies receive the same replayed events and the same dependency, and none 
 
 **Policy R.** R asks what the model adds over formats that already exist, read with care.
 
-- **Encoding.** Each held-out event is re-encoded from its primary sources alone, following written rules (`evaluation/representations/ENCODING.md`, to be written before archiving). Version and package changes become an OSV record. Changes to images, repositories and distributions become OpenVEX statements, with products as purls and status `affected`, `not_affected` or `under_investigation`.
+- **Encoding.** Each held-out event is re-encoded from its primary sources alone, following written rules (`evaluation/representations/ENCODING.md`, frozen at archiving). Version and package changes become an OSV record. Changes to images, repositories and distributions become OpenVEX statements, with products as purls and status `affected`, `not_affected` or `under_investigation`.
 - **The encoder.** The encoder is not an annotator, sees no labels and no policy output, and finishes before any policy runs. For each event, the encoder records what the format could not express (the *encoding loss*). An example is "every image under this namespace".
 - **The consumer.** It reports *affected* when an OSV range for the dependency's package includes its version under the pinned ecosystem comparator (the same pins as V), or when a statement with status `affected` names its exact purl. It reports *not affected* only in two cases:
   - an OSV range for the same package excludes the version;
@@ -62,7 +63,7 @@ All policies receive the same replayed events and the same dependency, and none 
   Everything else is unresolved.
 - **What R lacks.** Identity is exact purl equality. R has no curated catalogue, no typed namespace elements and no completeness declaration.
 
-R is code to be written: `evaluation/existing_representation.py`, frozen with the other policies (§10).
+R's code is `evaluation/existing_representation.py`, frozen with the other policies (§10).
 
 **Attribution.** The four comparators separate the following contributions (reported in §4, never tested together):
 - B to R: what existing formats and a careful consumer add;
@@ -207,17 +208,18 @@ The soundness lemma makes a negative sound only if its inputs are true of the re
 The analysis is:
 
 ```bash
-python evaluation/run.py --require-comparators --cases <frozen held-out set>
+python evaluation/run.py --require-comparators --require-encodings \
+    --cases <frozen held-out set> --inventories <inventories> --annotations <annotators' records>
 ```
 
-at the freeze commit, with every pinned comparator installed. `--require-comparators` refuses to run otherwise, and a result whose `registration.registered.valid` is false is not the registered result. The registered result is `registration.registered` in the results file, computed on independently labelled pairs only. Nothing else in that file is the registered result.
+at the freeze commit, with every pinned comparator installed and every held-out event's R encoding frozen. `--require-comparators` and `--require-encodings` refuse to run otherwise, and a result whose `registration.registered.valid` is false is not the registered result. The registered result is `registration.registered` in the results file, computed on independently labelled pairs only. Nothing else in that file is the registered result.
 
 Specifically:
 - **Unit:** the dependency-event pair.
 - **Clusters:** a case's event set.
 - **Bootstrap:** seed and resample count are fixed in `registration.py`.
 - **Undeterminable pairs:** they never count as false clears or false impacts. They are reported as unsupported decisiveness.
-- **Code still to write before archiving:** policy R, the W1 inventory run, and the S3, G4, W and D tables in `registration.py`. The draft states their rules; their code is part of the analysis code frozen at archiving.
+- **Inputs beyond the pairs:** `--inventories` gives the participating inventories and the window, for W1, W2 and G4. `--annotations` gives the timed reviews (W3) and the D1 and D2 judgements. W3's items are drawn by `registration.review_sample` with the bootstrap seed. A missing input leaves its table empty and is listed under `missing_inputs`; it never changes the verdict.
 
 ## 10. Freeze and leakage control
 
