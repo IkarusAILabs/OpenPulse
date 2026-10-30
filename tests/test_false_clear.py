@@ -545,8 +545,11 @@ def test_d13_unmapped_package_is_unresolved_not_unassociated():
     unmapped = check_dependency(
         {"kind": "package", "package": "zzzpkg", "ecosystem": "PyPI", "version": "9.1"}, [eol]
     )
+    # FLIPPED (package curation, 2026-10-30): PyPI `mysql` is a client
+    # package, not the MySQL server, so it no longer stands for "curated as
+    # another project". PyPI `requests` is curated as its own project.
     curated_other = check_dependency(
-        {"kind": "package", "package": "mysql", "ecosystem": "PyPI", "version": "9.1"}, [eol]
+        {"kind": "package", "package": "requests", "ecosystem": "PyPI", "version": "9.1"}, [eol]
     )
     assert unmapped.relationship == "RELATED"
     assert curated_other.relationship == "UNKNOWN"
