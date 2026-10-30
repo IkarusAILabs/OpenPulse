@@ -28,6 +28,7 @@ sys.path.insert(0, str(HERE))
 
 import metrics  # noqa: E402
 import policies  # noqa: E402
+import registration  # noqa: E402
 import replay  # noqa: E402
 
 DEFAULT_CASES = HERE / "cases" / "dev-2026-10.json"
@@ -101,6 +102,13 @@ def run(path: Path = DEFAULT_CASES, max_evidence_age_days: int = 90) -> dict[str
             }
             for name, r in rows.items()
         },
+        "registration": {
+            "thresholds": registration.thresholds(),
+            # The registered population: independently labelled pairs only.
+            "registered": registration.analyse(rows, independent_only=True),
+            # The same analysis over every label: illustrative, never evidence.
+            "all_labels_illustrative": registration.analyse(rows, independent_only=False),
+        },
         "pairs": rows,
     }
 
@@ -146,3 +154,11 @@ if __name__ == "__main__":
         f"{first['pairs']} pairs over {first['events']} events"
     )
     print(table(result))
+    for population in ("registered", "all_labels_illustrative"):
+        block = result["registration"][population]
+        primary, guard = block["primary"], block["guardrails"]
+        print(
+            f"{population}: {primary['verdict']}; "
+            f"H2 gain {primary['H2_resolution_superiority'].get('difference')}; "
+            f"G1 {guard['G1_silent_miss']['pass']}, G2 {guard['G2_unresolved_vs_B']['pass']}"
+        )
