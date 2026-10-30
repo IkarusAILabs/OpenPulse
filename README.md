@@ -328,7 +328,12 @@ openpulse digest   --watchlist data/fixtures/watchlist_sample.yaml --event data/
 # 9. Post the check digest to Slack-style webhooks (URL via env var, never argv)
 OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/...   openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json --digest
 
-# 10. Run the test suite
+# 10. Discover changes in what your dependencies name (repositories moved or archived),
+#     then check offline against the events it writes
+openpulse discover --manifest go.mod --images images.txt --out .openpulse/discovered
+openpulse check --manifest go.mod --event .openpulse/discovered/<event>.json
+
+# 11. Run the test suite
 pytest -q
 ```
 

@@ -225,17 +225,24 @@ def _go_module_repository(dep: dict[str, Any], event: OSSEvent) -> str | None:
     """The event's source-repository artifact a Go module lives in, or None.
 
     The module path equals the repository path or extends it by a
-    subdirectory or major-version suffix (`github.com/o/r/v3`). Compared
-    case-insensitively, as code hosts resolve repository paths.
+    subdirectory or major-version suffix (`github.com/o/r/v3`). A module on
+    a fixed hosting convention (`gopkg.in/yaml.v3`, `golang.org/x/lint`)
+    also lives in the GitHub repository that convention names, the same
+    rule inventory discovery uses to find it. Compared case-insensitively,
+    as code hosts resolve repository paths.
     """
+    from core.discovery import go_module_repository
+
     if str(dep.get("ecosystem") or "").strip().lower() not in ("go", "golang"):
         return None
     module = str(dep["package"]).strip().lower()
+    hosted = go_module_repository(module)
+    paths = {module, f"github.com/{hosted.lower()}"} if hosted else {module}
     for artifact in event.affected_artifacts:
         if artifact.kind != "source-repository":
             continue
         repo = re.sub(r"^[a-z][a-z0-9+.-]*://", "", str(artifact.ref).strip().lower()).rstrip("/")
-        if repo and (module == repo or module.startswith(repo + "/")):
+        if repo and any(p == repo or p.startswith(repo + "/") for p in paths):
             return str(artifact.ref)
     return None
 
