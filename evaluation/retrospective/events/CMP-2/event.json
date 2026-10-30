@@ -1,0 +1,47 @@
+{
+ "id": "retro-cmp-2",
+ "project_slug": "faker",
+ "event_type": "SECURITY",
+ "title": "Sabotaged faker 6.6.6",
+ "summary": "The maintainer published faker 6.6.6 with the functional code removed.",
+ "confidence": "CONFIRMED",
+ "impact": "CRITICAL",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "GHSA-5w9c-rv96-fr7g",
+    "url": "https://github.com/advisories/GHSA-5w9c-rv96-fr7g",
+    "authority": "official",
+    "fetched_at": "2022-03-22T00:00:00Z",
+    "acquisition_method": "record:github advisory GHSA-5w9c-rv96-fr7g (faker = 6.6.6)",
+    "family": "github-advisories"
+   },
+   "excerpt": "The maintainer deliberately removed the functional code from this package.",
+   "relation": "supports",
+   "announcement_date": "2022-03-22",
+   "effective_date": "2022-01-05"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-Marak-faker.js",
+    "url": "https://github.com/Marak/faker.js",
+    "authority": "primary",
+    "fetched_at": "2022-01-06T19:35:13Z",
+    "acquisition_method": "wayback:20220106193513 http://web.archive.org/web/20220106193513/https://github.com/Marak/faker.js",
+    "family": "wayback"
+   },
+   "excerpt": "Repository page after the 6.6.6 release.",
+   "relation": "context"
+  }
+ ],
+ "created_at": "2022-03-22T00:00:00Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "6.6.6"
+  ],
+  "exhaustive": true,
+  "basis": "announced"
+ }
+}

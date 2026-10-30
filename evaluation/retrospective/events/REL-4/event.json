@@ -1,0 +1,52 @@
+{
+ "id": "retro-rel-4",
+ "project_slug": "prometheus-operator",
+ "event_type": "OWNERSHIP_CHANGE",
+ "title": "coreos/prometheus-operator relocated to prometheus-operator/prometheus-operator",
+ "summary": "The Prometheus Operator moved to its own GitHub organisation; the Go module path changed with release 0.42.0.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/coreos/prometheus-operator"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "prometheus-operator#3384",
+    "url": "https://github.com/prometheus-operator/prometheus-operator/pull/3384",
+    "authority": "official",
+    "fetched_at": "2020-08-05T13:43:00Z",
+    "acquisition_method": "record:github pull request #3384, merged 2020-08-05T13:43Z",
+    "family": "prometheus-operator"
+   },
+   "excerpt": "Move repository to new organization.",
+   "relation": "supports",
+   "announcement_date": "2020-08-05",
+   "effective_date": "2020-08-05"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-coreos-prometheus-operator",
+    "url": "https://github.com/coreos/prometheus-operator",
+    "authority": "primary",
+    "fetched_at": "2020-06-15T01:22:37Z",
+    "acquisition_method": "wayback:20200615012237 http://web.archive.org/web/20200615012237/https://github.com/coreos/prometheus-operator",
+    "family": "wayback"
+   },
+   "excerpt": "Repository page before the move (HTTP 200).",
+   "relation": "context"
+  }
+ ],
+ "created_at": "2020-08-05T13:43:00Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "github.com/coreos/prometheus-operator"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

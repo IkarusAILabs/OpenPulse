@@ -136,6 +136,11 @@ The reproducibility package is:
   - Relocation and end of life keep **3 events each**, below §3's minimum of 4. No further events are researched.
   - The report states the shortfall and its effect: per-class results for those two classes rest on 3 events and are descriptive only.
   - X1 is unchanged. The Terraform and Grafana licence events stay included.
+- **2026-10-30, amendment before any dependent is used:** §5 assumed every in-scope reference comes from a commit dated before the effective date. That is impossible where the affected versions are published only at or after it: licence changes (a version >= 7.11 exists only once released) and compromised versions (a lockfile can resolve a bad version only once it is published).
+  - For licence events (LIC-1 to LIC-4), in-scope references come from commits dated between the first affected release and the end of that calendar year.
+  - For compromised versions (CMP-1 to CMP-5), they come from commits dated between publication of the bad version and its removal or disclosure.
+  - Neighbours on the unaffected side of a boundary still come from commits dated before the effective date.
+  - The windows are fixed by date alone, never by outcome.
 
 ## 12. Known limitations
 

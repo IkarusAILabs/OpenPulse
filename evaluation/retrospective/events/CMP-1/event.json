@@ -1,0 +1,50 @@
+{
+ "id": "retro-cmp-1",
+ "project_slug": "colors",
+ "event_type": "SECURITY",
+ "title": "Sabotaged colors versions",
+ "summary": "The maintainer published colors versions that print garbage and loop forever.",
+ "confidence": "CONFIRMED",
+ "impact": "CRITICAL",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "GHSA-5rqg-jm4f-cqx7",
+    "url": "https://github.com/advisories/GHSA-5rqg-jm4f-cqx7",
+    "authority": "official",
+    "fetched_at": "2022-01-15T12:39:12Z",
+    "acquisition_method": "wayback:20220115123912 http://web.archive.org/web/20220115123912/https://github.com/advisories/GHSA-5rqg-jm4f-cqx7",
+    "family": "github-advisories"
+   },
+   "excerpt": "colors versions 1.4.1, 1.4.2, and 1.4.44-liberty-2 were published including malicious code.",
+   "relation": "supports",
+   "announcement_date": "2022-01-10",
+   "effective_date": "2022-01-08"
+  },
+  {
+   "source": {
+    "name": "GHSA-gh88-3pxp-6fm8",
+    "url": "https://github.com/advisories/GHSA-gh88-3pxp-6fm8",
+    "authority": "official",
+    "fetched_at": "2022-01-21T00:00:00Z",
+    "acquisition_method": "record:github advisory GHSA-gh88-3pxp-6fm8 (affected >= 1.4.1)",
+    "family": "github-advisories"
+   },
+   "excerpt": "Affected versions: >= 1.4.1.",
+   "relation": "context",
+   "announcement_date": "2022-01-21"
+  }
+ ],
+ "created_at": "2022-01-21T00:00:00Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "1.4.1",
+   "1.4.2",
+   "1.4.44"
+  ],
+  "exhaustive": false,
+  "basis": null
+ }
+}

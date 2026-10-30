@@ -1,0 +1,35 @@
+{
+ "id": "retro-dis-6",
+ "project_slug": "java",
+ "event_type": "DEPRECATION",
+ "title": "Official java image deprecated in favour of openjdk",
+ "summary": "The java Official Image was deprecated in favour of openjdk on 2016-08-11, with no updates after 2016-12-31.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "docker-library/docs@a3439b6",
+    "url": "https://github.com/docker-library/docs/commit/a3439b66b798",
+    "authority": "official",
+    "fetched_at": "2016-10-27T20:18:50Z",
+    "acquisition_method": "wayback:20161027201850 http://web.archive.org/web/20161027201850/https://hub.docker.com/_/java/",
+    "family": "docker-library"
+   },
+   "excerpt": "This image is officially deprecated in favor of the openjdk image, and will receive no further updates after 2016-12-31.",
+   "relation": "supports",
+   "announcement_date": "2016-08-11",
+   "effective_date": "2016-12-31"
+  }
+ ],
+ "created_at": "2016-10-27T20:18:50Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "docker.io/library/java"
+  ],
+  "exhaustive": true,
+  "basis": "announced"
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "id": "retro-lic-3",
+ "project_slug": "grafana",
+ "event_type": "LICENSE_CHANGE",
+ "title": "Grafana relicensed from Apache-2.0 to AGPLv3 from 8.0",
+ "summary": "Grafana Labs relicensed Grafana (with Loki and Tempo) from Apache-2.0 to AGPLv3; Grafana 8.0.0 is the first AGPL release. Plugins and some libraries stay Apache-2.0.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "grafana/relicensing-to-agplv3",
+    "url": "https://grafana.com/blog/2021/04/20/grafana-loki-tempo-relicensing-to-agplv3/",
+    "authority": "official",
+    "fetched_at": "2021-04-21T23:05:14Z",
+    "acquisition_method": "wayback:20210421230514 http://web.archive.org/web/20210421230514/https://grafana.com/blog/2021/04/20/grafana-loki-tempo-relicensing-to-agplv3/",
+    "family": "grafana"
+   },
+   "excerpt": "We are relicensing our core open source projects from Apache 2.0 to AGPLv3.",
+   "relation": "supports",
+   "announcement_date": "2021-04-20",
+   "effective_date": "2021-06-08"
+  }
+ ],
+ "created_at": "2021-04-21T23:05:14Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "8"
+  ],
+  "exhaustive": false,
+  "basis": null
+ }
+}
