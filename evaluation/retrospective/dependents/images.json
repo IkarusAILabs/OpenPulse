@@ -1,0 +1,692 @@
+{
+ "group": "Container images (DIS-1..DIS-6, LIC-1, LIC-3, LIC-4, EOL-3)",
+ "collected": "2026-10-30, research agent, each reference fetched at its commit via the GitHub API; spot-checked by the study author",
+ "events": [
+  {
+   "event": "DIS-1",
+   "in_scope": [
+    {
+     "repo": "deitch/kubesync",
+     "commit_sha": "235189b7d317e8e5813bccebcc672ed014ff821a",
+     "commit_date": "2018-07-20T13:00:21Z",
+     "file": "test/docker-compose.yml",
+     "reference": "k8s.gcr.io/etcd-amd64:3.1.12",
+     "kind": "image",
+     "version": "3.1.12"
+    },
+    {
+     "repo": "pjoe/loadem",
+     "commit_sha": "367ddb4a764f25fb69a6de778374d97c5b3d92db",
+     "commit_date": "2020-10-14T13:10:24Z",
+     "file": "docker-compose.yml",
+     "reference": "k8s.gcr.io/echoserver:1.10",
+     "kind": "image",
+     "version": "1.10"
+    },
+    {
+     "repo": "jpetazzo/obs-docker",
+     "commit_sha": "605d8163db533785377512042a3f6ea1aeceeb35",
+     "commit_date": "2021-05-07T06:28:23Z",
+     "file": "docker-compose.yml",
+     "reference": "k8s.gcr.io/pause",
+     "kind": "image",
+     "version": null
+    },
+    {
+     "repo": "kubernetes/ingress-gce",
+     "commit_sha": "75f14a06c244b9c8666523116ffbc0b2f5814527",
+     "commit_date": "2023-03-06T13:30:30Z",
+     "file": "docs/deploy/gke/non-gcp/glbc.yaml",
+     "reference": "k8s.gcr.io/ingress-gce-glbc-amd64:v1.8.0",
+     "kind": "image",
+     "version": "v1.8.0"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n4",
+     "repo": "sergelogvinov/devops-examples",
+     "commit_sha": "8cd3b147350668c372b3b739c82a30b90c4ab205",
+     "commit_date": "2024-09-05T11:59:47Z",
+     "file": "python/docker-compose.yml",
+     "reference": "registry.k8s.io/pause:3.8",
+     "kind": "image",
+     "version": "3.8"
+    },
+    {
+     "template": "n4",
+     "repo": "kubernetes-sigs/metrics-server",
+     "commit_sha": "e86a9f02b73aae775297ccabc3069f4f2aeb765d",
+     "commit_date": "2022-12-22T09:54:00Z",
+     "file": "charts/metrics-server/values.yaml",
+     "reference": "registry.k8s.io/metrics-server/metrics-server",
+     "kind": "image",
+     "version": null
+    },
+    {
+     "template": "n1",
+     "repo": "mbugeia/srt2hls",
+     "commit_sha": "fe87a0f8fa2df46f08d2d5ca1c16c7797a408c34",
+     "commit_date": "2021-10-04T21:31:29Z",
+     "file": "docker-compose.yml",
+     "reference": "gcr.io/cadvisor/cadvisor:v0.37.0",
+     "kind": "image",
+     "version": "v0.37.0"
+    }
+   ]
+  },
+  {
+   "event": "DIS-2",
+   "in_scope": [
+    {
+     "repo": "Graylog2/graylog-docker",
+     "commit_sha": "47ec065f181462d7c5f60bf85ff3d3f80caac084",
+     "commit_date": "2021-12-15T15:11:46Z",
+     "file": "docker/oss/Dockerfile",
+     "reference": "openjdk:8-jre-slim-bullseye",
+     "kind": "image",
+     "version": "8-jre-slim-bullseye",
+     "note": "written as openjdk:${JAVA_VERSION_MAJOR}-jre-slim-bullseye with ARG JAVA_VERSION_MAJOR=8 in the same file"
+    },
+    {
+     "repo": "shzlw/poli",
+     "commit_sha": "75137ec7abc10ab83b4ca78f80cc1b581a653bd4",
+     "commit_date": "2020-05-22T13:32:56Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:8-jdk-alpine",
+     "kind": "image",
+     "version": "8-jdk-alpine"
+    },
+    {
+     "repo": "confluentinc/kafka-connect-http-demo",
+     "commit_sha": "35af36e97cc5abfc2bcb52deba428ed9ea46e846",
+     "commit_date": "2019-05-09T16:44:57Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:8-jdk-alpine",
+     "kind": "image",
+     "version": "8-jdk-alpine"
+    },
+    {
+     "repo": "dsyer/kubernetes-intro",
+     "commit_sha": "c3ea9a8c5cfe3d5a5dde7bc33c456513a5ecf2c1",
+     "commit_date": "2020-03-23T11:27:47Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:8-jdk-alpine",
+     "kind": "image",
+     "version": "8-jdk-alpine"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n1",
+     "repo": "virtualansoftware/service-virtualization-openapi",
+     "commit_sha": "290daa4adfb22521184ad1967e13c8347e0dcfc0",
+     "commit_date": "2022-03-11T05:01:32Z",
+     "file": "Dockerfile",
+     "reference": "adoptopenjdk/openjdk11:alpine-slim",
+     "kind": "image",
+     "version": "alpine-slim"
+    },
+    {
+     "template": "n2",
+     "repo": "gaia-app/gaia",
+     "commit_sha": "619bf1e92922be21782911a75dec39ea3f17b5f8",
+     "commit_date": "2021-10-08T16:28:44Z",
+     "file": "Dockerfile",
+     "reference": "eclipse-temurin:17",
+     "kind": "image",
+     "version": "17"
+    },
+    {
+     "template": "n3",
+     "repo": "ttrzcinski/RestJ12",
+     "commit_sha": "4d7fcd824583cfa00607b9fb085fe5941ae2471f",
+     "commit_date": "2022-05-02T11:35:34Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:19-ea-16-slim",
+     "kind": "image",
+     "version": "19-ea-16-slim",
+     "note": "an Early Access tag, which the source excludes"
+    }
+   ]
+  },
+  {
+   "event": "DIS-3",
+   "in_scope": [
+    {
+     "repo": "navikt/statusplattform",
+     "commit_sha": "a3f0baef40577b14e0384d1a91e39ad9498a9338",
+     "commit_date": "2025-03-07T09:11:44Z",
+     "file": "Dockerfile",
+     "reference": "library/openjdk:21",
+     "kind": "image",
+     "version": "21"
+    },
+    {
+     "repo": "tencentmusic/supersonic",
+     "commit_sha": "614917ba7648ad8efd4bedbf166126eaceab5476",
+     "commit_date": "2025-04-02T09:26:19Z",
+     "file": "docker/Dockerfile",
+     "reference": "openjdk:21-slim",
+     "kind": "image",
+     "version": "21-slim"
+    },
+    {
+     "repo": "melonlee/LazyAdmin",
+     "commit_sha": "07e4969e9cdf4552d6b30692b7fda8be43ce299c",
+     "commit_date": "2025-07-13T14:22:10Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:17-jdk-slim",
+     "kind": "image",
+     "version": "17-jdk-slim"
+    },
+    {
+     "repo": "fabric8io/docker-maven-plugin",
+     "commit_sha": "d36d5c70e7b6b3eebffb59587baa0cb0db225dd5",
+     "commit_date": "2018-05-16T18:43:05Z",
+     "file": "samples/run-java/Dockerfile",
+     "reference": "openjdk:jre",
+     "kind": "image",
+     "version": "jre"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "arempter/hive-metastore-docker",
+     "commit_sha": "e15fc5116d108306a0cbfd712456403cfb30256e",
+     "commit_date": "2023-01-31T07:39:58Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:8u342-jre",
+     "kind": "image",
+     "version": "8u342-jre",
+     "note": "kept: not in the deleted-tag list"
+    },
+    {
+     "template": "n3",
+     "repo": "adyach/nakadi-docker",
+     "commit_sha": "cac260904ea454e2e399732033b97a06def594ae",
+     "commit_date": "2022-09-13T13:44:54Z",
+     "file": "Dockerfile",
+     "reference": "openjdk:11.0.16-jdk-slim",
+     "kind": "image",
+     "version": "11.0.16-jdk-slim",
+     "note": "kept: not in the deleted-tag list (checked)"
+    },
+    {
+     "template": "n2",
+     "repo": "genome-nexus/genome-nexus",
+     "commit_sha": "e7d088c165287ddb27c5a190c5e4f7bcc071e7f0",
+     "commit_date": "2025-08-04T13:21:20Z",
+     "file": "Dockerfile",
+     "reference": "eclipse-temurin:21",
+     "kind": "image",
+     "version": "21"
+    }
+   ]
+  },
+  {
+   "event": "DIS-4",
+   "in_scope": [
+    {
+     "repo": "harvard-nrg/anatqc",
+     "commit_sha": "28b27180651e1030000d72711a523a489f99fc53",
+     "commit_date": "2022-06-24T20:56:33Z",
+     "file": "Dockerfile",
+     "reference": "centos:8",
+     "kind": "image",
+     "version": "8"
+    },
+    {
+     "repo": "naver/arcus-memcached",
+     "commit_sha": "f29fde9df908b8c22ef113f6a63813a19afb7256",
+     "commit_date": "2024-06-11T08:13:26Z",
+     "file": "Dockerfile",
+     "reference": "centos:7",
+     "kind": "image",
+     "version": "7"
+    },
+    {
+     "repo": "orlabs/orange",
+     "commit_sha": "285e4f4a195f996abd6c7026e506ac542714769e",
+     "commit_date": "2022-08-01T08:10:46Z",
+     "file": "Dockerfile",
+     "reference": "centos:7",
+     "kind": "image",
+     "version": "7"
+    },
+    {
+     "repo": "aliyun/rds_dbsync",
+     "commit_sha": "35bb00a2627384ae8b963c5116fad3ef3973d7be",
+     "commit_date": "2018-12-22T09:07:13Z",
+     "file": "Dockerfile",
+     "reference": "centos:7",
+     "kind": "image",
+     "version": "7"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n1",
+     "repo": "theforeman/foreman",
+     "commit_sha": "a88d8d36b233cf5f88665fa4852a301d4f6fb10c",
+     "commit_date": "2024-04-10T09:11:19Z",
+     "file": "Dockerfile",
+     "reference": "quay.io/centos/centos:stream9",
+     "kind": "image",
+     "version": "stream9"
+    },
+    {
+     "template": "n1",
+     "repo": "firewalld/firewalld",
+     "commit_sha": "c7370b4238dae3f3ed9147cc70e743f4469338a6",
+     "commit_date": "2022-03-10T20:03:39Z",
+     "file": "Dockerfile",
+     "reference": "quay.io/centos/centos:stream8",
+     "kind": "image",
+     "version": "stream8"
+    },
+    {
+     "template": "n2",
+     "repo": "harvard-nrg/anatqc",
+     "commit_sha": "16889526c983930dd506ead19e179c21e02f3f52",
+     "commit_date": "2023-06-06T17:25:51Z",
+     "file": "Dockerfile",
+     "reference": "rockylinux:8",
+     "kind": "image",
+     "version": "8"
+    }
+   ]
+  },
+  {
+   "event": "DIS-5",
+   "in_scope": [
+    {
+     "repo": "metriql/metriql",
+     "commit_sha": "3752b96439846744c9e22d1c98c5968bf7c96f1f",
+     "commit_date": "2021-07-31T03:44:58Z",
+     "file": "Dockerfile",
+     "reference": "adoptopenjdk:11",
+     "kind": "image",
+     "version": "11"
+    },
+    {
+     "repo": "adevinta/zoe",
+     "commit_sha": "a84a8e01bf07bff66a020c0c7ea80b2797dd184c",
+     "commit_date": "2021-04-15T19:14:25Z",
+     "file": "zoe-cli/Dockerfile",
+     "reference": "adoptopenjdk:11-jre-openj9",
+     "kind": "image",
+     "version": "11-jre-openj9"
+    },
+    {
+     "repo": "thombergs/code-examples",
+     "commit_sha": "029a5f03fb19b79943ba456b4753fb696e1c7b6a",
+     "commit_date": "2020-09-19T05:44:17Z",
+     "file": "spring-boot/spring-boot-health-check/Dockerfile",
+     "reference": "adoptopenjdk:11-jre-hotspot",
+     "kind": "image",
+     "version": "11-jre-hotspot"
+    },
+    {
+     "repo": "box/mojito",
+     "commit_sha": "fc9501edbcd8d47573eab165543e6087b5808a9c",
+     "commit_date": "2021-06-11T17:22:15Z",
+     "file": "docker/Dockerfile-bk11",
+     "reference": "adoptopenjdk:11-jre",
+     "kind": "image",
+     "version": "11-jre"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n1",
+     "repo": "gomint/gomint",
+     "commit_sha": "eb083dd0ba6bcfef33dab982a28f3dea094cb7cd",
+     "commit_date": "2020-07-10T16:01:26Z",
+     "file": "Dockerfile",
+     "reference": "adoptopenjdk/openjdk11:alpine",
+     "kind": "image",
+     "version": "alpine"
+    },
+    {
+     "template": "n2",
+     "repo": "gaia-app/gaia",
+     "commit_sha": "619bf1e92922be21782911a75dec39ea3f17b5f8",
+     "commit_date": "2021-10-08T16:28:44Z",
+     "file": "Dockerfile",
+     "reference": "eclipse-temurin:17",
+     "kind": "image",
+     "version": "17",
+     "note": "shared with DIS-2; eclipse-temurin only exists after this event's effective date"
+    }
+   ]
+  },
+  {
+   "event": "DIS-6",
+   "in_scope": [
+    {
+     "repo": "mesos/chronos",
+     "commit_sha": "35ca3295ed7eef5c0f8bab3f2eda5f8f45a2beb0",
+     "commit_date": "2016-12-03T20:31:38Z",
+     "file": "Dockerfile",
+     "reference": "java:8-jre",
+     "kind": "image",
+     "version": "8-jre"
+    },
+    {
+     "repo": "SwellRT/swellrt",
+     "commit_sha": "ddf7a8361fa990c89c8f53c0fd3905ef7b7d1c07",
+     "commit_date": "2016-12-05T12:14:42Z",
+     "file": "Dockerfile",
+     "reference": "java:8",
+     "kind": "image",
+     "version": "8"
+    },
+    {
+     "repo": "cptactionhank/docker-atlassian-jira-software",
+     "commit_sha": "557212a6a112fb81942806d9bf7a6aadd70d09fa",
+     "commit_date": "2016-12-29T23:48:04Z",
+     "file": "Dockerfile",
+     "reference": "java:8",
+     "kind": "image",
+     "version": "8"
+    },
+    {
+     "repo": "cer/event-sourcing-examples",
+     "commit_sha": "bbea6d9d2f8f85c9e0a134bd8a51befc69dc6d9c",
+     "commit_date": "2015-12-21T23:02:04Z",
+     "file": "scala-spring/docker-compose.yml",
+     "reference": "java:8",
+     "kind": "image",
+     "version": "8"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n1",
+     "repo": "baasbox/baasbox",
+     "commit_sha": "313f7dea3d06cd768f8b24b190a04d56d17dfed4",
+     "commit_date": "2015-03-20T14:38:52Z",
+     "file": "Dockerfile",
+     "reference": "dockerfile/java:oracle-java8",
+     "kind": "image",
+     "version": "oracle-java8"
+    }
+   ]
+  },
+  {
+   "event": "LIC-1",
+   "in_scope": [
+    {
+     "repo": "dineshsonachalam/tech-courses-search-engine",
+     "commit_sha": "137f0cb3fcf630167fe233d10f58a6890bbb80e3",
+     "commit_date": "2021-05-08T13:14:37Z",
+     "file": "docker-compose.yml",
+     "reference": "docker.elastic.co/elasticsearch/elasticsearch:7.12.0",
+     "kind": "image",
+     "version": "7.12.0"
+    },
+    {
+     "repo": "mooreniemi/Transbucket_Rails",
+     "commit_sha": "25287a3c7be82b05546030f312a73d121debe10c",
+     "commit_date": "2021-04-04T22:04:59Z",
+     "file": "docker-compose.yml",
+     "reference": "docker.elastic.co/kibana/kibana:7.12.0",
+     "kind": "image",
+     "version": "7.12.0"
+    },
+    {
+     "repo": "netsampler/goflow2",
+     "commit_sha": "80ef166b84b9ee1b37d3302f933eb01ee9be159d",
+     "commit_date": "2021-06-01T05:10:05Z",
+     "file": "compose/elk/docker-compose.yml",
+     "reference": "docker.elastic.co/elasticsearch/elasticsearch:7.13.0",
+     "kind": "image",
+     "version": "7.13.0"
+    },
+    {
+     "repo": "reelyactive/pareto-anywhere",
+     "commit_sha": "4827d9f3e51576d893b287571eb46736c0ea9498",
+     "commit_date": "2021-08-02T18:30:48Z",
+     "file": "docker-compose.yml",
+     "reference": "docker.elastic.co/elasticsearch/elasticsearch:7.13.4",
+     "kind": "image",
+     "version": "7.13.4"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "deric/es-dedupe",
+     "commit_sha": "04fdb3701b4c957e52f4899271c9a4946f6bdc64",
+     "commit_date": "2021-02-03T15:51:48Z",
+     "file": "docker-compose.yml",
+     "reference": "docker.elastic.co/elasticsearch/elasticsearch:7.10.2",
+     "kind": "image",
+     "version": "7.10.2"
+    }
+   ]
+  },
+  {
+   "event": "LIC-3",
+   "in_scope": [
+    {
+     "repo": "bcremer/docker-telegraf-influx-grafana-stack",
+     "commit_sha": "70b806c2b8c0afb2d05a463e58ee747ccb12ab3a",
+     "commit_date": "2021-06-15T14:59:02Z",
+     "file": "docker-compose.yml",
+     "reference": "grafana/grafana:8.0.2",
+     "kind": "image",
+     "version": "8.0.2"
+    },
+    {
+     "repo": "OtusGolang/webinars_practical_part",
+     "commit_sha": "06a8facf525eaa1c111b4d900f332e9dbf13b2f2",
+     "commit_date": "2021-07-01T06:46:18Z",
+     "file": "32-monitoring/docker-compose.yml",
+     "reference": "grafana/grafana:8.0.3",
+     "kind": "image",
+     "version": "8.0.3",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "harryjubb/bee_iot",
+     "commit_sha": "d87929131dc4fcf7f109d37ffbf7ba40ad597e0d",
+     "commit_date": "2021-08-05T21:27:40Z",
+     "file": "server/docker-compose.yml",
+     "reference": "grafana/grafana:8.0.6",
+     "kind": "image",
+     "version": "8.0.6",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "akoutmos/nerves_weather_station",
+     "commit_sha": "3895389fc5c5a4456b5027cec70e8c8274ba1638",
+     "commit_date": "2021-07-17T01:20:04Z",
+     "file": "server_code/docker-compose.yml",
+     "reference": "grafana/grafana:8.0.5",
+     "kind": "image",
+     "version": "8.0.5",
+     "note": "verified by the study author"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "orb-community/orb",
+     "commit_sha": "d69b91f3ed6c869a2efb161dd1b43c6ed5aa9daa",
+     "commit_date": "2021-05-21T13:47:14Z",
+     "file": "docker/docker-compose.yml",
+     "reference": "grafana/grafana:7.5.5",
+     "kind": "image",
+     "version": "7.5.5",
+     "note": "verified by the study author"
+    },
+    {
+     "template": "n3",
+     "repo": "testinggospels/camouflage",
+     "commit_sha": "7599ad9f269cf1b797905cf7dc6eb5abce875edc",
+     "commit_date": "2021-05-19T05:14:25Z",
+     "file": "docker-compose.yml",
+     "reference": "grafana/grafana:7.5.2",
+     "kind": "image",
+     "version": "7.5.2",
+     "note": "verified by the study author"
+    },
+    {
+     "template": "n3",
+     "repo": "warriorBrian/nuxt-blog",
+     "commit_sha": "ee3d8b87420b4f9e474440d4961e8b78a6fd78a0",
+     "commit_date": "2021-05-24T03:45:16Z",
+     "file": "prometheus/docker-compose.yml",
+     "reference": "grafana/grafana:7.5.5",
+     "kind": "image",
+     "version": "7.5.5",
+     "note": "verified by the study author"
+    }
+   ]
+  },
+  {
+   "event": "LIC-4",
+   "in_scope": [
+    {
+     "repo": "Den1al/JSShell",
+     "commit_sha": "89800add6bc69d7a3a987e98da0116c28754dab5",
+     "commit_date": "2018-12-17T07:43:11Z",
+     "file": "docker-compose.yml",
+     "reference": "mongo:4.0.4",
+     "kind": "image",
+     "version": "4.0.4",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "mydeveloperplanet/mydockercomposeplanet",
+     "commit_sha": "5111bd128a6e241f161bc67b8178174145ccb775",
+     "commit_date": "2018-11-25T11:36:24Z",
+     "file": "docker-compose.yml",
+     "reference": "mongo:4.0.4",
+     "kind": "image",
+     "version": "4.0.4",
+     "note": "verified by the study author"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "NCBI-Hackathons/CTEligible",
+     "commit_sha": "4182f482417bd58ff6706a8eb1ad500fbc3e210c",
+     "commit_date": "2018-09-11T19:53:12Z",
+     "file": "ct-eligible-flask/docker-compose.yml",
+     "reference": "mongo:4.0.2",
+     "kind": "image",
+     "version": "4.0.2",
+     "note": "verified by the study author"
+    },
+    {
+     "template": "n3",
+     "repo": "oktadev/okta-jhipster-microservices-oauth-example",
+     "commit_sha": "70d4f0a65faa48bb01e7276d2b3dbe6de747d2a6",
+     "commit_date": "2018-10-12T13:05:32Z",
+     "file": "docker-compose/docker-compose.yml",
+     "reference": "mongo:4.0.2",
+     "kind": "image",
+     "version": "4.0.2",
+     "note": "verified by the study author"
+    }
+   ],
+   "excluded": [
+    {
+     "repo": "marcusdacoregio/oauth2-spring-boot",
+     "commit_date": "2019-04-16T20:23:19Z",
+     "reason": "outside the licence window fixed in DESIGN section 11 (first affected release to the end of 2018)"
+    }
+   ]
+  },
+  {
+   "event": "EOL-3",
+   "in_scope": [
+    {
+     "repo": "jmcdo29/testing-nestjs",
+     "commit_sha": "fa73e575a1451ae0419cfc027404a685372e9d6d",
+     "commit_date": "2020-05-25T17:30:18Z",
+     "file": "Dockerfile",
+     "reference": "node:12",
+     "kind": "image",
+     "version": "12",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "taniarascia/takenote",
+     "commit_sha": "1ba749d1690fb044539419cd35c56f73e0ba7fa8",
+     "commit_date": "2020-12-11T22:48:12Z",
+     "file": "Dockerfile",
+     "reference": "node:12-alpine",
+     "kind": "image",
+     "version": "12-alpine",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "adtac/commento",
+     "commit_sha": "84bfd64e32971bc2bdf597138b230ed1e79f62d1",
+     "commit_date": "2021-02-02T06:00:16Z",
+     "file": "Dockerfile",
+     "reference": "node:12-alpine",
+     "kind": "image",
+     "version": "12-alpine",
+     "note": "verified by the study author"
+    },
+    {
+     "repo": "excalidraw/excalidraw-room",
+     "commit_sha": "a0b69ee474b5ee170134bf73d9d72ef8b71da290",
+     "commit_date": "2020-10-21T23:39:51Z",
+     "file": "Dockerfile",
+     "reference": "node:12-alpine",
+     "kind": "image",
+     "version": "12-alpine",
+     "note": "verified by the study author"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "nteract/commuter",
+     "commit_sha": "ea2f3d9878d942b22fc0a8b4beb06e38db672a5a",
+     "commit_date": "2020-07-21T01:56:04Z",
+     "file": "Dockerfile",
+     "reference": "node:14",
+     "kind": "image",
+     "version": "14",
+     "note": "verified by the study author"
+    },
+    {
+     "template": "n3",
+     "repo": "nolanlawson/pinafore",
+     "commit_sha": "05a3b2d31f47d426123aa33a9e4958bb92b06326",
+     "commit_date": "2022-04-19T13:38:06Z",
+     "file": "Dockerfile",
+     "reference": "node:16-alpine",
+     "kind": "image",
+     "version": "16-alpine",
+     "note": "verified by the study author"
+    },
+    {
+     "template": "n1",
+     "repo": "alibaba/butterfly",
+     "commit_sha": "d26f5e78dfa0639c197ace4ef0e7513b4593a88a",
+     "commit_date": "2021-05-18T03:13:47Z",
+     "file": ".circleci/config.yml",
+     "reference": "circleci/node:12",
+     "kind": "image",
+     "version": "12",
+     "note": "verified by the study author"
+    }
+   ]
+  }
+ ],
+ "still_to_collect": [
+  "DIS-6 n2 (no openjdk:8 pin dated before 2017 found)",
+  "LIC-1 n2 (opensearchproject/opensearch not searched)",
+  "LIC-4 floating pin and mongo-express (none found in range)"
+ ]
+}

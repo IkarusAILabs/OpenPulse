@@ -141,6 +141,11 @@ The reproducibility package is:
   - For compromised versions (CMP-1 to CMP-5), they come from commits dated between publication of the bad version and its removal or disclosure.
   - Neighbours on the unaffected side of a boundary still come from commits dated before the effective date.
   - The windows are fixed by date alone, never by outcome.
+- **2026-10-30, clarification before any label exists:** "between publication of the bad version and its removal or disclosure" did not say which applies when the two differ. The window for compromised versions ends **30 days after the first public disclosure** (the maintainer's or registry's statement, or the first advisory, whichever is earliest). Every reference collected for CMP-1 to CMP-5 falls inside it.
+- **2026-10-30, dependents collected:** 102 in-scope references and 65 neighbours, all real (none synthetic), are in `dependents/*.json`.
+  - Each was fetched at its commit; 16 were re-checked by the author against the file at the commit, and all held.
+  - One reference was excluded by the licence window (LIC-4: marcusdacoregio, 2019-04-16).
+  - Every event has at least 2 in-scope references, so §9 drops none.
 
 ## 12. Known limitations
 
