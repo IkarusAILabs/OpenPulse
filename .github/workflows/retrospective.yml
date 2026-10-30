@@ -43,6 +43,9 @@ jobs:
         working-directory: evaluation/comparators/go
       - run: python evaluation/comparators/maven/fetch.py
       - run: python evaluation/run.py --require-comparators --cases evaluation/retrospective/cases/retro-2026-11.json 2>&1 | tee "$RUNNER_TEMP/run.log"
+      # Discovery (DESIGN §8): live collectors with the job's read-only token.
+      - run: python evaluation/retrospective/discovery.py --out "$RUNNER_TEMP/discovery.json" 2>&1 | tee "$RUNNER_TEMP/discovery.log"
+        env: {GITHUB_TOKEN: '${{ github.token }}'}
       - run: cp evaluation/results/openpulse-retro-2026-11.json "$RUNNER_TEMP/" && git rev-parse HEAD > "$RUNNER_TEMP/implementation-commit.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -52,4 +55,6 @@ jobs:
             ${{ runner.temp }}/openpulse-retro-2026-11.json
             ${{ runner.temp }}/run.log
             ${{ runner.temp }}/implementation-commit.txt
+            ${{ runner.temp }}/discovery.json
+            ${{ runner.temp }}/discovery.log
           if-no-files-found: warn
