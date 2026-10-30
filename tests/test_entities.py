@@ -256,3 +256,26 @@ def test_registry_name_collisions_resolve_per_ecosystem():
         ("PyPI", "elasticsearch"),  # the Python client
     ]:
         assert package_trust(name, ecosystem)["via"] == "self", (ecosystem, name)
+
+
+
+def test_normalize_ref_keeps_a_leading_npm_scope():
+    from core.entities.resolve import normalize_ref
+
+    assert normalize_ref("@types/node") == "@types/node"
+    assert normalize_ref("@Colors/Colors") == "@colors/colors"
+    assert normalize_ref("@babel/core@7.0.0") == "@babel/core"  # a version suffix is still cut
+    assert normalize_ref("redis@sha256:abc") == "redis"  # digests are unchanged
+    assert normalize_ref("ghcr.io/org/app:1.2@sha256:abc") == "ghcr.io/org/app"
+
+
+def test_scoped_npm_packages_have_distinct_identities():
+    """Every uncatalogued scoped package used to share the empty identity."""
+    from core.entities.identity import package_trust
+
+    slugs = {p: package_trust(p, "npm")["slug"] for p in ("@types/node", "@babel/core")}
+    assert slugs == {"@types/node": "@types/node", "@babel/core": "@babel/core"}
+    # A scoped fork is not the unscoped package it forked.
+    assert package_trust("@colors/colors", "npm")["slug"] != package_trust("colors", "npm")["slug"]
+    # A curated scoped package still resolves through the catalog.
+    assert package_trust("@angular/core", "npm")["via"] == "catalog"

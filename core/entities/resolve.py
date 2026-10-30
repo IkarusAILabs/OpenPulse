@@ -52,10 +52,15 @@ def normalize_ref(ref: str) -> str:
     not `localhost` (which would give every image on that registry one
     identity). Single-segment refs keep the old behavior - `name:tag`
     and maven `group:artifact` both cut at the first colon.
+
+    A digest's `@` always follows a name character (`redis@sha256:...`).
+    An `@` that starts a segment is part of the name: npm scopes
+    (`@types/node`) resolved to the empty string before, so every scoped
+    package shared one empty identity.
     """
     r = ref.strip().lower()
     r = _DOCKER_HUB_HOSTS.sub(r"\1docker.io/", r)
-    r = re.sub(r"@.*$", "", r)  # strip @digest
+    r = re.sub(r"(?<=[^/])@.*$", "", r)  # strip @digest, never a leading @scope
     head, sep, last = r.rpartition("/")
     return head + sep + re.sub(r":.*$", "", last)  # strip :tag
 
