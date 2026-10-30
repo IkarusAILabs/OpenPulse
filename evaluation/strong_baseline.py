@@ -154,8 +154,9 @@ def _test(dep: dict[str, Any], event: OSSEvent) -> set[str]:
         else:
             mine = package_name_key(ecosystem or "generic", str(dep["package"]))[1]
             names = {package_name_key(ecosystem or "generic", p)[1] for p in scope.packages}
-            if mine in names:
-                results.add(M)
+            project_element = event.project_slug.lower() in {p.lower() for p in scope.packages}
+            if mine in names or (project_element and relation == "project"):
+                results.add(M)  # by name, or as a curated package of a named project (F2)
             else:
                 results.add(Z if relation == "other" else U)
     elif kind == "version":

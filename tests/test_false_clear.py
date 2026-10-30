@@ -7,6 +7,7 @@ dependency that was in scope (or headline a clearance over an
 unresolved cause).
 """
 
+import json
 from datetime import datetime, timezone
 
 from analyzers.security_analyst import correlate
@@ -842,3 +843,39 @@ def test_d10_curated_other_project_has_no_association():
     )
     verdict = check_dependency(_image("ghcr.io/opentofu/opentofu:1.14"), [eol])
     assert verdict.relationship == "UNKNOWN"
+
+
+def test_f2_project_package_element_covers_curated_packages_only():
+    """F2 (specified 2026-10-30): a package-scope value naming the event's own
+    project denotes every package curated as that project. Membership follows
+    curated identity: a curated other project has no association, and an
+    unmapped package is unresolved, never a member by the project's name."""
+    itext = OSSEvent(**json.load(open("data/fixtures/itext-license/event.json", encoding="utf-8")))
+    assert "itext" in itext.scope.packages
+
+    def rel(package, ecosystem="Maven"):
+        dep = {"kind": "package", "package": package, "ecosystem": ecosystem, "version": "8.0.2"}
+        return check_dependency(dep, [itext]).relationship
+
+    assert rel("com.itextpdf:sign") == "AFFECTS_PACKAGE"  # curated, not listed by name
+    assert rel("org.apache.pdfbox:pdfbox") == "RELATED"  # unmapped: undetermined
+    assert rel("redis", "PyPI") == "UNKNOWN"  # curated as redis-py
+
+
+def test_f2_package_names_compare_in_canonical_form():
+    """Maven groupId:artifactId equals the listed groupId/artifactId; PyPI
+    names fold per PEP 503. Inequality after folding stays undetermined."""
+
+    def event(project, packages):
+        scope = Scope(kind="package", packages=packages, exhaustive=True, basis="definitional")
+        return _event(f"f2-{project}", scope=scope).model_copy(update={"project_slug": project})
+
+    def rel(package, ecosystem, ev):
+        dep = {"kind": "package", "package": package, "ecosystem": ecosystem, "version": "1.0"}
+        return check_dependency(dep, [ev]).relationship
+
+    itext = event("itext", ["com.itextpdf/kernel"])
+    airflow = event("airflow", ["apache_airflow"])
+    assert rel("com.itextpdf:kernel", "Maven", itext) == "AFFECTS_PACKAGE"
+    assert rel("com.itextpdf:sign", "Maven", itext) == "RELATED"  # listed by name only
+    assert rel("Apache.Airflow", "PyPI", airflow) == "AFFECTS_PACKAGE"

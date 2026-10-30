@@ -57,6 +57,7 @@ IMAGES = [
 PACKAGES = [
     ("redis", "7.2.0", "project"),
     ("redis", None, "project"),
+    ("redis-server", "7.2.0", "project"),  # a name that is not the slug (F2)
     ("mysql", "8.0.1", "other"),
     ("zzzpkg", "1.0", "unresolved"),
 ]

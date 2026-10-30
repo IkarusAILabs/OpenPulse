@@ -135,8 +135,9 @@ A package *may* be the same object as a source-repository element (one on `githu
 ### 4.4 `package` element `x` (value: a package name)
 
 - If `d` is an image: apply §4.1. A package element cannot name the same object as an image.
-- If `d`'s package name equals `x` (case-insensitive): **M**.
-- Otherwise **0** if identity is *other*, else **?**. Names are not canonicalised per ecosystem, so inequality alone never excludes.
+- If `d`'s package name equals `x`: **M**. Names compare in canonical form: lowercase; when the ecosystem is known, PyPI names fold runs of `-`, `_` and `.` to `-` (PEP 503), and a Maven `groupId:artifactId` equals `groupId/artifactId`. Kit cases state no ecosystem, so for them this is a case-insensitive comparison.
+- **Project package element (F2).** If `x` is the event's own project (`x` equals `e.project`, case-insensitive), it denotes every package that a curated mapping assigns to that project. It is exact: the producer claims that all of the project's packages are in scope. The result is **M** if identity is *project*, **0** if *other*, and **?** if *unresolved*.
+- Otherwise **0** if identity is *other*, else **?**. Canonical folding does not cover npm scopes, Go module paths or other forms, so inequality alone never excludes.
 
 ### 4.5 `registry` element `x` (value: a registry host)
 
@@ -195,5 +196,6 @@ These are recorded, not hidden. Challenge any of them:
 - Elements of more than one kind in one event's scope are specified [§5.2], but the case format and the implementation carry one kind per event.
 - OCI object levels (index, manifest, layer) are not compared. Unequal digests are therefore **?**.
 - The version-like grammar and the release-prefix rule are generic. They are not any ecosystem's own ordering.
-- Package names are not canonicalised (PEP 503, Maven group/artifact, npm scopes), hence §4.4's **?** on inequality.
+- Package-name folding covers PyPI and Maven spelling only (npm scopes, Go module paths and other forms are not modelled), hence §4.4's **?** on inequality.
+- **F3, the order of name and identity.** §4.4 decides on name equality before identity. The implementation resolves identity first, so an *unresolved* package whose name is listed gives **?**, not **M**. The kit cannot show this, since its listed names are curated. The implementation's order is the safer one: scope package values carry no ecosystem, so a name-first rule would make PyPI `redis` (redis-py, the client) a member of a Redis server event that lists `redis`. The likely repair is ecosystem-qualified package values. Until then, treat name equality as **M** only when identity is not *unresolved*. Comment on which you think is right.
 - A `verified` completeness state is defined, but nothing produces it. A `declared` scope is a producer's assertion, admitted here when it has a basis.

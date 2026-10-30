@@ -101,6 +101,7 @@ class Element:
     kind: str  # project | artifact | release_line | package | registry
     value: str
     example: bool = False  # a named affected artifact, which illustrates
+    project_element: bool = False  # a package value that names the event's project (F2)
 
     def role(self) -> str:
         """Section 5.2: a namespace without a tag predicate is an envelope."""
@@ -212,6 +213,10 @@ def _test_package(dep: Dependency, x: Element) -> str:
         return _across_kinds(dep, may_be_same_object=False)
     if dep.package.lower() == x.value.lower():
         return M
+    if x.project_element:
+        # A project package element (F2) denotes every package curated as
+        # the event's project: a member exactly when identity says so.
+        return {"project": M, "other": Z}.get(dep.identity, U)
     # Names are not canonical, so inequality alone is ?; a curated other
     # project is positive evidence of exclusion (S2).
     return Z if dep.identity == "other" else U
@@ -245,7 +250,13 @@ def applicability(dep: Dependency, event: Event) -> str:
         return "UNLOADED"
     negatives_admissible = event.admissibility not in ("contested", "stale")
     # Layer 2: every element, no early return.
-    results = {_TESTS[x.kind](dep, x) for x in event.elements}
+    elements = [
+        Element(x.kind, x.value, x.example, project_element=True)
+        if x.kind == "package" and x.value.lower() == event.project.lower()
+        else x
+        for x in event.elements
+    ]
+    results = {_TESTS[x.kind](dep, x) for x in elements}
     # Layer 3: per-event aggregation.
     if M in results:
         return "AFFECTS"

@@ -16,6 +16,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **Package names in a package scope compare in canonical form (F2).** This changes verdicts. A Maven `groupId:artifactId` dependency now matches a listed `groupId/artifactId`, and PyPI names fold per PEP 503 (`Apache.Airflow` = `apache_airflow`). A scope value naming the event's own project still covers every package curated as that project; that rule is now part of the specification (TR-2026-01 §5.3, `conformance/independent/SPEC.md` §4.4) and of the conformance gate.
 - **Every catalog entry now curates its packages (F1, completed).** This changes verdicts.
   - Libraries list the packages that are the project, Maven coordinates included. `groupId:artifactId` from manifests and SBOMs now matches the catalog's `groupId/artifactId`.
   - Servers and tools declare none, so a package that only shares their name is unresolved (RELATED), not the project. Examples: PyPI `kubernetes` (the Python client), npm `mongodb` (the Node.js driver), npm `angular` (AngularJS 1.x), PyPI `kafka` and PyPI `postgres`.

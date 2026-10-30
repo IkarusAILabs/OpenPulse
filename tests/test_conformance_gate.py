@@ -28,7 +28,10 @@ def test_matrix_has_no_disagreement_beyond_documented_labels():
     severities = {r["severity"] for r in result["rows"]}
     assert severities <= _ALLOWED, sorted(severities - _ALLOWED)
     labels = [r for r in result["rows"] if r["severity"] != "conform"]
-    assert all(r["dependency"].startswith("redis==") for r in labels)
+    # Packages of the event's own project: `redis`, and `redis-server`, whose
+    # name is not the project's slug (F2).
+    assert all(r["dependency"].split("==")[0] in ("redis", "redis-server") for r in labels)
+    assert all(r["identity"] == "project" for r in labels)
 
 
 def test_randomized_cases_conform():
