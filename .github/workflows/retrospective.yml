@@ -3,10 +3,16 @@ name: retrospective
 # implementation at the freeze tag, the frozen case file and fixtures from
 # this commit, with baseline V's pinned comparators required. Uploads the
 # results file; the run never changes the case file (its SHA-256 is checked).
+# `implementation` selects another commit for a run reported separately as
+# "after fixes" (DESIGN §7); pull requests always run the freeze tag.
 on:
   pull_request:
     paths: ['evaluation/retrospective/**', '.github/workflows/retrospective.yml']
   workflow_dispatch:
+    inputs:
+      implementation:
+        description: Commit or tag to evaluate (default the freeze tag)
+        default: retro-freeze-2026-10-30
 permissions:
   contents: read
 jobs:
@@ -15,14 +21,17 @@ jobs:
     # `shell: bash` adds pipefail, so a failed run is not hidden by `tee`.
     defaults: {run: {shell: bash}}
     steps:
-      # The implementation: exactly the freeze tag.
+      # The implementation: the freeze tag unless a dispatch names another.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {ref: retro-freeze-2026-10-30}
+        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
       # The study data: this commit's evaluation/retrospective only.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {path: study}
-      - run: |
-          test "$(git rev-parse HEAD)" = 3639a0fb59e393b4f49dfee2dfffdc1c85e993c6
+      - env: {IMPLEMENTATION: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
+        run: |
+          if [ "$IMPLEMENTATION" = retro-freeze-2026-10-30 ]; then
+            test "$(git rev-parse HEAD)" = 3639a0fb59e393b4f49dfee2dfffdc1c85e993c6
+          fi
           rm -rf evaluation/retrospective
           cp -r study/evaluation/retrospective evaluation/retrospective
           rm -rf study
