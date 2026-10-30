@@ -13,6 +13,7 @@
 3. **Little difference from baseline V overall.** C resolves 50.3% of determinable pairs and V 47.3% (difference 0.030, 90% CI [0.000, 0.075]). Equivalence at ±0.05 is not shown (S1: p = 0.197). C's gain over the conservative baseline B, 0.091 (95% CI [−0.054, 0.245]), misses the registered 0.10 with a lower bound below zero (H2 not met). The gain is concentrated in end of life, where C resolves 88.2% and V 58.8%.
 4. **Most non-decisions come from identity, not scope.** All 31 compromised-package pairs and most deprecation neighbours are unresolved, because the packages (colors, faker, node-ipc, ua-parser-js, event-stream, sass and others) are not in OpenPulse's catalog. A package with no recorded identity is left unresolved by design (F4). Unsupported decisiveness is 0% for C: it decided neither undeterminable pair.
 5. **Discovery was weak at the freeze tag** (§5): 0 of 15 events detected as shipped, and 5 of 15 when each repository or image was supplied directly. All 5 are archivals, each with a project-wide scope broader than the fixture's. The GitHub collector does not follow GitHub's 301 redirect for transferred repositories. So the relocation analyst never observes the ownership change it exists to detect (defect **D-R2**), and only 1 of the 15 discovery-class projects is in the catalog.
+6. **After fixes** (§7a; post hoc, not the result): both defects are fixed in #183. On the same frozen case file, C has 0 silent misses, so G1 passes. Resolution rises to 58.2%, and both the H2 gain over B (0.170, lower bound 0.031) and the lead over V (0.109) are now positive. There are still no false clears, and all three relocations are discovered.
 
 ## 1. Method as executed
 
@@ -27,7 +28,7 @@
 - **Run**:
   - It ran in CI (`.github/workflows/retrospective.yml`) on the freeze-tag checkout, with `--require-comparators`. The pinned comparators were node-semver 7.8.5, golang.org/x/mod v0.42.0 and maven-artifact 3.9.16, and all three were available.
   - Freshness was bounded at 90 days. Each event was replayed at its archived snapshot date, and no event was unknown at replay time.
-  - The results are in `results/openpulse-retro-2026-11.json` (SHA-256 `2bce9237…ed1376`). A second CI run produced a byte-identical results file, and a local re-run reproduced all 167 of C's decisions.
+  - The results are in `results/openpulse-retro-2026-11.json` (SHA-256 `2bce9237…ed1376`). A second CI run produced a byte-identical results file, and a local re-run reproduced all 167 of C's decisions. A separate run after #183's fixes is in §7a.
 
 ## 2. Events
 
@@ -224,8 +225,34 @@ The run above is the result **at the freeze tag**. Under DESIGN §7, fixes land 
 
 | Id | Defect | Exposed by | Status |
 |---|---|---|---|
-| D-R1 | `check_dependency` does not compare a Go module package with a source-repository artifact naming the same path | 12 silent misses (RQ-R1) | Open: fix PR to follow |
-| D-R2 | The GitHub collector treats the API's 301 for a transferred repository as an error, so ownership drift is never observed | Discovery of REL-1, REL-3 and REL-4 (RQ-R3) | Open: fix PR to follow |
+| D-R1 | `check_dependency` does not compare a Go module package with a source-repository artifact naming the same path | 12 silent misses (RQ-R1) | Fixed in #183 (`abcb685`) |
+| D-R2 | The GitHub collector treats the API's 301 for a transferred repository as an error, so ownership drift is never observed | Discovery of REL-1, REL-3 and REL-4 (RQ-R3) | Fixed in #183 (`abcb685`) |
+
+## 7a. After fixes (reported separately)
+
+This is **not** the study's result, which remains the freeze-tag run above. It is the same frozen case file (same SHA-256), run on `abcb685`. That commit is the freeze tag plus #183's two fixes, with no other code change. The run was CI run 41104194563, with `--require-comparators` and all three comparators available. The results are in `results/after-fixes/` (SHA-256 `ea8d772b…88014bb2c`).
+
+**Decisions (RQ-R1).** Only C and its ablations changed, on 13 pairs, and every one moved to the correct label: REL-1-s1…s4, REL-3-s1…s4, REL-4-s1/s3/s4, DEP-2-s1 and DEP-6-n1. A, B and V are identical.
+
+| | Freeze tag | After fixes |
+|---|---|---|
+| C silent miss | 11.7% (12) | **0.0%** |
+| C resolved | 50.3% | 58.2% |
+| C false clears / false impact | 0 / 1 | 0 / 1 |
+| C resolved, relocation | 11.1% | 72.2% |
+| C resolved, deprecation | 64.9% | 70.3% |
+| G1 (silent miss ≤ 0.02) | fails | **passes** |
+| H2 (C − B ≥ 0.10, lower bound > 0) | 0.091, lower bound −0.036: not met | 0.170, 95% CI [0.006, 0.337], lower bound 0.031: met |
+| S1 (C ≡ V within ±0.05) | 0.030: equivalence not shown | 0.109, 90% CI [0.046, 0.180]: not equivalent, **C ahead of V** |
+| S2 (A − C event false clears) | 0.370, Holm p = 0.0004 | unchanged |
+
+These figures are post hoc. The fixes were written after seeing the freeze-tag errors, on the same events, so they show that the defects were the cause. They do not give an unbiased estimate of performance. The registered population is still empty, and H1 is still not decidable with 27 events.
+
+**Discovery (RQ-R3).** This was recorded on 2026-10-30T18:08:23Z, in the same run.
+- With the repository supplied, all three relocations are now detected as `OWNERSHIP_CHANGE`, for example "docker/docker moved to moby/moby on GitHub".
+- Each finding names exactly the fixture's artifact (`github.com/docker/docker`, `github.com/docker/distribution` and `github.com/coreos/prometheus-operator`), so it **matches** on the artifact. Its scope kind is `project` rather than the fixture's exhaustive artifact scope.
+- Supplied recall is 8 of 15 (it was 5). As-shipped recall is still 0 of 15, because the projects are not catalogued.
+- The distribution events and DEP-1 are still missed, for the reasons in §5.
 
 ## 8. Limitations
 
