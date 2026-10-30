@@ -131,7 +131,11 @@ The reproducibility package is:
 
 ## 11. Changes to this design
 
-None yet.
+- **2026-10-30, owner decision, before any data collection:**
+  - The study runs on the **27 events** that passed screening (`SHORTLIST.md`), not the target of 30.
+  - Relocation and end of life keep **3 events each**, below §3's minimum of 4. No further events are researched.
+  - The report states the shortfall and its effect: per-class results for those two classes rest on 3 events and are descriptive only.
+  - X1 is unchanged. The Terraform and Grafana licence events stay included.
 
 ## 12. Known limitations
 
