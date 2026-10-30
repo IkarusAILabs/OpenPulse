@@ -2101,11 +2101,11 @@ N2: identity excluded only through a curated mapping & Enforced &
   \code{identity\_status}, \code{identity\_via} & \code{identity\_status},
   \code{resolved\_via} & No \\
 N3: complete scope with recorded basis & Enforced &
-  \code{scope.completeness} (state, basis, \code{admits\_negative}); absent
+  \code{scope.\allowbreak completeness} (state, basis, \code{admits\_\allowbreak negative}); absent
   in 1.1 & Per cause, state and basis & No \\
 N4: fresh evidence & Only under a caller's bound (opt-in) &
-  \code{fetched\_at} per source; \code{freshness\_bound\_applied} &
-  90-day bound by default; \code{evaluation\_context}; replay mode
+  \code{fetched\_at} per source; \code{freshness\_\allowbreak bound\_\allowbreak applied} &
+  90-day bound by default; \code{evaluation\_\allowbreak context}; replay mode
   flagged & No \\
 N4: not withdrawn or superseded & Such events are not loaded & No
   expiry, supersession or revocation of the document & -- & No \\
@@ -3149,8 +3149,8 @@ affected\_artifacts: [\{kind: source-repository, ref: github.com/coreos/etcd\}]\
 scope: \{kind: project, versions: []\}\quad confidence: EMERGING\quad impact: REVIEW
 \end{quote}
 In the typed model the scope is the project element \code{etcd}, and
-the repository \code{github.com/coreos/etcd}, carried in
-\code{affected\_artifacts}, is a \emph{named example}: it illustrates
+the repository \code{github.com/\allowbreak coreos/\allowbreak etcd}, carried in
+\code{affected\_\allowbreak artifacts}, is a \emph{named example}: it illustrates
 the change rather than bounding it (Section~\ref{sec:applicability}).
 $\chi$ is partial: relocation events do not declare completeness, and
 none of the verdicts below is a negative.
