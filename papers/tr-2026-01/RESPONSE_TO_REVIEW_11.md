@@ -14,7 +14,7 @@ One note on provenance: several of the minor comments (4.1 in full) describe a b
 |---|---|---|
 | 3.1 / Q1: what differs from baseline (v) once inputs are shared | **Yes.** §10 said that (v) "isolates what OpenPulse's richer identity and evidence machinery adds", and then gave (v) that machinery. | §10 now states that completeness, identity and admission are *shared*, so (v) cannot measure their value. It names the two mechanisms that differ, before any evaluation: Go module ↔ source repository (D-R1), and release read from variant image tags (`node:12-alpine`). New §11 paragraph "Where C and V differ": 23 of 167 pairs after the fixes (22 at the freeze), all through those two mechanisms: 18 Go-module pairs and 5 image-tag pairs. None involves completeness, identity or admission. |
 | 3.2: the lemma moves the hard questions into its premises | **Yes**, as a matter of emphasis. | §6 now says plainly that agreement shows only that the implementation follows the policy. It lists the five input questions the review names as Lemma 1's unmeasured premises. |
-| 3.3 / Q3: default admission vs full N1–N5 vs fit at consumption | **Yes**, confirmed in code. `core/agent_tools.py` calls `check_dependency` with no freshness bound, and the agent response carries no completeness basis. | New Table "Assurance of a negative" (the field-level table of 4.6). The agent-interface paragraph now answers Q3: yes, the live interface can issue NotAffected on evidence of any age, and it does not say so. Replay mode and current-assessment mode are distinguished, and the mode split is stated as not implemented. |
+| 3.3 / Q3: default admission vs full N1–N5 vs fit at consumption | **Yes**, confirmed in code. `core/agent_tools.py` calls `check_dependency` with no freshness bound, and the agent response carries no completeness basis. | New Table "Assurance of a negative" (the field-level table of 4.6). The agent-interface paragraph now answers Q3: yes, the live interface can issue NotAffected on evidence of any age, and it does not say so. The gap was then closed in code (PR #200, `323bb3c`; see below), and the paper describes both the state at `a1ecc58` and the fix. |
 | 3.4 / Q7: loaded-set summary vs global clearance | **Yes.** | New paragraph after the cross-event aggregation: "cleared" means "excluded by the events we have". Nothing records the loaded set's coverage, and a failed acquisition does not withdraw a negative. The lemma's assurance is about the former only. |
 | 3.6: mutants vs defects | **Yes.** | "22 historical-defect and rule-disabling mutants" in the abstract, the novelty table (§2.1), §6 and the conclusion. §6 adds that catching them shows sensitivity to chosen perturbations, not broad fault coverage. |
 | 3.7 / Q4: workload of the unresolved-identity policy | **Partly.** The retrospective study measures it per pair: 44 of C's 82 non-correct decisions come from uncatalogued packages. | §12 now gives that per-pair figure and says the per-inventory and per-cycle cost is unmeasured. It states the always-abstain point. §10 says the cost should be reported per inventory and per monitoring cycle. |
@@ -36,13 +36,16 @@ One note on provenance: several of the minor comments (4.1 in full) describe a b
 | 4.8: move the protocol to an appendix | Agreed for a venue submission. Not done for the technical report, where the protocol is the registration's reference text. We will restructure when results exist to fill the space. |
 | Q2: how often are declarations and mappings wrong? | Unknown. Measuring it needs independently sampled events with adjudicated scopes. That is the declaration-reliability measurement the review asks for, and it is not in the current protocol as a separate endpoint. **We consider adding it the most useful protocol change this review suggests.** |
 
-## Follow-up worth doing in code
+## Implemented after the review: agent freshness bound
 
-The review's design suggestion for 3.3 is cheap and would turn a documented gap into enforced behaviour:
-- give the agent tools an explicit current-assessment mode that requires a freshness bound and reports a missing one;
-- add `scope.completeness` and the `evaluation_context` to the agent response.
+We adopted the review's design suggestion for 3.3 (PR #200, merged as `323bb3c`).
+- **Current mode.** The agent tools now have an explicit current-assessment mode. It is the default and the only mode the MCP server uses. It applies a 90-day evidence-age bound, so a stale event can associate with a dependency but never clear it.
+- **Replay mode.** An explicit replay mode applies no bound, and its response says so.
+- **New response fields.** Responses carry an `evaluation_context` block and each cause's scope completeness, with its state and basis.
 
-That is an implementation change. It would move the snapshot the paper pins, so it was not made in this revision.
+The paper describes this in §7, in the assurance table's agent column and in Table 1 (changes since the audit). It is not described as part of the `a1ecc58` snapshot.
+
+**Still open:** contradictions and coverage of the loaded event set are not shown to the agent. Nothing re-checks a verdict when it is consumed. The engine, the CLI and contract export still apply the bound only when a caller supplies one.
 
 ## Build
 

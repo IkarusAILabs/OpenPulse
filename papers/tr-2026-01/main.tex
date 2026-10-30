@@ -52,6 +52,7 @@
 \newcommand{\pincommit}{\code{8a9c3a8}}
 \newcommand{\currentcommit}{\code{a1ecc58}}
 \newcommand{\cachecommit}{\code{0174a26}}
+\newcommand{\agentcommit}{\code{323bb3c}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -204,7 +205,8 @@ questions:
     have regression fixes. A specification-conformance oracle, run over a
     generated matrix, found three of them and four inconsistencies in
     the specification itself. The negative-admission conditions are now enforced, with
-    stated gaps: the freshness bound is opt-in, contradictions are
+    stated gaps: the freshness bound is opt-in in the engine (the
+    agent interface applies one by default since \agentcommit{}), contradictions are
     detected only within an event's own evidence, and declarations are
     recorded but not verified. The audit also found an over-broad
     matching rule (D7), which is fixed: element roles now keep
@@ -296,6 +298,11 @@ Catalogue-map cache (\cachecommit{}, after \currentcommit{}) & The
   package, curated-slug and alias maps are memoised per catalogue
   object instead of rebuilt on every identity resolution &
   1.8$\times$ matching slowdown from F1 \\
+Agent freshness bound (\agentcommit{}, after \currentcommit{}) & The
+  agent tools run in a \emph{current} mode with a 90-day evidence-age
+  bound by default, or an explicit \emph{replay} mode without one that
+  says so; responses carry the evaluation context and each cause's
+  scope completeness & Agent negatives on evidence of any age \\
 Evaluation & Strong baseline (v) with pinned comparators, an
   independent oracle kit, a registration draft and the retrospective
   study & -- \\
@@ -953,7 +960,10 @@ offline runs use whatever events are loaded
 (Section~\ref{sec:consumers}). Recomputation is not freshness. A
 verdict recomputed today from an observation acquired weeks ago is as
 old as that observation. Unless the caller sets the bound, a
-negative can therefore still rest on evidence of any age. If a source is unavailable for several
+negative can therefore still rest on evidence of any age. Since
+\agentcommit{} the agent interface sets one by default
+(Section~\ref{sec:consumers}); the engine, the command line and the
+contract export do not. If a source is unavailable for several
 days, its acquisitions are recorded as gaps, the events already loaded
 stay in force, and nothing marks the resulting negatives as stale.
 Without a bound, the assurance a negative provides is limited to
@@ -2092,10 +2102,11 @@ N2: identity excluded only through a curated mapping & Enforced &
   \code{resolved\_via} & No \\
 N3: complete scope with recorded basis & Enforced &
   \code{scope.completeness} (state, basis, \code{admits\_negative}); absent
-  in 1.1 & Not shown & No \\
+  in 1.1 & Per cause, state and basis & No \\
 N4: fresh evidence & Only under a caller's bound (opt-in) &
   \code{fetched\_at} per source; \code{freshness\_bound\_applied} &
-  Not shown; no bound is applied & No \\
+  90-day bound by default; \code{evaluation\_context}; replay mode
+  flagged & No \\
 N4: not withdrawn or superseded & Such events are not loaded & No
   expiry, supersession or revocation of the document & -- & No \\
 N5: uncontested & Within one event only & \code{relation} per source &
@@ -2108,9 +2119,11 @@ Producer authenticity & Not implemented & Signature fields \code{null}
   & -- & No \\
 \bottomrule
 \end{tabularx}
-\caption{Assurance of a negative, at \currentcommit{}: what the
-specification requires, where the implementation computes it, what
-leaves the system, and what is checked when a verdict is consumed.}
+\caption{Assurance of a negative, at \currentcommit{}, with the agent
+column at \agentcommit{}: what the specification requires, where the
+implementation computes it, what leaves the system, and what is checked
+when a verdict is consumed. Before \agentcommit{} the agent response
+showed neither completeness nor freshness, and applied no bound.}
 \label{tab:assurance}
 \end{table}
 
@@ -2136,17 +2149,24 @@ never means safe. At \pincommit{} the note does not qualify
 \textsc{NotAffected}, and an agent sees a bare negative label. At
 \currentcommit{} each verdict carries \code{verdict.meaning} from
 contract 1.2.0, and the note tells the agent to decide from it, so a
-negative states what was not evaluated. It does not carry the
-completeness basis, and the agent tools apply no freshness bound. So
-the live interface \emph{can} issue \textsc{NotAffected} on evidence
-of any age, and its response does not say that no bound was applied.
-That is the default-admission level of Table~\ref{tab:assurance}, not
-N1--N5 in full. Disabling a wall-clock bound is right for offline
-replay, which evaluates evidence as of a past date; the retrospective
-study ran with a 90-day bound. A current-assessment mode should
-require a bound and report its absence explicitly, and results should
-be reported separately for the two modes. Neither the mode split nor
-that reporting is implemented. The interface is still an
+negative states what was not evaluated. At \currentcommit{} it did
+not carry the completeness basis, and the agent tools applied no
+freshness bound, so the interface could issue \textsc{NotAffected} on
+evidence of any age without saying so. Since \agentcommit{} the tools
+have two explicit modes. \emph{Current} mode, the default and the only
+one the MCP server uses, evaluates as of now with a maximum evidence
+age of 90 days, the bound of the retrospective study; a negative from
+an older event becomes \textsc{Related} with the reason \emph{stale}.
+\emph{Replay} mode, available only through the Python API, applies no
+bound, since offline replay evaluates evidence as of a past date; its
+response marks \code{freshness\_bound\_applied} false, lists evidence
+currency as not established, and adds a warning to the note. Every
+response now carries an \code{evaluation\_context} (mode, evaluation
+time, bound) and, for each cause, the scope's completeness state and
+basis. Contradictions and the coverage of the loaded event set are
+still not shown, and nothing re-checks a verdict when it is used
+(Table~\ref{tab:assurance}). Results should be reported separately for
+the two modes. The interface is still an
 unvalidated integration boundary, not a security mitigation. It
 becomes one only once the structured and untrusted parts are separated
 and tested against a reproducible adversarial corpus.
@@ -3012,7 +3032,8 @@ matrix covers chosen dimensions, and its oracle was written by the
 same team. Interim rules withhold negatives where
 semantics are missing (OCI levels), at the cost of more undetermined
 verdicts. All fifteen enumerated defects have regression fixes. Known
-gaps in the negative-admission conditions remain: freshness is opt-in;
+gaps in the negative-admission conditions remain: freshness is opt-in
+outside the agent interface;
 conflicts between separate events are not detected; package names are
 not canonicalised at \pincommit{}, and are made undetermined instead
 (at \currentcommit{} they are compared per ecosystem, and qualified
