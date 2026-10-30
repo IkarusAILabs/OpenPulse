@@ -101,3 +101,16 @@ def test_maven_comparable_version_order(comparators):
     assert comparators.in_line("Maven", "1.0.0", "1.0") is True  # trailing zeros trimmed
     for undecidable in ("LATEST", "RELEASE", "${project.version}"):
         assert maven.parse(undecidable)["valid"] is False, undecidable
+
+
+def test_release_line_boundaries_of_the_encoding_rules(comparators):
+    """ENCODING.md section 5.3: a line runs from its lowest version to the
+    next line's lowest, so its own pre-releases are in and the next's out."""
+    for name, eco, line in (
+        ("npm", "npm", ["18.0.0-0", "18.0.0-rc.1", "18.3.1", "19.0.0-0", "19.0.0-rc.1"]),
+        ("go", "Go", ["v18.0.0-0", "v18.0.0-rc.1", "v18.3.1", "v19.0.0-0", "v19.0.0-rc.1"]),
+        ("maven", "Maven", ["8.0-alpha", "8.0-beta-1", "8.0.5", "8.1-alpha", "8.1-beta-1"]),
+    ):
+        _bridge(comparators, name)
+        for a, b in zip(line, line[1:]):
+            assert comparators.compare(eco, a, b) == -1, (eco, a, b)

@@ -1,0 +1,26 @@
+{
+ "event": "itext-license",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://itextpdf.com/how-buy",
+  "https://itextpdf.com/blog/itext-news/itext-transitions-subscription-based-commercial-licenses"
+ ],
+ "osv": [],
+ "openvex": {
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/IkarusAILabs/OpenPulse/evaluation/representations/dev-2026-10/itext-license",
+  "author": "dataset author (OpenPulse developer; not independent, development set only)",
+  "timestamp": "2026-09-27T00:00:00Z",
+  "version": 1,
+  "statements": []
+ },
+ "loss": [
+  {
+   "code": "L4",
+   "what": "The sources name the product iText, not its Maven coordinates; a product name has no purl.",
+   "source": "https://itextpdf.com/how-buy"
+  }
+ ],
+ "notes": "Every version is under the dual licence and every new installation under subscription terms; with no package named, nothing can be stated."
+}

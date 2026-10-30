@@ -1,0 +1,41 @@
+{
+ "event": "django-4.2-eol",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://www.djangoproject.com/download/",
+  "https://endoflife.date/django"
+ ],
+ "osv": [
+  {
+   "schema_version": "1.6.0",
+   "id": "OPENPULSE-EVAL-django-4.2-eol",
+   "modified": "2026-09-26T00:00:00Z",
+   "summary": "Django 4.2 LTS reached end of life (no further fixes)",
+   "affected": [
+    {
+     "package": {
+      "ecosystem": "PyPI",
+      "name": "django"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "4.2.dev0"
+        },
+        {
+         "fixed": "4.3.dev0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "openvex": null,
+ "loss": [],
+ "notes": "The 4.2 release line, encoded by the boundary rule of ENCODING.md §5.3 (PyPI: X.Y.dev0)."
+}

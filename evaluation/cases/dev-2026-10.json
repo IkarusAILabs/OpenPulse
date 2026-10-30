@@ -1,24 +1,24 @@
 {
  "dataset": "openpulse-dev-2026-10",
- "version": "2026.10.30-2",
+ "version": "2026.10.30-3",
  "status": "development",
- "status_note": "Development set. Labels were written by an OpenPulse developer from the events' cited sources, before any policy was run on them, but the labeller is not independent of the detector and the events are the development ledger's own cases. Revision 1 had 51 cases; revision 2 added the itext-license and react-18-breaking cases (it-*, rx-*), labelled before they were run, after revision 1 showed that no case exercised a partial scope. Results on this set test the harness and illustrate the trade-off; they are not the held-out evaluation of PROTOCOL.md section 6.",
+ "status_note": "Development set. Labels were written by an OpenPulse developer from the events' cited sources, before any policy was run on them, but the labeller is not independent of the detector and the events are the development ledger's own cases. Revision 1 had 51 cases; revision 2 added the itext-license and react-18-breaking cases (it-*, rx-*), labelled before they were run, after revision 1 showed that no case exercised a partial scope. Revision 3 changes no case or label: it adds policy R's OSV/OpenVEX encodings (representations/ENCODING.md) for six events, written by the developer after the labels and after the other policies' results were seen, so R's numbers on this set exercise the code and are not evidence. Results on this set test the harness and illustrate the trade-off; they are not the held-out evaluation of PROTOCOL.md section 6.",
  "labelled_by": "dataset author (OpenPulse developer)",
  "labelled_on": "2026-10-30",
  "label_rules": "PROTOCOL.md section 3: in_scope / out_of_scope / undeterminable, from the announcing source's stated scope and the recorded registry or repository state at the replay date. A conflict, or a question the sources do not settle, is undeterminable.",
  "events": {
-  "bitnami-2025": {"source": "event", "fixture": "bitnami", "class": "distribution", "as_of": "2026-10-02"},
+  "bitnami-2025": {"source": "event", "fixture": "bitnami", "class": "distribution", "as_of": "2026-10-02", "encoding": {"file": "representations/dev-2026-10/bitnami-2025.json", "sha256": "d1a3a8bee777ed31d8925b9c8df1350d20e67ea71607ebafa5d43b0230596490"}},
   "spark-mainline": {"source": "event", "fixture": "spark-mainline-empty", "class": "distribution", "as_of": "2026-10-07"},
-  "etcd-move": {"source": "raw_bundle", "fixture": "etcd-move", "event_type": "OWNERSHIP_CHANGE", "project": "etcd", "class": "relocation", "as_of": "2026-10-06"},
+  "etcd-move": {"source": "raw_bundle", "fixture": "etcd-move", "event_type": "OWNERSHIP_CHANGE", "project": "etcd", "class": "relocation", "as_of": "2026-10-06", "encoding": {"file": "representations/dev-2026-10/etcd-move.json", "sha256": "a6f27b36e13d97b34d619c8e271f2180a81dc7b18ae54a568af71ff4fb599936"}},
   "capa-move": {"source": "raw_bundle", "fixture": "capa-move", "event_type": "OWNERSHIP_CHANGE", "project": "capa", "class": "relocation", "as_of": "2026-10-06"},
   "traefik-move": {"source": "raw_bundle", "fixture": "traefik-move", "event_type": "OWNERSHIP_CHANGE", "project": "traefik", "class": "relocation", "as_of": "2026-10-07"},
   "fbsdk-move": {"source": "raw_bundle", "fixture": "fbsdk-archive-move", "event_type": "OWNERSHIP_CHANGE", "project": "react-native-fbsdk", "class": "relocation", "as_of": "2026-10-07"},
   "fbsdk-archive": {"source": "raw_bundle", "fixture": "fbsdk-archive-move", "event_type": "PROJECT_ARCHIVED", "project": "react-native-fbsdk", "class": "archival", "as_of": "2026-10-07"},
-  "redis-6.2-eol": {"source": "raw_bundle", "fixture": "redis", "event_type": "EOL", "versions": ["6.2"], "project": "redis", "class": "lifecycle", "as_of": "2026-09-26"},
+  "redis-6.2-eol": {"source": "raw_bundle", "fixture": "redis", "event_type": "EOL", "versions": ["6.2"], "project": "redis", "class": "lifecycle", "as_of": "2026-09-26", "encoding": {"file": "representations/dev-2026-10/redis-6.2-eol.json", "sha256": "12a3c4f6c46412555dc17d01be573b326b74149be30105adb25d20bdb5b1f526"}},
   "postgresql-13-eol": {"source": "raw_bundle", "fixture": "postgresql", "event_type": "EOL", "versions": ["13"], "project": "postgresql", "class": "lifecycle", "as_of": "2026-09-26"},
-  "django-4.2-eol": {"source": "event", "fixture": "django-eol", "class": "lifecycle", "as_of": "2026-09-26"},
-  "itext-license": {"source": "event", "fixture": "itext-license", "class": "licence", "as_of": "2026-09-27"},
-  "react-18-breaking": {"source": "event", "fixture": "breaking-change-migration", "class": "breaking-change", "as_of": "2024-05-01"}
+  "django-4.2-eol": {"source": "event", "fixture": "django-eol", "class": "lifecycle", "as_of": "2026-09-26", "encoding": {"file": "representations/dev-2026-10/django-4.2-eol.json", "sha256": "c44976ab073d49986cd8604886544876319d96bb712e961de154c5afc6b9a5f4"}},
+  "itext-license": {"source": "event", "fixture": "itext-license", "class": "licence", "as_of": "2026-09-27", "encoding": {"file": "representations/dev-2026-10/itext-license.json", "sha256": "66513e75014e67a9b41388e5292185e5331684377a443de87ee1a36e310ec433"}},
+  "react-18-breaking": {"source": "event", "fixture": "breaking-change-migration", "class": "breaking-change", "as_of": "2024-05-01", "encoding": {"file": "representations/dev-2026-10/react-18-breaking.json", "sha256": "590cfcf7de5c91791686601eb371a03e15bcce84456cf41e4634b2aedc0fcf4d"}}
  },
  "cases": [
   {"id": "bn-01", "events": ["bitnami-2025"], "dependency": {"kind": "image", "ref": "docker.io/bitnami/nginx:1.25"}, "label": "in_scope", "rationale": "A versioned tag under docker.io/bitnami; the announcement moves every versioned image to bitnamilegacy.", "label_source": "bitnami/containers#83267"},

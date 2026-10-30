@@ -124,3 +124,43 @@ def test_the_registered_run_refuses_without_comparators(monkeypatch):
     assert result["comparators"]["complete"] is False
     assert result["registration"]["registered"]["valid"] is False
     assert result["registration"]["all_labels_illustrative"]["valid"] is True
+
+
+def test_policy_r_evaluates_osv_ranges_through_the_bridges(fake):
+    import existing_representation as er
+
+    fake()
+    comparators = ev.Comparators(names=("npm",))
+    react = {
+        "affected": [
+            {
+                "package": {"ecosystem": "npm", "name": "react"},
+                "ranges": [
+                    {
+                        "type": "SEMVER",
+                        "events": [{"introduced": "18.0.0-0"}, {"fixed": "19.0.0-0"}],
+                    }
+                ],
+            }
+        ]
+    }
+    encoding = {"osv": [react], "openvex": None, "loss": []}
+
+    def outcome(version):
+        dep = {"kind": "package", "package": "react", "ecosystem": "npm", "version": version}
+        return er.per_event(dep, encoding)
+
+    try:
+        er.use_comparators(comparators)
+        assert comparators.compare("npm", "18.3.1", "19.0.0-0") == -1
+        assert (outcome("18.3.1"), outcome("17.0.2"), outcome("19.1.0")) == (
+            "affected",
+            "cleared",
+            "cleared",
+        )
+        er.use_comparators(None)
+        # Without a bridge: plain dotted numbers only, so the boundary is undecidable.
+        assert outcome("18.3.1") == "unresolved"
+    finally:
+        er.use_comparators(None)
+        comparators.close()

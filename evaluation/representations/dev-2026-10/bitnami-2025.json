@@ -1,0 +1,37 @@
+{
+ "event": "bitnami-2025",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://github.com/bitnami/containers/issues/83267",
+  "https://github.com/bitnami/charts/issues/35164",
+  "https://community.broadcom.com/tanzu/blogs/beltran-rueda-borrego/2025/08/18/how-to-prepare-for-the-bitnami-changes-coming-soon"
+ ],
+ "osv": [],
+ "openvex": {
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/IkarusAILabs/OpenPulse/evaluation/representations/dev-2026-10/bitnami-2025",
+  "author": "dataset author (OpenPulse developer; not independent, development set only)",
+  "timestamp": "2026-10-02T00:00:00Z",
+  "version": 1,
+  "statements": []
+ },
+ "loss": [
+  {
+   "code": "L1",
+   "what": "Every image under docker.io/bitnami, and every image under docker.io/bitnamilegacy: a namespace, not a list of products.",
+   "source": "https://github.com/bitnami/containers/issues/83267"
+  },
+  {
+   "code": "L2",
+   "what": "Only versioned tags move; latest stays in the mainline. A tag class has no purl.",
+   "source": "https://github.com/bitnami/containers/issues/83267"
+  },
+  {
+   "code": "L3",
+   "what": "The announcement covers the whole public catalogue (and its OCI Helm charts) and nothing else; VEX statements cannot say that the list is closed.",
+   "source": "https://github.com/bitnami/charts/issues/35164"
+  }
+ ],
+ "notes": "No excerpt names a specific image, so no statement can name an exact product."
+}
