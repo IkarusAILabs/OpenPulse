@@ -65,53 +65,33 @@ integrations described in this report: \url{https://ikaruslabs.net/}.}\\
 \maketitle
 
 \begin{abstract}
-A decision to add, keep or upgrade a dependency is usually informed by
-vulnerability advisories and lifecycle catalogues. Several upstream
-changes that alter the trust, maintenance or availability assumptions
-behind a dependency appear in neither: a repository relocated to a new
-namespace, a repository archived, or versioned container images
-withdrawn from a namespace that deployments still reference. As AI
-coding agents increasingly propose dependencies, such decisions are
-also made by systems whose recommendation is neither a current
-observation nor a security assessment. We study how current,
-provenance-bearing upstream change evidence can inform dependency
-decisions without letting incomplete evidence become a \emph{false
-clear}, meaning a report that a dependency is not affected when it is.
-We present \op{}, an open-source instrument that collects such evidence,
-qualifies it, and applies it to declared inventories. Our contributions
-are a typed applicability specification, a specific and testable
-model that combines established ideas (completeness-aware negatives,
-conservative abstention, a third truth value) for dependency
-decisions, in which a negative verdict
-requires a complete scope and decisive exclusion of every scope
-element, with a short soundness lemma that separates the aggregation
-argument from the premises an implementation must establish; an audit
-of \op{} against that specification, which found twelve defects that
-could produce or display false clears, all now fixed,
-including expectations that its own regression suite had encoded as
-correct; and a decision-point model for consuming
-the evidence in AI-mediated dependency selection. Discovery is
-implemented for three change classes on two platforms. This is a
-specification and implementation-audit report: it shows that the
-aggregation is sound under stated premises and where the
-implementation does and does not establish them, not how often those
-premises hold in deployment. An executable oracle written from the
-specification agrees with the implementation on all 100{,}000 seeded
-random cases and on every verdict of a 6{,}195-case matrix, apart from
-one documented label difference. It catches all 22 re-injected
-defects and rule removals, and it runs as a build gate. The version
-comparator agrees with the reference PEP~440 implementation on all
-224{,}676 pairs it decides. Matching costs about 25\,\textmu{}s per
-dependency--event pair. An exploratory retrospective study on 27 real
-upstream changes and 167 real dependency references, with
-developer-assigned labels, found no false clear by the event-scope
-engine where a naive reader of the same events falsely cleared
-dependencies in 10 events. It also exposed a defect that left 11.7\% of
-in-scope references with no association, a discovery gap for
-uncatalogued projects, and a false clear in the separate advisory path
-that the audit had missed; all three are addressed and reported. This is
-not an effectiveness study, and we draft the prospective evaluation
-that would measure whether the evidence changes dependency decisions.
+Dependency decisions rely on vulnerability advisories and lifecycle
+catalogues, yet several upstream changes that alter a dependency's
+trust, maintenance or availability appear in neither: a repository
+relocated or archived, or versioned images withdrawn from a namespace
+still in use. AI coding agents now make such decisions too. The
+central risk is a \emph{false clear}: reporting a dependency as not
+affected when it is. We present \op{}, an open-source instrument that
+collects, qualifies and applies upstream change evidence to declared
+inventories. Completeness-aware negatives, conservative abstention and a third
+truth value are established ideas. Our contribution is a specific,
+testable model that combines them for dependency applicability: typed
+scope elements over heterogeneous identities, completeness with a
+recorded basis, and a negative only when a complete scope has every
+element decisively excluded, with a short conditional soundness lemma.
+An audit against this model found twelve defects that could produce
+or display false clears, some encoded as correct by the regression
+suite; all are fixed. An oracle written from the specification agrees
+with the implementation on 100{,}000 random cases and a 6{,}195-case
+matrix (one documented label difference), and catches all 22
+re-injected defects. An exploratory retrospective study on 27
+historical changes and 167 real dependency references found no false
+clear by the event-scope engine, where a naive reading of the same
+events produced 35 in 10 events. It also exposed a silent-miss
+defect, a discovery gap and a false clear in the separate advisory
+path, each since addressed. Its labels are the developer's, so it is
+not an effectiveness result; we specify a prospective evaluation,
+drafted for registration, that would provide one.
 \end{abstract}
 
 \section{Introduction}
