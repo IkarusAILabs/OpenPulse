@@ -1,0 +1,12 @@
+openpulse-retro-2026-11 1 (frozen 2026-10-30: L1 labels; no independent labels (AI-assisted pilot only, labelling/PILOT.md); no policy run before freezing): 167 pairs over 27 events
+policy                       false clears          FCR_aff      silent miss     false impact         resolved          abstain unsupp. decisive
+A-naive                                35           0.3398              0.0           0.0323           0.7758              0.0              1.0
+B-conservative                          0              0.0              0.0           0.0323           0.4121           0.5808              0.0
+V-strong-conservative                   0              0.0              0.0           0.0161           0.4727            0.521              0.0
+C-openpulse                             0              0.0           0.1165           0.0161            0.503           0.3892              0.0
+C-ablate-completeness                   0              0.0           0.1165           0.0161           0.5455           0.3473              0.0
+C-ablate-freshness                      0              0.0           0.1165           0.0161            0.503           0.3892              0.0
+C-ablate-both                           0              0.0           0.1165           0.0161           0.5455           0.3473              0.0
+C-ablate-identity                       0              0.0           0.2913           0.0161            0.503           0.1138              0.0
+registered (valid): not decidable: 0 events at risk, need 60; H2 gain None; G1 None, G2 None
+all_labels_illustrative (valid): not decidable: 27 events at risk, need 60; H2 gain 0.0909; G1 False, G2 True

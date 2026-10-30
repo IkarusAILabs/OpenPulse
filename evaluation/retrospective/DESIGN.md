@@ -155,6 +155,7 @@ The reproducibility package is:
 
   L1 reviewed the pilot's four disagreements against the sources and changed no label. LIC-4's release dates, which the labels rely on but SOURCES.md did not archive, are now in `evidence/mongodb-release-tags.txt`.
 - **2026-10-30, case file frozen, before any policy run:** `cases/retro-2026-11.json` has 167 pairs over 27 events (103 in scope, 62 out of scope, 2 undeterminable). Its SHA-256 is `70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83`, also in `cases/retro-2026-11.json.sha256`. `.gitattributes` keeps its bytes unchanged on checkout.
+- **2026-10-30, run executed:** The run was CI run 41098336270 at the freeze tag, with `--require-comparators` and all three comparators available. The results file `results/openpulse-retro-2026-11.json` has SHA-256 `2bce9237cc617afa9b5c529af855137c972cef1d3c971d8727b74359a7ed1376`; run 41098862646 reproduced it byte for byte and also recorded discovery (`results/discovery.json`). No event or pair was changed after the run. Two defects were found, D-R1 and D-R2 (REPORT §7). Their fixes go in separate PRs, with a run reported as "after fixes".
 
 ## 12. Known limitations
 
