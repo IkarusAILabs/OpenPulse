@@ -30,6 +30,8 @@ import metrics  # noqa: E402
 import policies  # noqa: E402
 import registration  # noqa: E402
 import replay  # noqa: E402
+import strong_baseline  # noqa: E402
+from ecosystem_versions import Comparators  # noqa: E402
 
 DEFAULT_CASES = HERE / "cases" / "dev-2026-10.json"
 LABELS = (metrics.IN, metrics.OUT, metrics.UNDET)
@@ -63,7 +65,26 @@ def validate(dataset: dict[str, Any]) -> None:
             raise ValueError(f"{cid}: every label needs a rationale and a source")
 
 
-def run(path: Path = DEFAULT_CASES, max_evidence_age_days: int = 90) -> dict[str, Any]:
+def run(
+    path: Path = DEFAULT_CASES,
+    max_evidence_age_days: int = 90,
+    require_comparators: bool = False,
+) -> dict[str, Any]:
+    """Every policy over one case set.
+
+    ``require_comparators`` is the registered run's setting: it refuses to
+    start unless every pinned ecosystem comparator is installed.
+    """
+    comparators = Comparators(required=require_comparators)
+    strong_baseline.use_comparators(comparators)
+    try:
+        return _run(path, max_evidence_age_days, comparators)
+    finally:
+        strong_baseline.use_comparators(None)
+        comparators.close()
+
+
+def _run(path: Path, max_evidence_age_days: int, comparators: Comparators) -> dict[str, Any]:
     raw = path.read_bytes()
     dataset = json.loads(raw)
     validate(dataset)
@@ -102,10 +123,13 @@ def run(path: Path = DEFAULT_CASES, max_evidence_age_days: int = 90) -> dict[str
             }
             for name, r in rows.items()
         },
+        "comparators": {"complete": comparators.complete, "status": comparators.status},
         "registration": {
             "thresholds": registration.thresholds(),
             # The registered population: independently labelled pairs only.
-            "registered": registration.analyse(rows, independent_only=True),
+            "registered": registration.analyse(
+                rows, independent_only=True, comparators_complete=comparators.complete
+            ),
             # The same analysis over every label: illustrative, never evidence.
             "all_labels_illustrative": registration.analyse(rows, independent_only=False),
         },
@@ -141,8 +165,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--max-evidence-age-days", type=int, default=90)
+    parser.add_argument(
+        "--require-comparators",
+        action="store_true",
+        help="refuse to run without every pinned ecosystem comparator (the registered run)",
+    )
     args = parser.parse_args()
-    result = run(args.cases, args.max_evidence_age_days)
+    result = run(args.cases, args.max_evidence_age_days, args.require_comparators)
     out = HERE / "results"
     out.mkdir(exist_ok=True)
     (out / f"{result['dataset']}.json").write_text(
@@ -158,7 +187,7 @@ if __name__ == "__main__":
         block = result["registration"][population]
         primary, guard = block["primary"], block["guardrails"]
         print(
-            f"{population}: {primary['verdict']}; "
+            f"{population} ({block['validity']}): {primary['verdict']}; "
             f"H2 gain {primary['H2_resolution_superiority'].get('difference')}; "
             f"G1 {guard['G1_silent_miss']['pass']}, G2 {guard['G2_unresolved_vs_B']['pass']}"
         )

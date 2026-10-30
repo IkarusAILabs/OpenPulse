@@ -3,7 +3,7 @@
  "dataset_version": "2026.10.30-2",
  "dataset_status": "development",
  "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
- "commit": "c3020a242f197999a75079391589d80e68947898",
+ "commit": "986673a444b4850b90a2aa67d603a0050bf07a89",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -1880,6 +1880,35 @@
    }
   }
  },
+ "comparators": {
+  "complete": false,
+  "status": {
+   "npm": {
+    "pinned": {
+     "library": "semver",
+     "version": "7.8.5"
+    },
+    "available": false,
+    "error": "toolchain or pinned library not installed"
+   },
+   "go": {
+    "pinned": {
+     "library": "golang.org/x/mod",
+     "version": "v0.42.0"
+    },
+    "available": false,
+    "error": "toolchain or pinned library not installed"
+   },
+   "maven": {
+    "pinned": {
+     "library": "org.apache.maven:maven-artifact",
+     "version": "3.9.16"
+    },
+    "available": false,
+    "error": "toolchain or pinned library not installed"
+   }
+  }
+ },
  "registration": {
   "thresholds": {
    "system": "C-openpulse",
@@ -1896,6 +1925,8 @@
    "bootstrap_seed": 20261030
   },
   "registered": {
+   "valid": false,
+   "validity": "invalid: pinned ecosystem comparators unavailable (REGISTRATION.md section 9)",
    "population": "independent labels only",
    "pairs": 0,
    "primary": {
@@ -1987,6 +2018,8 @@
    }
   },
   "all_labels_illustrative": {
+   "valid": true,
+   "validity": "valid",
    "population": "all labels",
    "pairs": 60,
    "primary": {

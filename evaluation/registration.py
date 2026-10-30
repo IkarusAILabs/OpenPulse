@@ -216,7 +216,11 @@ def unresolved_on_decidable(rows: list[dict[str, Any]]) -> float | None:
 # --- the registered analysis ------------------------------------------------------------
 
 
-def analyse(rows: dict[str, list[dict[str, Any]]], independent_only: bool) -> dict[str, Any]:
+def analyse(
+    rows: dict[str, list[dict[str, Any]]],
+    independent_only: bool,
+    comparators_complete: bool = True,
+) -> dict[str, Any]:
     """H1, H2, secondary tests (Holm-corrected) and guardrails.
 
     ``independent_only`` restricts every row to independently labelled
@@ -329,6 +333,12 @@ def analyse(rows: dict[str, list[dict[str, Any]]], independent_only: bool) -> di
         },
     }
     return {
+        # V decides with the pinned ecosystem comparators; without all of
+        # them its results, and S1, are not the registered baseline's.
+        "valid": comparators_complete,
+        "validity": "valid"
+        if comparators_complete
+        else "invalid: pinned ecosystem comparators unavailable (REGISTRATION.md section 9)",
         "population": "independent labels only" if independent_only else "all labels",
         "pairs": len(c),
         "primary": primary,

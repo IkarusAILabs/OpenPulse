@@ -12,9 +12,12 @@ engine's matching code:
   catalog, or a curated (ecosystem, name) package mapping) ties a
   dependency to a project or to another project. A heuristic or
   self-resolution is unresolved;
-- versions are compared by the ecosystem's own comparator where one is
-  pinned (PyPI: ``packaging``). Elsewhere only plain dotted numbers are
-  compared, and anything else is undetermined;
+- versions are compared by the ecosystem's own comparator: ``packaging``
+  for PyPI in-process, and node-semver, Go's x/mod/semver and Maven's
+  ComparableVersion through pinned bridges (``ecosystem_versions``) when
+  ``use_comparators`` installed them. Without a bridge (a development
+  run), only plain dotted numbers are compared and the run records the
+  gap; the registered run refuses to start without them;
 - every relation it cannot decide is undetermined, and undetermined
   never clears.
 
@@ -44,6 +47,16 @@ from core.schema.models import OSSEvent  # noqa: E402
 
 M, N, U, P, Z = oracle.M, oracle.N, oracle.U, oracle.P, oracle.Z
 COMPARATORS = {"pypi": f"packaging {__import__('packaging').__version__}"}
+
+#: Pinned bridges for npm, Go and Maven, installed by ``use_comparators``.
+_BRIDGES: Any = None
+
+
+def use_comparators(comparators: Any) -> None:
+    """Install (or, with None, remove) the run's pinned ecosystem bridges."""
+    global _BRIDGES
+    _BRIDGES = comparators
+
 
 _PACKAGE_PREFIXES = ("pypi:", "npm:", "pkg:", "maven:", "cargo:", "go:")
 _NUMERIC = re.compile(r"\d+(?:\.\d+)*")
@@ -85,6 +98,8 @@ def _in_line(version: str, line: str, ecosystem: str) -> bool | None:
             return None
         width = len(prefix.release)
         return v.release[:width] == prefix.release
+    if _BRIDGES is not None and _BRIDGES.supports(ecosystem):
+        return _BRIDGES.in_line(ecosystem, version, line)
     # No pinned comparator: plain dotted numbers only.
     if not (_NUMERIC.fullmatch(version) and _NUMERIC.fullmatch(line)):
         return None
