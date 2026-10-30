@@ -1,6 +1,6 @@
 # Comparative decision-policy evaluation — protocol
 
-Status: **harness implemented, development set run; held-out evaluation not started.** This protocol implements the core of TR-2026-01 §10 (Applicability) and the comparative experiment recommended in the external review of 2026-10-30 (Priority 1). It is fixed here before any held-out case is labelled. A change to sections 2–4 after held-out labelling starts is a protocol amendment and is reported as one.
+Status: **harness implemented, development set run; registration drafted ([`REGISTRATION.md`](REGISTRATION.md), not yet archived); held-out evaluation not started.** The registration is the authority for the primary and secondary hypotheses, thresholds and stopping rule. This document defines the policies, labels and metrics it uses. This protocol implements the core of TR-2026-01 §10 (Applicability) and the comparative experiment recommended in the external review of 2026-10-30 (Priority 1). It is fixed here before any held-out case is labelled. A change to sections 2–4 after held-out labelling starts is a protocol amendment and is reported as one.
 
 Run it:
 
@@ -27,7 +27,7 @@ Every policy receives the same replayed events and the same dependency. None rec
 |---|---|---|
 | **A-naive** | Affected if the dependency is *listed* by any current event, otherwise **NotAffected**. | The risk of reading absence from a list as absence of impact. |
 | **B-conservative** | Affected if listed, otherwise **unresolved** (an abstention). | The cost of never clearing anything. |
-| **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, ecosystem comparators (PyPI: `packaging`; elsewhere plain dotted numbers only), and every undecidable relation undetermined. | **The primary comparison:** what C's engine adds beyond a careful conservative consumer of the same model. |
+| **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, ecosystem comparators (PyPI: `packaging`; elsewhere plain dotted numbers only), and every undecidable relation undetermined. | The equivalence comparison (REGISTRATION S1): what C's engine adds beyond a careful conservative consumer of the same model. It was primary in the TR draft. The registration makes B primary, because V shares the model under test. |
 | **C-openpulse** | The production engine (`check_dependency`), freshness bound set. | Whether structured scope, completeness, identity and freshness conditions buy decisiveness without false clears. |
 | C-ablate-completeness | C on inputs where every populated scope is declared complete (basis `announced`). | Premise N3. |
 | C-ablate-freshness | C with no freshness bound. | Premise N4 (freshness). |
@@ -111,7 +111,7 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 
 What this set shows, and what it does not:
 
-- **C vs V (the primary comparison).** They differ on one pair of 60.
+- **C vs V (REGISTRATION S1; primary in the TR draft).** They differ on one pair of 60.
   - On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly.
   - Before F2 was specified, C and V also differed on two iText modules (it-02 and it-03). C was affected through a then-unspecified rule: a package is a member when the scope lists its project. The rule is now specified (SPEC §4.4, project package element), and V applies it too.
  On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
@@ -120,3 +120,24 @@ What this set shows, and what it does not:
 - **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
 - **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but in-scope pairs then silently get no association. Before package curation there were 3 of 27: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). After curation, only fa-01 remains, because the iText modules are curated and resolve. With D10, C reports the uncurated ones as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back, and package curation already turned two of the three into correct positives.
 - **Sample size.** With 13 events, the rule-of-three bound on per-event false clears is about 0.23. The set cannot support any claim about rates.
+
+## 8. Registered analysis
+
+[`REGISTRATION.md`](REGISTRATION.md) fixes the hypotheses. `evaluation/registration.py` holds every threshold as a constant and applies them. `run.py` writes the result to `registration.registered` (independently labelled pairs only), and to `registration.all_labels_illustrative`, which is never evidence.
+
+| | Rule |
+|---|---|
+| **H1:** safety | C's event-level false-clear share: exact one-sided 95% upper bound − B's share ≤ 0.05, with ≥ 60 events at risk. One false-clear event fails it at 60 events (bound 0.0766). |
+| **H2:** usefulness | resolution rate C − B ≥ 0.10, with an event-clustered one-sided 95% lower bound > 0 |
+| **S1** | C vs V equivalence within ±0.05 (TOST); Holm-corrected with S2 |
+| **S2** | A − C event-level false-clear share > 0 |
+| **G1–G3** | silent misses ≤ 0.02 of in-scope pairs; unresolved rate ≤ B's + 0.05; per-class flag above 0.60 |
+
+On the development set the registered result is **not decidable**. It has no independent labels, and only 13 event sets where 60 are needed. The all-labels illustration:
+- **H1:** C has no false-clear event (bound 0.206).
+- **H2:** gain 0.196, 95% interval 0.02–0.34.
+- **S1:** not established (C − V = 0.02, Holm p 0.08).
+- **S2:** A has false-clear events in 3 of 13 event sets (Holm p 0.06).
+- **G1 and G2:** pass.
+- **G3:** flags archival, breaking-change and relocation.
+
