@@ -7,7 +7,9 @@ file must be lowercase and tag/digest-free (enforced by tests).
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Mapping
 from functools import lru_cache
+from types import MappingProxyType
 from typing import Any
 
 import yaml
@@ -24,8 +26,34 @@ def load_catalog(path: str | None = None) -> list[dict[str, Any]]:
         return yaml.safe_load(f) or []
 
 
-def catalog_alias_map(catalog: list[dict[str, Any]]) -> dict[str, str]:
+#: Derived maps, memoised per catalog object. Identity resolution asked for
+#: them on every dependency check and rebuilt them each time, which made
+#: matching about 1.8x slower after F1 (benchmarks/REPORT.md). Each entry
+#: keeps its catalog alive, so an id() cannot be reused while cached, and
+#: is checked against the catalog's length as a guard. Values are
+#: read-only, so a caller cannot corrupt the shared result.
+_DERIVED: dict[tuple[str, int], tuple[list[dict[str, Any]], int, Any]] = {}
+_DERIVED_LIMIT = 16
+
+
+def _memo(kind: str, catalog: list[dict[str, Any]], build: Callable[[], Any]) -> Any:
+    key = (kind, id(catalog))
+    hit = _DERIVED.get(key)
+    if hit is not None and hit[0] is catalog and hit[1] == len(catalog):
+        return hit[2]
+    value = build()
+    if len(_DERIVED) >= _DERIVED_LIMIT:
+        _DERIVED.pop(next(iter(_DERIVED)))
+    _DERIVED[key] = (catalog, len(catalog), value)
+    return value
+
+
+def catalog_alias_map(catalog: list[dict[str, Any]]) -> Mapping[str, str]:
     """alias -> slug for every alias and docker image in the catalog."""
+    return _memo("alias", catalog, lambda: MappingProxyType(_alias_map(catalog)))
+
+
+def _alias_map(catalog: list[dict[str, Any]]) -> dict[str, str]:
     out: dict[str, str] = {}
     for entry in catalog:
         slug = entry.get("slug", "")
@@ -99,14 +127,19 @@ def is_qualified(value: str) -> bool:
     return str(value).startswith("pkg:")
 
 
-def package_map(catalog: list[dict[str, Any]] | None = None) -> dict[tuple[str, str], str]:
+def package_map(catalog: list[dict[str, Any]] | None = None) -> Mapping[tuple[str, str], str]:
     """(ecosystem, name) -> slug, from `packages` lists and `osv` blocks.
 
     A package name is an identity only inside its ecosystem: PyPI `redis`
     (redis-py) and the Redis server share a name, not a project.
     """
+    entries = catalog if catalog is not None else load_catalog()
+    return _memo("package", entries, lambda: MappingProxyType(_package_map(entries)))
+
+
+def _package_map(catalog: list[dict[str, Any]]) -> dict[tuple[str, str], str]:
     out: dict[tuple[str, str], str] = {}
-    for e in catalog if catalog is not None else load_catalog():
+    for e in catalog:
         slug = str(e.get("slug", ""))
         if not slug:
             continue
@@ -120,17 +153,22 @@ def package_map(catalog: list[dict[str, Any]] | None = None) -> dict[tuple[str, 
     return out
 
 
-def package_curated_slugs(catalog: list[dict[str, Any]] | None = None) -> set[str]:
+def package_curated_slugs(catalog: list[dict[str, Any]] | None = None) -> frozenset[str]:
     """Slugs whose published packages are curated (`packages` or `osv` present).
 
     For these, a package that merely shares an alias is not the project:
     only a listed (ecosystem, name) is.
     """
-    return {
-        str(e["slug"])
-        for e in (catalog if catalog is not None else load_catalog())
-        if e.get("slug") and ("packages" in e or isinstance(e.get("osv"), dict))
-    }
+    entries = catalog if catalog is not None else load_catalog()
+    return _memo(
+        "curated",
+        entries,
+        lambda: frozenset(
+            str(e["slug"])
+            for e in entries
+            if e.get("slug") and ("packages" in e or isinstance(e.get("osv"), dict))
+        ),
+    )
 
 
 def purl_for(kind: str, namespace: str, name: str, version: str | None = None) -> str:
