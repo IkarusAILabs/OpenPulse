@@ -1,9 +1,9 @@
 {
  "dataset": "openpulse-dev-2026-10",
- "dataset_version": "2026.10.30-2",
+ "dataset_version": "2026.10.30-3",
  "dataset_status": "development",
- "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
- "commit": "36c0bf1ab2f48deb4a062e5c0de7f9c8a60ada94",
+ "dataset_sha256": "b0d9077efe7069538437649ed352ce81573675f53d7eee3a4c67fdcb9e55ebe7",
+ "commit": "e53af81c2b80c5c61eedf73d937781a681443271",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -425,6 +425,220 @@
      "abstention_rate": 0.4333,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": 0.6667,
+     "per_event_false_clear_upper_95": 0.2308,
+     "evidence_completeness": null
+    }
+   }
+  },
+  "R-existing-representation": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 3,
+     "cleared": 2,
+     "unresolved": 55,
+     "no_association": 0
+    },
+    "false_clears": 0,
+    "fcr_affected": 0.0,
+    "fcr_clear": 0.0,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 0,
+    "false_impact_rate": 0.0,
+    "resolution_rate": 0.098,
+    "decisive_coverage": 0.0833,
+    "abstention_rate": 0.9167,
+    "no_association_rate": 0.0,
+    "unsupported_decisiveness": 0.0,
+    "per_event_false_clear_upper_95": 0.2308,
+    "evidence_completeness": null
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 17,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": null
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 5,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 2,
+      "cleared": 1,
+      "unresolved": 15,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2143,
+     "decisive_coverage": 0.1667,
+     "abstention_rate": 0.8333,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": null
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 1,
+      "unresolved": 11,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.1818,
+     "decisive_coverage": 0.1538,
+     "abstention_rate": 0.8462,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": null
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 3,
+      "cleared": 2,
+      "unresolved": 55,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.098,
+     "decisive_coverage": 0.0833,
+     "abstention_rate": 0.9167,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": null
     }
@@ -1933,6 +2147,79 @@
    }
   }
  },
+ "encodings": {
+  "complete": false,
+  "sha256": {
+   "bitnami-2025": "d1a3a8bee777ed31d8925b9c8df1350d20e67ea71607ebafa5d43b0230596490",
+   "spark-mainline": null,
+   "etcd-move": "a6f27b36e13d97b34d619c8e271f2180a81dc7b18ae54a568af71ff4fb599936",
+   "capa-move": null,
+   "traefik-move": null,
+   "fbsdk-move": null,
+   "fbsdk-archive": null,
+   "redis-6.2-eol": "12a3c4f6c46412555dc17d01be573b326b74149be30105adb25d20bdb5b1f526",
+   "postgresql-13-eol": null,
+   "django-4.2-eol": "c44976ab073d49986cd8604886544876319d96bb712e961de154c5afc6b9a5f4",
+   "itext-license": "66513e75014e67a9b41388e5292185e5331684377a443de87ee1a36e310ec433",
+   "react-18-breaking": "590cfcf7de5c91791686601eb371a03e15bcce84456cf41e4634b2aedc0fcf4d"
+  },
+  "loss": {
+   "per_event": {
+    "bitnami-2025": [
+     "L1",
+     "L2",
+     "L3"
+    ],
+    "capa-move": null,
+    "django-4.2-eol": [],
+    "etcd-move": [],
+    "fbsdk-archive": null,
+    "fbsdk-move": null,
+    "itext-license": [
+     "L4"
+    ],
+    "postgresql-13-eol": null,
+    "react-18-breaking": [],
+    "redis-6.2-eol": [
+     "L6"
+    ],
+    "spark-mainline": null,
+    "traefik-move": null
+   },
+   "by_class": {
+    "archival": {
+     "events": 1,
+     "encoded": 0,
+     "lossless": 0
+    },
+    "breaking-change": {
+     "events": 1,
+     "encoded": 1,
+     "lossless": 1
+    },
+    "distribution": {
+     "events": 2,
+     "encoded": 1,
+     "lossless": 0
+    },
+    "licence": {
+     "events": 1,
+     "encoded": 1,
+     "lossless": 0
+    },
+    "lifecycle": {
+     "events": 3,
+     "encoded": 2,
+     "lossless": 1
+    },
+    "relocation": {
+     "events": 4,
+     "encoded": 1,
+     "lossless": 1
+    }
+   }
+  }
+ },
  "registration": {
   "thresholds": {
    "system": "C-openpulse",
@@ -1944,13 +2231,26 @@
    "max_silent_miss": 0.02,
    "unresolved_slack": 0.05,
    "class_flag": 0.6,
+   "existing_representation_baseline": "R-existing-representation",
+   "burden_policies": [
+    "C-openpulse",
+    "V-strong-conservative",
+    "R-existing-representation",
+    "B-conservative"
+   ],
+   "review_policies": [
+    "C-openpulse",
+    "B-conservative"
+   ],
+   "review_sample": 50,
+   "min_declarations_per_basis": 10,
    "alpha": 0.05,
    "bootstrap_resamples": 4000,
    "bootstrap_seed": 20261030
   },
   "registered": {
    "valid": false,
-   "validity": "invalid: pinned ecosystem comparators unavailable (REGISTRATION.md section 9)",
+   "validity": "invalid: pinned ecosystem comparators unavailable; an event has no frozen R encoding (REGISTRATION.md section 9)",
    "population": "independent labels only",
    "pairs": 0,
    "primary": {
@@ -2006,16 +2306,44 @@
      "p_holm": null,
      "reject": null
     },
-    "D1_A_false_clears": {
+    "S3_C_vs_R_resolution": {
+     "rule": "difference(C - R) > 0: one-sided 95% lower bound of the event-clustered paired bootstrap",
+     "x": "C-openpulse",
+     "y": "R-existing-representation",
+     "difference": null,
+     "clusters": 0,
+     "pairs": 0,
+     "lower_bound_above_zero": null,
+     "p": null,
+     "p_holm": null,
+     "reject": null
+    },
+    "A_false_clears": {
      "events_at_risk": 0,
      "events_with_false_clear": 0,
      "share": null,
      "upper_one_sided_95": null,
      "failed_events": []
     },
-    "D2_C_vs_A_resolution": {
+    "C_vs_A_resolution": {
      "x": "C-openpulse",
      "y": "A-naive",
+     "difference": null,
+     "clusters": 0,
+     "pairs": 0
+    },
+    "R_false_clears": {
+     "events_at_risk": 0,
+     "events_with_false_clear": 0,
+     "share": null,
+     "upper_one_sided_95": null,
+     "failed_events": []
+    },
+    "S3_reading": "no more false-clear events than R",
+    "C_vs_R_resolution_lossless_events": {
+     "cases": 0,
+     "x": "C-openpulse",
+     "y": "R-existing-representation",
      "difference": null,
      "clusters": 0,
      "pairs": 0
@@ -2038,8 +2366,47 @@
      "rule": "report every class; flag unresolved rate > 0.6 (not a test)",
      "rates": {},
      "flagged": []
+    },
+    "G4_review_burden": {
+     "rule": "median W1 (unresolved references per inventory and cycle) of C <= B's",
+     "C": null,
+     "B": null,
+     "pass": null
     }
-   }
+   },
+   "reported": {
+    "attribution_B_R_V_C": [
+     {
+      "step": "B-conservative -> R-existing-representation",
+      "difference": null,
+      "clusters": 0,
+      "pairs": 0
+     },
+     {
+      "step": "R-existing-representation -> V-strong-conservative",
+      "difference": null,
+      "clusters": 0,
+      "pairs": 0
+     },
+     {
+      "step": "V-strong-conservative -> C-openpulse",
+      "difference": null,
+      "clusters": 0,
+      "pairs": 0
+     }
+    ],
+    "review_burden": null,
+    "W3_review_minutes": null,
+    "D1_completeness_declarations": null,
+    "D2_identity_mappings": null,
+    "D2_worksheet": {}
+   },
+   "missing_inputs": [
+    "W1-W2 inventory run",
+    "W3 timed reviews",
+    "D1 completeness judgements",
+    "D2 mapping judgements"
+   ]
   },
   "all_labels_illustrative": {
    "valid": true,
@@ -2120,7 +2487,29 @@
      "p_holm": 0.064,
      "reject": false
     },
-    "D1_A_false_clears": {
+    "S3_C_vs_R_resolution": {
+     "rule": "difference(C - R) > 0: one-sided 95% lower bound of the event-clustered paired bootstrap",
+     "x": "C-openpulse",
+     "y": "R-existing-representation",
+     "clusters": 13,
+     "pairs": 51,
+     "difference": 0.549,
+     "ci95": [
+      0.3171,
+      0.7407
+     ],
+     "ci90": [
+      0.3556,
+      0.7143
+     ],
+     "lower_one_sided_95": 0.3556,
+     "p_greater_than_zero": 0.0002,
+     "lower_bound_above_zero": true,
+     "p": 0.0002,
+     "p_holm": 0.0006,
+     "reject": true
+    },
+    "A_false_clears": {
      "events_at_risk": 13,
      "events_with_false_clear": 3,
      "share": 0.2308,
@@ -2131,7 +2520,7 @@
       "react-18-breaking"
      ]
     },
-    "D2_C_vs_A_resolution": {
+    "C_vs_A_resolution": {
      "x": "C-openpulse",
      "y": "A-naive",
      "clusters": 13,
@@ -2147,6 +2536,32 @@
      ],
      "lower_one_sided_95": -0.25,
      "p_greater_than_zero": 0.9953
+    },
+    "R_false_clears": {
+     "events_at_risk": 13,
+     "events_with_false_clear": 0,
+     "share": 0.0,
+     "upper_one_sided_95": 0.2058,
+     "failed_events": []
+    },
+    "S3_reading": "no more false-clear events than R",
+    "C_vs_R_resolution_lossless_events": {
+     "cases": 14,
+     "x": "C-openpulse",
+     "y": "R-existing-representation",
+     "clusters": 3,
+     "pairs": 11,
+     "difference": 0.0,
+     "ci95": [
+      -0.3333,
+      0.25
+     ],
+     "ci90": [
+      -0.2,
+      0.1667
+     ],
+     "lower_one_sided_95": -0.2,
+     "p_greater_than_zero": 0.6391
     }
    },
    "guardrails": {
@@ -2177,8 +2592,215 @@
       "breaking-change",
       "relocation"
      ]
+    },
+    "G4_review_burden": {
+     "rule": "median W1 (unresolved references per inventory and cycle) of C <= B's",
+     "C": null,
+     "B": null,
+     "pass": null
     }
-   }
+   },
+   "reported": {
+    "attribution_B_R_V_C": [
+     {
+      "step": "B-conservative -> R-existing-representation",
+      "clusters": 13,
+      "pairs": 51,
+      "difference": -0.3333,
+      "ci95": [
+       -0.5111,
+       -0.14
+      ],
+      "ci90": [
+       -0.4906,
+       -0.1667
+      ],
+      "lower_one_sided_95": -0.4906,
+      "p_greater_than_zero": 0.9998
+     },
+     {
+      "step": "R-existing-representation -> V-strong-conservative",
+      "clusters": 13,
+      "pairs": 51,
+      "difference": 0.5294,
+      "ci95": [
+       0.3,
+       0.7255
+      ],
+      "ci90": [
+       0.34,
+       0.6964
+      ],
+      "lower_one_sided_95": 0.34,
+      "p_greater_than_zero": 0.0002
+     },
+     {
+      "step": "V-strong-conservative -> C-openpulse",
+      "clusters": 13,
+      "pairs": 51,
+      "difference": 0.0196,
+      "ci95": [
+       0.0,
+       0.0645
+      ],
+      "ci90": [
+       0.0,
+       0.0588
+      ],
+      "lower_one_sided_95": 0.0,
+      "p_greater_than_zero": 0.3614
+     }
+    ],
+    "review_burden": null,
+    "W3_review_minutes": null,
+    "D1_completeness_declarations": null,
+    "D2_identity_mappings": null,
+    "D2_worksheet": {
+     "image:docker.io/bitnami/redis:6.2": {
+      "slug": "bitnami-redis-stack",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:mx-01:affected",
+       "V-strong-conservative:mx-01:affected"
+      ]
+     },
+     "image:docker.io/bitnami/redis:7.2": {
+      "slug": "bitnami-redis-stack",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:bn-03:affected",
+       "V-strong-conservative:bn-03:affected"
+      ]
+     },
+     "image:docker.io/bitnamilegacy/redis:7.2": {
+      "slug": "bitnami-redis-stack",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:bn-06:affected",
+       "V-strong-conservative:bn-06:affected"
+      ]
+     },
+     "image:docker.io/library/nginx:1.25": {
+      "slug": "nginx",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:bn-10:cleared",
+       "V-strong-conservative:bn-10:cleared"
+      ]
+     },
+     "image:docker.io/library/redis:6.2.14": {
+      "slug": "redis",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:re-02:affected",
+       "V-strong-conservative:re-02:affected"
+      ]
+     },
+     "image:docker.io/postgres:13": {
+      "slug": "postgresql",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:pg-01:affected",
+       "V-strong-conservative:pg-01:affected"
+      ]
+     },
+     "image:docker.io/postgres:13.16-alpine": {
+      "slug": "postgresql",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:pg-02:affected"
+      ]
+     },
+     "image:docker.io/postgres:17": {
+      "slug": "postgresql",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:pg-03:cleared",
+       "V-strong-conservative:pg-03:cleared"
+      ]
+     },
+     "image:docker.io/redis:6.2": {
+      "slug": "redis",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:re-01:affected",
+       "C-openpulse:mx-02:affected",
+       "V-strong-conservative:re-01:affected",
+       "V-strong-conservative:mx-02:affected"
+      ]
+     },
+     "image:docker.io/redis:7.2": {
+      "slug": "redis",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:bn-09:cleared",
+       "C-openpulse:re-03:cleared",
+       "C-openpulse:mx-03:cleared",
+       "V-strong-conservative:bn-09:cleared",
+       "V-strong-conservative:re-03:cleared",
+       "V-strong-conservative:mx-03:cleared"
+      ]
+     },
+     "image:docker.io/redis:8.0": {
+      "slug": "redis",
+      "via": "explicit",
+      "verdicts": [
+       "C-openpulse:re-04:cleared",
+       "V-strong-conservative:re-04:cleared"
+      ]
+     },
+     "package:maven:com.itextpdf/itext7-core": {
+      "slug": "itext",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:it-03:affected",
+       "V-strong-conservative:it-03:affected"
+      ]
+     },
+     "package:maven:com.itextpdf/kernel": {
+      "slug": "itext",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:it-01:affected",
+       "V-strong-conservative:it-01:affected"
+      ]
+     },
+     "package:maven:com.itextpdf/sign": {
+      "slug": "itext",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:it-02:affected",
+       "V-strong-conservative:it-02:affected"
+      ]
+     },
+     "package:npm:react": {
+      "slug": "react",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:rx-01:affected",
+       "V-strong-conservative:rx-01:affected"
+      ]
+     },
+     "package:pypi:django": {
+      "slug": "django",
+      "via": "catalog",
+      "verdicts": [
+       "C-openpulse:dj-01:affected",
+       "C-openpulse:dj-02:affected",
+       "C-openpulse:dj-03:cleared",
+       "V-strong-conservative:dj-01:affected",
+       "V-strong-conservative:dj-02:affected",
+       "V-strong-conservative:dj-03:cleared"
+      ]
+     }
+    }
+   },
+   "missing_inputs": [
+    "W1-W2 inventory run",
+    "W3 timed reviews",
+    "D1 completeness judgements",
+    "D2 mapping judgements"
+   ]
   }
  },
  "pairs": {
@@ -3144,6 +3766,608 @@
     "independent": false,
     "label": "out_of_scope",
     "outcome": "unresolved"
+   }
+  ],
+  "R-existing-representation": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": false,
+    "encoding_loss": true
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": false
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "encoded": true,
+    "encoding_loss": true
    }
   ],
   "V-strong-conservative": [

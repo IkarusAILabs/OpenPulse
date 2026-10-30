@@ -1,0 +1,42 @@
+{
+ "event": "react-18-breaking",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://react.dev/blog/2022/03/29/react-v18",
+  "https://github.com/facebook/react/releases/tag/v18.0.0",
+  "https://react.dev/blog/2022/06/15/react-v18-upgrade-guide"
+ ],
+ "osv": [
+  {
+   "schema_version": "1.6.0",
+   "id": "OPENPULSE-EVAL-react-18-breaking",
+   "modified": "2024-05-01T00:00:00Z",
+   "summary": "React 18 breaking changes (automatic batching, createRoot, strict mode)",
+   "affected": [
+    {
+     "package": {
+      "ecosystem": "npm",
+      "name": "react"
+     },
+     "ranges": [
+      {
+       "type": "SEMVER",
+       "events": [
+        {
+         "introduced": "18.0.0-0"
+        },
+        {
+         "fixed": "19.0.0-0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "openvex": null,
+ "loss": [],
+ "notes": "The sources name React 18 and the package react. The release notes cover the facebook/react repository's other packages, but no excerpt names them as packages, so none is encoded (ENCODING.md §3.2: never add a package the sources do not name)."
+}

@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT / "conformance"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import oracle  # noqa: E402
+from existing_representation import existing_representation  # noqa: E402
 from strong_baseline import strong_conservative  # noqa: E402
 
 from core.evidence_contract import build_v1_contract, validate_v1_contract  # noqa: E402
@@ -288,6 +289,7 @@ Policy = Callable[..., dict[str, Any]]
 POLICIES: dict[str, Policy] = {
     "A-naive": naive,
     "B-conservative": conservative,
+    "R-existing-representation": existing_representation,
     "V-strong-conservative": strong_conservative,
     "C-openpulse": openpulse,
     "C-ablate-completeness": openpulse_no_completeness,

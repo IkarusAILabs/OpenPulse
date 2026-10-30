@@ -28,7 +28,7 @@ Every policy receives the same replayed events and the same dependency. None rec
 | **A-naive** | Affected if the dependency is *listed* by any current event, otherwise **NotAffected**. | The risk of reading absence from a list as absence of impact. |
 | **B-conservative** | Affected if listed, otherwise **unresolved** (an abstention). | The cost of never clearing anything. |
 | **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, the ecosystems' own pinned comparators (PyPI: `packaging`; npm: node-semver; Go: x/mod/semver; Maven: ComparableVersion; see `comparators/README.md`; plain dotted numbers only for image tags, or when a bridge is not installed in a development run), and every undecidable relation undetermined. | The equivalence comparison (REGISTRATION S1): what C's engine adds beyond a careful conservative consumer of the same model. It was primary in the TR draft. The registration makes B primary, because V shares the model under test. |
-| **R-existing-representation** *(amended 2026-10-30; not implemented)* | Each event is re-encoded from its primary sources as OSV or OpenVEX, under frozen rules (`representations/ENCODING.md`). A conservative consumer reads it: exact purl identity, the pinned ecosystem comparators, and *not affected* only from an excluding OSV range or an explicit `not_affected` statement. Everything else is unresolved. See REGISTRATION §2. | REGISTRATION S3: what the model adds over existing formats read with care. |
+| **R-existing-representation** *(amended 2026-10-30)* | Each event is re-encoded from its primary sources as OSV or OpenVEX, under written rules ([`representations/ENCODING.md`](representations/ENCODING.md)), and frozen with its SHA-256 in the case set. A conservative consumer (`existing_representation.py`) reads it: exact purl identity, the pinned ecosystem comparators (the same as V's), and *not affected* only from an excluding OSV range or an explicit `not_affected` statement. Everything else, including an event with no encoding, is unresolved. See REGISTRATION §2. | REGISTRATION S3: what the model adds over existing formats read with care. |
 | **C-openpulse** | The production engine (`check_dependency`), freshness bound set. Events only, with no advisory data, so the advisory path is out of scope. | Whether structured scope, completeness, identity and freshness conditions buy decisiveness without false clears. |
 | C-ablate-completeness | C on inputs where every populated scope is declared complete (basis `announced`). | Premise N3. |
 | C-ablate-freshness | C with no freshness bound. | Premise N4 (freshness). |
@@ -101,6 +101,8 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 
 60 pairs over 13 events. The labeller is not independent.
 
+The R row is from revision 3 (2026.10.30-3), which changes no case or label. The other rows are as recorded for revision 2. Later engine changes have since moved them: the current code gives V 0.627, C 0.647 resolved and 0.417 abstention, and an H2 gain of 0.216 (95% interval 0.07–0.34). Refreshing those rows is a separate change.
+
 | Policy | False clears | FCR_aff | False impact | Resolved | Abstain | Unsupported decisive |
 |---|---|---|---|---|---|---|
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
@@ -109,6 +111,7 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 | C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.627 (0.588 before package curation) | 0.433 | 0.0 |
 | C-ablate-both | 1 | 0.037 | 0.0 | 0.647 | 0.4 | 0.0 |
 | C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.2 (0.183 before F4 curation) | 0.0 |
+| R-existing-representation (revision 3; 6 of 13 events encoded) | 0 | 0.0 | 0.0 | 0.098 | 0.917 | 0.0 |
 
 What this set shows, and what it does not:
 
@@ -120,6 +123,12 @@ What this set shows, and what it does not:
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
 - **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
 - **Identity: the D10 trade-off, measured.** Reading unresolved identity as "another project" cuts abstention from 0.47 to 0.18, but in-scope pairs then silently get no association. Before package curation there were 3 of 27: the archived fbsdk repository (fa-01) and two unlisted iText modules (it-02, it-03). After curation, only fa-01 remains, because the iText modules are curated and resolve. With D10, C reports the uncurated ones as unresolved. The other 14 pairs the ablation changes are out-of-scope or undeterminable. That is the coverage cost TR-2026-01 §11 listed as unmeasured: on this set, 17 of 60 pairs, or 28%, are held unresolved by D10 alone, and 3 of those 17 are truly in scope. Curation is what wins those clearances back, and package curation already turned two of the three into correct positives.
+- **R (REGISTRATION S3): illustrative only, and weaker than that.** Dataset revision 3 adds OSV/OpenVEX encodings for six events (`representations/dev-2026-10/`). The developer wrote them, after the labels and after every other policy's results were seen, so they are neither blind nor independent. The other seven events have no encoding, and R leaves their pairs unresolved. The run had no npm, Go or Maven bridge installed.
+  - **Overall:** no false clear and no false impact, but R resolves only 5 of 51 decidable pairs (0.098) and abstains on 55 of 60.
+  - **Encoded events only (40 pairs, 7 event sets):** R resolves 0.15, B 0.45, C 0.70.
+  - **Encoding loss:** Bitnami (namespace, tag class, closed list: L1–L3), Redis 6.2 end of life (a server line with no package or named image: L6) and the iText licence change (a product name without coordinates: L4) lose what decides their pairs. R is unresolved on all of them.
+  - **Lossless events (Django, etcd, React; 14 pairs):** R and C both resolve 5 of 11 decidable pairs. R clears the relocation's destination (et-02) from an explicit `not_affected` statement, where C abstains. C decides react 18.2.0 (rx-01), which R cannot without the npm bridge: its range boundaries (`18.0.0-0`, `19.0.0-0`) are not plain numbers. With the bridge (CI's `comparators` job), R would also decide rx-01 to rx-03. That run is not reported here.
+  - **Reading:** on this set, C's advantage over R comes from events whose scope the formats cannot express, not from events they can. Whether that holds on independent encodings is what S3, and R's results on lossless events, will show.
 - **Sample size.** With 13 events, the rule-of-three bound on per-event false clears is about 0.23. The set cannot support any claim about rates.
 
 ## 8. Registered analysis
@@ -132,13 +141,19 @@ What this set shows, and what it does not:
 | **H2:** usefulness | resolution rate C − B ≥ 0.10, with an event-clustered one-sided 95% lower bound > 0 |
 | **S1** | C vs V equivalence within ±0.05 (TOST); Holm-corrected with S2 |
 | **S2** | A − C event-level false-clear share > 0 |
+| **S3** | resolution rate C − R > 0, event-clustered one-sided 95% lower bound; Holm-corrected with S1 and S2 |
 | **G1–G3** | silent misses ≤ 0.02 of in-scope pairs; unresolved rate ≤ B's + 0.05; per-class flag above 0.60 |
+| **G4** | median W1 (unresolved references per inventory and weekly cycle) of C ≤ B's; needs `--inventories` |
+| Reported | attribution B→R→V→C; R's false clears and its results on lossless events; encoding loss per event and class; W1–W3 (`--inventories`, `--annotations`); D1–D2 (`--annotations`) |
 
 On the development set the registered result is **not decidable**. It has no independent labels, and only 13 event sets where 60 are needed. The all-labels illustration:
 - **H1:** C has no false-clear event (bound 0.206).
 - **H2:** gain 0.196, 95% interval 0.02–0.34.
 - **S1:** not established (C − V = 0.02, Holm p 0.08).
 - **S2:** A has false-clear events in 3 of 13 event sets (Holm p 0.06).
+- **S3:** C − R = 0.55, 95% interval 0.32–0.74 (Holm p < 0.001). This reflects the seven unencoded events and the lossy encodings above, not a measured advantage of the model.
+- **Attribution:** B→R −0.33, R→V +0.53, V→C +0.02.
+- **G4, W1–W3, D1–D2:** not computed. The development set has no participating inventories and no annotators' records.
 - **G1 and G2:** pass.
 - **G3:** flags archival, breaking-change and relocation.
 

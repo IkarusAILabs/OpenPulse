@@ -177,6 +177,16 @@ class Comparators:
             return None
         return [int(n) for n in parsed["core"]]
 
+    def compare(self, ecosystem: str, a: str, b: str) -> int | None:
+        """-1, 0 or 1 per the ecosystem's tool; None when either is not a version."""
+        name = _bridge_name(ecosystem)
+        bridge = self.bridges.get(name or "")
+        if bridge is None:
+            return None
+        if name == "go":
+            a, b = (v if v.startswith("v") else "v" + v for v in (a, b))
+        return bridge.compare(a, b)
+
     def in_line(self, ecosystem: str, version: str, line: str) -> bool | None:
         """Is ``version`` in release line ``line``? None when not decidable."""
         if not _LINE.fullmatch(line or ""):

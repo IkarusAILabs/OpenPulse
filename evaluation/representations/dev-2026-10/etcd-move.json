@@ -1,0 +1,46 @@
+{
+ "event": "etcd-move",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://github.com/etcd-io/etcd"
+ ],
+ "osv": [],
+ "openvex": {
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/IkarusAILabs/OpenPulse/evaluation/representations/dev-2026-10/etcd-move",
+  "author": "dataset author (OpenPulse developer; not independent, development set only)",
+  "timestamp": "2026-10-06T00:00:00Z",
+  "version": 1,
+  "statements": [
+   {
+    "vulnerability": {
+     "name": "etcd-move",
+     "description": "repository relocation: coreos/etcd is now etcd-io/etcd"
+    },
+    "products": [
+     {
+      "@id": "pkg:github/coreos/etcd"
+     }
+    ],
+    "status": "affected",
+    "action_statement": "Update references to github.com/etcd-io/etcd."
+   },
+   {
+    "vulnerability": {
+     "name": "etcd-move",
+     "description": "repository relocation: coreos/etcd is now etcd-io/etcd"
+    },
+    "products": [
+     {
+      "@id": "pkg:github/etcd-io/etcd"
+     }
+    ],
+    "status": "not_affected",
+    "impact_statement": "The relocation's destination, named by the repository's own metadata (full_name etcd-io/etcd)."
+   }
+  ]
+ },
+ "loss": [],
+ "notes": "The recorded repository metadata names the old and new locations; nothing else."
+}

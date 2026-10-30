@@ -336,3 +336,303 @@ def test_dev_set_identity_ablation_trades_abstention_for_silent_misses(dev):
         for p in ("C-openpulse", "C-ablate-identity")
     }
     assert fa01 == {"C-openpulse": "affected", "C-ablate-identity": "affected"}
+
+
+# --- policy R, the existing-representation baseline (REGISTRATION S3) -----------------
+
+
+@pytest.mark.parametrize(
+    "dep, purl",
+    [
+        ({"kind": "image", "ref": "index.docker.io/redis:7.2"}, "pkg:docker/library/redis@7.2"),
+        ({"kind": "image", "ref": "docker.io/bitnami/redis"}, "pkg:docker/bitnami/redis@latest"),
+        (
+            {"kind": "image", "ref": "quay.io/coreos/etcd:v3.5.0"},
+            "pkg:docker/coreos/etcd@v3.5.0?repository_url=quay.io",
+        ),
+        (
+            {"kind": "image", "ref": "docker.io/redis@sha256:ab"},
+            "pkg:docker/library/redis@sha256%3Aab",
+        ),
+        ({"kind": "image", "ref": "github.com/CoreOS/etcd"}, "pkg:github/coreos/etcd"),
+        (
+            {"kind": "package", "package": "Flare_Capa", "ecosystem": "PyPI", "version": "7.0.1"},
+            "pkg:pypi/flare-capa@7.0.1",
+        ),
+        (
+            {"kind": "package", "package": "@types/node", "ecosystem": "npm", "version": "20.1.0"},
+            "pkg:npm/%40types/node@20.1.0",
+        ),
+        (
+            {
+                "kind": "package",
+                "package": "com.itextpdf:kernel",
+                "ecosystem": "Maven",
+                "version": None,
+            },
+            "pkg:maven/com.itextpdf/kernel",
+        ),
+        (
+            {
+                "kind": "package",
+                "package": "go.etcd.io/etcd/client/v3",
+                "ecosystem": "Go",
+                "version": "3.5.9",
+            },
+            "pkg:golang/go.etcd.io/etcd/client/v3@3.5.9",
+        ),
+        ({"kind": "package", "package": "etcd", "ecosystem": "", "version": None}, None),
+    ],
+)
+def test_existing_representation_builds_one_purl_per_dependency(dep, purl):
+    import existing_representation as er
+
+    assert er.dependency_purl(dep) == purl
+
+
+def _encoding(osv=(), statements=None, loss=()):
+    vex = None if statements is None else {"statements": list(statements)}
+    return {"osv": list(osv), "openvex": vex, "loss": list(loss)}
+
+
+def _django_line(**extra):
+    record = {
+        "affected": [
+            {
+                "package": {"ecosystem": "PyPI", "name": "Django"},
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [{"introduced": "4.2.dev0"}, {"fixed": "4.3.dev0"}],
+                    }
+                ],
+                **extra,
+            }
+        ]
+    }
+    return _encoding(osv=[record])
+
+
+@pytest.mark.parametrize(
+    "version, outcome",
+    [
+        ("4.2.11", "affected"),
+        ("4.2rc1", "affected"),  # a pre-release belongs to its own line
+        ("4.3a1", "cleared"),
+        ("5.1.2", "cleared"),
+        ("4.1.9", "cleared"),
+        (None, "unresolved"),
+        ("not-a-version", "unresolved"),
+    ],
+)
+def test_existing_representation_reads_an_osv_release_line(version, outcome):
+    import existing_representation as er
+
+    dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": version}
+    assert er.per_event(dep, _django_line()) == outcome
+
+
+def test_existing_representation_identity_is_the_exact_package():
+    import existing_representation as er
+
+    other = {
+        "kind": "package",
+        "package": "djangorestframework",
+        "ecosystem": "PyPI",
+        "version": "3.14",
+    }
+    npm = {"kind": "package", "package": "django", "ecosystem": "npm", "version": "5.0.0"}
+    assert er.per_event(other, _django_line()) == "unresolved"  # silence is not a clear
+    assert er.per_event(npm, _django_line()) == "unresolved"
+    listed = _django_line(versions=["5.0.1"])
+    dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "5.0.1"}
+    assert er.per_event(dep, listed) == "affected"
+    assert er.per_event(dep, None) == "unresolved"  # no encoding
+
+
+def test_existing_representation_reads_openvex_by_exact_purl():
+    import existing_representation as er
+
+    statements = [
+        {"products": [{"@id": "pkg:docker/bitnami/redis@7.2"}], "status": "affected"},
+        {"products": [{"@id": "pkg:github/etcd-io/etcd"}], "status": "not_affected"},
+        {"products": [{"@id": "pkg:docker/library/redis@7.2"}], "status": "under_investigation"},
+    ]
+    enc = _encoding(statements=statements)
+
+    def outcome(ref):
+        return er.per_event({"kind": "image", "ref": ref}, enc)
+
+    assert outcome("index.docker.io/bitnami/redis:7.2") == "affected"
+    assert outcome("docker.io/bitnami/redis:7.2.5") == "unresolved"  # another tag: no match
+    assert outcome("github.com/etcd-io/etcd") == "cleared"
+    assert outcome("docker.io/redis:7.2") == "unresolved"
+    conflicting = _encoding(
+        statements=statements[:1] + [{**statements[0], "status": "not_affected"}]
+    )
+    ref = {"kind": "image", "ref": "docker.io/bitnami/redis:7.2"}
+    assert er.per_event(ref, conflicting) == "affected"
+
+
+def test_existing_representation_summarises_events_as_v():
+    import existing_representation as er
+
+    redis = replay.replay(
+        {
+            "source": "raw_bundle",
+            "fixture": "redis",
+            "event_type": "EOL",
+            "versions": ["6.2"],
+            "project": "redis",
+            "as_of": "2026-09-26",
+        }
+    )
+    bitnami = _bitnami()
+    dep = {"kind": "image", "ref": "docker.io/bitnami/redis:7.2"}
+    vex = _encoding(
+        statements=[
+            {
+                "products": [{"@id": "pkg:docker/bitnami/redis@7.2"}],
+                "status": "not_affected",
+                "impact_statement": "x",
+            }
+        ]
+    )
+    try:
+        er.use_encodings({bitnami.id: vex})
+        assert er.existing_representation(dep, [bitnami]) == {
+            "outcome": "cleared",
+            "encoded": True,
+            "encoding_loss": False,
+        }
+        # An event without an encoding leaves the pair unresolved, and is flagged.
+        both = er.existing_representation(dep, [bitnami, redis])
+        assert both == {"outcome": "unresolved", "encoded": False, "encoding_loss": True}
+        withdrawn = bitnami.model_copy(update={"withdrawn": True})
+        assert er.existing_representation(dep, [withdrawn])["outcome"] == policies.NONE
+    finally:
+        er.use_encodings(None)
+
+
+def test_existing_representation_is_registered_after_b():
+    names = list(policies.POLICIES)
+    assert names.index("R-existing-representation") == names.index("B-conservative") + 1
+
+
+def test_encodings_are_frozen_by_hash(tmp_path, monkeypatch):
+    import existing_representation as er
+
+    spec = json.loads(run.DEFAULT_CASES.read_text("utf-8"))["events"]["django-4.2-eol"]["encoding"]
+    assert er.load_encoding(spec, "django-4.2-eol")["loss"] == []
+    with pytest.raises(ValueError, match="SHA-256"):
+        er.load_encoding({**spec, "sha256": "0" * 64}, "django-4.2-eol")
+    with pytest.raises(ValueError, match="encodes"):
+        er.load_encoding(spec, "react-18-breaking")
+
+
+def test_malformed_encodings_are_refused():
+    import existing_representation as er
+
+    good = json.loads(
+        (EVALUATION / "representations" / "dev-2026-10" / "etcd-move.json").read_text("utf-8")
+    )
+    assert er.validate_encoding(good) == []
+    bare = json.loads(json.dumps(good))
+    del bare["openvex"]["statements"][1]["impact_statement"]
+    assert er.validate_encoding(bare) == [
+        "not_affected without a justification or impact statement"
+    ]
+    lossy = {**good, "loss": [{"code": "L9", "what": "?"}]}
+    assert er.validate_encoding(lossy)[0].startswith("loss entry")
+    git = {
+        **good,
+        "osv": [
+            {
+                "affected": [
+                    {
+                        "package": {"ecosystem": "PyPI", "name": "x"},
+                        "ranges": [{"type": "GIT", "events": []}],
+                    }
+                ]
+            }
+        ],
+    }
+    assert er.validate_encoding(git) == ["OSV range type 'GIT' is not read"]
+
+
+def test_registered_run_requires_every_encoding():
+    with pytest.raises(ValueError, match="no frozen R encoding"):
+        run.run(require_encodings=True)
+
+
+def test_dev_set_existing_representation(dev):
+    """Illustrative only: six of 13 events are encoded, by the developer,
+    after the other policies' results were seen (dataset revision 3)."""
+    r = {row["case"]: row for row in dev["pairs"]["R-existing-representation"]}
+    assert dev["policies"]["R-existing-representation"]["overall"]["false_clears"] == 0
+    # OSV range and OpenVEX statement decide where the sources name the product.
+    assert [r[c]["outcome"] for c in ("dj-01", "dj-03", "et-01", "et-02")] == [
+        "affected",
+        "cleared",
+        "affected",
+        "cleared",
+    ]
+    # A namespace (Bitnami) or a product name (iText) has no purl: unresolved, with loss.
+    assert r["bn-01"]["outcome"] == r["it-01"]["outcome"] == "unresolved"
+    assert r["bn-01"]["encoding_loss"] and not r["dj-01"]["encoding_loss"]
+    # Unencoded events stay unresolved and are flagged.
+    assert (r["tr-01"]["outcome"], r["tr-01"]["encoded"]) == ("unresolved", False)
+    loss = dev["encodings"]["loss"]["per_event"]
+    assert loss["bitnami-2025"] == ["L1", "L2", "L3"] and loss["traefik-move"] is None
+    secondary = dev["registration"]["all_labels_illustrative"]["secondary"]
+    assert secondary["C_vs_R_resolution_lossless_events"]["difference"] == 0.0
+
+
+def test_inventory_run_and_annotations_reach_the_registered_tables(tmp_path):
+    """W1-W2 over a whole inventory per weekly cycle, and W3/D1/D2 records,
+    through run.py; an event joins the cycles from its first-observation date."""
+    inventory = [
+        {"kind": "image", "ref": "docker.io/redis:7.2"},
+        {"kind": "image", "ref": "docker.io/bitnami/nginx:1.25"},
+        {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2.11"},
+        {"kind": "package", "package": "requests", "ecosystem": "PyPI", "version": "2.32.0"},
+    ]
+    inventories = tmp_path / "inventories.json"
+    inventories.write_text(
+        json.dumps(
+            {
+                "window": {"start": "2026-09-21", "end": "2026-10-04"},
+                "inventories": {"i": inventory},
+            }
+        ),
+        encoding="utf-8",
+    )
+    annotations = tmp_path / "annotations.json"
+    reviews = [{"policy": "C-openpulse", "item": "x", "minutes": 4}]
+    declarations = [
+        {
+            "event": "django-4.2-eol",
+            "basis": "definitional",
+            "judgements": {"a": "correct", "b": "correct"},
+        }
+    ]
+    annotations.write_text(
+        json.dumps({"timed_reviews": reviews, "completeness_declarations": declarations}),
+        encoding="utf-8",
+    )
+    result = run.run(inventories=inventories, annotations=annotations)
+    block = result["registration"]["all_labels_illustrative"]
+    burden = block["reported"]["review_burden"]
+    assert set(burden) == {
+        "C-openpulse",
+        "V-strong-conservative",
+        "R-existing-representation",
+        "B-conservative",
+    }
+    assert burden["C-openpulse"]["W1_unresolved"]["n"] == 2  # one inventory, two cycles
+    assert block["guardrails"]["G4_review_burden"]["pass"] is not None
+    assert block["reported"]["W3_review_minutes"]["C-openpulse"]["mean_minutes"] == 4.0
+    d1 = block["reported"]["D1_completeness_declarations"]
+    assert d1["per_basis"]["definitional"]["declarations"] == 1
+    assert "bitnami-2025" in d1["admitted_not_judged"]
+    assert block["missing_inputs"] == ["D2 mapping judgements"]
