@@ -107,7 +107,7 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 | V-strong-conservative | 0 | 0.0 | 0.0 | 0.608 | 0.45 | 0.0 |
 | C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.627 (0.588 before package curation) | 0.433 | 0.0 |
 | C-ablate-both | 1 | 0.037 | 0.0 | 0.647 | 0.4 | 0.0 |
-| C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.183 | 0.0 |
+| C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.2 (0.183 before F4 curation) | 0.0 |
 
 What this set shows, and what it does not:
 

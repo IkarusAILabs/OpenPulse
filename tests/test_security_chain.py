@@ -267,7 +267,11 @@ def test_j_project_match_never_customer_impact():
         {"kind": "package", "package": "demo", "ecosystem": "PyPI", "version": "1.0"},
         [event],
     )
-    assert result.relationship == "AFFECTS_PROJECT"
+    # FLIPPED (F4, 2026-10-30): `demo` is not in the catalog, so a package
+    # merely named like the event's project is unresolved (RELATED), not the
+    # project. Either way it is no customer impact, which is the point here;
+    # the curated project tie is pinned by test_check.test_project_tie_is_not_impact.
+    assert result.relationship == "RELATED"
     out = evaluate_impact(
         {"analyst": "change"},
         dependency_context={

@@ -1,5 +1,5 @@
 {
- "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. A package without an ecosystem is identified by name (packages); with one, by ecosystem_packages. Projects with events: redis, mysql.",
+ "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. A package without an ecosystem is identified by name (packages); with one, by ecosystem_packages. Projects with events: redis, mysql, and zzzpkg, which is not in the catalog (a package named like it is unresolved, F4).",
  "projects": {
   "redis": {
    "release_lines_seen": [
@@ -16,6 +16,12 @@
     "8",
     "8.0"
    ]
+  },
+  "zzzpkg": {
+   "release_lines_seen": [
+    "1"
+   ],
+   "curated": false
   }
  },
  "image_repositories": {

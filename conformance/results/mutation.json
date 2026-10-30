@@ -191,6 +191,16 @@
    "caught_without_regression_tests": true
   },
   {
+   "mutant": "F4",
+   "reintroduces": "a self-resolved package named like the project is the project",
+   "matrix": false,
+   "randomized": true,
+   "regression_tests": true,
+   "version_differential": false,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
    "mutant": "Package",
    "reintroduces": "package-name inequality excludes",
    "matrix": true,
@@ -211,9 +221,9 @@
    "caught_without_regression_tests": true
   }
  ],
- "caught": 21,
- "total": 21,
- "caught_without_regression_tests": 21,
+ "caught": 22,
+ "total": 22,
+ "caught_without_regression_tests": 22,
  "not_reinjected": {
   "D2": "union of OSV intervals: a multi-line walk, not a one-function change",
   "D5": "heuristic exclusion: subsumed by D10 and S2 in the current resolver",

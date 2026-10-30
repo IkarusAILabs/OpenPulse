@@ -154,7 +154,7 @@ MUTANTS = [
         "unmapped packages are unrelated",
         "core.risk.check",
         "_scope_cause",
-        """        trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated"
+        """        not unresolved or UNRESOLVED_IDENTITY.get() == "unrelated"
     ):
         return None  # curated as another project: no association""",
         """        True
@@ -216,6 +216,14 @@ MUTANTS = [
         "_qualified_results",
         "        elif key == mine:",
         "        elif key[1] == mine[1]:",
+    ),
+    (
+        "F4",
+        "a self-resolved package named like the project is the project",
+        "core.risk.check",
+        "_scope_cause",
+        "    if slug != event.project_slug or unresolved:",
+        "    if slug != event.project_slug:",
     ),
     (
         "Package",
