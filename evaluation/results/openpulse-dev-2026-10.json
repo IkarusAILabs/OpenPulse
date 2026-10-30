@@ -3,7 +3,7 @@
  "dataset_version": "2026.10.30-2",
  "dataset_status": "development",
  "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
- "commit": "2b6dbf092a1fd81a862fe33204543e13659e4a31",
+ "commit": "f084a5545bfba43f900dff9c0cf57e17a464a941",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -438,9 +438,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 21,
+     "affected": 23,
      "cleared": 8,
-     "unresolved": 29,
+     "unresolved": 27,
      "no_association": 2
     },
     "false_clears": 0,
@@ -449,9 +449,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.5686,
-    "decisive_coverage": 0.4833,
-    "abstention_rate": 0.4833,
+    "resolution_rate": 0.6078,
+    "decisive_coverage": 0.5167,
+    "abstention_rate": 0.45,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
@@ -543,9 +543,9 @@
      "out_of_scope": 2,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 1,
+      "affected": 3,
       "cleared": 0,
-      "unresolved": 4,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -554,9 +554,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.2,
-     "decisive_coverage": 0.2,
-     "abstention_rate": 0.8,
+     "resolution_rate": 0.6,
+     "decisive_coverage": 0.6,
+     "abstention_rate": 0.4,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
@@ -623,9 +623,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 21,
+      "affected": 23,
       "cleared": 8,
-      "unresolved": 29,
+      "unresolved": 27,
       "no_association": 2
      },
      "false_clears": 0,
@@ -634,9 +634,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.5686,
-     "decisive_coverage": 0.4833,
-     "abstention_rate": 0.4833,
+     "resolution_rate": 0.6078,
+     "decisive_coverage": 0.5167,
+     "abstention_rate": 0.45,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
@@ -3244,7 +3244,7 @@
     "class": "licence",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved"
+    "outcome": "affected"
    },
    {
     "case": "it-03",
@@ -3252,7 +3252,7 @@
     "class": "licence",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved"
+    "outcome": "affected"
    },
    {
     "case": "it-04",
@@ -4219,7 +4219,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/sign is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/sign is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -4237,7 +4237,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/itext7-core is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/itext7-core is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -5301,7 +5301,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/sign is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/sign is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -5319,7 +5319,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/itext7-core is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/itext7-core is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -6383,7 +6383,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/sign is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/sign is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -6401,7 +6401,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/itext7-core is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/itext7-core is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -7465,7 +7465,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/sign is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/sign is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -7483,7 +7483,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/itext7-core is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "reason": "com.itextpdf/itext7-core is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -8204,7 +8204,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/sign is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']"
+    "reason": "com.itextpdf/sign is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole"
    },
    {
     "case": "it-03",
@@ -8215,7 +8215,7 @@
     "outcome": "affected",
     "relationship": "AFFECTS_PACKAGE",
     "confidence": "EMERGING",
-    "reason": "com.itextpdf/itext7-core is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']"
+    "reason": "com.itextpdf/itext7-core is a curated package of project itext, which event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout'] name as a whole"
    },
    {
     "case": "it-04",

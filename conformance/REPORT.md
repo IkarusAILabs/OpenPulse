@@ -114,3 +114,15 @@ The first randomised run found:
 ## Limits
 
 The matrix covers chosen dimensions, not every input. It checks the specified semantics on that matrix and is not a proof. Identity is supplied as ground truth, so resolver errors are outside it. The oracle and the implementation were written by the same team, which limits independence. An external re-implementation of the oracle would strengthen the result.
+
+## Update 2026-10-30: F2 specified, package names that are not the slug
+
+Figures above are those of the TR-2026-01 snapshot (`8a9c3a8`). Package curation exposed **F2**: the implementation counted a package as a member of a package scope that lists its project's slug, which the specification did not say. The rule is now specified as the *project package element* (`independent/SPEC.md` §4.4) and implemented in the oracle. The generators gained `redis-server`, a package curated as Redis whose name is not the slug; without it, no case reached the rule.
+
+| Check | Snapshot | Now |
+|---|---|---|
+| Matrix | 3,947 of 3,995 conform, 48 label | 4,158 of 4,230 conform, 72 label (same difference, now for both packages of the project) |
+| Randomised, seed 7 | 100,000 summaries; 200,272 per-event verdicts | 100,000 summaries; 200,206 per-event verdicts (the generator changed) |
+| Re-injection | 19 of 19 mutants | 20 of 20, including F2 (a project package element ignored), caught by matrix, random cases and regression tests |
+
+Open: **F3**, the order of name and identity for package elements (`independent/SPEC.md` §8).

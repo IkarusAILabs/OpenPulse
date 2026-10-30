@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
+from core.entities.catalog import package_name_key
 from core.entities.identity import UNRESOLVED_IDENTITY, package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
@@ -285,8 +286,11 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             "reason": (f"{dep['package']}=={version} is outside scope versions {scope.versions}"),
         }
     if kind == "package" and scope.packages:
-        names = {str(p).lower() for p in scope.packages}
-        if str(dep["package"]).lower() in names or slug in names:
+        # Names compare in canonical form: lowercase, PEP 503 folding for
+        # PyPI, Maven groupId:artifactId = groupId/artifactId.
+        ecosystem = str(dep.get("ecosystem") or "generic")
+        names = {package_name_key(ecosystem, str(p))[1] for p in scope.packages}
+        if package_name_key(ecosystem, str(dep["package"]))[1] in names:
             return {
                 **base,
                 "relationship": "AFFECTS_PACKAGE",
@@ -294,8 +298,23 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
                 "match_method": "event_scope_package",
                 "reason": f"{dep['package']} is inside event scope packages {scope.packages}",
             }
-        # Package names are not canonicalised per ecosystem (PEP 503
-        # folding, Maven group:artifact, npm scopes...), so a name that
+        # A project package element (TR-2026-01 F2): a listed value that is
+        # the event's own project denotes every package a curated mapping
+        # assigns to it. The slug equals the project only through such a
+        # mapping here, since an unmapped package resolves to itself.
+        if event.project_slug.lower() in {str(p).lower() for p in scope.packages}:
+            return {
+                **base,
+                "relationship": "AFFECTS_PACKAGE",
+                "affected": True,
+                "match_method": "event_scope_package",
+                "reason": (
+                    f"{dep['package']} is a curated package of project {slug}, which event "
+                    f"scope packages {scope.packages} name as a whole"
+                ),
+            }
+        # Canonical folding covers PyPI and Maven spelling only (npm scopes,
+        # Go module paths and other forms are not modelled), so a name that
         # differs from every listed one may still be the same package:
         # inequality is undetermined, never an exclusion.
         return {

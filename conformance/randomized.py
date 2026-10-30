@@ -39,7 +39,7 @@ DIGESTS = ["sha256:" + c * 64 for c in "abc"]
 PROJECTS = {
     "redis": {
         "repos": ["docker.io/library/redis", "docker.io/redis"],
-        "packages": ["redis"],
+        "packages": ["redis", "redis-server"],  # a name that is not the slug (F2)
         "lines": ["6", "6.2", "7", "7.2", "8"],
     },
     "mysql": {

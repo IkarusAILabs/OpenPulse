@@ -200,6 +200,14 @@ MUTANTS = [
         "    if False:",
     ),
     (
+        "F2",
+        "a project package element is ignored",
+        "core.risk.check",
+        "_scope_cause",
+        "        if event.project_slug.lower() in {str(p).lower() for p in scope.packages}:",
+        "        if False:",
+    ),
+    (
         "Package",
         "package-name inequality excludes",
         "core.risk.check",

@@ -104,18 +104,17 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 |---|---|---|---|---|---|---|
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
 | B-conservative | 0 | 0.0 | 0.25 | 0.431 | 0.433 | 0.667 |
-| V-strong-conservative | 0 | 0.0 | 0.0 | 0.569 | 0.483 | 0.0 |
+| V-strong-conservative | 0 | 0.0 | 0.0 | 0.608 | 0.45 | 0.0 |
 | C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.627 (0.588 before package curation) | 0.433 | 0.0 |
 | C-ablate-both | 1 | 0.037 | 0.0 | 0.647 | 0.4 | 0.0 |
 | C-ablate-identity | 0 (silent misses 0.037) | 0.0 | 0.0 | 0.627 | 0.183 | 0.0 |
 
 What this set shows, and what it does not:
 
-- **C vs V (the primary comparison).** They differ on three pairs of 60.
+- **C vs V (the primary comparison).** They differ on one pair of 60.
   - On `postgres:13.16-alpine` (pg-02), V has no comparator for a tag with a variant suffix and abstains, while C's version grammar decides it correctly.
-  - On two iText modules (it-02, it-03), C is affected through a rule outside the specification, finding **F2** (ROADMAP): a package is a member when the scope lists its project's slug. V, following the specification, abstains.
-
-  So one difference is the engine and two are an unspecified rule. On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
+  - Before F2 was specified, C and V also differed on two iText modules (it-02 and it-03). C was affected through a then-unspecified rule: a package is a member when the scope lists its project. The rule is now specified (SPEC §4.4, project package element), and V applies it too.
+ On this set, nearly all of C's advantage over A and B comes from the model, which V shares, and very little from the engine. If the held-out set confirms this, the paper should claim the representation (typed scope, completeness with a basis, curated identity) and its admission rule as the contribution, and treat the engine as one implementation of it.
 - **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.59 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. Its abstention rate, however, is *higher* than B's. Most of the abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
 - **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).

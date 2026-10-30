@@ -29,6 +29,7 @@
  },
  "packages": {
   "redis": "redis",
+  "redis-server": "redis",
   "mysql": "mysql",
   "zzzpkg": null,
   "redis-py": null
