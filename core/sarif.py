@@ -1,6 +1,6 @@
 """Evidence contracts -> SARIF 2.1.0 + Markdown job summary (Phase C3).
 
-A presentation layer over the v1.1 evidence contracts ``attest``
+A presentation layer over the v1.2 evidence contracts ``attest``
 already emits, so the SARIF log, the job summary and the JSONL can
 never disagree: every SARIF result carries the exact
 ``provenance.content_hash`` of the contract it renders.

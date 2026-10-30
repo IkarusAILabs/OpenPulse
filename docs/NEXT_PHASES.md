@@ -94,7 +94,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
 | B5 | `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
 | B6 | Clock trust (detail below) | L7 | S | — |
-| B7 | Evidence contract v1.2 (detail below) | L8 | M | — |
+| B7 | Evidence contract v2.0 (JCS hash; detail below) | L8 | M | — |
 
 **B1 detail:**
 - Add `official_domains` per project in `canonical_projects.yaml`, starting with the projects that have curated official events today (`bitnami`, `bitnami-spark`, `django`, `itext`). More only with owner sign-off.
@@ -120,7 +120,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 - Remove the naive `datetime.now()` fallback in `core/observations/store.py`.
 
 **B7 detail:**
-- The content hash is computed over RFC 8785 (JCS) canonical JSON, in `schemas/evidence-contract/v1.2/`.
+- The content hash is computed over RFC 8785 (JCS) canonical JSON, in `schemas/evidence-contract/v2/`. Renumbered 2026-10-30: a change to hash computation is breaking under the contract's versioning policy, so it is 2.0.0, not 1.2. Contract 1.2.0 shipped the additive verdict-meaning fields (ROADMAP R-B6).
 - Ship a documented Node or Go verification snippet.
 - The v1.0 and v1.1 schemas stay untouched.
 - Signature fields stay null.

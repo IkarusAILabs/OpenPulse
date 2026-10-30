@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import oracle  # noqa: E402
 from strong_baseline import strong_conservative  # noqa: E402
 
+from core.evidence_contract import build_v1_contract, validate_v1_contract  # noqa: E402
 from core.risk.check import check_dependency  # noqa: E402
 from core.schema.models import OSSEvent  # noqa: E402
 
@@ -188,24 +189,56 @@ def openpulse(
         unresolved_identity=unresolved_identity,
     )
     outcome = _OPENPULSE_OUTCOME.get(verdict.relationship, UNRESOLVED)
-    justification = _justification(verdict, events)
-    return {
+    decision = {
         "outcome": outcome,
         "relationship": verdict.relationship,
         "confidence": verdict.confidence,
         "reason": verdict.reason,
-        "justification": justification,
     }
+    # A contract states the production identity policy, so an ablated
+    # verdict is never written into one: ablations carry no justification.
+    if unresolved_identity == "undetermined":
+        decision["justification"] = _justification(
+            dep, verdict, events, outcome, as_of, max_evidence_age
+        )
+    return decision
 
 
-def _justification(verdict: Any, events: list[OSSEvent]) -> dict[str, bool]:
-    """What a decisive verdict carries to justify itself (metric E)."""
+def _justification(
+    dep: dict[str, Any],
+    verdict: Any,
+    events: list[OSSEvent],
+    outcome: str,
+    as_of: datetime | None,
+    max_evidence_age: timedelta | None,
+) -> dict[str, bool]:
+    """Metric E, read from the evidence contracts a consumer would receive.
+
+    One v1.2 contract per (dependency, cited event), as ``openpulse attest``
+    emits them. A decisive verdict is justified when its contracts name
+    sources with acquisition times, state what the verdict means, and, for
+    a negative, cite a completeness basis that admits it.
+    """
     by_id = {e.id: e for e in events}
-    cited = [by_id[i] for i in verdict.events if i in by_id]
+    docs = []
+    for event_id in verdict.events:
+        event = by_id.get(event_id)
+        if event is None:
+            continue
+        pair = check_dependency(dep, [event], as_of=as_of, max_evidence_age=max_evidence_age)
+        docs.append(build_v1_contract(event, pair, as_of=as_of, max_evidence_age=max_evidence_age))
+    refs = [r for d in docs for r in d["evidence_refs"]]
+    clearing = [d for d in docs if d["verdict_meaning"]["direct_scope"] == "excluded"]
     return {
-        "sources_named": bool(verdict.evidence),
-        "acquisition_time": any(ev.source.fetched_at for e in cited for ev in e.evidences),
-        "completeness_basis": any(e.scope is not None and e.scope.basis for e in cited),
+        "sources_named": bool(refs),
+        "acquisition_time": bool(refs) and all(r.get("fetched_at") for r in refs),
+        "meaning_stated": bool(docs) and all(d["verdict_meaning"] for d in docs),
+        "completeness_basis": (
+            bool(clearing) and all(d["scope"]["completeness"]["admits_negative"] for d in clearing)
+            if outcome == CLEARED
+            else True
+        ),
+        "contracts_valid": bool(docs) and all(validate_v1_contract(d) == [] for d in docs),
     }
 
 

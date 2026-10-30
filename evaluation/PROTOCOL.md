@@ -72,7 +72,7 @@ Each case records whether its label is independent (`independent_label`). Result
 | Decisive coverage | (affected + cleared) / all pairs. It measures how often a policy answers, not whether the answer is right. |
 | Abstention rate | Unresolved / all pairs. |
 | Unsupported decisiveness | Decisive outcomes on undeterminable pairs / undeterminable pairs. |
-| Evidence completeness | For decisive outcomes: the share that name sources, carry an acquisition time, and cite a recorded completeness basis. Baselines emit no justification, so for them it is `None`. |
+| Evidence completeness | For decisive outcomes, read from the evidence contracts (v1.2) a consumer would receive, one per cited event: the share that name sources, give every source an acquisition time, state the verdict's meaning, cite a completeness basis that admits the negative (negatives only), and validate against the schema. Baselines and the identity ablation emit no contracts, so for them it is `None`. |
 | Per-event false-clear bound | When no false clear is observed: a one-sided 95% upper bound of 3 / n_events (the rule of three) over independent events, never over correlated pairs. |
 
 Rates with a zero denominator are `None`. Results are stratified by event class and by label independence.

@@ -171,3 +171,23 @@ def test_long_reasons_are_shortened():
 
     assert _short("a; b; c") == "a; b; c"
     assert _short("a; b; c; d; e") == "a; b; c; ... (+2 more)"
+
+
+def test_verdict_carries_closed_vocabulary_meaning():
+    """R-B6: an agent can decide from structured fields, never from prose."""
+    out = dependency_status(image="docker.io/postgres:13", lookups=_lookups(), today=TODAY)
+    meaning = out["verdict"]["meaning"]
+    assert meaning["direct_scope"] == "member"
+    assert meaning["security_consequence"] == "not_evaluated"
+    assert all(c["direct_scope"] == "member" for c in out["causes"] if c["affected"])
+    assert "NOT_AFFECTED means outside" in out["note"]
+
+
+def test_package_identity_follows_the_ecosystem():
+    """F1: PyPI redis is redis-py, not the Redis server, in the agent view too."""
+    calls = []
+    out = dependency_status(
+        package="redis", version="6.2.0", ecosystem="PyPI", lookups=_lookups(calls), today=TODAY
+    )
+    assert out["identity"]["project"] == "redis-py"
+    assert calls == ["redis-py"]
