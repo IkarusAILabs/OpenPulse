@@ -1,0 +1,40 @@
+{
+ "id": "retro-rel-1",
+ "project_slug": "moby",
+ "event_type": "OWNERSHIP_CHANGE",
+ "title": "docker/docker repository relocated to moby/moby",
+ "summary": "Docker's open-source repository github.com/docker/docker became github.com/moby/moby when the Moby Project launched; the old path redirects.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/docker/docker"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "moby/moby#32691",
+    "url": "https://github.com/moby/moby/pull/32691",
+    "authority": "official",
+    "fetched_at": "2017-04-20T21:37:05Z",
+    "acquisition_method": "wayback:20170420213705 http://web.archive.org/web/20170420213705/https://github.com/moby/moby/pull/32691",
+    "family": "moby"
+   },
+   "excerpt": "If you are a Docker user, nothing changes.",
+   "relation": "supports",
+   "announcement_date": "2017-04-18",
+   "effective_date": "2017-04-18"
+  }
+ ],
+ "created_at": "2017-04-20T21:37:05Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "github.com/docker/docker"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

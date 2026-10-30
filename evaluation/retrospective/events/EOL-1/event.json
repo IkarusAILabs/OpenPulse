@@ -1,0 +1,35 @@
+{
+ "id": "retro-eol-1",
+ "project_slug": "cpython",
+ "event_type": "EOL",
+ "title": "Python 2.7 end of life",
+ "summary": "Python 2.7 reached end of life on 2020-01-01; the final release, 2.7.18, contains fixes up to that date only.",
+ "confidence": "CONFIRMED",
+ "impact": "ACTION",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "python.org/sunset-python-2",
+    "url": "https://www.python.org/doc/sunset-python-2/",
+    "authority": "official",
+    "fetched_at": "2020-01-02T20:21:03Z",
+    "acquisition_method": "wayback:20200102202103 http://web.archive.org/web/20200102202103/https://www.python.org/doc/sunset-python-2/",
+    "family": "python"
+   },
+   "excerpt": "We have decided that January 1, 2020, was the day that we sunset Python 2.",
+   "relation": "supports",
+   "announcement_date": "2014-04-13",
+   "effective_date": "2020-01-01"
+  }
+ ],
+ "created_at": "2020-01-02T20:21:03Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "2.7"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

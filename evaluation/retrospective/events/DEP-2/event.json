@@ -1,0 +1,52 @@
+{
+ "id": "retro-dep-2",
+ "project_slug": "dep",
+ "event_type": "PROJECT_ARCHIVED",
+ "title": "golang/dep deprecated and archived",
+ "summary": "The Go dependency tool dep was deprecated in favour of Go modules (2020-03-30) and its repository archived (2020-09-08).",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "source-repository",
+   "ref": "github.com/golang/dep"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "golang/go#38158",
+    "url": "https://github.com/golang/go/issues/38158",
+    "authority": "official",
+    "fetched_at": "2020-08-08T21:14:16Z",
+    "acquisition_method": "wayback:20200808211416 http://web.archive.org/web/20200808211416/https://github.com/golang/go/issues/38158",
+    "family": "golang"
+   },
+   "excerpt": "Proposal to add deprecation language to the README and archive the repository.",
+   "relation": "supports",
+   "announcement_date": "2020-03-30"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-golang-dep",
+    "url": "https://github.com/golang/dep",
+    "authority": "official",
+    "fetched_at": "2020-09-17T03:36:47Z",
+    "acquisition_method": "wayback:20200917033647 http://web.archive.org/web/20200917033647/https://github.com/golang/dep",
+    "family": "golang"
+   },
+   "excerpt": "As of 2020, Dep is deprecated and archived in favor of Go modules.",
+   "relation": "supports",
+   "effective_date": "2020-09-08"
+  }
+ ],
+ "created_at": "2020-09-17T03:36:47Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "github.com/golang/dep"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

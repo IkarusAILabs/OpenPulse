@@ -16,7 +16,7 @@
 | Compromised versions | 5 | **5** | 0 | 4–6 |
 | **Total** | **33** | **27** | **6** | **30** |
 
-**Gaps to close before data collection:** relocation and end of life are each one event short of the minimum of 4, and the total is 3 short of 30. See "Decisions" at the end.
+**Decided 2026-10-30 (DESIGN §11):** the study runs on these **27 events**. Relocation and end of life stay at 3 events each, below the minimum of 4, and the report states the shortfall.
 
 ## Relocation
 
@@ -83,10 +83,9 @@
 
 ## Decisions needed before data collection
 
-1. **Fill the gaps (recommended):** research 1–2 more relocations and 1–2 more vendor end-of-life events, under the same criteria. Candidates to check are a Go module relocation with a dated announcement, and the end of life of CentOS 7, Debian 10 or Ubuntu 18.04. That brings the total to 30.
-   - Alternative: accept **27 events** and report the shortfall.
+1. **Gaps: decided 2026-10-30, accept 27 events.** No further events are researched. The report states that relocation and end of life rest on 3 events each.
 2. **E5 provisional events:** 23 of the 27 have fewer than 3 verified pre-event dependents (all but DIS-1, DIS-3, CMP-1 and CMP-5). Per DESIGN §9, each is completed during dependent sampling or dropped if fewer than 2 are found. All drops are listed, and none is made after a policy runs.
-3. **X1 for Redis:** excluded as written. Terraform and Grafana appear in the golden tests as *end-of-life* scenarios, not licence events. X1's list names neither, so their licence events stay included. I flag this so you can tighten X1 if you prefer.
+3. **X1 for Redis: unchanged, so Redis is excluded.** Terraform and Grafana appear in the golden tests as *end-of-life* scenarios, not licence events. X1's list names neither, so their licence events stay included. I flag this so you can tighten X1 if you prefer.
 
 ## Freeze
 
