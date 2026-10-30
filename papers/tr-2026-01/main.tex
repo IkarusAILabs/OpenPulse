@@ -19,6 +19,12 @@
 \usepackage{algpseudocode}
 \usepackage{tikz}
 \usetikzlibrary{positioning,fit,arrows.meta}
+% Flush each section's floats before the next section starts; without
+% it, the tables of sections 2-11 piled up after the conclusion.
+\usepackage[section]{placeins}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.7}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
 
@@ -83,8 +89,8 @@ An audit against this model found twelve defects that could produce
 or display false clears, some encoded as correct by the regression
 suite; all are fixed. An oracle written from the specification agrees
 with the implementation on 100{,}000 random cases and a 6{,}195-case
-matrix (one documented label difference), and catches all 22
-re-injected defects. An exploratory retrospective study on 27
+matrix, where the 72 remaining differences are one documented,
+non-blocking label, and catches all 22 re-injected defects. An exploratory retrospective study on 27
 historical changes and 167 real dependency references found no false
 clear by the event-scope engine, where a naive reading of the same
 events produced 35 in 10 events. It also exposed a silent-miss
@@ -331,7 +337,8 @@ Scope typing & Repository, namespace, tag, release-line, object,
   contract \\
 Canonical form & Per element kind, shared with the oracle & Lowercase;
   scheme, tag, digest stripped; \code{docker.io} default; Docker Hub
-  host aliases folded & Package-name forms per ecosystem \\
+  host aliases folded & Package-name forms per ecosystem (addressed at
+  \currentcommit{}: F1--F3) \\
 Completeness & Verified / declared / partial & Opt-in declaration;
   unspecified is partial & Declarations are not verified \\
 Aggregation & Every element evaluated; negative needs complete scope &
@@ -341,7 +348,9 @@ Cross-event summary & No negative masks an unresolved association &
   \textsc{Related} & -- \\
 Versions, OSV ranges & Union of intervals; unsupported forms
   undetermined & Yes; each range compared under its own scheme (SemVer,
-  PEP~440, plain numeric) & No differential test \\
+  PEP~440, plain numeric) & Differential against \code{packaging}
+  (PEP~440), and in CI against the pinned npm, Go and Maven tools;
+  others untested \\
 OCI digests & Directional, platform-aware containment & Interim:
   unequal digests undetermined & Level resolution; no digest-based
   negatives meanwhile \\
@@ -350,7 +359,8 @@ Freshness & Negatives only from current, non-superseded events &
   negatives & Bound off by default; one bound, not per class \\
 Contract & Evidence, unknowns, negative semantics & v1.1, unsigned
   (v1.2.0 at \currentcommit{} adds verdict meaning and completeness) &
-  Supersession, revocation, negative-semantics fields \\
+  Supersession, revocation; negative-semantics fields at \pincommit{}
+  (in 1.2.0) \\
 First detection & Externally witnessed & Unkeyed local ledger &
   Backdating not detectable \\
 \bottomrule
@@ -585,7 +595,8 @@ several are not yet validated.
 \begin{table}[t]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.6cm}@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.4cm}@{}}
 \toprule
 Candidate contribution & Established idea & What this report adds & Evidence so far \\
 \midrule
@@ -597,8 +608,9 @@ Representation of scope and its completeness &
   with completeness as a state plus a recorded basis, exported in the
   evidence contract (Sections~\ref{sec:scope}
   and~\ref{sec:consumers}) &
-  Conformance: 6{,}195 matrix cases and 100{,}000 random cases agree
-  with an oracle. Representability: 27 real events; four scope forms
+  Conformance: 100{,}000 random cases agree with an oracle; of 6{,}195
+  matrix cases, 6{,}123 conform and 72 differ by one non-blocking
+  label, none unsafely. Representability: 27 real events; four scope forms
   could not be stated exactly (Section~\ref{sec:retro}) \\
 Conditions for a justified negative &
   Closed-world and local closed-world
@@ -634,7 +646,7 @@ Implementation, audit and evaluation &
   suite, a registration draft, and an exploratory retrospective study
   (Sections~\ref{sec:audit}, \ref{sec:evalplan} and~\ref{sec:retro}) &
   22 of 22 re-injected defects caught. Retrospective: no false clear
-  where a naive list reading had 35 (10 events). Registered test not
+  where a naive list reading had 35 (10 events). Pre-specified test not
   yet run; labels not independent \\
 \bottomrule
 \end{tabularx}
@@ -665,7 +677,7 @@ each with its evidence and its limit.
     complete scope let a consumer clear \code{docker.io/redis} under a
     Bitnami change at equal safety (Table~\ref{tab:vexcmp}). Against
     a policy that never clears, the retrospective gain in resolution
-    was 0.091 at the freeze (below the registered 0.10) and 0.170
+    was 0.091 at the freeze (below the pre-specified 0.10) and 0.170
     after two defect fixes, a post-hoc figure.
   \item \emph{Keep identity uncertainty visible instead of turning it
     into exclusion.} The identity rule is the part with the clearest
@@ -703,8 +715,13 @@ incomplete, which the prospective evaluation is designed to sample.
 of a project or its distribution channels in a way that can change the
 risk, operability or legal standing of dependents. \op{}
 \emph{discovers} three classes: namespace relocation and archival on
-GitHub, and distribution change on Docker Hub. End-of-life,
-end-of-support and vulnerability events come from existing feeds.
+GitHub, and distribution change on Docker Hub. At \pincommit{} it
+watched catalogued projects only; at \currentcommit{} it also derives
+what to watch from the inventory (Go module paths, \code{github.com}
+references and Docker Hub images). End-of-life, end-of-support and
+vulnerability events come from existing feeds, and at \currentcommit{}
+every npm, PyPI, Maven, Go and crates.io package is also queried on
+OSV by its own name.
 Licence and support-model changes can be represented and matched only
 as curated events.
 
@@ -1053,8 +1070,12 @@ carry four separate fields, each with its own evidence or an explicit
 resolution; maintenance or support implication; and security
 consequence, only where it is independently established. That would
 stop a downstream policy from turning a correct membership result into
-an unsupported security conclusion. These fields are not yet in the
-contract.
+an unsupported security conclusion. These fields are not in contract
+v1.1 at \pincommit{}. Contract 1.2.0, at \currentcommit{}, carries
+them as \code{verdict\_meaning}: direct scope, with embedded
+components, availability, maintenance and security consequence marked
+\emph{not evaluated}. Evidence-bearing values for the last four are not
+yet produced.
 
 \subsection{Typed scope}
 \label{sec:scope}
@@ -1260,7 +1281,10 @@ or \NoA{} (no association):
     unknown, \Ind{}.
   \item[Package, registry.] Equal package names give \Mem{}. Unequal
     names give \Ind{}, because names are not canonicalised, or \NoA{}
-    if $d$ is curated as another project. The same registry gives \Mem{} for an exact registry
+    if $d$ is curated as another project. (At \currentcommit{}, names
+    are compared in each ecosystem's canonical form, and a value written
+    as a purl decides by ecosystem and name: F1--F3,
+    Table~\ref{tab:since}.) The same registry gives \Mem{} for an exact registry
     element and \Ind{} for an envelope; a different registry gives
     \Non{}. The implementation treats every registry element as an
     envelope.
@@ -1281,7 +1305,11 @@ or \NoA{} (no association):
     against container-image, object and registry elements, since a
     package is never one of those. It gives \Ind{} against a
     source-repository element, because a Go module path may name the
-    very repository. Any other comparison across kinds gives \Ind{}.
+    very repository. (At \currentcommit{}, a Go module at or below a
+    named repository path, directly or by the \code{gopkg.in} and
+    \code{golang.org/x} conventions, gives \Mem{}; positive only, since a
+    vanity path may name the same repository: D-R1,
+    Section~\ref{sec:retro}.) Any other comparison across kinds gives \Ind{}.
     This rule is applied first. The
     element-specific rules above, including \Non{} for an unequal
     repository, apply only when the kinds agree.
@@ -1448,7 +1476,8 @@ The lemma is elementary, and that is intended. It is a compact
 correctness argument for the aggregation rule, not the primary
 evidence of \op{}'s security, and it implies no more assurance than
 its premises carry. The central technical evidence is meant to be
-conformance (Section~\ref{sec:evalplan}), which is not yet available.
+conformance (Section~\ref{sec:audit}), which has been run on a
+generated matrix and on random cases.
 The research question
 is not the implication. It is how an implementation establishes
 (P1) and (P2), and Table~\ref{tab:premises} decomposes them. (P1)
@@ -1517,7 +1546,7 @@ P1: elements are the right ones & Gate (artefact classes) & Missing element not 
 P1: completeness & $\chi$ & Opt-in declaration; never verified \\
 P1: currency, non-supersession & Layer 1 of Algorithm~\ref{alg:agg} & Withdrawn and superseded events dropped; freshness bound opt-in (Section~\ref{sec:temporal}) \\
 P2: identity & Resolver, trust status & Heuristics cannot exclude; a wrong \textsc{Verified} mapping is not detected \\
-P2: version semantics & Comparator, range evaluator & Scheme per range; tested locally, not differentially \\
+P2: version semantics & Comparator, range evaluator & Scheme per range; differential for PEP~440, npm, Go and Maven; others untested \\
 P2: tag and object semantics & Matcher & Tag elements and predicates; unequal digests withheld as undetermined \\
 P2: inventory fidelity & Consumer & Outside \op{}: the declared reference is assumed to be what is deployed \\
 P3: exactness (positives) & Element roles & Envelopes never give positives; exactness of exact elements rests on curation \\
@@ -1557,7 +1586,9 @@ successors and vendor-repackaged images that have no curated mapping
 are unresolved, and both the specification and the implementation
 make them \Ind{}. A
 package-to-repository mapping is a cross-kind comparison and gives
-\Ind{} unless a curated mapping relates the two. Whether an upstream
+\Ind{} unless a curated mapping relates the two (at \currentcommit{},
+a Go module reaches the repository it lives in, positively only;
+Section~\ref{sec:tests}). Whether an upstream
 event reaches a downstream distribution comes from the event
 (Section~\ref{sec:meaning}), not from the identity relation. The
 price is coverage. Every dependency the catalog does not know is now
@@ -1611,9 +1642,11 @@ manifests and lockfiles for PyPI, npm, Maven and Gradle, Go, Cargo,
 Composer, NuGet and Swift; from CycloneDX and SPDX JSON documents; and
 from image inventory files. Registries are Docker Hub and OCI v2
 registries, and source repositories are on GitHub. Identity is the
-canonical reference plus curated mappings. Package names are not yet
-normalised per ecosystem, so two spellings of one package can compare
-unequal. That could produce an unjustified exclusion only for a
+canonical reference plus curated mappings. At \pincommit{}, package
+names are not normalised per ecosystem, so two spellings of one
+package can compare unequal. (At \currentcommit{} they are compared in
+each ecosystem's canonical form, purl values decide by ecosystem and
+name, and npm scopes are kept: F1--F3, Table~\ref{tab:since}.) That could produce an unjustified exclusion only for a
 package element under a complete scope. Until package names are
 canonicalised, package elements give \Ind{} on inequality rather
 than \Non{}, so a spelling difference never clears. A dependency declared only in an unsupported format is not
@@ -1662,8 +1695,11 @@ negative.
 \label{sec:audit}
 
 We audited the verdict engine and the version evaluator at \commit{}.
-Table~\ref{tab:defects} lists every defect found, with its minimal
-input and its status. Fixing every defect found is engineering
+Table~\ref{tab:defects} lists every defect the audit found at
+\pincommit{}, with its minimal input and its status. Five defects
+found later, by the retrospective study and its follow-up (D-R1,
+D-R2 and D-S1--D-S3, one of them a false clear), are reported in
+Section~\ref{sec:retro} and Table~\ref{tab:since}. Fixing every defect found is engineering
 evidence, not a demonstrated security property: it does not show that
 no false-clear path remains, and the late discovery of D8 to D10
 suggests that some do. Each fixed defect has a regression test that
@@ -1720,7 +1756,8 @@ D15 & Release-line member whose tag meets a named example digest &
   \dfifteencommit{} \\
 \bottomrule
 \end{tabularx}
-\caption{The single defect inventory. D1--D3, D8, D9: implementation
+\caption{The audit's defect inventory at \pincommit{} (later defects:
+Section~\ref{sec:retro}). D1--D3, D8, D9: implementation
 failures. D4: a specification gap, since completeness could not be
 stated and was assumed. D5: also a test-design failure, because four
 goldens asserted it. D7 over-matched without clearing. D10 treated
@@ -1825,8 +1862,13 @@ enforced continuously rather than measured once. The comparator was tested diffe
 abstains on every pair \code{packaging} rejects. OSV ranges for PyPI
 agree on all 7{,}110 decided cases. SemVer passes the specification's
 own precedence vectors, both directly and through OSV \code{SEMVER}
-ranges, but no independent SemVer library was available, so it was not
-tested differentially. The matrix covers
+ranges. No independent SemVer library was available at \pincommit{}.
+At \currentcommit{}, CI cross-checks the comparator against the pinned
+\code{node-semver} 7.8.5, \code{golang.org/x/mod} v0.42.0 and
+\code{maven-artifact} 3.9.16 (\code{evaluation/comparators/}): all
+2{,}862 npm and 1{,}892 Go ordered pairs agree, and for Maven it
+decides 230 pairs, all agreeing, and abstains on 2{,}422; there are no
+disagreements. The matrix covers
 chosen dimensions, not every input. Its oracle was written by the same
 team, so an external re-implementation would strengthen the result.
 
@@ -1898,7 +1940,8 @@ vectors.}
 
 \paragraph{Defect mechanisms.} Appendix~\ref{app:defects} describes
 each defect's mechanism and repair: D4 in the curated Bitnami data,
-the tag over-match D7, and D8 to D15. All are fixed at \pincommit{}. Fixing every enumerated defect
+the tag over-match D7, and D8 to D14; D15 is described in the
+randomised-testing paragraph above. All are fixed at \pincommit{}. Fixing every enumerated defect
 is engineering evidence, not a demonstrated security property.
 
 \paragraph{Interim conservative rules.} Where the full semantics are
@@ -1958,10 +2001,12 @@ argument that the design scales. We have not measured these costs.
 intervals, out-of-order events, \code{last\_affected},
 \code{introduced: 0}, \code{GIT} and unknown types, \code{limit},
 mixed entries, withdrawn advisories and epochs. We wrote them from our
-own reading of the specification. No differential comparison against
-an independent implementation has been run, and D6 shows why one is
-needed. The comparator is therefore a locally tested approximation of
-the ecosystems' semantics, not a validated implementation of them.
+own reading of the specification, and D6 shows why a differential
+comparison is needed. It has since been run for PEP~440 and PyPI
+ranges against \code{packaging}, and for npm, Go and Maven against the
+pinned tools (Section~\ref{sec:audit}). For other ecosystems the
+comparator remains a locally tested approximation of their semantics,
+not a validated implementation of them.
 Its safety rests on returning \Ind{} for every form it does not
 recognise.
 
@@ -1983,7 +2028,11 @@ from a trusted channel. Signature fields exist and are always
 therefore suitable for evidence exchange and human review, not for
 automated enforcement. That would need producer authenticity, evidence
 freshness, supersession, revocation, and the completeness state and
-negative-meaning fields of Section~\ref{sec:meaning}.
+negative-meaning fields of Section~\ref{sec:meaning}. Contract 1.2.0,
+at \currentcommit{}, adds the last two (\code{verdict\_meaning},
+\code{scope.completeness} with its state, basis and
+\code{admits\_negative}, and an \code{evaluation\_context}); producer
+authenticity, expiry, supersession and revocation remain absent.
 
 \paragraph{Agent interface.} An MCP server offers three read-only
 tools: status of one dependency, a check of a dependency file, and
@@ -2003,10 +2052,11 @@ Section~\ref{sec:problem}, the server is an advisory lookup at
 stage~1 and an inventory check at stage~3. It provides no approval or
 enforcement at stage~2. Every response carries a fixed note stating
 that its content is evidence, not a decision, and that \textsc{Unknown}
-never means safe. The note does not qualify \textsc{NotAffected}. Until
-the negative-meaning fields of Section~\ref{sec:meaning} and the
-completeness basis of Section~\ref{sec:scope} are in the response, an
-agent sees a bare negative label. The interface is therefore an
+never means safe. At \pincommit{} the note does not qualify
+\textsc{NotAffected}, and an agent sees a bare negative label. At
+\currentcommit{} each verdict carries \code{verdict.meaning} from
+contract 1.2.0, and the note tells the agent to decide from it, so a
+negative states what was not evaluated. The interface is still an
 unvalidated integration boundary, not a security mitigation. It
 becomes one only once the structured and untrusted parts are separated
 and tested against a reproducible adversarial corpus.
@@ -2111,7 +2161,8 @@ Applicability engine & Implementation defects & partial & Table~\ref{tab:defects
 Downstream use & Injection via free-text fields & not handled & Structural
   separation designed (Section~\ref{sec:consumers}), not implemented;
   no testing \\
- & Negative read as clearance & partial & Meaning not in the contract \\
+ & Negative read as clearance & partial & Meaning carried in contract
+  1.2.0 and the agent response (\currentcommit{}); a consumer may ignore it \\
  & Older contract substituted for a current one & not handled & Internally
   consistent; unsigned, no expiry or supersession \\
 \bottomrule
@@ -2260,8 +2311,9 @@ which reduces analytical flexibility but does not eliminate it. A
 registration draft now records the primary endpoint, the numeric
 margins, the guardrails, the sample-size reasoning and the analysis
 code (\code{evaluation/REGISTRATION.md} and
-\code{evaluation/registration.py}). It becomes a pre-specified protocol
-only when it is archived (OSF Registries or Zenodo) with its registry
+\code{evaluation/registration.py}), written before any held-out
+label exists; we call its values \emph{pre-specified}. It becomes a
+registered protocol only when it is archived (OSF Registries or Zenodo) with its registry
 identifier, freeze commit, event window and annotators filled in,
 before any held-out label exists. That has not happened yet. Before the
 evaluation, the evaluated subset must enforce the full
@@ -2271,8 +2323,9 @@ Section~\ref{sec:soundness}, and the evaluated configuration sets the
 freshness bound. The coverage cost of the policy, D10 and the
 package-name rule in particular, is among the first measurements.
 Expanding this protocol further has diminishing
-returns. The next step is to execute its core: conformance, then the
-primary applicability comparison.
+returns. Conformance has been run (Section~\ref{sec:audit}). The next
+step is the primary applicability comparison, after the registration
+is archived.
 
 \paragraph{Specification conformance.} This step has been run on a
 generated matrix (Section~\ref{sec:audit}, Table~\ref{tab:conformance}).
@@ -2401,8 +2454,8 @@ them is correct.
 labelling. There is one primary endpoint, at one operating point: the
 implemented policy $\mathcal{A}$, with no minimum confidence. The
 registration draft compares \op{} with the minimal conservative
-reference (iv), which never clears, not with (v) as an earlier draft of
-this section did. The claim under test concerns the model, and (v)
+reference (iv), which never clears. Earlier versions of this protocol
+made (v) primary; the registration draft discloses the change. The claim under test concerns the model, and (v)
 shares that model, so \op{} against (v) measures only the engine; the
 change is disclosed in the registration. Two primary hypotheses must
 both hold. \emph{Safety (H1):} the exact one-sided 95\%
@@ -2435,8 +2488,10 @@ matches exact repository and package names only, with no aliases or
 identity mappings. It admits a negative only from a scope in the same
 $\mathcal{A}$. It returns \textsc{Related} for every version-scoped
 event unless the exact version string is listed. That makes coverage
-gains on versions too easy, so (iv) is kept but is not the primary
-comparison. The strong baseline (v) uses the same scope language and
+gains on versions easy, which is why (v) is compared separately (S1);
+(iv) is nonetheless the registration draft's primary comparator, for
+the reason given under the decision criteria. The strong baseline (v)
+uses the same scope language and
 admissibility policy, exact identities, the ecosystems' own established
 version comparators, and conservative handling of every unsupported
 relation. Only (v) isolates what \op{}'s richer identity and evidence
@@ -2573,11 +2628,12 @@ the evaluation must produce, not one we can assume.
 run, on one machine (Windows~11, 12 logical CPUs, Python~3.14) with
 the production engine and store (\code{benchmarks/cost.py};
 Table~\ref{tab:cost}). Matching is linear in the number of
-dependency--event pairs. It cost about 40\,\textmu{}s per pair at
+dependency--event pairs. It cost about 42\,\textmu{}s per pair at
 \pincommit{}, rose to about 75\,\textmu{}s at \currentcommit{}, and is
-about 25\,\textmu{}s with the catalogue-map cache (\cachecommit{}):
-5{,}000 dependencies against 10 events take 2.1, 3.8 and 1.9\,s, with
-a peak of 25\,MiB throughout. The rise was a fixed overhead per
+about 25\,\textmu{}s with the catalogue-map cache (\cachecommit{}) at
+100 and 1{,}000 dependencies. At 5{,}000 dependencies the cached runs
+varied most (24--43\,\textmu{}s per pair; median 1.9\,s for 10 events,
+against 2.1\,s and 3.8\,s), with a peak of 25\,MiB throughout. The rise was a fixed overhead per
 package dependency, not per scope element: since F1, resolving a
 package's identity rebuilt the catalogue's package and alias maps on
 every call, which took about three quarters of the matching time in a
@@ -2609,7 +2665,8 @@ machine and the network; the shapes of the curves are the result.
 
 \begin{table}[t]
 \centering
-\footnotesize
+\scriptsize
+\setlength{\tabcolsep}{3pt}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r@{}}
 \toprule
 Measurement & Setting & At \pincommit{} & At \currentcommit{} & With cache \\
@@ -2642,9 +2699,8 @@ rules. Freeze the reference labels independently, before any method is
 run on the held-out pairs. Draw held-out data from a later window and
 from projects outside the ledger. Report fixes made after the freeze
 as a separate run. The work proceeds in this order: the conformance
-suite; reconciling the contract with the scope semantics; the
-applicability evaluation against the strong baseline (v); the agent experiment;
-cost measurement.
+suite (done; Section~\ref{sec:audit}); the primary applicability comparison against (iv), with (v) as
+the secondary test S1; the agent experiment; cost measurement.
 
 \paragraph{Independence.} Independence is the hardest requirement of
 this design. The annotators who label pairs and the curators who build
@@ -2658,7 +2714,7 @@ and Collaboration.
 This section reports an exploratory, retrospective study (R-C0) that
 applies \op{} to real upstream changes from 2016--2025 and to real
 dependency references read at commits from before each change. It is
-\emph{not} the registered prospective evaluation of
+\emph{not} the prospective evaluation of
 Section~\ref{sec:evalplan}, it is not pooled with it, and it is not
 evidence of effectiveness in deployment. Its design, every amendment,
 the frozen case file and the results are in
@@ -2692,7 +2748,7 @@ AI-assisted: the second round's method note states that a language
 model prepared the labels. We therefore report them only as a
 consistency check (agreement with the developer's labels $\kappa =
 0.722$ and $0.825$), never as inter-rater reliability, and no pair is
-marked as independently labelled. The registered analysis, whose
+marked as independently labelled. The pre-specified analysis, whose
 population is independent labels only, is consequently empty, and
 every test below is illustrative.
 
@@ -2702,7 +2758,8 @@ abstains instead of clearing; it corresponds to the minimal reference
 (iv) and is the primary comparator of the registration draft
 (Section~\ref{sec:evalplan}). V is the strong conservative
 baseline~(v), compared with C by the equivalence test S1. C is \op{}.
-The registered thresholds are applied below for illustration only.
+The registration draft's thresholds are applied below for
+illustration only.
 
 \begin{table}[t]
 \centering
@@ -2735,10 +2792,10 @@ freeze. C issued no false clear on any of the 27 events, where A
 falsely cleared 35 pairs in 10 events; the event-level difference is
 significant (Holm-adjusted $p = 0.0004$). With 27 events the one-sided
 95\% upper bound on C's per-event false-clear share is $0.105$, above
-the registered margin, and 27 is below the 60 events the registered
+the pre-specified margin, and 27 is below the 60 events the pre-specified
 safety test needs, so non-inferiority is not decidable here. The gain
 in resolution over B ($0.091$, 95\% CI $[-0.054, 0.245]$) misses the
-registered $0.10$, and equivalence with V within $\pm 0.05$ is not
+pre-specified $0.10$, and equivalence with V within $\pm 0.05$ is not
 shown ($0.030$, 90\% CI $[0.000, 0.075]$). C's advantage is
 concentrated in end of life (88.2\% resolved against V's 58.8\%). C
 decided neither undeterminable pair, and its one false impact, an
@@ -2759,8 +2816,9 @@ the event exists to give.
 determinable pairs, 17 come from that defect, 44 from packages with no
 catalogued identity (all 31 compromised-package pairs among them,
 which the identity rule of Section~\ref{sec:identity} leaves
-unresolved by design), 19 from representation gaps, and 1 is a
-correct non-association with a different project. The representation
+unresolved by design), 20 from representation gaps (19 unresolved and
+the one false impact), and 1 is a correct non-association with a
+different project. The representation
 gaps are scope forms the specification cannot yet state exactly:
 registry-wide scopes (only as envelopes), open-ended version
 boundaries (``every release from 1.6.0''), a date boundary across
@@ -2822,7 +2880,7 @@ not independence: every label is the developer's, its events were
 researched under quotas rather than sampled from a population, its
 dependents were found among repositories that still exist, and the
 fixtures were written by someone who knows the scope language. Its 27
-events cannot decide the registered safety test, which needs 60. It
+events cannot decide the pre-specified safety test, which needs 60. It
 measured the event-scope path only; the advisory path, which held a
 false-clear defect (Section~\ref{sec:retro}), was not exercised.
 
@@ -2853,15 +2911,21 @@ and its coverage cost is unmeasured. Package-name canonicalisation is
 incomplete. Element roles follow from form and are not labelled in
 the contract, and the tag-predicate language has two predicates only.
 Version comparison covers SemVer, PEP~440 and plain numbers. Other
-ecosystems' orderings are undetermined rather than modelled, and none
-is tested differentially. The audit covered the paths examined.
+ecosystems' orderings are undetermined rather than modelled. PEP~440,
+npm, Go and Maven ordering are tested differentially against reference
+implementations; the rest are not. The audit covered the paths examined.
 Without a freshness bound, the assurance a negative provides is
 limited to evidence whose currency the consumer has checked through
 \code{last\_verified}.
 
 \paragraph{Scope.} Discovery covers three classes on two platforms,
 uses English-language sources only, and cannot see private registries.
-No advance warning has been demonstrated for an unrecorded class.
+Inventory-driven discovery (\currentcommit{}) maps only Go module
+paths, \code{github.com} references and Docker Hub images to watch
+targets; vanity import paths, other registries, deprecations stated
+only in a registry flag or a notice, and tag deletions seen only across
+observations remain outside it. No advance warning has been
+demonstrated for an unrecorded class.
 
 \paragraph{Integrity and consumption.} Local evidence and contracts are
 unauthenticated. First detections can be backdated, and a privileged
@@ -2888,7 +2952,8 @@ regression suite had treated as correct. All have regression fixes,
 and the negative-admission conditions are enforced, with stated gaps.
 An executable oracle written from the specification now agrees with
 the implementation on 100{,}000 random cases and on every matrix case
-but one documented label difference. It catches every re-injected
+apart from one documented, non-blocking label difference (72 of
+6{,}195 cases). It catches every re-injected
 historical defect, and it guards every change as a build gate. Building it
 also corrected the specification in four places. That is why
 conformance and differential testing must come before claims of
@@ -3050,8 +3115,9 @@ followed by at most one recognised marker and an optional number.
 Anything else, including \code{1.0.0-1}, \code{2.4.1-1} and
 \code{1.0.0+5}, is undetermined, and \code{rc1} sorts below
 \code{rc2}. D8 was not caught by the range tests, which we wrote from
-our own reading of the specification. It is the kind of error that the
-differential testing of Section~\ref{sec:evalplan} targets.
+our own reading of the specification. It is the kind of error that
+the version differential (Section~\ref{sec:audit}) catches: its mutant
+is caught there.
 
 \paragraph{D9: registry host aliases.} Reference canonicalisation
 lowercases a reference, strips a URL scheme, a digest and the tag of
@@ -3069,8 +3135,9 @@ package-name normalisation per ecosystem, curated aliases, and digest
 algorithm. The executable oracle and the conformance suite need the
 same form. The fix in \dninecommit{} folds both Docker Hub hosts into
 \code{docker.io} in the one normaliser that matching and identity
-share. Package-name normalisation per ecosystem is not yet part of the
-canonical form.
+share. Package-name normalisation per ecosystem is not part of the
+canonical form at \pincommit{}; it is at \currentcommit{} (F1--F3,
+Table~\ref{tab:since}).
 
 \paragraph{D10: unmapped identity.} An unmapped reference resolves only
 to itself, and the identity layer marked that self-resolution
@@ -3130,7 +3197,7 @@ the repository, though it covers every pin. All three are fixed in
     \dfourcommit{}, D8 in \deightcommit{}, D9 and D10 in
     \dninecommit{}, D11 and the admission conditions in
     \delevencommit{}, D7 and the element roles in \dsevencommit{}, and
-    D12--D14 in \dtwelvecommit{}, and D15 in \dfifteencommit{}.
+    D12--D14 in \dtwelvecommit{}, D15 in \dfifteencommit{}.
     Audited commit:
     \code{a461bc99a6edebbdb124e4b9a3c477282aae45a6}. The latest
     tagged release, v0.7.1, predates the fixes. Licence: Apache-2.0.
@@ -3147,7 +3214,8 @@ the repository, though it covers every pin. All three are fixed in
     \code{evaluation/retrospective/}.
   \item Environment: Python $\ge$3.10 with the hash-locked
     \code{requirements.lock}; all tests run offline. Intelligence
-    schema 0.7.0, evidence contract v1.1.
+    schema 0.7.0, evidence contract v1.1 at \pincommit{} and 1.2.0 at
+    \currentcommit{}.
   \item Full suite at the pinned commit: 953 tests pass. Test count is
     not evidence of semantic completeness.
   \item Case ledger: \code{pytest tests/test\_golden.py}. The recorded
@@ -3162,6 +3230,7 @@ the repository, though it covers every pin. All three are fixed in
     tests) and 12 pass; the passing ones pin behaviour the fixes must
     preserve. The withdrawn-advisory test passes at \commit{} only
     because D2 hides it. At \pincommit{} all 64 pass.
+    Table~\ref{tab:repro} gives the breakdown by defect.
   \item Conformance: \code{python conformance/matrix.py} and
     \code{python conformance/versions\_differential.py}. Results,
     including every disagreement, are in \code{conformance/results/}
@@ -3172,7 +3241,6 @@ the repository, though it covers every pin. All three are fixed in
   \item Cost: \code{python benchmarks/cost.py} (offline), with
     \code{--live} for acquisition. The results and the machine are
     recorded in \code{benchmarks/REPORT.md}.
-    Table~\ref{tab:repro} gives the breakdown by defect.
   \item Cross-event aggregation: \code{python
     papers/tr-2026-01/check\_aggregation.py} checks the summary
     function against Table~\ref{tab:xevent}. Expected: 19{,}607
