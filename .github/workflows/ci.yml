@@ -153,3 +153,37 @@ jobs:
       - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-mcp.lock
       - run: python -m pytest -q tests/test_mcp_server.py tests/test_agent_tools.py
       - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
+  comparators:
+    # Baseline V's pinned ecosystem comparators (evaluation/comparators/README.md):
+    # the real node-semver, Go x/mod/semver and Maven ComparableVersion, run
+    # against documented semantics, then OpenPulse's own comparison cross-checked
+    # against them. Every pin is exact: npm by lockfile integrity, Go by go.sum,
+    # the Maven jar by SHA-256 (fetch.py), toolchains by version.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with: {python-version: '3.11'}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: '24.22.0'}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version-file: evaluation/comparators/go/go.mod, cache: false}
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with: {distribution: temurin, java-version: '25'}
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - run: python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .
+      # Threat: a floated or tampered comparator. npm ci installs exactly the
+      # lockfile (integrity-checked) and runs no install scripts; Go builds
+      # read-only against go.sum; the jar is SHA-256-verified before use.
+      - run: npm ci
+        working-directory: evaluation/comparators/npm
+        env: {npm_config_ignore_scripts: 'true'}
+      - run: go build -mod=readonly -trimpath -o bridge .
+        working-directory: evaluation/comparators/go
+      - run: python evaluation/comparators/maven/fetch.py
+      # Skips become failures here: the bridges must actually run.
+      - run: OPENPULSE_REQUIRE_COMPARATORS=1 pytest -q tests/test_ecosystem_comparators.py tests/test_ecosystem_versions.py
+      - run: python evaluation/comparators/crosscheck.py --out "$RUNNER_TEMP/ecosystem_comparators.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with: {name: ecosystem-comparators, path: "${{ runner.temp }}/ecosystem_comparators.json", if-no-files-found: warn}

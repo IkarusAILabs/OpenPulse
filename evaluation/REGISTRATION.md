@@ -10,6 +10,7 @@
 | Archive date | **to fill at archiving** |
 | Implementation freeze | **to fill at archiving**: tag and full commit of the tested OpenPulse |
 | Analysis code | `evaluation/registration.py` and `evaluation/run.py` at the freeze commit; thresholds as constants (`registration.thresholds()`) |
+| Baseline V comparators | npm: node-semver `semver` 7.8.5, Node 24.22.0. Go: `golang.org/x/mod` v0.42.0, Go 1.26 (go1.26.10). Maven: `org.apache.maven:maven-artifact` 3.9.16 (jar SHA-256 `54cc1c1e…3ad3e8`), Temurin 25. PyPI: `packaging` as hash-locked. Each bridge reports its library version and must match (`evaluation/ecosystem_versions.PINS`); `evaluation/comparators/README.md` |
 | Event-window start | **to fill at archiving**: the first day of the observation window (§7) |
 | Annotators | **to fill at archiving**: identities or pseudonymous IDs, and their declared independence (§8) |
 
@@ -139,10 +140,10 @@ A failed G1 or G2 is reported as a limitation of the result. It changes neither 
 The analysis is:
 
 ```bash
-python evaluation/run.py --cases <frozen held-out set>
+python evaluation/run.py --require-comparators --cases <frozen held-out set>
 ```
 
-at the freeze commit. The registered result is `registration.registered` in the results file, computed on independently labelled pairs only. Nothing else in that file is the registered result.
+at the freeze commit, with every pinned comparator installed. `--require-comparators` refuses to run otherwise, and a result whose `registration.registered.valid` is false is not the registered result. The registered result is `registration.registered` in the results file, computed on independently labelled pairs only. Nothing else in that file is the registered result.
 
 Specifically:
 - **Unit:** the dependency-event pair.
@@ -188,3 +189,8 @@ Development-set results are illustrative, never evidence. They are in `evaluatio
 - The policies are compared given the same events. Discovery (whether events are found at all) is measured separately, so a missed event is not a false clear here.
 - Identity mappings come from OpenPulse's curated catalog for both C and V. The comparison with V therefore cannot detect a curation error that both share. The independent oracle kit (`conformance/independent/`) and the annotators' labels are the checks on curation.
 - The labelling budget, not the statistics, limits the number of events. A null result at 60 events is weak evidence of absence.
+- **Comparator choices.**
+  - V counts a pre-release in its own core's line (the specification's rule). npm's `satisfies` would exclude it.
+  - Maven versions are decidable only when their canonical form starts with a number, because ComparableVersion itself never rejects a string.
+  - Debian packages are out of scope: OpenPulse ingests no `pkg:deb` dependencies, so no dpkg comparator is pinned.
+  - Container image tags follow no ecosystem; V decides them by plain dotted numbers only.

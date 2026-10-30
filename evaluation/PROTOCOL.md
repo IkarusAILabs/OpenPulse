@@ -27,7 +27,7 @@ Every policy receives the same replayed events and the same dependency. None rec
 |---|---|---|
 | **A-naive** | Affected if the dependency is *listed* by any current event, otherwise **NotAffected**. | The risk of reading absence from a list as absence of impact. |
 | **B-conservative** | Affected if listed, otherwise **unresolved** (an abstention). | The cost of never clearing anything. |
-| **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, ecosystem comparators (PyPI: `packaging`; elsewhere plain dotted numbers only), and every undecidable relation undetermined. | The equivalence comparison (REGISTRATION S1): what C's engine adds beyond a careful conservative consumer of the same model. It was primary in the TR draft. The registration makes B primary, because V shares the model under test. |
+| **V-strong-conservative** | TR-2026-01 §10 baseline (v), in `strong_baseline.py`. It uses the same typed scopes, admissibility and curated identity mappings as C, with exact (curated, VERIFIED) identity only, the ecosystems' own pinned comparators (PyPI: `packaging`; npm: node-semver; Go: x/mod/semver; Maven: ComparableVersion; see `comparators/README.md`; plain dotted numbers only for image tags, or when a bridge is not installed in a development run), and every undecidable relation undetermined. | The equivalence comparison (REGISTRATION S1): what C's engine adds beyond a careful conservative consumer of the same model. It was primary in the TR draft. The registration makes B primary, because V shares the model under test. |
 | **C-openpulse** | The production engine (`check_dependency`), freshness bound set. | Whether structured scope, completeness, identity and freshness conditions buy decisiveness without false clears. |
 | C-ablate-completeness | C on inputs where every populated scope is declared complete (basis `announced`). | Premise N3. |
 | C-ablate-freshness | C with no freshness bound. | Premise N4 (freshness). |
@@ -45,7 +45,7 @@ The completeness and freshness ablations change the *input events*, never the co
 
 V shares C's model: the typed scope, completeness with a basis, and curated identities. So a C-over-V result measures the *engine* (matching semantics, version grammar), not the *model*. The model's value shows in the comparison of V and C with A and B.
 
-Not yet pinned for V: comparators for npm (node-semver), Go (`x/mod/semver`), Maven (`ComparableVersion`) and Debian (`dpkg --compare-versions`). Until they are pinned, V abstains on those ecosystems' non-numeric versions.
+V's comparators are pinned: node-semver 7.8.5, x/mod v0.42.0 and maven-artifact 3.9.16, through bridges (`comparators/README.md`). The registered run requires all of them. Debian is out of scope, since OpenPulse ingests no OS packages. The development-set figures in §7 were computed without the bridges installed; npm, Go and Maven pairs there used plain dotted numbers.
 
 ## 3. Labels
 
