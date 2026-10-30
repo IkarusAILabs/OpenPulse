@@ -37,7 +37,7 @@ Two qualifications:
 
 The development set has 60 pairs over 13 events. Its labels were written by the developer before running, so it is not evaluation evidence.
 
-- **E1, a false impact in OpenPulse.** The PyPI package `redis` 6.2.0 is redis-py, the Python client. Under the Redis 6.2 end-of-life event it is AFFECTS_VERSION. The cause has two parts:
+- **F1, a false impact in OpenPulse.** The PyPI package `redis` 6.2.0 is redis-py, the Python client. Under the Redis 6.2 end-of-life event it is AFFECTS_VERSION. The cause has two parts:
   - package identity resolves by name across ecosystems;
   - the catalog's `redis` entry names PyPI `redis` as its OSV package.
 
@@ -50,6 +50,6 @@ The development set has 60 pairs over 13 events. Its labels were written by the 
 Statements that are now out of date or worth adjusting:
 
 - §10 says nothing in it "has been run" apart from conformance and cost. A sentence could add that a comparison harness and a developer-labelled development set exist, and that their results are not evidence of effectiveness.
-- E1 is a new false-impact defect. If the report is published before E1 is fixed, §6 or §11 should name it as found after the snapshot. It is not a false clear, so the twelve-defect false-clear count is unchanged.
+- F1 is a new false-impact defect. If the report is published before F1 is fixed, §6 or §11 should name it as found after the snapshot. It is not a false clear, so the twelve-defect false-clear count is unchanged.
 
 Both are optional for a technical report. Neither is optional for the journal version.

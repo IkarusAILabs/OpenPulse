@@ -2,8 +2,8 @@
  "dataset": "openpulse-dev-2026-10",
  "dataset_version": "2026.10.30-2",
  "dataset_status": "development",
- "dataset_sha256": "b579685a74638d89901661c2bb1fd71eb63d8063474611248d33d76eca2fa5f9",
- "commit": "8a9c3a829ad0da7a8a1e935f677af0eb8810ed0c",
+ "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
+ "commit": "19b00af9bad5846cb304c5383f41675c0aa4d743",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -438,27 +438,27 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 23,
+     "affected": 22,
      "cleared": 8,
      "unresolved": 28,
-     "no_association": 1
+     "no_association": 2
     },
     "false_clears": 0,
     "fcr_affected": 0.0,
     "fcr_clear": 0.0,
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
-    "false_impact_rate": 0.0417,
+    "false_impact_rate": 0.0,
     "resolution_rate": 0.5882,
-    "decisive_coverage": 0.5167,
+    "decisive_coverage": 0.5,
     "abstention_rate": 0.4667,
-    "no_association_rate": 0.0167,
+    "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
     "evidence_completeness": {
      "sources_named": 1.0,
      "acquisition_time": 1.0,
-     "completeness_basis": 0.8065
+     "completeness_basis": 0.8
     }
    },
    "by_class": {
@@ -585,21 +585,21 @@
      "out_of_scope": 8,
      "undeterminable": 4,
      "outcomes": {
-      "affected": 7,
+      "affected": 6,
       "cleared": 4,
       "unresolved": 6,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.125,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.7143,
-     "decisive_coverage": 0.6111,
+     "decisive_coverage": 0.5556,
      "abstention_rate": 0.3333,
-     "no_association_rate": 0.0556,
+     "no_association_rate": 0.1111,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 1.0,
      "evidence_completeness": {
@@ -647,27 +647,27 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 23,
+      "affected": 22,
       "cleared": 8,
       "unresolved": 28,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.0417,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.5882,
-     "decisive_coverage": 0.5167,
+     "decisive_coverage": 0.5,
      "abstention_rate": 0.4667,
-     "no_association_rate": 0.0167,
+     "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": {
       "sources_named": 1.0,
       "acquisition_time": 1.0,
-      "completeness_basis": 0.8065
+      "completeness_basis": 0.8
      }
     }
    }
@@ -680,21 +680,21 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 23,
+     "affected": 22,
      "cleared": 8,
      "unresolved": 28,
-     "no_association": 1
+     "no_association": 2
     },
     "false_clears": 0,
     "fcr_affected": 0.0,
     "fcr_clear": 0.0,
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
-    "false_impact_rate": 0.0417,
+    "false_impact_rate": 0.0,
     "resolution_rate": 0.5882,
-    "decisive_coverage": 0.5167,
+    "decisive_coverage": 0.5,
     "abstention_rate": 0.4667,
-    "no_association_rate": 0.0167,
+    "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
     "evidence_completeness": {
@@ -827,21 +827,21 @@
      "out_of_scope": 8,
      "undeterminable": 4,
      "outcomes": {
-      "affected": 7,
+      "affected": 6,
       "cleared": 4,
       "unresolved": 6,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.125,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.7143,
-     "decisive_coverage": 0.6111,
+     "decisive_coverage": 0.5556,
      "abstention_rate": 0.3333,
-     "no_association_rate": 0.0556,
+     "no_association_rate": 0.1111,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 1.0,
      "evidence_completeness": {
@@ -889,21 +889,21 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 23,
+      "affected": 22,
       "cleared": 8,
       "unresolved": 28,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.0417,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.5882,
-     "decisive_coverage": 0.5167,
+     "decisive_coverage": 0.5,
      "abstention_rate": 0.4667,
-     "no_association_rate": 0.0167,
+     "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": {
@@ -922,27 +922,27 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 23,
+     "affected": 22,
      "cleared": 8,
      "unresolved": 28,
-     "no_association": 1
+     "no_association": 2
     },
     "false_clears": 0,
     "fcr_affected": 0.0,
     "fcr_clear": 0.0,
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
-    "false_impact_rate": 0.0417,
+    "false_impact_rate": 0.0,
     "resolution_rate": 0.5882,
-    "decisive_coverage": 0.5167,
+    "decisive_coverage": 0.5,
     "abstention_rate": 0.4667,
-    "no_association_rate": 0.0167,
+    "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
     "evidence_completeness": {
      "sources_named": 1.0,
      "acquisition_time": 1.0,
-     "completeness_basis": 0.8065
+     "completeness_basis": 0.8
     }
    },
    "by_class": {
@@ -1069,21 +1069,21 @@
      "out_of_scope": 8,
      "undeterminable": 4,
      "outcomes": {
-      "affected": 7,
+      "affected": 6,
       "cleared": 4,
       "unresolved": 6,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.125,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.7143,
-     "decisive_coverage": 0.6111,
+     "decisive_coverage": 0.5556,
      "abstention_rate": 0.3333,
-     "no_association_rate": 0.0556,
+     "no_association_rate": 0.1111,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 1.0,
      "evidence_completeness": {
@@ -1131,27 +1131,27 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 23,
+      "affected": 22,
       "cleared": 8,
       "unresolved": 28,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.0417,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.5882,
-     "decisive_coverage": 0.5167,
+     "decisive_coverage": 0.5,
      "abstention_rate": 0.4667,
-     "no_association_rate": 0.0167,
+     "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": {
       "sources_named": 1.0,
       "acquisition_time": 1.0,
-      "completeness_basis": 0.8065
+      "completeness_basis": 0.8
      }
     }
    }
@@ -1164,21 +1164,21 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 23,
+     "affected": 22,
      "cleared": 10,
      "unresolved": 26,
-     "no_association": 1
+     "no_association": 2
     },
     "false_clears": 1,
     "fcr_affected": 0.037,
     "fcr_clear": 0.1,
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 1,
-    "false_impact_rate": 0.0417,
+    "false_impact_rate": 0.0,
     "resolution_rate": 0.6078,
-    "decisive_coverage": 0.55,
+    "decisive_coverage": 0.5333,
     "abstention_rate": 0.4333,
-    "no_association_rate": 0.0167,
+    "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "evidence_completeness": {
      "sources_named": 1.0,
@@ -1309,21 +1309,21 @@
      "out_of_scope": 8,
      "undeterminable": 4,
      "outcomes": {
-      "affected": 7,
+      "affected": 6,
       "cleared": 4,
       "unresolved": 6,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
-     "false_impact_rate": 0.125,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.7143,
-     "decisive_coverage": 0.6111,
+     "decisive_coverage": 0.5556,
      "abstention_rate": 0.3333,
-     "no_association_rate": 0.0556,
+     "no_association_rate": 0.1111,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 1.0,
      "evidence_completeness": {
@@ -1371,21 +1371,21 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 23,
+      "affected": 22,
       "cleared": 10,
       "unresolved": 26,
-      "no_association": 1
+      "no_association": 2
      },
      "false_clears": 1,
      "fcr_affected": 0.037,
      "fcr_clear": 0.1,
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 1,
-     "false_impact_rate": 0.0417,
+     "false_impact_rate": 0.0,
      "resolution_rate": 0.6078,
-     "decisive_coverage": 0.55,
+     "decisive_coverage": 0.5333,
      "abstention_rate": 0.4333,
-     "no_association_rate": 0.0167,
+     "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "evidence_completeness": {
       "sources_named": 1.0,
@@ -2928,14 +2928,14 @@
     "class": "lifecycle",
     "independent": false,
     "label": "out_of_scope",
-    "outcome": "affected",
-    "relationship": "AFFECTS_VERSION",
-    "confidence": "EMERGING",
-    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "no applicable evidence",
     "justification": {
-     "sources_named": true,
-     "acquisition_time": true,
-     "completeness_basis": true
+     "sources_named": false,
+     "acquisition_time": false,
+     "completeness_basis": false
     }
    },
    {
@@ -3890,14 +3890,14 @@
     "class": "lifecycle",
     "independent": false,
     "label": "out_of_scope",
-    "outcome": "affected",
-    "relationship": "AFFECTS_VERSION",
-    "confidence": "EMERGING",
-    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "no applicable evidence",
     "justification": {
-     "sources_named": true,
-     "acquisition_time": true,
-     "completeness_basis": true
+     "sources_named": false,
+     "acquisition_time": false,
+     "completeness_basis": false
     }
    },
    {
@@ -4852,14 +4852,14 @@
     "class": "lifecycle",
     "independent": false,
     "label": "out_of_scope",
-    "outcome": "affected",
-    "relationship": "AFFECTS_VERSION",
-    "confidence": "EMERGING",
-    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "no applicable evidence",
     "justification": {
-     "sources_named": true,
-     "acquisition_time": true,
-     "completeness_basis": true
+     "sources_named": false,
+     "acquisition_time": false,
+     "completeness_basis": false
     }
    },
    {
@@ -5814,14 +5814,14 @@
     "class": "lifecycle",
     "independent": false,
     "label": "out_of_scope",
-    "outcome": "affected",
-    "relationship": "AFFECTS_VERSION",
-    "confidence": "EMERGING",
-    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "no applicable evidence",
     "justification": {
-     "sources_named": true,
-     "acquisition_time": true,
-     "completeness_basis": true
+     "sources_named": false,
+     "acquisition_time": false,
+     "completeness_basis": false
     }
    },
    {

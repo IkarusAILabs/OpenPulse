@@ -129,6 +129,53 @@ def resolution_trust(ref: str, catalog: list[dict[str, Any]] | None = None) -> d
     }
 
 
+def package_trust(
+    name: str, ecosystem: str | None, catalog: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """How a package dependency resolves, ecosystem first (F1).
+
+    With an ecosystem, a curated (ecosystem, name) mapping decides. A name
+    that only matches an alias of a project whose packages are curated is
+    not that project: it resolves to itself, so it is unresolved and can
+    never be excluded or affected on the alias alone. Without an ecosystem
+    (empty, or purl's ``generic``) the name-based resolution applies, as
+    before.
+    """
+    from core.entities.catalog import (
+        load_catalog,
+        package_curated_slugs,
+        package_map,
+        package_name_key,
+    )
+
+    if (ecosystem or "").strip().lower() in ("", "generic"):
+        return resolution_trust(name, catalog)
+    entries = catalog if catalog is not None else load_catalog()
+    slug = package_map(entries).get(package_name_key(str(ecosystem), name))
+    if slug:
+        block = identity_block_for_slug(slug, entries)
+        return {
+            "slug": slug,
+            "via": "catalog",
+            "identity_status": block.get("status", VERIFIED),
+            "detail": f"curated {ecosystem} package mapping",
+        }
+    trust = resolution_trust(name, entries)
+    if trust["via"] != "self" and trust["slug"] in package_curated_slugs(entries):
+        eco, key = package_name_key(str(ecosystem), name)
+        return {
+            # Qualified by ecosystem, so it can never equal the project's slug.
+            "slug": f"{eco}:{key}",
+            "via": "self",
+            "identity_status": VERIFIED,
+            "detail": (
+                f"{ecosystem} package {name} shares a name with project {trust['slug']}, "
+                "whose packages are curated and do not include it"
+            ),
+        }
+    return trust
+
+
 def identity_refs_for(ref: str) -> list[dict[str, str]]:
     """All identity forms derivable from one dependency ref, strongest first."""
     from core.entities.catalog import purl_for

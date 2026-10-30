@@ -100,13 +100,13 @@ The held-out set is frozen, and its SHA-256 recorded, before any policy runs on 
 |---|---|---|---|---|---|---|
 | A-naive | 5 | 0.185 | 0.25 | 0.784 | 0.0 | 1.0 |
 | B-conservative | 0 | 0.0 | 0.25 | 0.431 | 0.433 | 0.667 |
-| C-openpulse | 0 | 0.0 | 0.042 | 0.588 | 0.467 | 0.0 |
-| C-ablate-both | 1 | 0.037 | 0.042 | 0.608 | 0.433 | 0.0 |
+| C-openpulse | 0 | 0.0 | 0.0 (was 0.042 before F1) | 0.588 | 0.467 | 0.0 |
+| C-ablate-both | 1 | 0.037 | 0.0 | 0.608 | 0.433 | 0.0 |
 
 What this set shows, and what it does not:
 
 - **C vs B.** Both issue no false clears. C resolves more pairs correctly (0.59 vs 0.43), has a lower false-impact rate, and makes no decisive call on undeterminable pairs. Its abstention rate, however, is *higher* than B's. Most of the abstentions are relocation and identity cases, where B's name-based listing guesses and C does not.
 - **Ablations.** Neither single ablation changes any outcome. Only removing both clears React 18.3.1 (rx-02) against a partial, stale scope. On this set the two premises are redundant protections. Separating them needs held-out events with complete-but-stale and partial-but-fresh scopes.
-- **E1: a defect the evaluation found.** C marks the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause is that package identity resolves by name across ecosystems. This is a false impact, not a false clear. It is pinned as a known finding in `tests/test_evaluation.py`.
+- **F1: a defect the evaluation found, now fixed.** C marked the PyPI package `redis` 6.2.0 (redis-py, the client) AFFECTS_VERSION under Redis 6.2 end of life (re-06). The cause was that package identity resolved by name across ecosystems. It was a false impact, not a false clear. Package identity is now per ecosystem, redis-py is curated as its own project, and re-06 has no association (CHANGELOG, `tests/test_evaluation.py`).
 - **Under-positive.** fa-01, a reference to the archived fbsdk repository, is unresolved because the reference resolves only to itself. This is the coverage cost of the D10 rule, which TR-2026-01 §11 lists as unmeasured.
 - **Sample size.** With 13 events, the rule-of-three bound on per-event false clears is about 0.23. The set cannot support any claim about rates.

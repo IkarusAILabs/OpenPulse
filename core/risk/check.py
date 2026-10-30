@@ -25,8 +25,7 @@ from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
-from core.entities.identity import resolution_trust
-from core.entities.resolve import resolve_project
+from core.entities.identity import package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
 from core.versions import in_release_line
@@ -191,9 +190,9 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
 
 
 def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
-    slug = resolve_project(str(dep["package"]))
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
     if slug != event.project_slug:
-        trust = resolution_trust(str(dep["package"]))
         if trust["via"] != "self":
             return None  # curated as another project: no association
         if event.scope is not None and event.scope.kind in ("artifact", "registry"):
@@ -222,7 +221,6 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
                 f"neither excluded from nor unrelated to project {event.project_slug}"
             ),
         }
-    trust = resolution_trust(str(dep["package"]))
     scope = event.scope
     version = dep.get("version")
     base: dict[str, Any] = {
@@ -334,7 +332,8 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
     """CVE/package/version applicability stream (independent of events)."""
     if dep["kind"] != "package":
         return []
-    slug = resolve_project(str(dep["package"]))
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
     raw = bundles.get(slug)
     if raw is None:
         return []
@@ -345,7 +344,6 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
         "version": dep.get("version"),
     }
     causes = []
-    trust = resolution_trust(str(dep["package"]))
     for finding in correlate(raw, context):
         relationship = str(finding.get("relationship", "UNKNOWN"))
         if relationship == "UNKNOWN":

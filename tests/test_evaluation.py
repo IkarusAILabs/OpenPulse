@@ -218,12 +218,11 @@ def test_dev_set_combined_ablation_exposes_the_admission_premises(dev):
     assert outcome["C-ablate-both"]["rx-02"] == policies.CLEARED
 
 
-def test_dev_set_known_finding_e1_redis_py_false_impact(dev):
-    """KNOWN FINDING E1 (evaluation, 2026-10-30): the PyPI package
-    ``redis`` (redis-py, the client) resolves by name to the Redis
-    server project, so Redis 6.2 end of life marks redis==6.2.0
-    AFFECTS_VERSION. A false impact from identity, not a false clear.
-    Flip this assertion in the PR that makes package identity
-    ecosystem-aware."""
+def test_dev_set_f1_redis_py_is_not_the_redis_server(dev):
+    """FLIPPED (F1, ROADMAP R-B3): the PyPI package ``redis`` is redis-py,
+    curated as its own project, so Redis 6.2 end of life no longer marks
+    redis==6.2.0 AFFECTS_VERSION. It has no association (UNKNOWN), on
+    the evidence of a curated (ecosystem, name) mapping."""
     row = next(r for r in dev["pairs"]["C-openpulse"] if r["case"] == "re-06")
-    assert (row["label"], row["relationship"]) == ("out_of_scope", "AFFECTS_VERSION")
+    assert (row["label"], row["relationship"]) == ("out_of_scope", "UNKNOWN")
+    assert dev["policies"]["C-openpulse"]["overall"]["false_impact_rate"] == 0.0

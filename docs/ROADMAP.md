@@ -38,7 +38,7 @@ STATUS: ACTIVE
   - the recommendation's metrics: false clears, FCR_affected and FCR_clear, silent misses, false impact, resolution, abstention, unsupported decisiveness and evidence completeness;
   - replay of recorded evidence as known at a date (`replay.py`).
 - [DONE 2026-10-30] **R-B2:** Labelled development set, `evaluation/cases/dev-2026-10.json`: 60 pairs over 13 events, each label with a rationale and a source. It tests the harness and is not evaluation evidence.
-- [NEXT] **R-B3:** Fix evaluation finding **E1**. Package identity resolves by name across ecosystems, so redis-py (PyPI `redis`) is AFFECTS_VERSION under Redis server end of life. The fix is ecosystem-aware package identity in `core/entities` and the catalog's `osv` mapping. It touches the trust core: one PR, goldens re-justified, and the pinned known-finding test flipped.
+- [DONE 2026-10-30] **R-B3:** Fixed evaluation finding **F1**. Package identity resolved by name across ecosystems, so redis-py (PyPI `redis`) was AFFECTS_VERSION under Redis server end of life. Package identity is now per ecosystem (catalog `packages` lists plus `osv` blocks), and redis-py and node-redis are curated as their own projects. No golden flipped. Remaining: curate `packages` for the other server-type catalog entries (Kafka, PostgreSQL, Kubernetes and others), whose package dependencies still resolve by name when the project declares no packages.
 - [NEXT] **R-B4:** Strong conservative baseline (TR §10 baseline v). It uses the same scope language and admissibility, curated exact identities, and pinned ecosystem comparators (`packaging`, node-semver, Go `x/mod/semver`, Maven `ComparableVersion`). This is the primary comparison: without it, C-over-B shows only that OpenPulse beats a list reader.
 - [NEXT] **R-B5:** Identity ablation, in which unresolved identity is allowed to exclude (D10 off). It is the one ablation that needs a code switch rather than an input transform. Add it as an explicit engine parameter, never as a monkeypatch.
 - [NEXT] **R-B6:** Decisions expose their limitations. Add the negative-meaning fields of TR §5.1 to the contract and the MCP response: outside the directly named scope; embedded-component relation not evaluated; consequence not evaluated. Also add the completeness basis and `last_verified` next to every negative. The evaluation's evidence-completeness metric reads these fields.
@@ -290,7 +290,7 @@ Considered and not adopted: dependency-discovery benchmarking (inventory generat
 
 This is a planning estimate, not a commitment: independent labelling and ground-truth construction may take longer.
 
-1. **Weeks 1–2:** publish TR-2026-01 as a technical report with its current claims. Register the protocol (R-A2). Fix E1 (R-B3). Build the strong baseline (R-B4) and the identity ablation (R-B5). Recruit annotators and an independent oracle author (R-B7, R-C2).
+1. **Weeks 1–2:** publish TR-2026-01 as a technical report with its current claims. Register the protocol (R-A2). Fix F1 (R-B3). Build the strong baseline (R-B4) and the identity ablation (R-B5). Recruit annotators and an independent oracle author (R-B7, R-C2).
 2. **Weeks 2–6:** contract negative-meaning fields (R-B6). Independent oracle and edge-case set (R-B7). Freeze the implementation and tag it. Start the prospective event window (R-C1).
 3. **Weeks 6–12:** independent labelling (R-C2), the comparison and ablations (R-C3), discovery precision and recall (R-C4).
 4. **Weeks 12–16:** paper revision and reproducibility package (R-D).

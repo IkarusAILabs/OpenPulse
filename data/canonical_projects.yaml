@@ -43,13 +43,44 @@
   website: https://redis.io
   aliases: [redis, redis-server, docker.io/redis, docker.io/library/redis]
   docker_images: [docker.io/library/redis]
+  # The server is not published as a language package. PyPI `redis` is
+  # redis-py and npm `redis` is node-redis, both clients (F1, 2026-10-30).
+  packages: []
+  identity:
+    status: VERIFIED
+    source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
+    reviewed_at: "2026-10-30"
+    maintainer: openpulse
+    confidence: high
+- slug: redis-py
+  display_name: redis-py (Python client for Redis)
+  github: redis/redis-py
+  website: https://pypi.org/project/redis/
+  aliases: []
+  docker_images: []
+  packages:
+    - {ecosystem: PyPI, name: redis}
   osv:
     package: redis
     ecosystem: PyPI
   identity:
     status: VERIFIED
-    source: "canonical redis/redis repo; bitnami/redis and bitnamilegacy/redis are distribution aliases, not the project"
-    reviewed_at: "2026-09-26"
+    source: "PyPI project `redis` links to github.com/redis/redis-py; a client library, not the Redis server"
+    reviewed_at: "2026-10-30"
+    maintainer: openpulse
+    confidence: high
+- slug: node-redis
+  display_name: node-redis (Node.js client for Redis)
+  github: redis/node-redis
+  website: https://www.npmjs.com/package/redis
+  aliases: []
+  docker_images: []
+  packages:
+    - {ecosystem: npm, name: redis}
+  identity:
+    status: VERIFIED
+    source: "npm package `redis` links to github.com/redis/node-redis; a client library, not the Redis server"
+    reviewed_at: "2026-10-30"
     maintainer: openpulse
     confidence: high
 - slug: postgresql

@@ -162,3 +162,49 @@ def test_private_registry_images_do_not_cross_match():
 
     assert match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/redis:6")
     assert not match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/nginx:1")
+
+
+def test_package_identity_is_per_ecosystem():
+    """F1: a package name identifies a project only inside its ecosystem."""
+    from core.entities.identity import package_trust
+
+    assert package_trust("redis", "PyPI")["slug"] == "redis-py"
+    assert package_trust("redis", "npm")["slug"] == "node-redis"
+    assert package_trust("Django", "PyPI")["slug"] == "django"
+    # PEP 503 folding for PyPI names.
+    assert package_trust("django", "pypi")["slug"] == "django"
+
+
+def test_alias_of_a_package_curated_project_is_not_identity():
+    """Redis declares no packages, so a Maven `redis` that only shares the
+    alias is unresolved (qualified by ecosystem), never the server."""
+    from core.entities.identity import package_trust
+
+    trust = package_trust("redis", "Maven")
+    assert trust["via"] == "self"
+    assert trust["slug"] == "maven:redis"
+
+
+def test_package_without_ecosystem_keeps_name_resolution():
+    from core.entities.identity import package_trust
+
+    for ecosystem in (None, "", "generic"):
+        assert package_trust("redis", ecosystem)["slug"] == "redis"
+
+
+def test_redis_py_end_of_life_is_not_the_servers():
+    """End to end: Redis server 6.2 EOL says nothing about redis-py 6.2.0."""
+    import json
+    from datetime import date
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.risk.check import check_dependency
+
+    raw = json.load(open("data/fixtures/redis/raw_bundle.json", encoding="utf-8"))
+    (finding,) = [f for f in analyze(raw, today=date(2026, 9, 26)) if f["event_type"] == "EOL"]
+    event = finding_to_event(finding, "redis", today=date(2026, 9, 26))
+    client = {"kind": "package", "package": "redis", "ecosystem": "PyPI", "version": "6.2.0"}
+    unknown_eco = {"kind": "package", "package": "redis", "ecosystem": "Maven", "version": "6.2.0"}
+    assert check_dependency(client, [event]).relationship == "UNKNOWN"
+    assert check_dependency(unknown_eco, [event]).relationship == "RELATED"
