@@ -12,6 +12,7 @@ Precedence:
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from functools import lru_cache
 
 EXPLICIT_ALIASES = {
@@ -66,7 +67,7 @@ def normalize_ref(ref: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _catalog_map() -> dict[str, str]:
+def _catalog_map() -> Mapping[str, str]:
     try:
         from core.entities.catalog import catalog_alias_map, load_catalog
 

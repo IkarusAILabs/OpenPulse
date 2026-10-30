@@ -279,3 +279,41 @@ def test_scoped_npm_packages_have_distinct_identities():
     assert package_trust("@colors/colors", "npm")["slug"] != package_trust("colors", "npm")["slug"]
     # A curated scoped package still resolves through the catalog.
     assert package_trust("@angular/core", "npm")["via"] == "catalog"
+
+
+def test_derived_catalog_maps_are_memoised_per_catalog_object():
+    """Identity resolution rebuilt these maps on every dependency check."""
+    from core.entities.catalog import (
+        catalog_alias_map,
+        load_catalog,
+        package_curated_slugs,
+        package_map,
+    )
+
+    catalog = load_catalog()
+    for build in (package_map, package_curated_slugs, catalog_alias_map):
+        assert build(catalog) is build(catalog)
+    assert package_map() is package_map(catalog)  # the default is the same object
+
+
+def test_derived_catalog_maps_follow_a_different_or_grown_catalog():
+    from core.entities.catalog import load_catalog, package_map
+
+    base = list(load_catalog())
+    extra = {"slug": "zz-new", "packages": [{"ecosystem": "npm", "name": "zz-new-pkg"}]}
+    other = [*base, extra]
+    assert ("npm", "zz-new-pkg") not in package_map(base)
+    assert package_map(other)[("npm", "zz-new-pkg")] == "zz-new"
+    base.append(extra)  # grown in place: the length guard rebuilds
+    assert package_map(base)[("npm", "zz-new-pkg")] == "zz-new"
+
+
+def test_derived_catalog_maps_are_read_only():
+    import pytest
+
+    from core.entities.catalog import catalog_alias_map, load_catalog, package_map
+
+    with pytest.raises(TypeError):
+        package_map()[("npm", "x")] = "y"
+    with pytest.raises(TypeError):
+        catalog_alias_map(load_catalog())["x"] = "y"
