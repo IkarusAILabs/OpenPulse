@@ -325,4 +325,14 @@ def test_dev_set_identity_ablation_trades_abstention_for_silent_misses(dev):
     full = dev["policies"]["C-openpulse"]["overall"]
     ablated = dev["policies"]["C-ablate-identity"]["overall"]
     assert ablated["abstention_rate"] < full["abstention_rate"]
-    assert full["silent_miss_rate"] == 0.0 < ablated["silent_miss_rate"]
+    # FLIPPED (inventory discovery): the dev set's one ablation silent miss
+    # was fa-01, a reference to the archived react-native-fbsdk repository.
+    # An archived finding now names its repository, so the pair matches by
+    # exact artifact under either identity mode (C resolves it, as V did).
+    # The ablation's cost is still shown pair by pair in the test above.
+    assert full["silent_miss_rate"] == 0.0 <= ablated["silent_miss_rate"]
+    fa01 = {
+        p: next(r for r in dev["pairs"][p] if r["case"] == "fa-01")["outcome"]
+        for p in ("C-openpulse", "C-ablate-identity")
+    }
+    assert fa01 == {"C-openpulse": "affected", "C-ablate-identity": "affected"}

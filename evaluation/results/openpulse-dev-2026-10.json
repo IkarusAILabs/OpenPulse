@@ -3,7 +3,7 @@
  "dataset_version": "2026.10.30-2",
  "dataset_status": "development",
  "dataset_sha256": "183d7c288cdf64d0b4eadef24456a498d6d28531b7c19c2515ffe51b1d00c60d",
- "commit": "986673a444b4850b90a2aa67d603a0050bf07a89",
+ "commit": "36c0bf1ab2f48deb4a062e5c0de7f9c8a60ada94",
  "max_evidence_age_days": 90,
  "events_not_known_at_replay": [],
  "policies": {
@@ -438,9 +438,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 23,
+     "affected": 24,
      "cleared": 8,
-     "unresolved": 27,
+     "unresolved": 26,
      "no_association": 2
     },
     "false_clears": 0,
@@ -449,9 +449,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6078,
-    "decisive_coverage": 0.5167,
-    "abstention_rate": 0.45,
+    "resolution_rate": 0.6275,
+    "decisive_coverage": 0.5333,
+    "abstention_rate": 0.4333,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
@@ -465,9 +465,9 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
-      "unresolved": 3,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -476,9 +476,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
-     "abstention_rate": 1.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
+     "abstention_rate": 0.6667,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
@@ -623,9 +623,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 23,
+      "affected": 24,
       "cleared": 8,
-      "unresolved": 27,
+      "unresolved": 26,
       "no_association": 2
      },
      "false_clears": 0,
@@ -634,9 +634,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6078,
-     "decisive_coverage": 0.5167,
-     "abstention_rate": 0.45,
+     "resolution_rate": 0.6275,
+     "decisive_coverage": 0.5333,
+     "abstention_rate": 0.4333,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
@@ -652,9 +652,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 24,
+     "affected": 25,
      "cleared": 8,
-     "unresolved": 26,
+     "unresolved": 25,
      "no_association": 2
     },
     "false_clears": 0,
@@ -663,9 +663,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6275,
-    "decisive_coverage": 0.5333,
-    "abstention_rate": 0.4333,
+    "resolution_rate": 0.6471,
+    "decisive_coverage": 0.55,
+    "abstention_rate": 0.4167,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
@@ -685,9 +685,9 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
-      "unresolved": 3,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -696,13 +696,19 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
-     "abstention_rate": 1.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
+     "abstention_rate": 0.6667,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
-     "evidence_completeness": null
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "meaning_stated": 1.0,
+      "completeness_basis": 1.0,
+      "contracts_valid": 1.0
+     }
     },
     "breaking-change": {
      "pairs": 4,
@@ -873,9 +879,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 24,
+      "affected": 25,
       "cleared": 8,
-      "unresolved": 26,
+      "unresolved": 25,
       "no_association": 2
      },
      "false_clears": 0,
@@ -884,9 +890,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6275,
-     "decisive_coverage": 0.5333,
-     "abstention_rate": 0.4333,
+     "resolution_rate": 0.6471,
+     "decisive_coverage": 0.55,
+     "abstention_rate": 0.4167,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
@@ -908,9 +914,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 24,
+     "affected": 25,
      "cleared": 8,
-     "unresolved": 26,
+     "unresolved": 25,
      "no_association": 2
     },
     "false_clears": 0,
@@ -919,9 +925,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6275,
-    "decisive_coverage": 0.5333,
-    "abstention_rate": 0.4333,
+    "resolution_rate": 0.6471,
+    "decisive_coverage": 0.55,
+    "abstention_rate": 0.4167,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
@@ -941,9 +947,9 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
-      "unresolved": 3,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -952,13 +958,19 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
-     "abstention_rate": 1.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
+     "abstention_rate": 0.6667,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
-     "evidence_completeness": null
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "meaning_stated": 1.0,
+      "completeness_basis": 1.0,
+      "contracts_valid": 1.0
+     }
     },
     "breaking-change": {
      "pairs": 4,
@@ -1129,9 +1141,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 24,
+      "affected": 25,
       "cleared": 8,
-      "unresolved": 26,
+      "unresolved": 25,
       "no_association": 2
      },
      "false_clears": 0,
@@ -1140,9 +1152,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6275,
-     "decisive_coverage": 0.5333,
-     "abstention_rate": 0.4333,
+     "resolution_rate": 0.6471,
+     "decisive_coverage": 0.55,
+     "abstention_rate": 0.4167,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
@@ -1164,9 +1176,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 24,
+     "affected": 25,
      "cleared": 8,
-     "unresolved": 26,
+     "unresolved": 25,
      "no_association": 2
     },
     "false_clears": 0,
@@ -1175,9 +1187,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6275,
-    "decisive_coverage": 0.5333,
-    "abstention_rate": 0.4333,
+    "resolution_rate": 0.6471,
+    "decisive_coverage": 0.55,
+    "abstention_rate": 0.4167,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
@@ -1197,9 +1209,9 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
-      "unresolved": 3,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -1208,13 +1220,19 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
-     "abstention_rate": 1.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
+     "abstention_rate": 0.6667,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
-     "evidence_completeness": null
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "meaning_stated": 1.0,
+      "completeness_basis": 1.0,
+      "contracts_valid": 1.0
+     }
     },
     "breaking-change": {
      "pairs": 4,
@@ -1385,9 +1403,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 24,
+      "affected": 25,
       "cleared": 8,
-      "unresolved": 26,
+      "unresolved": 25,
       "no_association": 2
      },
      "false_clears": 0,
@@ -1396,9 +1414,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6275,
-     "decisive_coverage": 0.5333,
-     "abstention_rate": 0.4333,
+     "resolution_rate": 0.6471,
+     "decisive_coverage": 0.55,
+     "abstention_rate": 0.4167,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
@@ -1420,9 +1438,9 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 24,
+     "affected": 25,
      "cleared": 10,
-     "unresolved": 24,
+     "unresolved": 23,
      "no_association": 2
     },
     "false_clears": 1,
@@ -1431,9 +1449,9 @@
     "silent_miss_rate": 0.0,
     "events_with_false_clear": 1,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6471,
-    "decisive_coverage": 0.5667,
-    "abstention_rate": 0.4,
+    "resolution_rate": 0.6667,
+    "decisive_coverage": 0.5833,
+    "abstention_rate": 0.3833,
     "no_association_rate": 0.0333,
     "unsupported_decisiveness": 0.0,
     "evidence_completeness": {
@@ -1452,9 +1470,9 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
-      "unresolved": 3,
+      "unresolved": 2,
       "no_association": 0
      },
      "false_clears": 0,
@@ -1463,13 +1481,19 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
-     "abstention_rate": 1.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
+     "abstention_rate": 0.6667,
      "no_association_rate": 0.0,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
-     "evidence_completeness": null
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "meaning_stated": 1.0,
+      "completeness_basis": 1.0,
+      "contracts_valid": 1.0
+     }
     },
     "breaking-change": {
      "pairs": 4,
@@ -1639,9 +1663,9 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 24,
+      "affected": 25,
       "cleared": 10,
-      "unresolved": 24,
+      "unresolved": 23,
       "no_association": 2
      },
      "false_clears": 1,
@@ -1650,9 +1674,9 @@
      "silent_miss_rate": 0.0,
      "events_with_false_clear": 1,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6471,
-     "decisive_coverage": 0.5667,
-     "abstention_rate": 0.4,
+     "resolution_rate": 0.6667,
+     "decisive_coverage": 0.5833,
+     "abstention_rate": 0.3833,
      "no_association_rate": 0.0333,
      "unsupported_decisiveness": 0.0,
      "evidence_completeness": {
@@ -1673,21 +1697,21 @@
     "out_of_scope": 24,
     "undeterminable": 9,
     "outcomes": {
-     "affected": 24,
+     "affected": 25,
      "cleared": 8,
      "unresolved": 12,
-     "no_association": 16
+     "no_association": 15
     },
     "false_clears": 0,
     "fcr_affected": 0.0,
     "fcr_clear": 0.0,
-    "silent_miss_rate": 0.037,
+    "silent_miss_rate": 0.0,
     "events_with_false_clear": 0,
     "false_impact_rate": 0.0,
-    "resolution_rate": 0.6275,
-    "decisive_coverage": 0.5333,
+    "resolution_rate": 0.6471,
+    "decisive_coverage": 0.55,
     "abstention_rate": 0.2,
-    "no_association_rate": 0.2667,
+    "no_association_rate": 0.25,
     "unsupported_decisiveness": 0.0,
     "per_event_false_clear_upper_95": 0.2308,
     "evidence_completeness": null
@@ -1700,21 +1724,21 @@
      "out_of_scope": 1,
      "undeterminable": 0,
      "outcomes": {
-      "affected": 0,
+      "affected": 1,
       "cleared": 0,
       "unresolved": 1,
-      "no_association": 2
+      "no_association": 1
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": null,
-     "silent_miss_rate": 0.5,
+     "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.0,
-     "decisive_coverage": 0.0,
+     "resolution_rate": 0.3333,
+     "decisive_coverage": 0.3333,
      "abstention_rate": 0.3333,
-     "no_association_rate": 0.6667,
+     "no_association_rate": 0.3333,
      "unsupported_decisiveness": null,
      "per_event_false_clear_upper_95": 3.0,
      "evidence_completeness": null
@@ -1858,21 +1882,21 @@
      "out_of_scope": 24,
      "undeterminable": 9,
      "outcomes": {
-      "affected": 24,
+      "affected": 25,
       "cleared": 8,
       "unresolved": 12,
-      "no_association": 16
+      "no_association": 15
      },
      "false_clears": 0,
      "fcr_affected": 0.0,
      "fcr_clear": 0.0,
-     "silent_miss_rate": 0.037,
+     "silent_miss_rate": 0.0,
      "events_with_false_clear": 0,
      "false_impact_rate": 0.0,
-     "resolution_rate": 0.6275,
-     "decisive_coverage": 0.5333,
+     "resolution_rate": 0.6471,
+     "decisive_coverage": 0.55,
      "abstention_rate": 0.2,
-     "no_association_rate": 0.2667,
+     "no_association_rate": 0.25,
      "unsupported_decisiveness": 0.0,
      "per_event_false_clear_upper_95": 0.2308,
      "evidence_completeness": null
@@ -2048,17 +2072,17 @@
      "y": "B-conservative",
      "clusters": 13,
      "pairs": 51,
-     "difference": 0.1961,
+     "difference": 0.2157,
      "ci95": [
-      0.0208,
-      0.3396
+      0.0698,
+      0.3443
      ],
      "ci90": [
-      0.0455,
-      0.3137
+      0.0962,
+      0.3208
      ],
-     "lower_one_sided_95": 0.0455,
-     "p_greater_than_zero": 0.0232,
+     "lower_one_sided_95": 0.0962,
+     "p_greater_than_zero": 0.0032,
      "pass": true
     },
     "verdict": "not decidable: 13 events at risk, need 60"
@@ -2112,17 +2136,17 @@
      "y": "A-naive",
      "clusters": 13,
      "pairs": 51,
-     "difference": -0.1569,
+     "difference": -0.1373,
      "ci95": [
-      -0.3261,
-      -0.0308
+      -0.2727,
+      -0.0208
      ],
      "ci90": [
-      -0.2979,
-      -0.0455
+      -0.25,
+      -0.04
      ],
-     "lower_one_sided_95": -0.2979,
-     "p_greater_than_zero": 0.9958
+     "lower_one_sided_95": -0.25,
+     "p_greater_than_zero": 0.9953
     }
    },
    "guardrails": {
@@ -2134,14 +2158,14 @@
     },
     "G2_unresolved_vs_B": {
      "rule": "unresolved rate on decidable pairs <= B's + 0.05",
-     "C": 0.3529,
+     "C": 0.3333,
      "B": 0.451,
      "pass": true
     },
     "G3_class_flags": {
      "rule": "report every class; flag unresolved rate > 0.6 (not a test)",
      "rates": {
-      "archival": 1.0,
+      "archival": 0.6667,
       "breaking-change": 0.75,
       "distribution": 0.0,
       "licence": 0.4,
@@ -3345,7 +3369,7 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved"
+    "outcome": "affected"
    },
    {
     "case": "fa-02",
@@ -4097,10 +4121,10 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -5179,10 +5203,10 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -6261,10 +6285,10 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -7343,10 +7367,10 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "unresolved",
-    "relationship": "RELATED",
-    "confidence": "UNVERIFIED",
-    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
     "justification": {
      "sources_named": true,
      "acquisition_time": true,
@@ -8236,10 +8260,10 @@
     "class": "archival",
     "independent": false,
     "label": "in_scope",
-    "outcome": "no_association",
-    "relationship": "UNKNOWN",
-    "confidence": "UNVERIFIED",
-    "reason": "github.com/facebook/react-native-fbsdk matches nothing in evt-react-native-fbsdk-project_archived"
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk"
    },
    {
     "case": "fa-02",

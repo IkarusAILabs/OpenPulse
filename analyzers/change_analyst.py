@@ -353,7 +353,15 @@ def analyze_github_meta(
                     "significance": "high",
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [],
+                    # The archived repository is the observed thing: every
+                    # reference to its path (a go.mod require, a remote)
+                    # now names a read-only source. Scheme-free, the form
+                    # manifests record, as for ownership drift below.
+                    "affected_artifacts": [
+                        {"kind": "source-repository", "ref": f"github.com/{e.get('repo')}"}
+                    ]
+                    if e.get("repo")
+                    else [],
                     "supporting": [e],
                 }
             )
