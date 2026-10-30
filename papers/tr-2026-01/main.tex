@@ -44,6 +44,7 @@
 \newcommand{\dtwelvecommit}{\code{784fed8}}
 \newcommand{\dfifteencommit}{\code{d4f7d1f}}
 \newcommand{\pincommit}{\code{8a9c3a8}}
+\newcommand{\currentcommit}{\code{85627cf}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -57,7 +58,7 @@ integrations described in this report: \url{https://ikaruslabs.net/}.}\\
 \href{mailto:mehmet@ikaruslabs.net}{\texttt{mehmet@ikaruslabs.net}}\quad
 \url{https://ikaruslabs.net/}}
 
-\date{Technical Report TR-2026-01\quad 29 October 2026\quad snapshot \code{8a9c3a8}}
+\date{Technical Report TR-2026-01\quad 30 October 2026\quad audit snapshot \code{8a9c3a8}, current \code{85627cf}}
 
 \begin{document}
 \maketitle
@@ -239,12 +240,68 @@ Section~\ref{sec:soundness} hold, and audits which of them the
 implementation establishes. It does not show that the deployed system
 meets them often enough to justify its negatives; that is an empirical
 question for Section~\ref{sec:evalplan}. Limitations are collected in Section~\ref{sec:limits}
-and are not repeated throughout. All artefacts are pinned to
-\pincommit{} of \url{https://github.com/IkarusAILabs/OpenPulse}
-(Appendix~\ref{app:repro}), except the retrospective study of
-Section~\ref{sec:retro}, which is pinned to its own freeze tag
-\code{retro-freeze-2026-10-30} (\code{3639a0f}). The latest tagged release, v0.7.1,
-predates the fixes. \op{} is released under the Apache License~2.0.
+and are not repeated throughout. The report uses two snapshots of
+\url{https://github.com/IkarusAILabs/OpenPulse} (Appendix~\ref{app:repro}).
+The \emph{audit snapshot} \pincommit{} is the commit every statement
+``at \pincommit{}'' and every measurement of the audit refers to: the
+twelve defects, the conformance and random-case counts, the comparator
+agreement and the costs. The \emph{current snapshot} \currentcommit{}
+adds the changes in Table~\ref{tab:since}, made after the audit; the
+audit's measurements were not repeated there, but the conformance
+oracle still runs as a build gate on every change. The retrospective
+study of Section~\ref{sec:retro} is pinned to its own freeze tag
+\code{retro-freeze-2026-10-30} (\code{3639a0f}), between the two. The
+latest tagged release, v0.7.1, predates the fixes. \op{} is released
+under the Apache License~2.0.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.4cm}@{}}
+\toprule
+Change & What it does & Error it removes \\
+\midrule
+F1: identity per ecosystem & A package resolves to a project only
+  through a curated (ecosystem, name) pair; every catalogue entry now
+  lists its packages. PyPI \code{redis} (redis-py) had been treated as
+  the Redis server & False impact \\
+F2: project package element & A package-scope value that names the
+  event's own project denotes every package curated as that project;
+  previously applied but unspecified & Specification gap \\
+F3: qualified package values & A purl value (\code{pkg:pypi/redis})
+  decides by ecosystem and name before identity & Name-only matching \\
+F4: self-resolved packages & A package that resolves only to itself is
+  \textsc{Related} even when named like the project (the package-side
+  twin of D10) & Name taken as identity \\
+Contract 1.2.0 & Adds \code{verdict\_meaning} (direct scope; embedded
+  components, availability, maintenance and security consequence marked
+  not evaluated), \code{scope.completeness} with its basis, and the
+  evaluation context & Bare labels read as permission \\
+D-R1, D-R2 & A Go module reaches the source repository it lives in
+  (positively only); the GitHub collector follows one same-origin
+  redirect, so transfers are observed (Section~\ref{sec:retro}) &
+  Silent miss; missed relocation \\
+D-S1--D-S3 & OSV advisories without a CVE are kept; another package's
+  range in the same advisory is ignored; version-only entries follow the
+  OSV schema (Section~\ref{sec:retro}) & \textbf{False clear}; false
+  impact \\
+Scoped npm identity & \code{@scope/name} keeps its scope instead of
+  resolving to the empty string & Shared empty identity \\
+Discovery & Targets come from the inventory (Go modules, repository
+  references, Docker Hub images), and every npm, PyPI, Maven, Go and
+  crates.io package is queried on OSV by name & Uncatalogued projects
+  unseen \\
+Evaluation & Strong baseline (v) with pinned comparators, an
+  independent oracle kit, a registration draft and the retrospective
+  study & -- \\
+\bottomrule
+\end{tabularx}
+\caption{Changes from the audit snapshot \pincommit{} to the current
+snapshot \currentcommit{}. Each has regression tests; the oracle and
+the strong baseline were extended for F2--F4. None is reflected in the
+audit's counts.}
+\label{tab:since}
+\end{table}
 
 \paragraph{Terminology.} A \emph{false clear} is a \textsc{NotAffected}
 verdict for a dependency in the event's scope; a \emph{missed
@@ -294,7 +351,8 @@ OCI digests & Directional, platform-aware containment & Interim:
 Freshness & Negatives only from current, non-superseded events &
   Withdrawn and superseded events dropped; opt-in age bound on
   negatives & Bound off by default; one bound, not per class \\
-Contract & Evidence, unknowns, negative semantics & v1.1, unsigned &
+Contract & Evidence, unknowns, negative semantics & v1.1, unsigned
+  (v1.2.0 at \currentcommit{} adds verdict meaning and completeness) &
   Supersession, revocation, negative-semantics fields \\
 First detection & Externally witnessed & Unkeyed local ledger &
   Backdating not detectable \\
@@ -821,7 +879,9 @@ verdict should therefore carry three distinct statements: outside the
 directly named scope; embedded-component relation not evaluated; and
 operational or security consequence not evaluated. Agents in
 particular may read a bare \textsc{NotAffected} label as permission to
-proceed. The v1.1 contract carries only the relationship name.
+proceed. The v1.1 contract carries only the relationship name;
+contract 1.2.0, at \currentcommit{}, carries the three statements as
+\code{verdict\_meaning}.
 
 The same boundary applies to positives. \textsc{AffectsArtifact} means
 scope membership, not that a reference is broken, unsafe, vulnerable or
@@ -930,7 +990,10 @@ negative. At \pincommit{} each scope records its basis
 (\code{definitional}, \code{announced}, \code{corroborated} or
 \code{verified}), and a declaration without one never clears. The
 remaining record fields are specified, and the v1.1 contract does not
-yet carry them (Section~\ref{sec:consumers}).
+yet carry them (Section~\ref{sec:consumers}). Contract 1.2.0, at
+\currentcommit{}, carries the completeness state, its basis and
+whether it admits a negative; the source, evidence reference and
+validation method are still not carried.
 
 The admissibility condition is then machine-checkable. A negative is
 admissible iff every scope element is decisively excluded and the pair
@@ -2011,14 +2074,19 @@ regression tests, not measurements, and four of them had encoded D5.
 \label{sec:evalplan}
 
 This section is a draft prospective protocol. Apart from specification
-conformance (Section~\ref{sec:audit}) and the basic cost measurements
-below, none of it has been run,
+conformance (Section~\ref{sec:audit}), the basic cost measurements
+below and the exploratory retrospective study of
+Section~\ref{sec:retro}, none of it has been run,
 and nothing in it is evidence of effectiveness. It fixes the metrics,
 annotation rules and analysis plan before any data are labelled,
-which reduces analytical flexibility but does not eliminate it. It
-becomes a pre-specified protocol only when an archived version records
-the registration location, the primary endpoint, the numeric margins
-and the freeze date. None of these exists yet. Before the
+which reduces analytical flexibility but does not eliminate it. A
+registration draft now records the primary endpoint, the numeric
+margins, the guardrails, the sample-size reasoning and the analysis
+code (\code{evaluation/REGISTRATION.md} and
+\code{evaluation/registration.py}). It becomes a pre-specified protocol
+only when it is archived (OSF Registries or Zenodo) with its registry
+identifier, freeze commit, event window and annotators filled in,
+before any held-out label exists. That has not happened yet. Before the
 evaluation, the evaluated subset must enforce the full
 negative-admission policy, or abstain wherever it cannot. At
 \pincommit{} that holds with the gaps stated in
@@ -2155,17 +2223,30 @@ them is correct.
 \paragraph{Decision criteria.} The hypotheses are fixed before
 labelling. There is one primary endpoint, at one operating point: the
 implemented policy $\mathcal{A}$, with no minimum confidence. The
-primary hypothesis is non-inferiority of \op{} to the strong
-conservative baseline (v) on $\mathrm{FCR}_{\text{affected}}$, together
-with superiority on decisive coverage. Both are tested on the same
-labelled pairs, with event-clustered intervals. Other operating
-points, other baselines and stratified comparisons are secondary.
-They are reported with a Holm correction and are not used to rescue a
-failed primary result. The non-inferiority margin, the minimum
-coverage gain and the acceptable \textsc{Unknown} rate are not yet
-set. They will be registered with the archived protocol before
-labelling. A result that improves coverage only by raising the
-false-clear rate beyond the margin counts as a failure.
+registration draft compares \op{} with the minimal conservative
+reference (iv), which never clears, not with (v) as an earlier draft of
+this section did. The claim under test concerns the model, and (v)
+shares that model, so \op{} against (v) measures only the engine; the
+change is disclosed in the registration. Two primary hypotheses must
+both hold. \emph{Safety (H1):} the exact one-sided 95\%
+Clopper--Pearson upper bound on the share of events in which \op{}
+issues a false clear, minus that share for (iv), is at most
+$\delta = 0.05$; H1 is decidable only with at least 60 events at
+risk, and with fewer the result is ``not decidable'', never a pass.
+\emph{Usefulness (H2):} the paired difference in resolution, \op{}
+minus (iv), is at least $0.10$, with an event-clustered bootstrap
+one-sided 95\% lower bound above zero (4{,}000 resamples, fixed seed).
+At 60 events, one false-clear event already fails H1 (bound $0.077$).
+Secondary tests are Holm-corrected and never rescue a failed primary
+result: equivalence of \op{} and (v) within $\pm 0.05$ by two
+one-sided tests (S1), and the false-clear excess of the naive
+baseline (S2). Three guardrails are reported beside the verdict
+without changing it: silent misses at most $0.02$ of in-scope pairs
+(G1), \op{}'s unresolved rate at most (iv)'s plus $0.05$ (G2), and
+every class with an unresolved rate above $0.60$ flagged (G3). The
+registration states which of these values came from judgement. A
+result that improves coverage only by raising the false-clear rate
+beyond the margin counts as a failure.
 
 \paragraph{Baselines.} The baselines are: (i)~direct metadata rules;
 (ii)~namespace-aware matching without completeness or identity caps;
@@ -2183,18 +2264,23 @@ admissibility policy, exact identities, the ecosystems' own established
 version comparators, and conservative handling of every unsupported
 relation. Only (v) isolates what \op{}'s richer identity and evidence
 machinery adds beyond conservative abstention and ordinary
-ecosystem-aware comparison. The comparison with (v) is therefore the
-primary evaluation, and the others are complementary. Both methods
+ecosystem-aware comparison. It is therefore the comparison that tests
+whether the engine adds anything (S1 above); the primary comparison is
+with (iv), for the reason given there. Both methods
 receive the same typed scopes, the same curated mappings, the same
 event-confidence and freshness policies, and the same unknown and
 contradiction information. The comparison therefore evaluates matching
 and decision policy, not the whole intelligence pipeline, and its
-conclusion is stated that way. The ecosystem comparators are named and
-version-pinned at the freeze. Candidates are \code{packaging} for
-PEP~440, \code{node-semver} for npm, \code{golang.org/x/mod/semver}
-for Go modules, Maven's \code{ComparableVersion}, and
-\code{dpkg --compare-versions} for Debian. Ablate the gate, the
-identity cap, completeness and the coverage qualifier.
+conclusion is stated that way. The ecosystem comparators are now
+pinned: \code{packaging} (hash-locked) for PEP~440, \code{node-semver}
+7.8.5 for npm, \code{golang.org/x/mod} v0.42.0 for Go modules and
+Maven's \code{ComparableVersion} from \code{maven-artifact} 3.9.16
+(jar SHA-256 checked). Each runs through a bridge that reports its
+library version, and the analysis refuses to run unless every pin
+matches; CI validates the bridges against the libraries' documented
+semantics. \code{dpkg} ordering is out of scope, and Debian versions
+remain undetermined. Ablate the gate, the identity cap, completeness
+and the coverage qualifier.
 
 \paragraph{Population.} Events are sampled from sources that do not
 feed \op{}: vendor and project announcements, distribution
@@ -2418,10 +2504,10 @@ every test below is illustrative.
 \paragraph{Policies.} A (naive) reports affected if any current event
 lists the dependency, and otherwise not affected. B (conservative)
 abstains instead of clearing; it corresponds to the minimal reference
-(iv). V is the strong conservative baseline~(v). C is \op{}. The
-registration that followed this draft makes B the primary comparator,
-because V shares the model under test; the comparison with V is the
-equivalence test S1.
+(iv) and is the primary comparator of the registration draft
+(Section~\ref{sec:evalplan}). V is the strong conservative
+baseline~(v), compared with C by the equivalence test S1. C is \op{}.
+The registered thresholds are applied below for illustration only.
 
 \begin{table}[t]
 \centering
@@ -2558,8 +2644,10 @@ semantics are missing (OCI levels), at the cost of more undetermined
 verdicts. All twelve enumerated defects have regression fixes. Known
 gaps in the negative-admission conditions remain: freshness is opt-in;
 conflicts between separate events are not detected; package names are
-not canonicalised, and are made undetermined instead; and declarations
-are recorded but not validated.
+not canonicalised at \pincommit{}, and are made undetermined instead
+(at \currentcommit{} they are compared per ecosystem, and qualified
+values decide by ecosystem and name; Table~\ref{tab:since}); and
+declarations are recorded but not validated.
 Six of the twelve were found after the initial audit: four while
 answering external questions, and two by the conformance matrix. That increases concern that additional
 defects remain, and the retrospective study confirmed it: it exposed a
@@ -2851,6 +2939,15 @@ the repository, though it covers every pin. All three are fixed in
     Audited commit:
     \code{a461bc99a6edebbdb124e4b9a3c477282aae45a6}. The latest
     tagged release, v0.7.1, predates the fixes. Licence: Apache-2.0.
+  \item Current snapshot: \code{85627cf} (\code{main}, 30 October
+    2026), with the changes of Table~\ref{tab:since}; evidence contract
+    1.2.0, intelligence schema 0.7.0, 1{,}079 tests collected, all
+    passing in CI. The audit's counts below refer to the pinned commit
+    and were not re-measured here.
+  \item Retrospective study (Section~\ref{sec:retro}): freeze tag
+    \code{retro-freeze-2026-10-30} (\code{3639a0f}); case file, its
+    SHA-256, results and the CI workflow that reproduces them in
+    \code{evaluation/retrospective/}.
   \item Environment: Python $\ge$3.10 with the hash-locked
     \code{requirements.lock}; all tests run offline. Intelligence
     schema 0.7.0, evidence contract v1.1.
