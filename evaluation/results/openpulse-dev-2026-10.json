@@ -1,0 +1,6213 @@
+{
+ "dataset": "openpulse-dev-2026-10",
+ "dataset_version": "2026.10.30-2",
+ "dataset_status": "development",
+ "dataset_sha256": "b579685a74638d89901661c2bb1fd71eb63d8063474611248d33d76eca2fa5f9",
+ "commit": "8a9c3a829ad0da7a8a1e935f677af0eb8810ed0c",
+ "max_evidence_age_days": 90,
+ "events_not_known_at_replay": [],
+ "policies": {
+  "A-naive": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 34,
+     "cleared": 26,
+     "unresolved": 0,
+     "no_association": 0
+    },
+    "false_clears": 5,
+    "fcr_affected": 0.1852,
+    "fcr_clear": 0.1923,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 3,
+    "false_impact_rate": 0.25,
+    "resolution_rate": 0.7843,
+    "decisive_coverage": 1.0,
+    "abstention_rate": 0.0,
+    "no_association_rate": 0.0,
+    "unsupported_decisiveness": 1.0,
+    "evidence_completeness": null
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 2,
+      "cleared": 1,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 3,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 1,
+     "fcr_affected": 0.5,
+     "fcr_clear": 0.3333,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 1,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.75,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "evidence_completeness": null
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 12,
+      "cleared": 5,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 1.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": null
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 4,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 2,
+     "fcr_affected": 0.6667,
+     "fcr_clear": 0.5,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 1,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.6,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "evidence_completeness": null
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 11,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 2,
+     "fcr_affected": 0.3333,
+     "fcr_clear": 0.1818,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 1,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.7857,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 1.0,
+     "evidence_completeness": null
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 11,
+      "cleared": 2,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.7143,
+     "resolution_rate": 0.5455,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 1.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": null
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 34,
+      "cleared": 26,
+      "unresolved": 0,
+      "no_association": 0
+     },
+     "false_clears": 5,
+     "fcr_affected": 0.1852,
+     "fcr_clear": 0.1923,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 3,
+     "false_impact_rate": 0.25,
+     "resolution_rate": 0.7843,
+     "decisive_coverage": 1.0,
+     "abstention_rate": 0.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 1.0,
+     "evidence_completeness": null
+    }
+   }
+  },
+  "B-conservative": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 34,
+     "cleared": 0,
+     "unresolved": 26,
+     "no_association": 0
+    },
+    "false_clears": 0,
+    "fcr_affected": 0.0,
+    "fcr_clear": null,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 0,
+    "false_impact_rate": 0.25,
+    "resolution_rate": 0.4314,
+    "decisive_coverage": 0.5667,
+    "abstention_rate": 0.4333,
+    "no_association_rate": 0.0,
+    "unsupported_decisiveness": 0.6667,
+    "per_event_false_clear_upper_95": 0.2308,
+    "evidence_completeness": null
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 2,
+      "cleared": 0,
+      "unresolved": 1,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.6667,
+     "decisive_coverage": 0.6667,
+     "abstention_rate": 0.3333,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.25,
+     "decisive_coverage": 0.25,
+     "abstention_rate": 0.75,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 12,
+      "cleared": 0,
+      "unresolved": 5,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.7143,
+     "decisive_coverage": 0.7059,
+     "abstention_rate": 0.2941,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.6667,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": null
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2,
+     "decisive_coverage": 0.2,
+     "abstention_rate": 0.8,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 0,
+      "unresolved": 11,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.2857,
+     "decisive_coverage": 0.3889,
+     "abstention_rate": 0.6111,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.5,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": null
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 11,
+      "cleared": 0,
+      "unresolved": 2,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.7143,
+     "resolution_rate": 0.3636,
+     "decisive_coverage": 0.8462,
+     "abstention_rate": 0.1538,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 1.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": null
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 34,
+      "cleared": 0,
+      "unresolved": 26,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.25,
+     "resolution_rate": 0.4314,
+     "decisive_coverage": 0.5667,
+     "abstention_rate": 0.4333,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.6667,
+     "per_event_false_clear_upper_95": 0.2308,
+     "evidence_completeness": null
+    }
+   }
+  },
+  "C-openpulse": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 23,
+     "cleared": 8,
+     "unresolved": 28,
+     "no_association": 1
+    },
+    "false_clears": 0,
+    "fcr_affected": 0.0,
+    "fcr_clear": 0.0,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 0,
+    "false_impact_rate": 0.0417,
+    "resolution_rate": 0.5882,
+    "decisive_coverage": 0.5167,
+    "abstention_rate": 0.4667,
+    "no_association_rate": 0.0167,
+    "unsupported_decisiveness": 0.0,
+    "per_event_false_clear_upper_95": 0.2308,
+    "evidence_completeness": {
+     "sources_named": 1.0,
+     "acquisition_time": 1.0,
+     "completeness_basis": 0.8065
+    }
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.25,
+     "decisive_coverage": 0.25,
+     "abstention_rate": 0.75,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 10,
+      "cleared": 4,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 0.8235,
+     "abstention_rate": 0.1765,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2,
+     "decisive_coverage": 0.2,
+     "abstention_rate": 0.8,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 4,
+      "unresolved": 6,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.7143,
+     "decisive_coverage": 0.6111,
+     "abstention_rate": 0.3333,
+     "no_association_rate": 0.0556,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 4,
+      "cleared": 0,
+      "unresolved": 9,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.3636,
+     "decisive_coverage": 0.3077,
+     "abstention_rate": 0.6923,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 23,
+      "cleared": 8,
+      "unresolved": 28,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0417,
+     "resolution_rate": 0.5882,
+     "decisive_coverage": 0.5167,
+     "abstention_rate": 0.4667,
+     "no_association_rate": 0.0167,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.2308,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.8065
+     }
+    }
+   }
+  },
+  "C-ablate-completeness": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 23,
+     "cleared": 8,
+     "unresolved": 28,
+     "no_association": 1
+    },
+    "false_clears": 0,
+    "fcr_affected": 0.0,
+    "fcr_clear": 0.0,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 0,
+    "false_impact_rate": 0.0417,
+    "resolution_rate": 0.5882,
+    "decisive_coverage": 0.5167,
+    "abstention_rate": 0.4667,
+    "no_association_rate": 0.0167,
+    "unsupported_decisiveness": 0.0,
+    "per_event_false_clear_upper_95": 0.2308,
+    "evidence_completeness": {
+     "sources_named": 1.0,
+     "acquisition_time": 1.0,
+     "completeness_basis": 1.0
+    }
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.25,
+     "decisive_coverage": 0.25,
+     "abstention_rate": 0.75,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 10,
+      "cleared": 4,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 0.8235,
+     "abstention_rate": 0.1765,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2,
+     "decisive_coverage": 0.2,
+     "abstention_rate": 0.8,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 4,
+      "unresolved": 6,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.7143,
+     "decisive_coverage": 0.6111,
+     "abstention_rate": 0.3333,
+     "no_association_rate": 0.0556,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 4,
+      "cleared": 0,
+      "unresolved": 9,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.3636,
+     "decisive_coverage": 0.3077,
+     "abstention_rate": 0.6923,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 23,
+      "cleared": 8,
+      "unresolved": 28,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0417,
+     "resolution_rate": 0.5882,
+     "decisive_coverage": 0.5167,
+     "abstention_rate": 0.4667,
+     "no_association_rate": 0.0167,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.2308,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    }
+   }
+  },
+  "C-ablate-freshness": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 23,
+     "cleared": 8,
+     "unresolved": 28,
+     "no_association": 1
+    },
+    "false_clears": 0,
+    "fcr_affected": 0.0,
+    "fcr_clear": 0.0,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 0,
+    "false_impact_rate": 0.0417,
+    "resolution_rate": 0.5882,
+    "decisive_coverage": 0.5167,
+    "abstention_rate": 0.4667,
+    "no_association_rate": 0.0167,
+    "unsupported_decisiveness": 0.0,
+    "per_event_false_clear_upper_95": 0.2308,
+    "evidence_completeness": {
+     "sources_named": 1.0,
+     "acquisition_time": 1.0,
+     "completeness_basis": 0.8065
+    }
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.25,
+     "decisive_coverage": 0.25,
+     "abstention_rate": 0.75,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 10,
+      "cleared": 4,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 0.8235,
+     "abstention_rate": 0.1765,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2,
+     "decisive_coverage": 0.2,
+     "abstention_rate": 0.8,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 4,
+      "unresolved": 6,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.7143,
+     "decisive_coverage": 0.6111,
+     "abstention_rate": 0.3333,
+     "no_association_rate": 0.0556,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 4,
+      "cleared": 0,
+      "unresolved": 9,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.3636,
+     "decisive_coverage": 0.3077,
+     "abstention_rate": 0.6923,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.0
+     }
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 23,
+      "cleared": 8,
+      "unresolved": 28,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0417,
+     "resolution_rate": 0.5882,
+     "decisive_coverage": 0.5167,
+     "abstention_rate": 0.4667,
+     "no_association_rate": 0.0167,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.2308,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 0.8065
+     }
+    }
+   }
+  },
+  "C-ablate-both": {
+   "overall": {
+    "pairs": 60,
+    "events": 13,
+    "in_scope": 27,
+    "out_of_scope": 24,
+    "undeterminable": 9,
+    "outcomes": {
+     "affected": 23,
+     "cleared": 10,
+     "unresolved": 26,
+     "no_association": 1
+    },
+    "false_clears": 1,
+    "fcr_affected": 0.037,
+    "fcr_clear": 0.1,
+    "silent_miss_rate": 0.0,
+    "events_with_false_clear": 1,
+    "false_impact_rate": 0.0417,
+    "resolution_rate": 0.6078,
+    "decisive_coverage": 0.55,
+    "abstention_rate": 0.4333,
+    "no_association_rate": 0.0167,
+    "unsupported_decisiveness": 0.0,
+    "evidence_completeness": {
+     "sources_named": 1.0,
+     "acquisition_time": 1.0,
+     "completeness_basis": 1.0
+    }
+   },
+   "by_class": {
+    "archival": {
+     "pairs": 3,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 1,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 0,
+      "cleared": 0,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.0,
+     "decisive_coverage": 0.0,
+     "abstention_rate": 1.0,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": null
+    },
+    "breaking-change": {
+     "pairs": 4,
+     "events": 1,
+     "in_scope": 2,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 2,
+      "unresolved": 1,
+      "no_association": 0
+     },
+     "false_clears": 1,
+     "fcr_affected": 0.5,
+     "fcr_clear": 0.5,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 1,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.5,
+     "decisive_coverage": 0.75,
+     "abstention_rate": 0.25,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "distribution": {
+     "pairs": 17,
+     "events": 3,
+     "in_scope": 10,
+     "out_of_scope": 4,
+     "undeterminable": 3,
+     "outcomes": {
+      "affected": 10,
+      "cleared": 4,
+      "unresolved": 3,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 1.0,
+     "decisive_coverage": 0.8235,
+     "abstention_rate": 0.1765,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "licence": {
+     "pairs": 5,
+     "events": 1,
+     "in_scope": 3,
+     "out_of_scope": 2,
+     "undeterminable": 0,
+     "outcomes": {
+      "affected": 1,
+      "cleared": 0,
+      "unresolved": 4,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.2,
+     "decisive_coverage": 0.2,
+     "abstention_rate": 0.8,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": null,
+     "per_event_false_clear_upper_95": 3.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "lifecycle": {
+     "pairs": 18,
+     "events": 3,
+     "in_scope": 6,
+     "out_of_scope": 8,
+     "undeterminable": 4,
+     "outcomes": {
+      "affected": 7,
+      "cleared": 4,
+      "unresolved": 6,
+      "no_association": 1
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": 0.0,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.125,
+     "resolution_rate": 0.7143,
+     "decisive_coverage": 0.6111,
+     "abstention_rate": 0.3333,
+     "no_association_rate": 0.0556,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 1.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    },
+    "relocation": {
+     "pairs": 13,
+     "events": 4,
+     "in_scope": 4,
+     "out_of_scope": 7,
+     "undeterminable": 2,
+     "outcomes": {
+      "affected": 4,
+      "cleared": 0,
+      "unresolved": 9,
+      "no_association": 0
+     },
+     "false_clears": 0,
+     "fcr_affected": 0.0,
+     "fcr_clear": null,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 0,
+     "false_impact_rate": 0.0,
+     "resolution_rate": 0.3636,
+     "decisive_coverage": 0.3077,
+     "abstention_rate": 0.6923,
+     "no_association_rate": 0.0,
+     "unsupported_decisiveness": 0.0,
+     "per_event_false_clear_upper_95": 0.75,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    }
+   },
+   "by_label_independence": {
+    "False": {
+     "pairs": 60,
+     "events": 13,
+     "in_scope": 27,
+     "out_of_scope": 24,
+     "undeterminable": 9,
+     "outcomes": {
+      "affected": 23,
+      "cleared": 10,
+      "unresolved": 26,
+      "no_association": 1
+     },
+     "false_clears": 1,
+     "fcr_affected": 0.037,
+     "fcr_clear": 0.1,
+     "silent_miss_rate": 0.0,
+     "events_with_false_clear": 1,
+     "false_impact_rate": 0.0417,
+     "resolution_rate": 0.6078,
+     "decisive_coverage": 0.55,
+     "abstention_rate": 0.4333,
+     "no_association_rate": 0.0167,
+     "unsupported_decisiveness": 0.0,
+     "evidence_completeness": {
+      "sources_named": 1.0,
+      "acquisition_time": 1.0,
+      "completeness_basis": 1.0
+     }
+    }
+   }
+  }
+ },
+ "pairs": {
+  "A-naive": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "cleared"
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "cleared"
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "cleared"
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared"
+   }
+  ],
+  "B-conservative": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "affected"
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected"
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved"
+   }
+  ],
+  "C-openpulse": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "index.docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:7.2 matches affected artifact docker.io/bitnami/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/postgresql:16 matches affected artifact docker.io/bitnami/postgresql:16",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25.4-debian-12-r3 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/redis:7.2 matches affected artifact docker.io/bitnamilegacy/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:latest shares the repository of docker.io/bitnami/redis:7.2 but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/kafka@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and docker.io/bitnami/kafka:3.7 name the same repository but mix pinning forms (digest vs tag); a moving tag never reports digest-level certainty",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/library/nginx:1.25 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/spark:3.5 matches affected artifact docker.io/bitnami/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/spark:3.5 matches affected artifact docker.io/bitnamilegacy/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/apache/spark:3.5.4 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/spark:latest shares the repository of docker.io/bitnami/spark:<version> but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/coreos/etcd matches affected artifact github.com/coreos/etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/etcd-io/etcd resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "go.etcd.io/etcd/client/v3 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "etcd belongs to etcd; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "quay.io/coreos/etcd:v3.5.0 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/fireeye/capa matches affected artifact github.com/fireeye/capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/mandiant/capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/containous/traefik matches affected artifact github.com/containous/traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/traefik/traefik resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/library/traefik:2.10 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebookarchive/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "react-native-fbsdk belongs to react-native-fbsdk; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react-native-fbsdk-next resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/library/redis:6.2.14 tag 6.2.14 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:7.2 tag 7.2 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:8.0 tag 8.0 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:6.2 resolves to project bitnami-redis-stack, not redis: no association with version scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis:latest carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13 tag 13 is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13.16-alpine tag 13.16-alpine is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:17 tag 17 is outside event scope versions ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/postgresql:13 resolves to bitnami-postgresql only via namespace_rule (REVIEW_REQUIRED); not a proven exclusion from postgresql version scope ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "psycopg2 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project postgresql",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "django==4.2.11 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "Django==4.2 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "django==5.1.2 is outside scope versions ['4.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "djangorestframework resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project django",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "event is version-scoped to ['4.2']; dep version unknown",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_PACKAGE",
+    "confidence": "EMERGING",
+    "reason": "com.itextpdf/kernel is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/sign resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/itext7-core resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.lowagie/itext resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "org.apache.pdfbox/pdfbox resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "react==18.2.0 is within event scope version 18.2.0",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==18.3.1 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; scope is not exhaustive, so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==17.0.2 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; scope is not exhaustive, so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "preact resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:6.2 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   }
+  ],
+  "C-ablate-completeness": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "index.docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:7.2 matches affected artifact docker.io/bitnami/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/postgresql:16 matches affected artifact docker.io/bitnami/postgresql:16",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25.4-debian-12-r3 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/redis:7.2 matches affected artifact docker.io/bitnamilegacy/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:latest shares the repository of docker.io/bitnami/redis:7.2 but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/kafka@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and docker.io/bitnami/kafka:3.7 name the same repository but mix pinning forms (digest vs tag); a moving tag never reports digest-level certainty",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/library/nginx:1.25 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/spark:3.5 matches affected artifact docker.io/bitnami/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/spark:3.5 matches affected artifact docker.io/bitnamilegacy/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/apache/spark:3.5.4 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/spark:latest shares the repository of docker.io/bitnami/spark:<version> but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/coreos/etcd matches affected artifact github.com/coreos/etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/etcd-io/etcd resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "go.etcd.io/etcd/client/v3 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "etcd belongs to etcd; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "quay.io/coreos/etcd:v3.5.0 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/fireeye/capa matches affected artifact github.com/fireeye/capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/mandiant/capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/containous/traefik matches affected artifact github.com/containous/traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/traefik/traefik resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/library/traefik:2.10 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebookarchive/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "react-native-fbsdk belongs to react-native-fbsdk; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react-native-fbsdk-next resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/library/redis:6.2.14 tag 6.2.14 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:7.2 tag 7.2 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:8.0 tag 8.0 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:6.2 resolves to project bitnami-redis-stack, not redis: no association with version scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis:latest carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13 tag 13 is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13.16-alpine tag 13.16-alpine is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:17 tag 17 is outside event scope versions ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/postgresql:13 resolves to bitnami-postgresql only via namespace_rule (REVIEW_REQUIRED); not a proven exclusion from postgresql version scope ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "psycopg2 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project postgresql",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "django==4.2.11 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "Django==4.2 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "django==5.1.2 is outside scope versions ['4.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "djangorestframework resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project django",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "event is version-scoped to ['4.2']; dep version unknown",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_PACKAGE",
+    "confidence": "EMERGING",
+    "reason": "com.itextpdf/kernel is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/sign resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/itext7-core resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.lowagie/itext resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "org.apache.pdfbox/pdfbox resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "react==18.2.0 is within event scope version 18.2.0",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==18.3.1 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; newest evidence was fetched 2022-06-15, older than the 90-day freshness bound (stale), so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==17.0.2 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; newest evidence was fetched 2022-06-15, older than the 90-day freshness bound (stale), so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "preact resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:6.2 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   }
+  ],
+  "C-ablate-freshness": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "index.docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:7.2 matches affected artifact docker.io/bitnami/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/postgresql:16 matches affected artifact docker.io/bitnami/postgresql:16",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25.4-debian-12-r3 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/redis:7.2 matches affected artifact docker.io/bitnamilegacy/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:latest shares the repository of docker.io/bitnami/redis:7.2 but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/kafka@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and docker.io/bitnami/kafka:3.7 name the same repository but mix pinning forms (digest vs tag); a moving tag never reports digest-level certainty",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/library/nginx:1.25 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/spark:3.5 matches affected artifact docker.io/bitnami/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/spark:3.5 matches affected artifact docker.io/bitnamilegacy/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/apache/spark:3.5.4 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/spark:latest shares the repository of docker.io/bitnami/spark:<version> but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/coreos/etcd matches affected artifact github.com/coreos/etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/etcd-io/etcd resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "go.etcd.io/etcd/client/v3 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "etcd belongs to etcd; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "quay.io/coreos/etcd:v3.5.0 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/fireeye/capa matches affected artifact github.com/fireeye/capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/mandiant/capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/containous/traefik matches affected artifact github.com/containous/traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/traefik/traefik resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/library/traefik:2.10 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebookarchive/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "react-native-fbsdk belongs to react-native-fbsdk; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react-native-fbsdk-next resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/library/redis:6.2.14 tag 6.2.14 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:7.2 tag 7.2 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:8.0 tag 8.0 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:6.2 resolves to project bitnami-redis-stack, not redis: no association with version scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis:latest carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13 tag 13 is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13.16-alpine tag 13.16-alpine is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:17 tag 17 is outside event scope versions ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/postgresql:13 resolves to bitnami-postgresql only via namespace_rule (REVIEW_REQUIRED); not a proven exclusion from postgresql version scope ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "psycopg2 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project postgresql",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "django==4.2.11 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "Django==4.2 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "django==5.1.2 is outside scope versions ['4.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "djangorestframework resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project django",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "event is version-scoped to ['4.2']; dep version unknown",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_PACKAGE",
+    "confidence": "EMERGING",
+    "reason": "com.itextpdf/kernel is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/sign resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/itext7-core resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.lowagie/itext resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "org.apache.pdfbox/pdfbox resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "react==18.2.0 is within event scope version 18.2.0",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==18.3.1 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; scope is not exhaustive, so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react==17.0.2 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']; scope is not exhaustive, so not a clearance",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "preact resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": false
+    }
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:6.2 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   }
+  ],
+  "C-ablate-both": [
+   {
+    "case": "bn-01",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-02",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "index.docker.io/bitnami/nginx:1.25 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:7.2 matches affected artifact docker.io/bitnami/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-04",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/postgresql:16 matches affected artifact docker.io/bitnami/postgresql:16",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-05",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/nginx:1.25.4-debian-12-r3 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/redis:7.2 matches affected artifact docker.io/bitnamilegacy/redis:7.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:latest shares the repository of docker.io/bitnami/redis:7.2 but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-08",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/kafka@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and docker.io/bitnami/kafka:3.7 name the same repository but mix pinning forms (digest vs tag); a moving tag never reports digest-level certainty",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/library/nginx:1.25 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-01",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/spark:3.5 matches affected artifact docker.io/bitnami/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-02",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnamilegacy/spark:3.5 matches affected artifact docker.io/bitnamilegacy/spark:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/apache/spark:3.5.4 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "sp-04",
+    "event": "spark-mainline",
+    "class": "distribution",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/spark:latest shares the repository of docker.io/bitnami/spark:<version> but not its tag; the named tag does not establish the others",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-01",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/coreos/etcd matches affected artifact github.com/coreos/etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/etcd-io/etcd resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-03",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "go.etcd.io/etcd/client/v3 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-04",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "etcd belongs to etcd; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "et-05",
+    "event": "etcd-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "quay.io/coreos/etcd:v3.5.0 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project etcd",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-01",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/fireeye/capa matches affected artifact github.com/fireeye/capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/mandiant/capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "ca-03",
+    "event": "capa-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "flare-capa resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project capa",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-01",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/containous/traefik matches affected artifact github.com/containous/traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/traefik/traefik resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/library/traefik:2.10 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project traefik",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fm-01",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "EMERGING",
+    "reason": "github.com/facebook/react-native-fbsdk matches affected artifact github.com/facebook/react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "class": "relocation",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebookarchive/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-01",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "github.com/facebook/react-native-fbsdk resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-02",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "AFFECTS_PROJECT",
+    "confidence": "EMERGING",
+    "reason": "react-native-fbsdk belongs to react-native-fbsdk; project ties are contextual, not impact",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "fa-03",
+    "event": "fbsdk-archive",
+    "class": "archival",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "react-native-fbsdk-next resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react-native-fbsdk",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/library/redis:6.2.14 tag 6.2.14 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:7.2 tag 7.2 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:8.0 tag 8.0 is outside event scope versions ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "no_association",
+    "relationship": "UNKNOWN",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/redis:6.2 resolves to project bitnami-redis-stack, not redis: no association with version scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-06",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "redis==6.2.0 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis:latest carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb carries no comparable version for scope ['6.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13 tag 13 is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:13.16-alpine tag 13.16-alpine is within event scope version 13",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "EMERGING",
+    "reason": "docker.io/postgres:17 tag 17 is outside event scope versions ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-04",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "docker.io/bitnami/postgresql:13 resolves to bitnami-postgresql only via namespace_rule (REVIEW_REQUIRED); not a proven exclusion from postgresql version scope ['13']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "pg-05",
+    "event": "postgresql-13-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "psycopg2 resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project postgresql",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-01",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "django==4.2.11 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-02",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "Django==4.2 is within event scope version 4.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-03",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "django==5.1.2 is outside scope versions ['4.2']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-04",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "djangorestframework resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project django",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "dj-05",
+    "event": "django-4.2-eol",
+    "class": "lifecycle",
+    "independent": false,
+    "label": "undeterminable",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "event is version-scoped to ['4.2']; dep version unknown",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-01",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_PACKAGE",
+    "confidence": "EMERGING",
+    "reason": "com.itextpdf/kernel is inside event scope packages ['itext', 'itext7', 'itext-core', 'com.itextpdf/itext-core', 'com.itextpdf/kernel', 'com.itextpdf/layout']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-02",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/sign resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-03",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.itextpdf/itext7-core resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-04",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "com.lowagie/itext resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "it-05",
+    "event": "itext-license",
+    "class": "licence",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "org.apache.pdfbox/pdfbox resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project itext",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-01",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "CORROBORATED",
+    "reason": "react==18.2.0 is within event scope version 18.2.0",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-02",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "react==18.3.1 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-03",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "react==17.0.2 is outside scope versions ['18.0.0', '18.1.0', '18.2.0']",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "rx-04",
+    "event": "react-18-breaking",
+    "class": "breaking-change",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "unresolved",
+    "relationship": "RELATED",
+    "confidence": "UNVERIFIED",
+    "reason": "preact resolves only to itself; identity unresolved, so it is neither excluded from nor unrelated to project react",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_ARTIFACT",
+    "confidence": "CONFIRMED",
+    "reason": "docker.io/bitnami/redis:6.2 is inside event namespace scope docker.io/bitnami/*:<version>",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "in_scope",
+    "outcome": "affected",
+    "relationship": "AFFECTS_VERSION",
+    "confidence": "EMERGING",
+    "reason": "docker.io/redis:6.2 tag 6.2 is within event scope version 6.2",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "class": "distribution",
+    "independent": false,
+    "label": "out_of_scope",
+    "outcome": "cleared",
+    "relationship": "NOT_AFFECTED",
+    "confidence": "CORROBORATED",
+    "reason": "docker.io/redis:7.2 is outside the event artifact scope",
+    "justification": {
+     "sources_named": true,
+     "acquisition_time": true,
+     "completeness_basis": true
+    }
+   }
+  ]
+ }
+}

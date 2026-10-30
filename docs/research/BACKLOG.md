@@ -47,7 +47,7 @@ Purpose: turn scenarios into measurements (precision/recall, false-impact/clear 
 
 - [DONE] Kafka and cert-manager goldens formalized (M4): two EOL cycles each verified against live endoflife.date rows and packaged-image identity.
 - [DONE] Grafana and Terraform goldens (M4 now at 11 scenarios). [NEXT] one AI/ML project only where it tests a distinct hypothesis (doubles as the M8 entry point).
-- [NEXT] Benchmark harness reporting per-scenario applicability outcomes (affected/not/unknown vs expected) as a reproducibility package. Purpose: first step from scenarios to the research metrics the roadmap promises.
+- [DONE 2026-10-30, superseded by ROADMAP track R] The benchmark harness is now the evaluation harness (`evaluation/`). It compares decision policies against labelled cases (`evaluation/PROTOCOL.md`), and the remaining items are R-B3 to R-B7 and R-C. Purpose: to move from scenarios to the research metrics the roadmap promises.
 - [VALIDATION] Keep the Bitnami/iText/MinIO/Django/Redis/PostgreSQL/Kubernetes/Kafka/cert-manager nine green and historically pinned; any semantic change must flip-or-justify their assertions, never silently adjust them.
 
 ## P5 — Evidence Contract (attestation precursor)

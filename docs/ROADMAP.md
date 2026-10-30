@@ -10,9 +10,67 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-10-30): research track R (below) takes precedence until the TR-2026-01 journal submission. Earlier status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
-Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
+Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH, PAUSED. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
+
+## Re-baseline 2026-10-30: research track R takes precedence
+
+An external recommendation on TR-2026-01 (assessment: `papers/tr-2026-01/RECOMMENDATION_ASSESSMENT.md`) concludes that the report is a sound specification and implementation audit, but not yet a competitive journal submission. Its missing piece is evidence that completeness-aware decisions are *better* than simpler alternatives. We accept that conclusion. Until the journal submission, **track R below is the priority**. Everything else is either a prerequisite for R or waits.
+
+- Target: "Level 2", an empirically strengthened manuscript. It needs a precise contribution, independent validation, labelled historical cases and a comparative evaluation. Level 3 (multiple ecosystems, longitudinal and practitioner studies) is not a prerequisite.
+- TR-2026-01 itself may be published now as a technical report, with its claims as they stand. The journal version waits for R-C.
+- Rule for R: build only what an experiment needs. Every R item names the research question it serves. Product features that serve no R question wait.
+
+### R-A — Research design (contribution and protocol)
+STATUS: ACTIVE
+
+- [ACTIVE] **R-A1:** State the contribution as a testable model: when a negative applicability verdict is justified (scope typing, completeness with a basis, exact vs envelope, identity, freshness). Claim the model and its evaluation. Do not claim completeness reasoning or three-valued logic as new.
+- [NEXT] **R-A2:** Register the evaluation protocol (`evaluation/PROTOCOL.md`) as an archived, dated version before any held-out label exists. It must record the primary endpoint (FCR_affected non-inferiority against the strong baseline, plus superiority on resolution rate), numeric margins, the power justification for the number of events, and the freeze date.
+- [NEXT] **R-A3:** Widen related work on vulnerability applicability and VEX/CSAF consumption, SBOM accuracy, package identity (purl, cross-ecosystem naming), dependency management and AI package recommendation. Each comparison must answer one question: what can a consumer do with the model that it could not do reliably before?
+
+### R-B — Minimal OpenPulse enhancements the experiments need
+STATUS: ACTIVE
+
+- [DONE 2026-10-30] **R-B1:** Evaluation harness (`evaluation/`). It provides:
+  - decision policies A-naive, B-conservative and C-openpulse;
+  - input-transform ablations of completeness and freshness;
+  - the recommendation's metrics: false clears, FCR_affected and FCR_clear, silent misses, false impact, resolution, abstention, unsupported decisiveness and evidence completeness;
+  - replay of recorded evidence as known at a date (`replay.py`).
+- [DONE 2026-10-30] **R-B2:** Labelled development set, `evaluation/cases/dev-2026-10.json`: 60 pairs over 13 events, each label with a rationale and a source. It tests the harness and is not evaluation evidence.
+- [NEXT] **R-B3:** Fix evaluation finding **E1**. Package identity resolves by name across ecosystems, so redis-py (PyPI `redis`) is AFFECTS_VERSION under Redis server end of life. The fix is ecosystem-aware package identity in `core/entities` and the catalog's `osv` mapping. It touches the trust core: one PR, goldens re-justified, and the pinned known-finding test flipped.
+- [NEXT] **R-B4:** Strong conservative baseline (TR §10 baseline v). It uses the same scope language and admissibility, curated exact identities, and pinned ecosystem comparators (`packaging`, node-semver, Go `x/mod/semver`, Maven `ComparableVersion`). This is the primary comparison: without it, C-over-B shows only that OpenPulse beats a list reader.
+- [NEXT] **R-B5:** Identity ablation, in which unresolved identity is allowed to exclude (D10 off). It is the one ablation that needs a code switch rather than an input transform. Add it as an explicit engine parameter, never as a monkeypatch.
+- [NEXT] **R-B6:** Decisions expose their limitations. Add the negative-meaning fields of TR §5.1 to the contract and the MCP response: outside the directly named scope; embedded-component relation not evaluated; consequence not evaluated. Also add the completeness basis and `last_verified` next to every negative. The evaluation's evidence-completeness metric reads these fields.
+- [NEXT] **R-B7:** Independent specification check. Hand a second engineer the specification text, Algorithm 1 and the membership tests, but not the code. They write their own oracle and an edge-case set with expected outcomes and rationale, and we publish both, including disagreements. This addresses the circularity of an oracle written by the team that wrote the engine.
+- [LATER, only if R-C needs it] Ecosystem expansion beyond the current three change classes on two platforms.
+
+### R-C — Empirical evaluation
+STATUS: NEXT (blocked on R-A2 and R-B4)
+
+- **R-C1:** Held-out event set. Sample from sources that do not feed OpenPulse, with per-class inclusion criteria fixed first, over a window after the implementation freeze. A prospective window is preferred: OpenPulse cannot replay registry state it never recorded, and reconstructing past state from today's state invites hindsight bias. Retrospective events are admitted only with archived contemporaneous evidence.
+- **R-C2:** Independent labels. Two annotators outside the detector's development, adjudication by a third, and Cohen's κ. Undeterminable is a first-class label. This needs external collaborators (see Availability and Collaboration in the report) and is the schedule's critical path.
+- **R-C3:** Comparison. Run A, B, the strong baseline v and C, plus the ablations (completeness, freshness, identity, the gate), with event-clustered intervals and stratification by event class, identity status and completeness basis. Include error analysis of every wrong or unresolved decision.
+- **R-C4:** Discovery on historical changes. Report precision, and recall against an independent reference set only where a defensible ground truth exists. Report scope-construction and identity-resolution accuracy separately from decision accuracy. Name the classes with no reliable ground truth.
+- Pre-commitment: the result decides the claim. "Fewer false clears at the cost of more abstentions" and "no better than the strong baseline" are both reportable outcomes. Neither is repaired by adding features.
+
+### R-D — Paper revision and submission
+STATUS: FUTURE (after R-C)
+
+- **R-D1:** Rewrite the introduction and contributions around the demonstrated gap. Every major claim cites an R-C result or is removed.
+- **R-D2:** Reproducibility package: a tagged, archived release (DOI) containing the dataset with its SHA-256, the protocol version, the harness, raw results, ground-truth construction notes, and examples of wrong and unresolved decisions.
+- **R-D3:** Choose the venue from the finished contribution, not before.
+
+### What track R pauses or defers
+
+| Work | Disposition | Reason |
+|---|---|---|
+| M6 SaaS surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
+| M7 Intelligence Network | FUTURE (unchanged) | |
+| M9, and SafeAI integration in this paper | DEFERRED | It widens scope and complicates attribution. It stays a separate future study. |
+| v0.8.0 Anchored Trust (keyed history, external anchoring) | NEXT after R-C | Needed for lead-time claims. The applicability evaluation does not rest on them. The paper keeps lead times as caveated observations. |
+| E1–E5 external developments | E5 (comparator runs) folded into R-C3; E1–E4 LATER | |
+| Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue only where they fix a false clear or false impact | |
 
 ## Product thesis (kept)
 
@@ -143,7 +201,7 @@ ACTION
 Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), and GitHub repository input (`core/github_reader.py`). All inputs converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing. GitHub inspection is bounded, commit-pinned, and reports partial/unsupported coverage rather than treating absence as proof of no dependencies.
 
 ## M6 — Early Warning SaaS
-STATUS: ACTIVE / OPERATIONALIZATION
+STATUS: PAUSED 2026-10-30 for track R (was ACTIVE / OPERATIONALIZATION)
 
 Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
 
@@ -160,7 +218,7 @@ Implemented (2026-10-24): an MCP server lets coding agents query dependency evid
 Research question: how should dependency intelligence change when AI agents increasingly select, introduce, upgrade and remove software dependencies? OpenPulse contributes dependency intelligence + applicability + evidence + temporal context; SafeAI contributes agent authority + change + authority evidence. Do NOT put an AI agent in the trusted decision path; study the evidence question first.
 
 ## M9 — Evidence-Based Assurance for AI-Mediated Software Change
-STATUS: RESEARCH / FUTURE (flagship experiment, hypothesised)
+STATUS: RESEARCH / FUTURE (flagship experiment, hypothesised); DEFERRED out of the TR-2026-01 journal version
 
 Can agent-authority evidence and dependency evidence be combined into safer, more explainable decisions? Compare dependency-only (OpenPulse) vs authority-only (SafeAI) vs combined evidence (+ deterministic policy) on: unsafe changes detected, false positives/negatives, unnecessary reviews, decision explainability, evidence completeness, unknown conditions, reproducibility, human decision effort. None of this is proven; the experiment is the point.
 
@@ -228,12 +286,15 @@ Considered and not adopted: dependency-discovery benchmarking (inventory generat
 - DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
 - DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.8.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 
-## Next 90 Days (reconciled 2026-10-21)
+## Next 8–16 weeks (re-baselined 2026-10-30; supersedes the 2026-10-21 list)
 
-1. ~~v0.6.1 correctness/leak fixes~~ DONE 2026-10-21; ~~collector response caps (A6b)~~ DONE in v0.7.1.
-2. v0.8.0 Anchored Trust (M1 requirement, not expansion) — derived source authority, derived independence, keyed history integrity with rollback detection and external anchoring, portable (JCS) contract hashing. Lead-time claims cite keyed-valid detections only.
-3. Early-warning operationalization (M6) — persistent delivery state, deterministic deduplication/retry policy, DNS-pinned webhook transport, CI/PR integration. Builds on item 2.
-4. Real non-lifecycle discovery (M2) — a live namespace-move pair for `split_moves`; repository/archive and support/license candidates per the backlog.
-5. Benchmark harness (M4) and release supply chain — per-scenario reproducibility package; hash-pinned lock, signed releases with provenance.
+This is a planning estimate, not a commitment: independent labelling and ground-truth construction may take longer.
+
+1. **Weeks 1–2:** publish TR-2026-01 as a technical report with its current claims. Register the protocol (R-A2). Fix E1 (R-B3). Build the strong baseline (R-B4) and the identity ablation (R-B5). Recruit annotators and an independent oracle author (R-B7, R-C2).
+2. **Weeks 2–6:** contract negative-meaning fields (R-B6). Independent oracle and edge-case set (R-B7). Freeze the implementation and tag it. Start the prospective event window (R-C1).
+3. **Weeks 6–12:** independent labelling (R-C2), the comparison and ablations (R-C3), discovery precision and recall (R-C4).
+4. **Weeks 12–16:** paper revision and reproducibility package (R-D).
+
+Superseded items from the 2026-10-21 list: v0.8.0 Anchored Trust moves after R-C. M6 operationalisation is PAUSED. The M4 benchmark harness is superseded by R-B1, the evaluation harness. Real non-lifecycle discovery (M2) continues only where it feeds R-C1.
 
 Do not add unrelated features. This roadmap exists to stop OpenPulse from becoming a feature-rich data aggregator and instead drive it toward a defensible dependency-intelligence product and a credible research instrument.
