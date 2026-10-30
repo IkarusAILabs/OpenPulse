@@ -79,7 +79,10 @@ decisions without letting incomplete evidence become a \emph{false
 clear}, meaning a report that a dependency is not affected when it is.
 We present \op{}, an open-source instrument that collects such evidence,
 qualifies it, and applies it to declared inventories. Our contributions
-are a typed applicability specification in which a negative verdict
+are a typed applicability specification, a specific and testable
+model that combines established ideas (completeness-aware negatives,
+conservative abstention, a third truth value) for dependency
+decisions, in which a negative verdict
 requires a complete scope and decisive exclusion of every scope
 element, with a short soundness lemma that separates the aggregation
 argument from the premises an implementation must establish; an audit
@@ -186,8 +189,16 @@ questions:
     Two short lemmas prove that its negatives are sound given coverage
     and test soundness, and that its positives are sound given the
     separate premise of exactness. A table maps the premises to the
-    components that must establish them (Section~\ref{sec:applicability}). We regard
-    the completeness condition on negatives as the distinctive idea.
+    components that must establish them (Section~\ref{sec:applicability}).
+    Completeness-aware reasoning, conservative abstention and a third
+    truth value are established ideas, and we do not claim them. What
+    we add is their combination into a specific, testable model for
+    dependency applicability: typed scope elements over heterogeneous
+    identities, completeness with a recorded basis, exact elements kept
+    apart from envelopes, and identity, freshness and consistency in
+    one decision rule. Section~\ref{sec:novelty} separates prior work
+    from this addition and states, part by part, what the evidence does
+    and does not yet show.
     The contribution is an assurance methodology: a property, an
     encoding that makes it machine-checkable, and an audit discipline.
     Of the report's parts, this applicability-decision policy and its
@@ -385,6 +396,15 @@ abandoned~\cite{miller2023winging}. These studies characterise the
 process. We detect observable end states and relate them to
 inventories.
 
+\paragraph{Dependency management.} Dependency networks differ in size,
+growth and update practice across packaging
+ecosystems~\cite{decan2019empirical}, and developers often keep
+outdated dependencies, frequently because they are unaware that an
+update or a migration is needed~\cite{kula2018developers}. That
+unawareness is the gap this report addresses for changes that are not
+vulnerabilities: the question is not whether to update, but whether a
+given upstream change applies to a given declared dependency at all.
+
 \paragraph{Supply-chain attacks and namespaces.} Attack
 taxonomies~\cite{ohm2020backstabber,ladisa2023sok} and ecosystem
 studies~\cite{zimmermann2019small,zahan2022weak,gu2023investigating}
@@ -395,8 +415,13 @@ names are retired against reuse~\cite{github2026transfer}. Industry
 research describes the resulting ``repojacking''
 risk~\cite{goldman2023repojacking}.
 
-\paragraph{Applicability and vulnerability data.} Reachability analysis
-decides whether vulnerable code is used~\cite{ponta2018beyond,ponta2020detection}.
+\paragraph{Applicability and vulnerability data.} Vulnerability
+applicability has been studied at the level of code: impact assessment
+and reachability analysis decide whether vulnerable code is present
+and used~\cite{plate2015impact,ponta2018beyond,ponta2020detection}.
+That is a finer question than ours, and a complementary one. It
+assumes that the vulnerable component has already been associated with
+the dependency, which is the step at which our false clears arise.
 Naive counting inflates vulnerability figures~\cite{pashchenko2018vulnerable},
 and SCA tools disagree~\cite{imtiaz2021comparative}. OSV~\cite{osvschema},
 GHSA~\cite{ghsa}, NVD~\cite{nistnvd}, KEV~\cite{cisakev} and
@@ -407,7 +432,13 @@ measures lags between events and records~\cite{li2017patches,chinthanet2021lags}
 \paragraph{Provenance, posture and logs.} in-toto~\cite{torresarias2019intoto},
 SLSA~\cite{slsa12} and Sigstore~\cite{newman2022sigstore} establish
 build provenance. CycloneDX~\cite{ecma424} and SPDX~\cite{spdx}
-standardise inventories. Scorecard~\cite{zahan2023scorecard} and
+standardise inventories. Empirical studies of SBOM practice report
+that producers and consumers struggle with the completeness and
+accuracy of the inventories themselves~\cite{xia2023sbom,stalnaker2024boms}.
+Our setting has the same problem on the other side of the match: an
+inventory may be incomplete, and so may an event's affected set. Only
+the second is modelled here; inventory coverage is reported as a
+separate qualifier (Section~\ref{sec:consumers}). Scorecard~\cite{zahan2023scorecard} and
 deps.dev~\cite{depsdev} provide posture signals. Hash-chained
 logs~\cite{schneier1999audit}, history trees~\cite{crosby2009tamper}
 and Certificate Transparency~\cite{rfc6962,rfc9162} are the standard
@@ -417,17 +448,28 @@ tamper-evident designs.
 insecure~\cite{pearce2022asleep}. Models hallucinate package
 names~\cite{spracklen2025package,krishna2025phantoms}, and agents that
 read external content are exposed to indirect prompt
-injection~\cite{greshake2023indirect,debenedetti2024agentdojo}.
+injection~\cite{greshake2023indirect,debenedetti2024agentdojo}. This
+work studies whether a recommended package exists or is malicious. It
+does not ask whether a real, existing dependency is affected by an
+upstream change after the model's knowledge was fixed, which is the
+input our model supplies to such a decision.
 Container studies examine image content~\cite{shu2017dockerhub,zerouali2019outdated,cito2017docker,lin2020dockerhub}
 rather than changes to how pinned images are distributed.
 
 \paragraph{Completeness reasoning.} The underlying principle is old.
 Under the closed-world assumption, absence from a database is read as
 falsity~\cite{reiter1978closed}. Without it, a negative conclusion
-needs explicit knowledge of completeness. Incomplete-information
-databases make that distinction formal~\cite{imielinski1984incomplete}.
+needs explicit knowledge of completeness. A third truth value for
+``unknown'' goes back to Kleene's strong three-valued
+logic~\cite{kleene1952introduction} and to null values in the
+relational model~\cite{codd1979extending}, and incomplete-information
+databases make the distinction formal~\cite{imielinski1984incomplete}.
 Completeness assertions attached to parts of a database say where
 absence may be read as falsity~\cite{motro1989integrity}. Local
+completeness statements let a query answer be declared complete from
+incomplete sources~\cite{levy1996obtaining}, and later work decides
+when a query over partially complete data is itself
+complete~\cite{razniewski2011completeness}. Local
 closed-world reasoning lets a planner draw negative conclusions only
 where its information is known to be complete~\cite{etzioni1997closed}.
 Our coverage premise is an over-approximation in the sense of abstract
@@ -445,8 +487,12 @@ unresolved status (\emph{under investigation}). The CISA minimum
 requirements attach a justification or impact statement to \emph{not
 affected}, which preserves a rationale for a negative. VEX documents
 are versioned, and we have not verified how consistently consumers
-invalidate earlier statements. Two properties we did not find in the
-formats we reviewed (OSV, VEX and OpenVEX, CycloneDX): a
+invalidate earlier statements. CSAF~\cite{oasis2022csaf} carries the
+same statuses (known affected, known not affected, fixed, under
+investigation) over a product tree whose branches can name vendors,
+products and version ranges; status is still asserted per product in
+that tree. Two properties we did not find in the
+formats we reviewed (OSV, VEX and OpenVEX, CSAF, CycloneDX): a
 representation of whether an \emph{affected-object set is complete},
 so that a negative can be conditioned on it, and one applicability rule
 relating an upstream change to \emph{heterogeneous} dependency
@@ -541,6 +587,134 @@ and Sigstore are provenance and build assurance. The text after this
 table gives a worked example of the behavioural difference.}
 \label{tab:capabilities}
 \end{table}
+
+\subsection{What is new, and what it enables}
+\label{sec:novelty}
+
+Completeness-aware reasoning, conservative abstention and a third
+truth value for ``unknown'' are established ideas (above), and we claim
+none of them. Our claim is narrower and testable: a specific
+\emph{model for dependency applicability decisions}, made precise
+enough that an implementation can be checked against it and that it
+can be compared with simpler policies on real changes.
+Table~\ref{tab:novelty} separates, for each part of that model, what
+is prior, what this report adds, how the addition is tested, and what
+the evidence shows so far. Each row is a candidate contribution, and
+several are not yet validated.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.6cm}@{}}
+\toprule
+Candidate contribution & Established idea & What this report adds & Evidence so far \\
+\midrule
+Representation of scope and its completeness &
+  Completeness assertions on parts of a
+  database~\cite{motro1989integrity,levy1996obtaining} &
+  Typed scope elements over heterogeneous dependency identities
+  (repository, tag, release line, object, package, registry, project),
+  with completeness as a state plus a recorded basis, exported in the
+  evidence contract (Sections~\ref{sec:scope}
+  and~\ref{sec:consumers}) &
+  Conformance: 6{,}195 matrix cases and 100{,}000 random cases agree
+  with an oracle. Representability: 27 real events; four scope forms
+  could not be stated exactly (Section~\ref{sec:retro}) \\
+Conditions for a justified negative &
+  Closed-world and local closed-world
+  reasoning~\cite{reiter1978closed,etzioni1997closed} &
+  Admission conditions N1--N5 and a lemma separating the aggregation
+  argument from the premises an implementation must establish
+  (Section~\ref{sec:soundness}) &
+  Proof is conditional. On 27 events, assuming completeness everywhere
+  produced no additional false clear, so the condition's safety value
+  is not yet isolated empirically \\
+Exact elements versus envelopes &
+  Over-approximation in abstract
+  interpretation~\cite{cousot1977abstract} &
+  Roles by element form: an envelope may exclude but never yields a
+  positive; an exact element may do both (Section~\ref{sec:scope}) &
+  The over-match D7 was found and fixed; the D7 and role mutants are
+  caught. Retrospective false impact 1.6\% against 3.2\% for the
+  list-based policies \\
+Identity, freshness and consistency in one decision &
+  Conservative handling of unknowns; VEX \emph{under
+  investigation}~\cite{cisa2023vex} &
+  Unresolved identity never excludes (D10, F4); stale, withdrawn,
+  superseded and contested events never clear (N4, N5); per-ecosystem
+  package identity (F1--F3) (Sections~\ref{sec:identity}
+  and~\ref{sec:temporal}) &
+  Identity: treating unresolved identity as unrelated raised silent
+  misses from 11.7\% to 29.1\% of in-scope pairs. The freshness
+  ablation changed no decision, and no event was contested, so those
+  rules were not exercised \\
+Implementation, audit and evaluation &
+  Differential and mutation testing; prospective evaluation &
+  An oracle written from the specification, a defect re-injection
+  suite, a registration draft, and an exploratory retrospective study
+  (Sections~\ref{sec:audit}, \ref{sec:evalplan} and~\ref{sec:retro}) &
+  22 of 22 re-injected defects caught. Retrospective: no false clear
+  where a naive list reading had 35 (10 events). Registered test not
+  yet run; labels not independent \\
+\bottomrule
+\end{tabularx}
+\caption{What is prior, what this report adds, and what is validated.
+``Evidence so far'' states results and their limits; none of the rows
+is established by the prospective, independently labelled evaluation
+that Section~\ref{sec:evalplan} specifies.}
+\label{tab:novelty}
+\end{table}
+
+\paragraph{What the model lets one do.} The question a reader should
+ask is what a researcher or practitioner can do with this model that
+existing approaches do not do as reliably. Our answer has five parts,
+each with its evidence and its limit.
+\begin{enumerate}[leftmargin=*]
+  \item \emph{Issue a negative whose justification travels with the
+    data.} The completeness state and its basis are part of the
+    affected set, so any consumer can mechanically reject a
+    \textsc{NotAffected} whose scope is not complete on a recorded
+    basis. In existing formats that rule lives in each consumer's
+    policy (Table~\ref{tab:vexcmp}). On 27 historical events, reading
+    affected lists naively produced 35 false clears in 10 events; the
+    model produced none. A conservative policy that never clears is
+    equally safe, so this part is about making negatives auditable,
+    not about safety over every alternative.
+  \item \emph{Clear what is plainly out of scope without enumerating
+    it.} Namespace, registry and release-line elements with a declared
+    complete scope let a consumer clear \code{docker.io/redis} under a
+    Bitnami change at equal safety (Table~\ref{tab:vexcmp}). Against
+    a policy that never clears, the retrospective gain in resolution
+    was 0.091 at the freeze (below the registered 0.10) and 0.170
+    after two defect fixes, a post-hoc figure.
+  \item \emph{Keep identity uncertainty visible instead of turning it
+    into exclusion.} The identity rule is the part with the clearest
+    evidence: ablating it, so that an unresolved package or image
+    counts as unrelated, silently dropped 18 more in-scope pairs in the
+    retrospective study.
+  \item \emph{Test an implementation against the decision rule.}
+    Because the model fixes what absence means for each element kind,
+    an oracle can be written from the text and compared with any
+    implementation. Doing so found defects that the regression suite
+    had encoded as correct (Section~\ref{sec:audit}), and every
+    re-injected defect is caught. Formats that leave absence to the
+    consumer give no such reference to test against.
+  \item \emph{Say what cannot be stated.} A scope that the language
+    cannot express exactly is stated as a safe over-approximation and
+    recorded as a gap, never silently narrowed. The retrospective study
+    found four such forms, which bounds the model's reach rather than
+    hiding it.
+\end{enumerate}
+What the model does not do is equally specific. It does not decide
+whether vulnerable code is reachable. It does not by itself make
+decisions better than a careful implementation of the same model: the
+strong baseline~(v) uses the same scope language and differed from
+\op{} by 0.030 in resolution at the freeze. So the contribution is the
+model and its checkability, not a superior engine. And the study could
+not attribute the absence of false clears to the completeness
+condition alone, because typed elements and identity rules act
+together; isolating it needs events whose published affected lists are
+incomplete, which the prospective evaluation is designed to sample.
 
 \section{Q1: What Evidence Is Missing from a Dependency Decision}
 \label{sec:problem}
