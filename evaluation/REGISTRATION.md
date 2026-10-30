@@ -8,7 +8,7 @@
 - the review-burden measures W1–W3: the inventory run per weekly cycle, and W3's seeded sample and summary;
 - the reliability measures D1–D2, tabulated from the annotators' records.
 
-The stopping rule (§6) and the inclusion criteria per event class (§7) are drafted (2026-10-30) for the author to confirm or change before archiving. What remains is the registry fields of the table below: registry and identifier, archive date, implementation freeze, event-window start, and annotators.
+The stopping rule (§6) and the inclusion criteria per event class (§7) are set (drafted and approved by the author, 2026-10-30). What remains is the registry fields of the table below: registry and identifier, archive date, implementation freeze, event-window start, and annotators.
 
 | Field | Value |
 |---|---|
@@ -159,7 +159,7 @@ The soundness lemma makes a negative sound only if its inputs are true of the re
 **Events.** The target is **60–80 independent events at risk**.
 - At 60 events with zero false-clear events, the exact bound is 0.049, which meets δ.
 - **A single false-clear event fails H1 at 60 events** (bound 0.0766). Tolerating one needs at least 93 events. That strictness is intended, and the author may choose to sample more events.
-- **Stopping rule** (drafted 2026-10-30; the author confirms or changes it at archiving):
+- **Stopping rule** (set 2026-10-30, before archiving):
   - Collection stops when **80 events** meet the inclusion criteria (§7), counted in order of first observation.
   - If fewer than 60 of those 80 are at risk (at least one in-scope pair), sampling continues in the same order until 60 are at risk, or until the window closes. Whether an event is at risk is read from its adjudicated labels alone, and no policy runs before collection stops. So the rule depends on labels, never on a result.
   - If the window closes with fewer than 60 events at risk, the result is "not decidable" (§3).
@@ -186,7 +186,7 @@ At the drafted 80 events and 8 pairs per event: about 640 pairs, so 32–53 hour
 - **Sources:** events are sampled from sources that do not feed OpenPulse: vendor and project announcements, distribution changelogs, and platform transfer and archival records.
 - **Window:** a **prospective** observation window that starts after the implementation freeze (§1 table). OpenPulse cannot replay registry state it never recorded, and reconstructing past state from today's invites hindsight bias. A retrospective event is admitted only with archived contemporaneous evidence, and is reported separately.
 - **Classes:** repository relocation, repository archival, distribution change (images or tags withdrawn or moved), lifecycle end (EOL/EOS), licence change, and breaking release.
-- **Inclusion criteria** (drafted 2026-10-30; the author confirms or changes them at archiving). They are fixed before sampling, and adapted from the retrospective study's (`evaluation/retrospective/DESIGN.md` §3) to a prospective window.
+- **Inclusion criteria** (set 2026-10-30, before archiving). They are fixed before sampling, and adapted from the retrospective study's (`evaluation/retrospective/DESIGN.md` §3) to a prospective window.
 
   **Every event must meet all of these:**
 
@@ -302,7 +302,7 @@ Development-set results are illustrative, never evidence. They are in `evaluatio
 
 None of the primary hypotheses, margins, sample-size rules or thresholds of §3 changed.
 
-**Drafted 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
+**Set 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** Drafted with Claude Code and approved by the author. They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
 
 ## 13. Known limitations of the design
 
