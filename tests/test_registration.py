@@ -36,7 +36,14 @@ def test_thresholds_are_the_registered_values():
 
 @pytest.mark.parametrize(
     "k, n, expected",
-    [(0, 60, 0.0487), (0, 100, 0.0295), (1, 60, 0.0766), (1, 93, 0.05), (1, 95, 0.0490), (0, 0, None)],
+    [
+        (0, 60, 0.0487),
+        (0, 100, 0.0295),
+        (1, 60, 0.0766),
+        (1, 93, 0.05),
+        (1, 95, 0.0490),
+        (0, 0, None),
+    ],
 )
 def test_clopper_pearson_upper_bound(k, n, expected):
     assert reg.clopper_pearson_upper(k, n) == expected
