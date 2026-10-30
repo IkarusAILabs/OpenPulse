@@ -14,6 +14,7 @@
 4. **Most non-decisions come from identity, not scope.** All 31 compromised-package pairs and most deprecation neighbours are unresolved, because the packages (colors, faker, node-ipc, ua-parser-js, event-stream, sass and others) are not in OpenPulse's catalog. A package with no recorded identity is left unresolved by design (F4). Unsupported decisiveness is 0% for C: it decided neither undeterminable pair.
 5. **Discovery was weak at the freeze tag** (§5): 0 of 15 events detected as shipped, and 5 of 15 when each repository or image was supplied directly. All 5 are archivals, each with a project-wide scope broader than the fixture's. The GitHub collector does not follow GitHub's 301 redirect for transferred repositories. So the relocation analyst never observes the ownership change it exists to detect (defect **D-R2**), and only 1 of the 15 discovery-class projects is in the catalog.
 6. **After fixes** (§7a; post hoc, not the result): both defects are fixed in #183. On the same frozen case file, C has 0 silent misses, so G1 passes. Resolution rises to 58.2%, and both the H2 gain over B (0.170, lower bound 0.031) and the lead over V (0.109) are now positive. There are still no false clears, and all three relocations are discovered.
+7. **A false clear outside the study's measurement** (§7b): the study's C runs the event stream only. It passes no advisory bundles, so OpenPulse's **security stream** (OSV/NVD advisories) was never exercised. Feeding OSV advisories by package in a follow-up exposed **D-S1**: advisories without a CVE id were dropped, so node-ipc **9.2.2**, the protestware version, read **NOT_AFFECTED**. The study's "no false clears" therefore holds for the event stream only. D-S1 and two false-impact defects in the same reader (D-S2, D-S3) are fixed in #186.
 
 ## 1. Method as executed
 
@@ -227,6 +228,9 @@ The run above is the result **at the freeze tag**. Under DESIGN §7, fixes land 
 |---|---|---|---|
 | D-R1 | `check_dependency` does not compare a Go module package with a source-repository artifact naming the same path | 12 silent misses (RQ-R1) | Fixed in #183 (`abcb685`) |
 | D-R2 | The GitHub collector treats the API's 301 for a transferred repository as an error, so ownership drift is never observed | Discovery of REL-1, REL-3 and REL-4 (RQ-R3) | Fixed in #183 (`abcb685`) |
+| D-S1 | The security stream keys advisories by CVE and drops any without one (GHSA-only, MAL-) | Follow-up, outside the study (§7b): node-ipc 9.2.2 **false clear** | Fix in #186 |
+| D-S2 | Every `affected` entry of an OSV advisory is applied to the queried package, including entries for other packages | Follow-up (§7b): event-stream 3.3.4 false impact | Fix in #186 |
+| D-S3 | An OSV entry with listed versions and no range leaves every other version undecided, which reads as package-level affected | Follow-up (§7b): faker 5.5.3 false impact | Fix in #186 |
 
 ## 7a. After fixes (reported separately)
 
@@ -254,8 +258,42 @@ These figures are post hoc. The fixes were written after seeing the freeze-tag e
 - Supplied recall is 8 of 15 (it was 5). As-shipped recall is still 0 of 15, because the projects are not catalogued.
 - The distribution events and DEP-1 are still missed, for the reasons in §5.
 
+## 7b. Follow-up findings outside the study's measurement
+
+These defects were found **after** the study, while closing its compromised-package gap. They are **not** results of the study, which measured only the event stream. They are reported here because they bear on what the study's safety result means.
+
+**Why the study could not see them.** Policy C calls `check_dependency(dep, events, ...)` with no advisory bundles (`evaluation/policies.py`). OpenPulse's second decision path, the security stream, correlates OSV/NVD/KEV advisories by package and version. It therefore never ran on any of the 167 pairs. The compromised-package pairs were unresolved (§6) because the event stream had no catalogued identity for them. No advisory was consulted.
+
+**How they were found.** The follow-up feeds OSV advisories by each dependency's own (ecosystem, name), as `openpulse discover` does in #186, and lets the security stream decide by version. Run live against the five compromised packages, it gave these results at the freeze-tag code:
+
+| Defect | Package and version | Decision at the freeze-tag code | Correct |
+|---|---|---|---|
+| **D-S1** | node-ipc 9.2.2 (protestware, GHSA-97m3-w2cp-4xx6, no CVE) | **NOT_AFFECTED**, against CVE-2022-23812, which does not cover 9.2.x | Affected |
+| D-S1 | faker 6.6.6, event-stream 3.3.6 (advisories without a CVE) | No applicable evidence | Affected |
+| D-S2 | event-stream 3.3.4 | Affected, through flatmap-stream's "introduced 0" entry in the same advisory | Not affected |
+| D-S3 | faker 5.5.3 | Affected at package level, from the advisory listing only 6.6.6 | Not affected |
+
+**Fixes, in #186:**
+- An advisory with no CVE keeps its own id (GHSA-…, MAL-…).
+- Only `affected` entries naming the queried package count.
+- With no range, a version comparable with, and unequal to, every listed version is outside the entry, following the OSV schema. Any incomparable listed version still withholds the negative.
+
+Regression tests for D-S1 and D-S2 fail on the old code and pass with the fix.
+
+**Illustrative only.** After the fixes, the study's 31 compromised-package pairs were run through today's OSV records:
+- all 16 in-scope versions are flagged;
+- there are no false clears;
+- 11 out-of-scope versions are cleared;
+- 3 scoped npm packages (`@scope/name`) stay unresolved, because identity resolves them to an empty key;
+- 1 pair is flagged by a different, real advisory: ua-parser-js 0.7.30, ReDoS CVE-2022-25927.
+
+This uses **today's** advisories, on the study's own events: hindsight, not knowledge at each event's replay date. It is not evidence of performance.
+
+**What this means for the article.** The safety claim must be scoped to the event stream: "no false clears by the event-scope engine on 27 events". The security stream needs its own evaluation, with advisories as they stood at each replay date, before any claim covers it.
+
 ## 8. Limitations
 
+- **Only the event stream was measured.** The security stream (OSV/NVD advisories) was not exercised by the study, and it held a false-clear defect (D-S1, §7b). The study's safety result covers event-scope decisions only.
 - **The labels are the developer's.** There are no independent human labels. The AI-assisted pilot agrees with L1 (κ = 0.825), but it is not a second human judgement. Any error in L1's rules propagates into every metric.
 - **Small sample.** 27 events cannot decide H1, which needs 60. The confidence intervals are wide, and the pairs within an event are correlated, so the tests are clustered by event.
 - **The events are not a population sample.** They were researched under class quotas (DESIGN §3), so recall and rates describe this set only.
