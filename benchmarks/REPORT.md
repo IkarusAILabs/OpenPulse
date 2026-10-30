@@ -7,22 +7,30 @@ python benchmarks/cost.py          # offline: matching and history growth
 python benchmarks/cost.py --live   # also live acquisition through the agent interface
 ```
 
-Raw results are in `benchmarks/results/cost.json`. Since 2026-10-30 that file holds the re-measurement at `a1ecc58` below; the tables in the rest of this report are the original 2026-10-29 run.
+Raw results are in `benchmarks/results/cost.json`. Since 2026-10-30 that file holds a run with the catalogue-map cache (`0174a26`, below); the tables in the rest of this report are the original 2026-10-29 run.
 
-## Re-measurement at `a1ecc58` (2026-10-30)
+## Re-measurement at `a1ecc58`, and with the cache (2026-10-30)
 
-On the same machine, three runs at `a1ecc58` were interleaved with two fresh runs of the audit snapshot `8a9c3a8`. The fresh `8a9c3a8` runs reproduced the tables below within about 15%. Medians:
+On the same machine, three runs at `a1ecc58` were interleaved with two fresh runs of the audit snapshot `8a9c3a8`. The fresh `8a9c3a8` runs reproduced the tables below within about 15%. The "with cache" column is `a1ecc58` plus the catalogue-map cache (`0174a26`), measured in three further runs. Medians:
 
-| Setting | `8a9c3a8` | `a1ecc58` |
-|---|---:|---:|
-| µs per pair (inventory sizes 100–5,000, 10 events) | 42 | 75 |
-| 5,000 dependencies × 10 events | 2.1–2.6 s | 3.7–3.9 s |
-| 1,000 dependencies × 100 events | 3.98 s | 6.85 s |
-| Per scope element per pair | 2.6–2.8 µs | 2.9–3.4 µs |
-| Peak memory, 5,000 × 10 | 24.6 MiB | 24.6 MiB |
-| Sweep per repository / store growth per run | 34 ms / 6.1–7.1 KB | 34 ms / 6.1–7.1 KB |
+| Setting | `8a9c3a8` | `a1ecc58` | with cache |
+|---|---:|---:|---:|
+| µs per pair (inventory sizes 100–5,000, 10 events) | 42 | 75 | 25 |
+| 5,000 dependencies × 10 events | 2.1–2.6 s | 3.7–3.9 s | 1.9 s |
+| 1,000 dependencies × 100 events | 3.98 s | 6.85 s | 2.66 s |
+| Per scope element per pair | 2.6–2.8 µs | 2.9–3.4 µs | 3.0–3.2 µs |
+| Peak memory, 5,000 × 10 | 24.6 MiB | 24.6 MiB | 24.6 MiB |
+| Sweep per repository / store growth per run | 34 ms / 6.1–7.1 KB | 34 ms / 6.1–7.1 KB | 35–45 ms / 6.1–7.1 KB |
 
-**Matching is about 1.8× slower** at `a1ecc58`. The cause is a fixed cost per package dependency, not per scope element. Since F1, `package_trust` rebuilds the catalogue's package map (`package_map`) on every call, and `resolution_trust` rebuilds the alias map (`catalog_alias_map`). In a profile of 1,000 dependencies × 10 events, these account for about 2.6 s of 3.5 s. Caching the derived maps per catalogue object would remove that cost; it has not been applied yet. Sweep and store costs are unchanged.
+**Matching was about 1.8× slower** at `a1ecc58`. The cause was a fixed cost per package dependency, not per scope element. Since F1, `package_trust` rebuilt the catalogue's package map (`package_map`) on every call, and `resolution_trust` rebuilt the alias map (`catalog_alias_map`). In a profile of 1,000 dependencies × 10 events, these took about 2.6 s of 3.5 s.
+
+**The cache** (`0174a26`) memoises those maps per catalogue object. It brings matching to about 25 µs per pair, below the audit snapshot. Decisions are unchanged:
+- the conformance matrix;
+- 100,000 random cases;
+- 22 re-injected mutants;
+- the dev and retrospective case files.
+
+Per-element scope cost is the same. The sweep code is unchanged, so its spread across columns is run-to-run variation.
 
 ## Matching (offline, `check_watchlist`)
 
