@@ -256,10 +256,22 @@ def main() -> int:
     sample |= set(rest[: max(0, target - len(sample))])
     (HERE / "labelling").mkdir(exist_ok=True)
     (HERE / "labelling" / "L2-sample.json").write_text(json.dumps({"seed": SAMPLE_SEED, "pairs": sorted(sample)}, indent=1) + "\n", encoding="utf-8")
+    # Round 2 (DESIGN §11): each pair carries its event's title and the
+    # archived sources' own words, so L2 judges this event and no other.
+    statement = {}
+    for eid in events:
+        fixture = json.loads((HERE / "events" / eid / "event.json").read_text("utf-8"))
+        statement[eid] = {
+            "event_title": fixture["title"],
+            "sources": [
+                {"name": e["source"]["name"], "url": e["source"]["url"], "archived": e["source"]["acquisition_method"], "quote": e["excerpt"]}
+                for e in fixture["evidences"]
+            ],
+        }
     with open(HERE / "labelling" / "L2-packet.jsonl", "w", encoding="utf-8", newline="\n") as f:
         for c in cases:
             if c["id"] in sample:
-                f.write(json.dumps({"id": c["id"], "event": c["events"][0], "dependency": c["dependency"], "label_source": c["label_source"]}) + "\n")
+                f.write(json.dumps({"id": c["id"], "event": c["events"][0], **statement[c["events"][0]], "dependency": c["dependency"], "label_source": c["label_source"]}, ensure_ascii=False) + "\n")
     labels = {lab: sum(1 for c in cases if c["label"] == lab) for lab in (IN, OUT, UND)}
     print(f"{len(cases)} pairs over {len(events)} events; L1 labels {labels}; L2 sample {len(sample)} pairs")
     return 0

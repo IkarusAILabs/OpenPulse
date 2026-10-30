@@ -146,6 +146,7 @@ The reproducibility package is:
   - Each was fetched at its commit; 16 were re-checked by the author against the file at the commit, and all held.
   - One reference was excluded by the licence window (LIC-4: marcusdacoregio, 2019-04-16).
   - Every event has at least 2 in-scope references, so §9 drops none.
+- **2026-10-30, second labelling round, before any policy run:** L2's first round (κ = 0.722 on 42 pairs; `labelling/round-1/`) cited sources outside the packet, and in 5 of its 6 disagreements judged a different event. The owner decided to re-label the same 42 pairs (same seed) under stricter rules: only the packet's sources, only the stated event, no assistants, with sources used and real time recorded per pair. Each packet line now carries the event's title and source quotations. Round 2's κ is the registered agreement figure; round 1's is reported alongside it. No round-1 label enters the analysis.
 
 ## 12. Known limitations
 
