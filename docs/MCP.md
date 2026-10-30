@@ -118,6 +118,7 @@ All three are annotated read-only. Agents typically call `dependency_status` bef
       "type": "EOL",
       "relationship": "AFFECTS_VERSION",
       "direct_scope": "member",
+      "scope_completeness": { "state": "declared", "basis": "...", "admits_negative": true },
       "evidence_confidence": "CONFIRMED",
       "evidence_urls": ["https://www.djangoproject.com/download/", "https://endoflife.date/django"]
     }
@@ -128,6 +129,13 @@ All three are annotated read-only. Agents typically call `dependency_status` bef
     { "source": "live lookups", "status": "disabled" }
   ],
   "not_established": ["live lookups"],
+  "evaluation_context": {
+    "mode": "current",
+    "as_of": "2026-10-30T09:12:00Z",
+    "max_evidence_age_days": 90,
+    "freshness_bound_applied": true,
+    "unresolved_identity": "undetermined"
+  },
   "note": "OpenPulse evidence, not a decision: ... UNKNOWN means not established, never safe. NOT_AFFECTED means outside the cited evidence's directly named scope only, never safe: ..."
 }
 ```
@@ -138,7 +146,8 @@ How to read an answer:
 |---|---|
 | `verdict.relationship` | `AFFECTS_VERSION` / `AFFECTS_ARTIFACT` / `AFFECTS_PACKAGE` (affected), `RELATED` (a match without established impact), `NOT_AFFECTED` (outside the directly named scope; not a clearance), `UNKNOWN` (nothing established) |
 | `verdict.meaning` | Closed vocabularies to decide from, with no upstream text. `direct_scope` is member, excluded, undetermined, project_tie or no_association. `embedded_components`, `availability`, `maintenance_or_support` and `security_consequence` are `not_evaluated`: OpenPulse does not establish them, so neither a positive nor a negative says anything about them. `statement` is a fixed template. The same block is in evidence contract v1.2. |
-| `causes` | The upstream events behind the verdict, only those about this project, each with its evidence URLs |
+| `causes` | The upstream events behind the verdict, only those about this project, each with its evidence URLs and `scope_completeness` (`state`, `basis`, `admits_negative`): whether the event's scope was declared complete, on what basis, and so whether it can support a negative at all |
+| `evaluation_context` | The time frame of the answer, the same block as evidence contract v1.2 plus `mode`. The tools run in `current` mode: a NOT_AFFECTED needs evidence fetched within `max_evidence_age_days` (default 90) of `as_of` (now), and an older event becomes RELATED ("stale"), never a clearance. The Python API (`core.agent_tools`) also offers `mode="replay"` for re-evaluating recorded evidence; it applies no bound, sets `freshness_bound_applied: false`, adds "evidence currency" to `not_established` and says so in `note` |
 | `advisories` | OSV advisories whose ranges include this version, listed with links. Advisories that only name the package are counted separately: their version applicability is not established |
 | `sources` | Which sources answered, failed (`error`), had no data (`no-data`) or were off (`disabled`) |
 | `not_established` | What this answer does not cover. An unreachable source makes its part UNKNOWN, never "fine" |

@@ -1,7 +1,7 @@
 """Agent tools (core/agent_tools.py) - the MCP server's SDK-free engine."""
 
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -191,3 +191,114 @@ def test_package_identity_follows_the_ecosystem():
     )
     assert out["identity"]["project"] == "redis-py"
     assert calls == ["redis-py"]
+
+
+# --- Freshness bound (TR-2026-01 N4; review 11, point 3.3) -------------------
+
+_STALE_AS_OF = datetime(2027, 6, 1, tzinfo=timezone.utc)  # curated evidence: 2026-09
+
+
+def test_current_mode_is_the_default_and_bounds_evidence_age():
+    out = dependency_status(
+        package="django", version="5.0", ecosystem="PyPI", live=False, today=TODAY
+    )
+    assert out["evaluation_context"] == {
+        "mode": "current",
+        "as_of": "2026-10-24T00:00:00Z",
+        "max_evidence_age_days": agent_tools.DEFAULT_MAX_EVIDENCE_AGE_DAYS,
+        "freshness_bound_applied": True,
+        "unresolved_identity": "undetermined",
+    }
+    assert out["verdict"]["relationship"] == "NOT_AFFECTED"  # 2026-09 evidence is fresh
+    assert out["note"] == agent_tools.NOTE
+
+
+def test_stale_curated_event_cannot_clear_in_current_mode():
+    out = dependency_status(
+        package="django", version="5.0", ecosystem="PyPI", live=False, as_of=_STALE_AS_OF
+    )
+    assert out["verdict"]["relationship"] == "RELATED"
+    assert out["verdict"]["affected"] is False
+    assert out["verdict"]["meaning"]["direct_scope"] == "undetermined"
+    assert "stale" in out["causes"][0]["reason"]
+    assert out["evaluation_context"]["as_of"] == "2027-06-01T00:00:00Z"
+
+
+def test_stale_lifecycle_event_cannot_clear_in_current_mode():
+    """The live path too: a cached EOL observation ages out of clearing."""
+    out = dependency_status(
+        image="docker.io/postgres:17", lookups=_lookups(), today=TODAY, as_of=_STALE_AS_OF
+    )
+    assert out["verdict"]["relationship"] != "NOT_AFFECTED"
+    assert any("freshness bound" in c["reason"] for c in out["causes"])
+
+
+def test_bound_is_configurable():
+    out = dependency_status(
+        package="django",
+        version="5.0",
+        ecosystem="PyPI",
+        live=False,
+        today=TODAY,
+        max_evidence_age_days=7,
+    )
+    assert out["evaluation_context"]["max_evidence_age_days"] == 7
+    assert out["verdict"]["relationship"] == "RELATED"
+
+
+def test_replay_mode_disables_the_bound_and_says_so():
+    out = dependency_status(
+        package="django",
+        version="5.0",
+        ecosystem="PyPI",
+        live=False,
+        as_of=_STALE_AS_OF,
+        mode="replay",
+    )
+    assert out["verdict"]["relationship"] == "NOT_AFFECTED"  # as before the bound existed
+    assert out["evaluation_context"] == {
+        "mode": "replay",
+        "as_of": None,
+        "max_evidence_age_days": None,
+        "freshness_bound_applied": False,
+        "unresolved_identity": "undetermined",
+    }
+    assert "NO FRESHNESS BOUND" in out["note"]
+    assert any(u.startswith("evidence currency") for u in out["not_established"])
+
+
+def test_replay_mode_matches_the_unbounded_engine():
+    from core.risk.check import check_dependency
+
+    dep = {"kind": "image", "ref": "docker.io/postgres:17"}
+    out = dependency_status(image=dep["ref"], lookups=_lookups(), today=TODAY, mode="replay")
+    events = agent_tools.curated_events() + agent_tools.lifecycle_events(
+        "postgresql", _PG, today=TODAY
+    )
+    engine = check_dependency(dep, events, {"postgresql": _PG})
+    assert out["verdict"]["relationship"] == engine.relationship == "NOT_AFFECTED"
+
+
+def test_unknown_mode_is_refused():
+    with pytest.raises(ValueError, match="mode must be one of"):
+        dependency_status(
+            package="django", version="5.0", ecosystem="PyPI", live=False, mode="lenient"
+        )
+
+
+def test_causes_carry_scope_completeness():
+    out = dependency_status(package="django", version="4.2", ecosystem="PyPI", live=False)
+    completeness = out["causes"][0]["scope_completeness"]
+    assert set(completeness) == {"state", "basis", "admits_negative"}
+    assert isinstance(completeness["admits_negative"], bool)
+
+
+def test_file_check_carries_evaluation_context():
+    out = check_dependency_file("data/fixtures/manifests/requirements.txt", live=False, today=TODAY)
+    assert out["evaluation_context"]["freshness_bound_applied"] is True
+    replay = check_dependency_file(
+        "data/fixtures/manifests/requirements.txt", live=False, mode="replay"
+    )
+    assert replay["evaluation_context"]["freshness_bound_applied"] is False
+    assert "NO FRESHNESS BOUND" in replay["note"]
+    assert all("evaluation_context" in r for r in replay["results"])
