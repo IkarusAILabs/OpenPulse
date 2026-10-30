@@ -880,13 +880,19 @@ def _load_check_inputs(
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
+        from core.entities.identity import package_trust
+
         for dep in deps:
             if dep["kind"] != "package":
                 continue
-            slug = _resolve(dep["package"])
-            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
-            if bundle.exists():
-                bundles[slug] = _load_bundle(bundle)
+            # The security stream reads bundles under the package's trust
+            # slug (PyPI `redis` -> `redis-py`); a file named by the plain
+            # resolution is still accepted, stored under that same key.
+            slug = package_trust(str(dep["package"]), dep.get("ecosystem"))["slug"]
+            for name in dict.fromkeys((slug, _resolve(dep["package"]))):
+                bundle = _Path(raw_bundle_dir) / f"{name}.json"
+                if slug and name and bundle.exists() and slug not in bundles:
+                    bundles[slug] = _load_bundle(bundle)
     if not deps:
         raise click.ClickException(
             "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
@@ -1803,6 +1809,13 @@ def sweep(store, projects, out):
     type=click.IntRange(min=1),
     help="Probe at most this many repositories/images (GitHub's anonymous quota is 60/hour)",
 )
+@click.option(
+    "--max-packages",
+    default=500,
+    show_default=True,
+    type=click.IntRange(min=1),
+    help="Query OSV for at most this many packages",
+)
 def discover(
     watchlist,
     sbom,
@@ -1815,14 +1828,19 @@ def discover(
     github_token_file,
     out,
     max_targets,
+    max_packages,
 ):
     """Inventory-driven discovery: probe the repositories and images your
     dependencies name, and write the events their changes support.
 
     Targets come from the dependencies, not the catalog: Go module paths
     (github.com, gopkg.in, golang.org/x), github.com references and
-    Docker Hub images. Anything else is listed as unmapped with its reason.
-    This is the networked step; check stays offline on the events written.
+    Docker Hub images. Every npm, PyPI, Maven, Go and crates.io package is
+    also queried on OSV by its own name, so malicious and compromised
+    versions are decided without a catalog entry; those advisories are
+    written as bundles under OUT/bundles. Anything else is listed as
+    unmapped with its reason. This is the networked step; check stays
+    offline on what it writes.
     """
     import re as _re
     from pathlib import Path as _Path
@@ -1845,7 +1863,7 @@ def discover(
     deps, _events, _bundles, _inspections = _load_check_inputs(
         watchlist, sbom, spdx, images, lockfile, manifest, github_repo, token, (), None
     )
-    result = _discover(deps, token, max_targets=max_targets)
+    result = _discover(deps, token, max_targets=max_targets, max_packages=max_packages)
     _echo(
         f"discover: {len(deps)} dependency(s) -> {len(result.targets)} target(s), "
         f"{len(result.unmapped)} unmapped"
@@ -1863,3 +1881,12 @@ def discover(
         (directory / name).write_text(event.model_dump_json(indent=2), encoding="utf-8")
         _echo(f"- [{event.event_type.value}] {event.title} -> {directory / name}")
     _echo(f"{len(result.events)} event(s) written to {directory}")
+    bundle_dir = directory / "bundles"
+    for slug, raw in sorted(result.bundles.items()):
+        path = bundle_dir / f"{slug}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+    _echo(
+        f"osv: {result.advisories} advisory record(s) for {len(result.bundles)} package(s)"
+        + (f" -> check --raw-bundle-dir {bundle_dir}" if result.bundles else "")
+    )

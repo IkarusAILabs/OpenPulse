@@ -494,3 +494,83 @@ def test_webhook_url_can_come_from_env_var(monkeypatch):
     )
     # the env var is picked up: plain http is refused by policy, never sent
     assert "webhook delivery failed: http webhooks need explicit opt-in" in out.output
+
+
+# --- D-S1 / D-S2: OSV advisories without a CVE, and multi-package advisories ---
+
+
+def _osv(advisory_id, package, affected, cve_id=None):
+    return {
+        "collector": "osv",
+        "package": package,
+        "ecosystem": "npm",
+        "id": advisory_id,
+        "cve_id": cve_id,
+        "affected": affected,
+    }
+
+
+def _entry(package, versions=(), ranges=()):
+    return {
+        "package": package,
+        "ecosystem": "npm",
+        "versions": list(versions),
+        "ranges": list(ranges),
+        "fixed": [],
+    }
+
+
+def _npm(package, version):
+    return {"kind": "package", "package": package, "ecosystem": "npm", "version": version}
+
+
+def test_advisory_without_cve_is_kept_and_blocks_a_false_clear():
+    """D-S1: node-ipc 9.2.2 (protestware) read NOT_AFFECTED.
+
+    Its advisory has no CVE alias and was dropped, leaving a clearance
+    against an unrelated CVE as the only evidence.
+    """
+    from core.risk.check import check_dependency
+
+    raw = {
+        "osv": [
+            _osv(
+                "GHSA-97m3-w2cp-4xx6",
+                "node-ipc",
+                [_entry("node-ipc", versions=["9.2.2"])],
+            ),
+            _osv(
+                "GHSA-8gr3-2gjw-jj7g",
+                "node-ipc",
+                [_entry("node-ipc", ranges=[{"type": "SEMVER", "events": [
+                    {"introduced": "10.0.0"}, {"fixed": "10.1.3"}]}])],
+                cve_id="CVE-2022-23812",
+            ),
+        ]
+    }
+    v = check_dependency(_npm("node-ipc", "9.2.2"), [], {"node-ipc": raw})
+    assert (v.affected, v.relationship) == (True, "AFFECTS_VERSION")
+    assert "GHSA-97M3-W2CP-4XX6" in v.reason
+
+
+def test_another_packages_range_in_the_same_advisory_is_ignored():
+    """D-S2: event-stream's advisory also lists flatmap-stream at every version."""
+    from core.risk.check import check_dependency
+
+    raw = {
+        "osv": [
+            _osv(
+                "GHSA-mh6f-8j2x-4483",
+                "event-stream",
+                [
+                    _entry("event-stream", versions=["3.3.6"]),
+                    _entry("flatmap-stream", ranges=[{"type": "SEMVER", "events": [
+                        {"introduced": "0"}]}]),
+                ],
+            )
+        ]
+    }
+    bad = check_dependency(_npm("event-stream", "3.3.6"), [], {"event-stream": raw})
+    good = check_dependency(_npm("event-stream", "3.3.4"), [], {"event-stream": raw})
+    assert (bad.affected, bad.relationship) == (True, "AFFECTS_VERSION")
+    assert (good.affected, good.relationship) == (False, "NOT_AFFECTED")
