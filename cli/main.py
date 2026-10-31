@@ -660,6 +660,73 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     click.echo(_safe_text(msg, stream=stream), **kwargs)
 
 
+def _evaluation_options(command):
+    """The frame a negative is admitted in (TR-2026-01 N4), as for the agent tools.
+
+    By default a verdict command runs in the *current* mode: a negative
+    needs evidence fetched within 90 days of the start of today (UTC), so a stale event can
+    associate a dependency but never clear it. ``--replay`` drops the
+    bound for replaying recorded evidence, and the run says so.
+    """
+    command = click.option(
+        "--as-of",
+        default=None,
+        help="Evaluate as of this ISO date or time, UTC (default: the start of today)",
+    )(command)
+    command = click.option(
+        "--max-evidence-age-days",
+        type=click.IntRange(min=0),
+        default=None,
+        help="Freshness bound for negatives, in days [default: 90]",
+    )(command)
+    return click.option(
+        "--replay",
+        is_flag=True,
+        help="Replay recorded evidence with no freshness bound: a negative may then rest "
+        "on evidence of any age",
+    )(command)
+
+
+def _evaluation(replay: bool, max_evidence_age_days: int | None, as_of: str | None):
+    """The run's Evaluation (``core.agent_tools``), announced on stderr."""
+    from datetime import datetime, timezone
+
+    from core.agent_tools import CURRENT, REPLAY, Evaluation
+
+    if replay and (max_evidence_age_days is not None or as_of):
+        raise click.UsageError(
+            "--replay applies no freshness bound; drop --max-evidence-age-days and --as-of"
+        )
+    when = None
+    if as_of:
+        try:
+            when = datetime.fromisoformat(as_of)
+        except ValueError as exc:
+            raise click.BadParameter(f"not an ISO date or time: {as_of}") from exc
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+    # The start of today (UTC) by default, so two runs on one day emit
+    # identical documents.
+    evaluation = Evaluation(
+        REPLAY if replay else CURRENT,
+        as_of=when,
+        max_evidence_age_days=max_evidence_age_days,
+        today=datetime.now(timezone.utc).date(),
+    )
+    if evaluation.bounded:
+        _echo(
+            f"evaluation: current, {evaluation.max_evidence_age.days}-day freshness bound "
+            f"as of {evaluation.as_of.date()}: stale or contested events cannot clear",
+            err=True,
+        )
+    else:
+        _echo(
+            "evaluation: replay, no freshness bound: a negative may rest on evidence of any age",
+            err=True,
+        )
+    return evaluation
+
+
 _COVERAGE_RANK = {"COMPLETE": 0, "PARTIAL": 1, "FAILED": 2}
 
 
@@ -901,6 +968,7 @@ def _load_check_inputs(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
 )
@@ -1017,6 +1085,9 @@ def check(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -1040,7 +1111,17 @@ def check(
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
     # Acquisition is best-effort BY DESIGN: the ledger is an
@@ -1156,6 +1237,7 @@ def check(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
 )
@@ -1247,6 +1329,9 @@ def digest(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
@@ -1272,7 +1357,17 @@ def digest(
             "digest needs at least one --event: deadlines come from event"
             " evidence, not from the ledger alone"
         )
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     built = build_digest(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
     if output == "json":
         import json as _json
@@ -1283,6 +1378,7 @@ def digest(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist",
     required=False,
@@ -1377,6 +1473,9 @@ def warnings(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
@@ -1402,7 +1501,17 @@ def warnings(
             "warnings needs at least one --event: deadlines come from event"
             " evidence, not from the ledger alone"
         )
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     built = build_warnings(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
     if output == "json":
         import json as _json
@@ -1413,6 +1522,7 @@ def warnings(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist",
     required=False,
@@ -1489,8 +1599,7 @@ def warnings(
     "summary_path",
     default="",
     type=click.Path(dir_okay=False),
-    help="Also append a Markdown summary of the SARIF results to PATH "
-    "(e.g. $GITHUB_STEP_SUMMARY)",
+    help="Also append a Markdown summary of the SARIF results to PATH (e.g. $GITHUB_STEP_SUMMARY)",
 )
 @click.option(
     "--defectdojo",
@@ -1523,6 +1632,9 @@ def attest(
     summary_path="",
     defectdojo_path="",
     fail_on=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
 
@@ -1680,14 +1792,27 @@ def attest(
         for reason in run_reasons:
             _echo(f"   - {reason}", err=True)
         coverage_override = {"status": run_status, "reasons": run_reasons}
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
     for dep, uri in zip(deps, uris, strict=True):
         for event in loaded_events:
-            verdict = check_dependency(dep, [event], bundles)
-            doc = build_v1_contract(event, verdict, inspection_coverage=coverage_override)
+            verdict = check_dependency(
+                dep,
+                [event],
+                bundles,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
+            doc = build_v1_contract(
+                event,
+                verdict,
+                inspection_coverage=coverage_override,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
             problems = validate_v1_contract(doc)
             if problems:
                 # A document OpenPulse itself cannot validate must
@@ -1735,7 +1860,16 @@ def attest(
 
         # The combined per-dependency verdict, exactly as `check` gates
         # it, so one run yields both the evidence and the CI decision.
-        combined = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+        combined = [
+            check_dependency(
+                dep,
+                loaded_events,
+                bundles,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
+            for dep in deps
+        ]
         if fail_on_threshold(combined, fail_on):
             _echo(f"fail-on {fail_on}: threshold breached", err=True)
             raise SystemExit(1)

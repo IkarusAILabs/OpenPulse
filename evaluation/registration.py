@@ -18,6 +18,7 @@ need no labels; W3, D1 and D2 tabulate annotators' records.
 
 from __future__ import annotations
 
+import json
 import math
 import random
 import statistics
@@ -271,6 +272,63 @@ def event_false_clears(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def pair_false_clears(
+    rows: list[dict[str, Any]],
+    resamples: int = BOOTSTRAP_RESAMPLES,
+    seed: int = BOOTSTRAP_SEED,
+) -> dict[str, Any]:
+    """Pair-level false-clear share (FCR_affected) with two upper bounds.
+
+    The exact bound treats in-scope pairs as independent, which they are
+    not, so it is optimistic. The event-clustered bootstrap bound resamples
+    events; with no false clear observed it has zero width and is not
+    reported. Neither turns zero observed errors into a low rate: the
+    event-level exact bound governs H1.
+    """
+    in_scope = [r for r in rows if r["label"] == IN]
+    k = sum(1 for r in in_scope if r["outcome"] == CLEARED)
+    n = len(in_scope)
+    out: dict[str, Any] = {
+        "false_clears": k,
+        "in_scope_pairs": n,
+        "share": _rate(k, n),
+        "upper_one_sided_95_if_pairs_independent": clopper_pearson_upper(k, n),
+        "upper_one_sided_95_event_clustered": None,
+    }
+    if k:
+        clusters: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+        for r in in_scope:
+            clusters[r["event"]][0] += r["outcome"] == CLEARED
+            clusters[r["event"]][1] += 1
+        keys = sorted(clusters)
+        rng = random.Random(seed)
+        draws = []
+        for _ in range(resamples):
+            sample = [clusters[rng.choice(keys)] for _ in keys]
+            draws.append(sum(a for a, _ in sample) / sum(b for _, b in sample))
+        draws.sort()
+        out["upper_one_sided_95_event_clustered"] = round(draws[int(0.95 * resamples) - 1], 4)
+    return out
+
+
+def strata(rows: dict[str, list[dict[str, Any]]], key: str) -> dict[str, dict[str, Any]]:
+    """C's and B's safety and resolution within each stratum of ``key``."""
+    out = {}
+    values = sorted({str(r.get(key)) for r in rows[SYSTEM]})
+    for value in values:
+        cell = {}
+        for name in (SYSTEM, PRIMARY_BASELINE):
+            subset = [r for r in rows[name] if str(r.get(key)) == value]
+            decidable = [r for r in subset if r["label"] != UNDET]
+            cell[name] = {
+                "pairs": len(subset),
+                "event_false_clears": event_false_clears(subset),
+                "resolution_rate": _rate(sum(_correct(r) for r in decidable), len(decidable)),
+            }
+        out[value] = cell
+    return out
+
+
 def _rate(num: int, den: int) -> float | None:
     return round(num / den, 4) if den else None
 
@@ -304,7 +362,11 @@ def inventory_burden(
     ``cycles`` holds, per weekly cycle, its end time and the held-out
     events current then, by name, as known at that time. W1 counts each
     inventory's references whose summary over those events is unresolved,
-    and those newly unresolved since the previous cycle. W2 counts, per
+    and those newly unresolved since the previous cycle. Each cell also
+    counts the decisive (actionable) summaries. Across the window, the
+    unique review items are the distinct references left unresolved in
+    any inventory and cycle, so a reference shared by inventories, or
+    unresolved for several cycles, is reviewed once. W2 counts, per
     event, the references of every inventory that the event alone leaves
     unresolved, in the first cycle it is current.
     """
@@ -314,18 +376,25 @@ def inventory_burden(
             first.setdefault(name, (at, event))
     w1: dict[str, list[dict[str, Any]]] = {}
     w2: dict[str, dict[str, int]] = {}
+    unique: dict[str, int] = {}
     for name, policy in policies.items():
 
-        def unresolved(dep: dict[str, Any], events: list[Any], at: datetime) -> bool:
+        def outcome(dep: dict[str, Any], events: list[Any], at: datetime) -> str:
             decision = policy(dep, events, as_of=at, max_evidence_age=max_evidence_age)
-            return decision["outcome"] == UNRESOLVED
+            return decision["outcome"]
 
-        cells = []
+        def unresolved(dep: dict[str, Any], events: list[Any], at: datetime) -> bool:
+            return outcome(dep, events, at) == UNRESOLVED
+
+        cells, review_items = [], set()
         for inventory, refs in sorted(inventories.items()):
             before: set[int] = set()
             for at, events in cycles:
                 current = list(events.values())
-                held = {i for i, dep in enumerate(refs) if current and unresolved(dep, current, at)}
+                outcomes = [outcome(dep, current, at) if current else NONE for dep in refs]
+                held = {i for i, o in enumerate(outcomes) if o == UNRESOLVED}
+                decisive = sum(1 for o in outcomes if o in (AFFECTED, CLEARED))
+                review_items.update(json.dumps(refs[i], sort_keys=True) for i in held)
                 cells.append(
                     {
                         "inventory": inventory,
@@ -333,11 +402,14 @@ def inventory_burden(
                         "count": len(held),
                         "share": _rate(len(held), len(refs)),
                         "new": len(held - before),
+                        "decisive": decisive,
+                        "actionable_share": _rate(decisive, len(refs)),
                         "unresolved": sorted(held),
                     }
                 )
                 before = held
         w1[name] = cells
+        unique[name] = len(review_items)
         w2[name] = {
             event_name: sum(
                 1 for refs in inventories.values() for dep in refs if unresolved(dep, [event], at)
@@ -349,6 +421,7 @@ def inventory_burden(
         "cycles": [at.date().isoformat() for at, _ in cycles],
         "W1_cells": w1,
         "W2_per_event": w2,
+        "unique_review_items": unique,
     }
 
 
@@ -362,6 +435,10 @@ def burden_summary(burden: dict[str, Any], at_risk: set[str] | None = None) -> d
             "W1_unresolved": _spread([c["count"] for c in cells]),
             "W1_share": _spread([c["share"] for c in cells if c["share"] is not None]),
             "W1_new_per_cycle": _spread([c["new"] for c in cells]),
+            "W1_actionable_share": _spread(
+                [c["actionable_share"] for c in cells if c.get("actionable_share") is not None]
+            ),
+            "W1_unique_review_items": burden.get("unique_review_items", {}).get(name),
             "W2_unresolved_per_event": _spread([per_event[e] for e in events]),
         }
     return out
@@ -626,6 +703,7 @@ def analyse(
             f"with >= {MIN_EVENTS} events at risk",
             "C": safety_c,
             "B": safety_b,
+            "C_pair_level": pair_false_clears(c),
             "decidable": decidable_h1,
             "pass": h1_pass if decidable_h1 else None,
         },
@@ -752,6 +830,10 @@ def analyse(
         "pass": None if w1_c is None or w1_b is None else w1_c["median"] <= w1_b["median"],
     }
     reported: dict[str, Any] = {
+        # Section 4: no completeness basis or identity status is trusted on
+        # the strength of another's results.
+        "by_completeness_basis": strata(rows, "basis"),
+        "by_identity_status": strata(rows, "identity"),
         "attribution_B_R_V_C": attribution(rows, burden),
         "review_burden": burden,
         "W3_review_minutes": review_minutes(inputs["timed_reviews"], burden)

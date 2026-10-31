@@ -357,3 +357,40 @@ def test_d2_lists_wrong_and_stale_mappings_with_their_verdicts():
     assert out["error"]["count"] == 1 and out["error"]["ci95_exact"] == [0.025, 1.0]
     assert out["wrong_or_stale"][0]["verdicts"] == sheet["package:pypi:django"]["verdicts"]
     assert reg.mapping_reliability([], sheet)["relied_on_not_judged"] == ["package:pypi:django"]
+
+
+# --- review 12: pair-level bounds, strata, deduplicated review items -------------------
+
+
+def test_pair_level_false_clears_carry_both_bounds():
+    rows = _results(events=10, c_false_clears=2)[reg.SYSTEM]
+    out = reg.pair_false_clears(rows)
+    assert (out["false_clears"], out["in_scope_pairs"], out["share"]) == (2, 20, 0.1)
+    assert out["upper_one_sided_95_if_pairs_independent"] == reg.clopper_pearson_upper(2, 20)
+    assert out["upper_one_sided_95_event_clustered"] >= out["share"]
+    # Zero observed: the clustered bound would have zero width, so it is withheld.
+    clean = reg.pair_false_clears(_results(events=10)[reg.SYSTEM])
+    assert clean["upper_one_sided_95_event_clustered"] is None
+    assert clean["upper_one_sided_95_if_pairs_independent"] > 0
+
+
+def test_results_are_stratified_by_basis_and_identity():
+    rows = _results(events=4)
+    for policy_rows in rows.values():
+        for r in policy_rows:
+            r["basis"] = "definitional" if r["event"] in ("e0", "e1") else "partial"
+            r["identity"] = "curated"
+    out = reg.analyse(rows, independent_only=True)["reported"]
+    assert set(out["by_completeness_basis"]) == {"definitional", "partial"}
+    cell = out["by_completeness_basis"]["definitional"][reg.SYSTEM]
+    assert (cell["pairs"], cell["resolution_rate"]) == (6, 1.0)
+    assert set(out["by_identity_status"]) == {"curated"}
+
+
+def test_burden_counts_actionable_summaries_and_unique_review_items():
+    burden = _burden()
+    assert burden["unique_review_items"] == {reg.SYSTEM: 3, reg.PRIMARY_BASELINE: 6}
+    summary = reg.burden_summary(burden)
+    assert summary[reg.SYSTEM]["W1_actionable_share"]["median"] == 0.5
+    assert summary[reg.PRIMARY_BASELINE]["W1_actionable_share"]["max"] == 0.0
+    assert summary[reg.SYSTEM]["W1_unique_review_items"] == 3

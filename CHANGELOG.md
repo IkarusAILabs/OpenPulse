@@ -4,6 +4,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Upgrade notes
+
+- **The CLI's verdict commands bound evidence age (TR-2026-01 N4).** This changes verdicts, as it did for the agent tools in PR #200. `check`, `attest`, `digest` and `warnings` now run in the *current* mode: a NOT_AFFECTED needs evidence fetched within 90 days of the start of today (UTC). Older evidence makes it RELATED ("stale"), never a clearance. `--max-evidence-age-days N` and `--as-of DATE` set the frame. `--replay` re-evaluates recorded evidence with no bound and says so on stderr, and contracts record the frame in `evaluation_context`. Contradicted events never clear in either mode. Pipelines that replay old fixtures should pass `--replay`.
+
 ### Documentation
 
 - **Roadmap: track T, AI Dependency Trust Assurance (planned; a separate future study).** `docs/ROADMAP.md` adds the following:
@@ -16,6 +20,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   Nothing is implemented, and no behaviour, interface, contract or dependency changes. Track R and the TR-2026-01 registration are unchanged.
 
 ### Added
+
+- **Adversarial-input tests** (`tests/test_adversarial_inputs.py`). They pin, for each attacker capability the twelfth review lists, what the event-scope engine does:
+  - **inputs that cannot yield a negative:** contradicting evidence, a contradictory event pair, stale or retracted events, unresolvable references, and injected upstream text;
+  - **two trusted inputs:** a wrong completeness declaration, and a curated bare-name alias for a package without an ecosystem.
+- **Evaluation: strata, pair-level bounds, deduplicated burden** (`evaluation/registration.py`, `run.py`):
+  - results by completeness basis and identity status (REGISTRATION §4);
+  - the pair-level false-clear share, with both an independent-pairs exact bound and an event-clustered bound;
+  - per inventory and cycle, the actionable share and the unique review items after deduplication.
 
 - **Evaluation: the registration amendments of 2026-10-30, implemented** (`evaluation/REGISTRATION.md` §2, §4, §5, §5a). This adds:
   - policy R, the existing-representation baseline: written rules for encoding an event as OSV or OpenVEX (`evaluation/representations/ENCODING.md`), and a careful consumer (`evaluation/existing_representation.py`) with exact purl identity and V's pinned comparators. Each event's encoding is frozen by SHA-256 in the case set, and `run.py --require-encodings` refuses an event without one;

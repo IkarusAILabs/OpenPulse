@@ -97,6 +97,12 @@ Both must hold for the primary result to be a success.
 
 **Any** observed false-clear event is analysed in full and reported, whatever the bound.
 
+The pair-level false-clear share (FCR_affected) is reported next to H1 with two upper bounds:
+- an exact bound that treats in-scope pairs as independent, which they are not, so it is optimistic;
+- an event-clustered bootstrap bound, withheld when no false clear is observed, since it would then have zero width.
+
+Zero observed false clears is reported as such, never as evidence that the rate is below either bound.
+
 ## 4. Secondary tests
 
 Holm-corrected together at α = 0.05, and never used to rescue a failed primary result.
@@ -136,7 +142,9 @@ A failed G1, G2 or G4 is reported as a limitation of the result. It changes neit
 
 - **W1, unresolved per inventory and cycle.** Run every reference of each participating inventory (not only the sampled pairs) against every held-out event current in each weekly cycle of the window. Count the references whose cross-event summary is unresolved. Report:
   - the count and its share of the inventory, as a median, interquartile range and maximum across inventories and cycles;
-  - the count of *new* unresolved references per cycle.
+  - the count of *new* unresolved references per cycle;
+  - the *actionable share*: decisive summaries over the inventory;
+  - the *unique review items*: distinct references left unresolved in any inventory and cycle, so that a reference shared by inventories, or unresolved for several cycles, counts once.
 
   W1 needs no labels.
 - **W2, unresolved per event at risk.** The number of references an event leaves unresolved across all participating inventories.
@@ -301,6 +309,13 @@ Development-set results are illustrative, never evidence. They are in `evaluatio
 4. **Reliability measures D1–D2 added** (§5a). The soundness lemma's premises were unmeasured.
 
 None of the primary hypotheses, margins, sample-size rules or thresholds of §3 changed.
+
+**Added 2026-10-31, before archiving, after the twelfth review.** Three reported measures were added, none of them a test or a threshold:
+- the pair-level false-clear bounds (§3);
+- the actionable share and the unique review items (§5, W1);
+- the per-basis and per-identity strata of §4, now in `registration.py`. §4 already required them.
+
+The CLI's verdict commands now apply the same freshness bound as the agent tools. The evaluated C (`evaluation/policies.py`) already set it, so no policy changed.
 
 **Set 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** Drafted with Claude Code and approved by the author. They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
 
