@@ -2,6 +2,14 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Documentation
+
+- **OpenPulse is presented as academic research software.** The README has a new *Research status* section. It says what OpenPulse is (a research instrument of the [Ikarus AI Labs](https://ikaruslabs.net/research) programme, described in TR-2026-01) and what it is not (a commercial product or a certified security control). It also says how to read the project's claims and how to collaborate. The README's product and commercial wording is reframed, and the mentions of a separate SaaS layer are removed. `SECURITY.md`, `docs/MCP.md` and `docs/GITHUB_ACTION.md` carry a short research-software note, and the package description now says the same.
+- **`CITATION.cff`** added; it cites TR-2026-01. The README has a *Citing OpenPulse* section.
+- **`SECURITY.md`** now lists the latest 0.8.x release as supported. It also uses the renumbered roadmap: keyed history is planned for v0.9.0 and the DNS-pinned webhook transport for v0.10.0.
+
 ## 0.8.0 — 2026-10-31
 
 The release that TR-2026-01 describes. **This release changes verdicts**: the audit fixes (D1–D15, F1–F4) withhold clearances the earlier engine gave, completeness now needs a recorded basis, and the CLI and MCP tools bound evidence age by default. Read the upgrade notes before upgrading CI gates.

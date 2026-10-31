@@ -8,6 +8,8 @@ Runs `openpulse attest` on your dependency files in CI. It reports which upstrea
 
 The action needs no install step and no secrets. It runs on Linux, macOS and Windows runners.
 
+> **Research software.** OpenPulse is an academic research instrument from [Ikarus AI Labs](https://ikaruslabs.net), and it comes with no warranty or service level. A passing run means no warning was raised, not that every dependency was cleared. See [Research status](../README.md#research-status).
+
 ## Verdicts and SARIF levels
 
 | Verdict | SARIF level | Fails the job (default `fail-on: action`) |

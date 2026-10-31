@@ -12,6 +12,18 @@
 
 OpenPulse is the **Software Ecosystem Evidence Plane** of the [Ikarus AI Labs research programme](https://ikaruslabs.net/research) on Evidence-Based Assurance for AI-Mediated Software Change — not an EOL monitor, not an AI security product.
 
+## Research status
+
+OpenPulse is **academic research software**. It is developed by [Ikarus AI Labs](https://ikaruslabs.net), a non-profit research initiative based in Cambridge, UK. It is one of three research instruments in the programme [Evidence-Based Assurance for AI-Mediated Software Change](https://ikaruslabs.net/research), alongside [SafeAI](https://github.com/IkarusAILabs/SafeAI) and HaltAI ([project page](https://ikaruslabs.net/openpulse)).
+
+- **What it is.** A working implementation built to study one question: what evidence should exist before a dependency is reported as affected, or as not affected? The technical report [TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf) describes its decision model and an audit of release v0.8.0.
+- **What it is not.** It is not a commercial product or a certified security control.
+  - Evidence and coverage remain bounded. The report lists the open defects and limitations.
+  - Nothing beyond the Apache-2.0 licence is offered: no warranty and no service level.
+  - Review a verdict before acting on it. *Related* does not mean affected, and *unknown* does not mean not affected.
+- **How to read its claims.** The programme separates what is *established* (backed by published or reproducible evidence) from what is *observed* in the current implementation and what is still a *hypothesis*. The report's retrospective study is exploratory. Its prospective, independently labelled evaluation has not yet been run.
+- **Collaboration.** We welcome independent replication, annotation and evaluation. The evaluation protocol is open ([`evaluation/REGISTRATION.md`](evaluation/REGISTRATION.md)). Contact us through [ikaruslabs.net](https://ikaruslabs.net).
+
 <img width="1024" height="1024" alt="OpenPulse" src="https://github.com/user-attachments/assets/f7e4b9c9-6f7c-49fa-8950-a5d1594829b7" />
 
 Most security tools tell you when your dependencies have a vulnerability.
@@ -173,25 +185,25 @@ But:
 
 That is the bar for every OpenPulse event: **what changed, the evidence, who may be affected, and what to investigate.**
 
-## One product, progressively more personal
+## One instrument, progressively more specific
 
 <img width="1024" height="1024" alt="What is changing in MY dependencies2" src="https://github.com/user-attachments/assets/c2930ba2-0866-4de4-b6b5-b028014b8026" />
 
 
-| Level | Customer question | OpenPulse answer | Status |
+| Level | Question | OpenPulse answer | Status |
 |---|---|---|---|
-| Free | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (100 projects, every item sourced) | ✅ Shipped |
-| Intelligence | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 Building now |
-| Early Warning | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
-| AI-native | "What dependencies is AI introducing?" | AI Supply Chain Governance — Know Your Dependencies: agents ask OpenPulse before they change a dependency ([`openpulse mcp`](docs/MCP.md)) | Early preview |
+| Public | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (100 projects, every item sourced) | ✅ Published |
+| Projects | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 In development |
+| Dependencies | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
+| AI-mediated | "What dependencies is AI introducing?" | Know Your Dependencies: agents ask OpenPulse before they change a dependency ([`openpulse mcp`](docs/MCP.md)) | Early preview |
 
 ## The metric that matters: Early Warning Lead Time
 
-Repositories monitored is a vanity metric. The commercially meaningful one is:
+Repositories monitored is a vanity metric. The one this research cares about is:
 
-> **Early Warning Lead Time** — time between OpenPulse detecting a material upstream change and that change producing an observable impact on the customer's environment.
+> **Early Warning Lead Time** — time between OpenPulse detecting a material upstream change and that change producing an observable impact on a user's environment.
 
-"Detecting" means first trustworthy detection (`first_detected_at`), never the latest re-observation; unknown first detection means no lead-time claim. The goal: *"We identified an upstream change 47 days before it affected the customer's pipeline."* We will not publish an average until independently measured customer incidents make it defensible — until then, verified case studies (Bitnami first).
+"Detecting" means first trustworthy detection (`first_detected_at`), never the latest re-observation; unknown first detection means no lead-time claim. The goal: *"We identified an upstream change 47 days before it affected a user's pipeline."* We will not publish an average until independently measured incidents make it defensible — until then, verified case studies (Bitnami first).
 
 ## What OpenPulse does
 
@@ -228,11 +240,12 @@ endoflife.date is one of our sources, not our definition: lifecycle data
 enters as raw signals, gets correlated into stories, and is gated like
 everything else. We do not compete on EOL record counts.
 
-## Who it's for — and what you get
+## Who it's for
 
 - **Software security teams / AppSec** — extend vulnerability management beyond CVEs: EOL software, exploited-in-the-wild (CISA KEV) correlation, license and support-model drift, with evidence you can paste into a risk register.
 - **Platform / DevOps engineers** — early warning before registry deletions, tag removals, and chart breakages hit pipelines. The Bitnami case is the reference implementation.
 - **Engineering leaders** — useful lead time before an upstream change becomes a production problem, ranked by action-worthiness instead of CVE counts.
+- **Researchers** — an inspectable decision model, an executable oracle, frozen study data and an open evaluation protocol to replicate, criticise or extend ([TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf), [`evaluation/`](evaluation/)).
 - **Contributors** — a clean, typed Python codebase where every collector and analyst is a pure, tested function. See [Contributing](#contributing).
 
 ## Status — working today
@@ -413,8 +426,6 @@ docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
 tests/              # 740+ offline tests (no network in CI)
 ```
 
-The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this repo — the OSS intelligence core stays independent.
-
 ## Docs
 
 | Doc | Content |
@@ -433,7 +444,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 
 ## Roadmap
 
-M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook shipped; delivery state, dedup/retry and CI/PR integration next; SaaS future) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
+M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook shipped; delivery state, dedup/retry and CI/PR integration next) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
 
 Planned, not available: **AI Dependency Trust Assurance — Know Why You Trust Your Dependencies** (ROADMAP track T). It is a separate future study that would add evidence on package identity and impersonation, artifact provenance (Sigstore, SLSA, PEP 740), and reputation integrity to the MCP tools and CI policy. None of it ships today. OpenPulse does not detect malware, verify provenance, or score reputation, and an MCP answer is advice to the agent, not a security boundary.
 
@@ -471,4 +482,10 @@ Thank you to everyone moving OpenPulse forward:
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE). Commercial use, modification, and distribution are welcome; the SaaS service layer lives outside this repo.
+Apache-2.0 — see [LICENSE](LICENSE). Use, modification and distribution, including commercial use, are permitted under the licence. OpenPulse is research software and comes with no warranty (see [Research status](#research-status)).
+
+## Citing OpenPulse
+
+If you use OpenPulse or its results in research, please cite the technical report. [`CITATION.cff`](CITATION.cff) gives the citation in machine-readable form.
+
+> Mehmet KI. *Evidence Before Impact: Upstream Change Intelligence for Dependency Decisions.* Technical Report TR-2026-01, Ikarus AI Labs, Cambridge, UK, 31 October 2026. OpenPulse v0.8.0. https://github.com/IkarusAILabs/OpenPulse
