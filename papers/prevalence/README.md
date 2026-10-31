@@ -27,8 +27,8 @@ Target venue: *Empirical Software Engineering* (research article).
 |---|---|
 | Protocol drafted | done |
 | Instrument pilot | done: v1 found two gaps in the repository-URL rule (PyPI keys, Go vanity paths); v2 confirmed the fix |
-| Protocol frozen | **waiting for the author's review** |
-| Main collection | not started |
+| Protocol frozen | done: `data/FREEZE.md` (tag `prevalence-freeze-2026-10-31`) |
+| Main collection | done 2026-10-31: `data/main/` (6,000 packages, `RESULTS.md`); `raw.jsonl.gz` (615 MB) goes to Zenodo |
 | Ratings (§6) | not started; needs at least one rater who is not the author |
 | Paper results | not started |
 

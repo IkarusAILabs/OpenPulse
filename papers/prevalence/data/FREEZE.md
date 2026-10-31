@@ -40,3 +40,18 @@ python analysis.py data/main/measures.jsonl > data/main/RESULTS.md
 `dependent_repos_count` have no stable order. The frame files of the main
 run (`frame-*.jsonl`) are therefore the frozen sampling frame; rerunning
 `frame` later gives a different one. `sample` is reproducible from them.
+
+## Main run
+
+Collected 2026-10-31, 18:14–19:46 UTC, with the frozen `collect.py` and
+`analysis.py` (git blobs checked against the table above before the
+analysis ran). 6,000 packages measured, none in state *error*.
+`raw.jsonl.gz` (615 MB, SHA-256 below) is not in git; it is archived on
+Zenodo with the run.
+
+**Note for the paper.** The frame-against-source check in `RESULTS.md`
+covers every package where both values exist (5,531), not the random 10%
+named in PROTOCOL.md §6. The full set contains any 10% sample, so this
+adds rather than changes information; the paper reports it as such.
+- `*raw.jsonl.gz`: `5417362034b810781427bb8b1cb437f9bb0f1a047c2128d067e49fe46038f923`
+- `*measures.jsonl`: `1fb61b86443ae248d4e28f0354d65b1fc645047893fa4918e4b813e59cae454f`
