@@ -467,7 +467,7 @@ def test_public_report_never_claims_customer_impact():
         ],
     )
     assert "Assessment: ACTION_REQUIRED" not in md
-    assert "does not establish that a specific customer environment is affected" in md
+    assert "does not establish that a specific user's environment is affected" in md
     assert "Assessment: PROJECT_CHANGE" in md
     assert "Scope:" in md
 

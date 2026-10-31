@@ -38,7 +38,7 @@ from core.risk.metrics import finding_source_distribution
 
 DISCLAIMER = (
     "_Public report findings describe OSS ecosystem changes. They are "
-    "not assertions that a particular customer's environment is "
+    "not assertions that a particular user's environment is "
     "affected._"
 )
 
@@ -568,11 +568,11 @@ def build_report(
     lines.append("")
     lines.append(
         "This report describes open-source ecosystem intelligence. It does "
-        "not establish that a specific customer environment is affected."
+        "not establish that a specific user's environment is affected."
     )
     lines.append("")
     lines.append(
-        "Dependency-aware impact requires a customer watchlist, inventory, "
+        "Dependency-aware impact requires a user's watchlist, inventory, "
         "or equivalent dependency context: public intelligence → dependency "
         "context (`openpulse check --watchlist <file>`) → affected dependency "
         "→ actionable warning. Only that last step can speak about your environment."
@@ -1108,7 +1108,7 @@ def _value_section(
         "- Public intelligence: “What is changing in OSS?” — this report.",
         "- Dependency intelligence: “What is changing in the OSS projects I use?” — "
         "`openpulse check --watchlist <file>`.",
-        "- Customer impact: “Does this affect my software?” — matched dependencies only.",
+        "- Dependency impact: “Does this affect my software?” — matched dependencies only.",
         "- Early warning: “How much warning do I have?” — warning windows above.",
     ]
     return lines

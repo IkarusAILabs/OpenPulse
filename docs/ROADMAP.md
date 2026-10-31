@@ -100,7 +100,7 @@ STATUS: FUTURE (after R-C)
 
 | Work | Disposition | Reason |
 |---|---|---|
-| M6 SaaS surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
+| M6 hosted surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
 | M7 Intelligence Network | FUTURE (unchanged) | |
 | M9, and SafeAI integration in this paper | DEFERRED | It widens scope and complicates attribution. It stays a separate future study. |
 | v0.9.0 Anchored Trust (keyed history, external anchoring) | NEXT after R-C | Needed for lead-time claims. The applicability evaluation does not rest on them. The paper keeps lead times as caveated observations. |
@@ -219,7 +219,7 @@ A major research milestone: the suite must test identity (upstream vs distributi
 STATUS: DONE / MAINTENANCE
 
 ```text
-CUSTOMER DEPENDENCY
+USER DEPENDENCY
         ↓
 CANONICAL IDENTITY
         ↓
@@ -236,15 +236,15 @@ ACTION
 
 Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), and GitHub repository input (`core/github_reader.py`). All inputs converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing. GitHub inspection is bounded, commit-pinned, and reports partial/unsupported coverage rather than treating absence as proof of no dependencies.
 
-## M6 — Early Warning SaaS
+## M6 — Early Warning
 STATUS: PAUSED 2026-10-30 for track R (was ACTIVE / OPERATIONALIZATION)
 
-Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Commercial question stays: “What is changing in MY software?”
+Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Research question stays: “What is changing in MY software?”
 
 ## M7 — Intelligence Network
 STATUS: FUTURE
 
-Emerging signals, community observations, confidence progression, cross-source triangulation, long-term history, anonymized cross-customer intelligence. Only start when customer monitoring is working.
+Emerging signals, community observations, confidence progression, cross-source triangulation, long-term history, anonymized cross-user intelligence. Only start when dependency monitoring is working.
 
 ## M8 — AI-Mediated Dependency Intelligence
 STATUS: RESEARCH + EARLY PREVIEW (agent channel shipped: `openpulse mcp`, see `docs/MCP.md`)
@@ -268,7 +268,7 @@ The future system combines evidence rather than duplicating either product. Inte
 
 ## Public/internal evidence boundary (research principle)
 
-Retain and formalise: observation ≠ claim ≠ event; public intelligence ≠ customer intelligence. Public intelligence must never imply customer impact without dependency evidence; an upstream event is not evidence that a specific dependency is affected. Enforced in code by the eligibility gate and in tests by the public-boundary suite.
+Retain and formalise: observation ≠ claim ≠ event; public intelligence ≠ dependency-specific intelligence. Public intelligence must never imply user impact without dependency evidence; an upstream event is not evidence that a specific dependency is affected. Enforced in code by the eligibility gate and in tests by the public-boundary suite.
 
 ## Roadmap principles
 
@@ -280,7 +280,7 @@ Retain and formalise: observation ≠ claim ≠ event; public intelligence ≠ c
 6. Identity must precede impact.
 7. Applicability must precede action.
 8. Unknown must remain unknown.
-9. Public intelligence must not imply customer impact.
+9. Public intelligence must not imply user impact.
 10. Lead time must be measured from first trustworthy detection.
 11. Reports are a product experience, not an implementation dump.
 12. Do not add AI reasoning to the trusted decision path.
@@ -289,7 +289,7 @@ Retain and formalise: observation ≠ claim ≠ event; public intelligence ≠ c
 
 ## Roadmap metrics
 
-Banned as primary success metrics: projects monitored, collectors, findings, lifecycle records. Research metrics instead: identity precision/recall, applicability precision/recall, false-impact and false-clear rates, unknown rate, weak-evidence holdback rate, evidence completeness, temporal accuracy, first-detection accuracy, automatically discovered and verified events, customer-confirmed affected events. Do not market these until the methodology is stable.
+Banned as primary success metrics: projects monitored, collectors, findings, lifecycle records. Research metrics instead: identity precision/recall, applicability precision/recall, false-impact and false-clear rates, unknown rate, weak-evidence holdback rate, evidence completeness, temporal accuracy, first-detection accuracy, automatically discovered and verified events, user-confirmed affected events. Do not market these until the methodology is stable.
 
 ## Research artefacts per milestone
 
@@ -576,7 +576,7 @@ This study can share infrastructure with E4, the dependency-decision experiment 
 - DONE: M5 dependency inputs converge on one verdict engine, including GitHub repositories.
 - ACTIVE: M6 warning engine, durable detection, digest and webhook delivery; remaining work is persistent delivery state, deduplication/retry policy, scheduling and CI/PR integration.
 - NEXT: external-consumer validation of evidence contract v1, then cryptographic contract v2 only after semantic stability.
-- FUTURE/RESEARCH: M6 SaaS surfaces, M7 network, M8 direction, M9 experiment.
+- FUTURE/RESEARCH: M6 hosted surfaces, M7 network, M8 direction, M9 experiment.
 - REMOVED: v0.x phase plan (superseded 2026-10-02), hard-coded test-count headers (CI reports the count), Next-90 items completed since (SBOM reader, detection ledger, OSV live wiring).
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
 - DONE 2026-10-19: repository coverage assurance (v0.6.0, #100) - blob-SHA-pinned GitHub inspection with COMPLETE/PARTIAL/FAILED coverage, evidence contract v1.1.

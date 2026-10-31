@@ -63,4 +63,4 @@ Store the URL as an Actions secret, never in the repo.
 
 See `data/fixtures/watchlist_sample.yaml`. Optional per-dependency
 `source`, `environment`, `owner` fields pass through untouched for
-future SaaS ingestion.
+future hosted ingestion.
