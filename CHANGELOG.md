@@ -8,6 +8,17 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 - **The CLI's verdict commands bound evidence age (TR-2026-01 N4).** This changes verdicts, as it did for the agent tools in PR #200. `check`, `attest`, `digest` and `warnings` now run in the *current* mode: a NOT_AFFECTED needs evidence fetched within 90 days of the start of today (UTC). Older evidence makes it RELATED ("stale"), never a clearance. `--max-evidence-age-days N` and `--as-of DATE` set the frame. `--replay` re-evaluates recorded evidence with no bound and says so on stderr, and contracts record the frame in `evaluation_context`. Contradicted events never clear in either mode. Pipelines that replay old fixtures should pass `--replay`.
 
+### Documentation
+
+- **Roadmap: track T, AI Dependency Trust Assurance (planned; a separate future study).** `docs/ROADMAP.md` adds the following:
+  - what exists today and what is planned;
+  - an initial threat model that separates demonstrated techniques from unmeasured prevalence;
+  - six workstreams: identity and impersonation, provenance and integrity, reputation integrity, AI selection evidence, policy enforcement, and evidence contracts;
+  - phases 0–4, with a small first milestone: registry existence for PyPI and npm;
+  - a proposed evaluation plan with research questions RQ1–RQ5.
+
+  Nothing is implemented, and no behaviour, interface, contract or dependency changes. Track R and the TR-2026-01 registration are unchanged.
+
 ### Added
 
 - **Adversarial-input tests** (`tests/test_adversarial_inputs.py`). They pin, for each attacker capability the twelfth review lists, what the event-scope engine does:

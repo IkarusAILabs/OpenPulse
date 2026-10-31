@@ -412,7 +412,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | Doc | Content |
 |---|---|
 | `docs/METHODOLOGY.md` | Sources, evidence rules, confidence levels, limitations |
-| `docs/ROADMAP.md` | M1–M8 milestones, principles, metrics, Next 90 Days |
+| `docs/ROADMAP.md` | Research track R, M1–M9 milestones, track T (AI Dependency Trust Assurance, planned), principles, metrics |
 | `docs/ANALYSTS.md` | The four analysts and their rules |
 | `docs/ARCHITECTURE_REVIEW.md` | Architecture & security assessment, finding matrix, migration plan |
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
@@ -426,6 +426,8 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 ## Roadmap
 
 M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook shipped; delivery state, dedup/retry and CI/PR integration next; SaaS future) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
+
+Planned, not available: **AI Dependency Trust Assurance — Know Why You Trust Your Dependencies** (ROADMAP track T). It is a separate future study that would add evidence on package identity and impersonation, artifact provenance (Sigstore, SLSA, PEP 740), and reputation integrity to the MCP tools and CI policy. None of it ships today. OpenPulse does not detect malware, verify provenance, or score reputation, and an MCP answer is advice to the agent, not a security boundary.
 
 Deliberately *not* on the roadmap: becoming an EOL database, another
 generic SCA, collector-count vanity, AI reasoning in the trusted
