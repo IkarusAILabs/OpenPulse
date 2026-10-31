@@ -1,5 +1,5 @@
 name: paper
-# Builds papers/tr-2026-01 (TR-2026-01) with latexmk and uploads the PDF
+# Builds papers/tr-2026-01 (TR-2026-01) and the prevalence paper with latexmk and uploads the PDF
 # and the build log, so the published PDF always comes from the committed
 # source, plus a verified arXiv source bundle. The authoring machine has
 # no TeX installation.
@@ -58,3 +58,30 @@ jobs:
             tr-2026-01-arxiv.tar.gz
             arxiv/main.pdf
           if-no-files-found: error
+  # The prevalence paper (papers/prevalence/paper). Its numbers come from
+  # results.tex, generated from the frozen run; fail if the committed file
+  # differs from what the data produces, then build the PDF.
+  prevalence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Regenerate results.tex from the frozen run
+        working-directory: papers/prevalence
+        run: |
+          python3 paper/tables.py data/main/measures.jsonl > paper/results.tex
+          git diff --exit-code -- paper/results.tex
+      - uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: main.tex
+          working_directory: papers/prevalence/paper
+          latexmk_use_lualatex: false
+      - run: |
+          ! grep -E "LaTeX Warning: (Reference|Citation) .* undefined|There were undefined references|Overfull" papers/prevalence/paper/main.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: prevalence-paper
+          path: |
+            papers/prevalence/paper/main.pdf
+            papers/prevalence/paper/main.log
+          if-no-files-found: warn

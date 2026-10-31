@@ -1,9 +1,9 @@
 # Study protocol: upstream source changes among widely used packages
 
-Status: **draft v0.1, 2026-10-31.** Frozen (tagged, SHA-256 of this file
-recorded in `data/FREEZE.md`) before the main collection runs. Every later
-change is appended to the amendment log at the end, with its date and
-reason, and is never edited into the text above it.
+Status: **v1.0, frozen 2026-10-31**, approved by the author, before the
+main collection ran (tag and SHA-256 of this file in `data/FREEZE.md`).
+Every later change is appended to the amendment log at the end, with its
+date and reason, and is never edited into the text above it.
 
 ## 1. Purpose
 
