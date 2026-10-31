@@ -103,7 +103,7 @@ STATUS: FUTURE (after R-C)
 | M6 SaaS surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
 | M7 Intelligence Network | FUTURE (unchanged) | |
 | M9, and SafeAI integration in this paper | DEFERRED | It widens scope and complicates attribution. It stays a separate future study. |
-| v0.8.0 Anchored Trust (keyed history, external anchoring) | NEXT after R-C | Needed for lead-time claims. The applicability evaluation does not rest on them. The paper keeps lead times as caveated observations. |
+| v0.9.0 Anchored Trust (keyed history, external anchoring) | NEXT after R-C | Needed for lead-time claims. The applicability evaluation does not rest on them. The paper keeps lead times as caveated observations. |
 | E1–E5 external developments | E5 (comparator runs) folded into R-C3; E1–E4 LATER | |
 | Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue only where they fix a false clear or false impact | |
 | Track T, AI Dependency Trust Assurance (added 2026-10-31) | FUTURE: Phase 0 (docs only) may run now; code waits | It is a separate study, outside the TR-2026-01 registration (§13: discovery and the agent interface are outside the study). It must not change verdicts or the frozen evaluation. |
@@ -196,7 +196,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 - identity trust (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
 - version applicability, explicit NOT_AFFECTED
 - confidence model with match strength vs evidence strength separated
-- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.8.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
+- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.9.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
 - first-detection semantics, deterministic reports
 - security hardening (SSRF policy, redaction, lock-drift check, secret tripwire)
 
@@ -581,7 +581,7 @@ This study can share infrastructure with E4, the dependency-decision experiment 
 - OBSOLETE as product scope: generic SCA matching, auto-remediation, dashboard complexity, AI-generated conclusions.
 - DONE 2026-10-19: repository coverage assurance (v0.6.0, #100) - blob-SHA-pinned GitHub inspection with COMPLETE/PARTIAL/FAILED coverage, evidence contract v1.1.
 - DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
-- DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.8.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
+- DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.9.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 
 ## Next 8–16 weeks (re-baselined 2026-10-30; supersedes the 2026-10-21 list)
 
@@ -592,6 +592,6 @@ This is a planning estimate, not a commitment: independent labelling and ground-
 3. **Weeks 6–12:** independent labelling (R-C2), the comparison and ablations (R-C3), discovery precision and recall (R-C4).
 4. **Weeks 12–16:** paper revision and reproducibility package (R-D).
 
-Superseded items from the 2026-10-21 list: v0.8.0 Anchored Trust moves after R-C. M6 operationalisation is PAUSED. The M4 benchmark harness is superseded by R-B1, the evaluation harness. Real non-lifecycle discovery (M2) continues only where it feeds R-C1.
+Superseded items from the 2026-10-21 list: v0.9.0 Anchored Trust moves after R-C. M6 operationalisation is PAUSED. The M4 benchmark harness is superseded by R-B1, the evaluation harness. Real non-lifecycle discovery (M2) continues only where it feeds R-C1.
 
 Do not add unrelated features. This roadmap exists to stop OpenPulse from becoming a feature-rich data aggregator and instead drive it toward a defensible dependency-intelligence product and a credible research instrument.
