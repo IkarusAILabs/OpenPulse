@@ -1,10 +1,12 @@
 # Registration: completeness-aware applicability decisions (TR-2026-01 evaluation)
 
-**Status: an open protocol (drafted 2026-10-30, amended 2026-10-30 and 2026-10-31, §12), not archived.** This document becomes a registered protocol only when a team archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
+**Status: an open protocol (drafted 2026-10-30, amended 2026-10-30 and twice on 2026-10-31, §12), not archived.** This document becomes a registered protocol only when a team archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
 
-**Not archivable yet: only the archiving fields remain.** The 2026-10-30 amendments are implemented, with their constants in `registration.py` (§9):
+**Not archivable yet: the factorial cells are not implemented (amendment of 2026-10-31, after the thirteenth review, §12).** The policies L₀, L_K, X_K and T₀ (§2) and the frozen catalogue snapshot they read (§10) are specified but have no code. X_K is the comparator of S3 (§4), so the registered analysis cannot run until they exist. Apart from that, only the archiving fields remain.
+
+The 2026-10-30 amendments are implemented, with their constants in `registration.py` (§9):
 - policy R: its encoding rules (`evaluation/representations/ENCODING.md`) and its consumer (`evaluation/existing_representation.py`), with each event's encoding frozen by SHA-256 in the case set;
-- S3, G4 and the attribution steps B→R→V→C;
+- S3 (against R, as drafted before 2026-10-31), G4 and the attribution steps B→R→V→C, which the factorial of §2 replaces;
 - the review-burden measures W1–W3: the inventory run per weekly cycle, and W3's seeded sample and summary;
 - the reliability measures D1–D2, tabulated from the annotators' records.
 
@@ -51,15 +53,18 @@ The study also does not evaluate discovery (§13) or the agent interface.
 
 ## 2. Policies compared
 
-All policies receive the same replayed events and the same dependency, and none receives the label. Their definitions are in `evaluation/PROTOCOL.md` §2 and the code is in `evaluation/policies.py` and `evaluation/strong_baseline.py`.
+All policies receive the same replayed events and the same dependency, and none receives the label. Their definitions are in `evaluation/PROTOCOL.md` §2 and the code is in `evaluation/policies.py`, `evaluation/strong_baseline.py` and `evaluation/existing_representation.py`. TR-2026-01 (appendix "Registered Evaluation", Algorithm "Decision rules of the baselines") gives each rule as pseudocode; that pseudocode and this table are the definitions.
 
 | Code | Policy | Role |
 |---|---|---|
 | **C** | OpenPulse (`check_dependency`), freshness bound set | the tested system |
-| **B** | conservative: affected if listed, otherwise abstain | primary comparator |
-| **A** | naive: affected if listed, otherwise not affected | safety comparator |
-| **V** | strong conservative baseline: C's model (typed scopes, completeness basis, curated identity) with ecosystem comparators and no engine-specific matching | equivalence comparator |
-| **R** | existing-representation baseline: each event re-encoded in OSV or OpenVEX and read by a careful conservative consumer, without C's model (below) | model comparator |
+| **B** | conservative (TR (iv)): affected if listed by bare name, otherwise abstain; **never clears**. Identity is a package's or repository's own name against the event's project and listed packages, after Docker Hub aliases are folded; versions match by release-line prefix | primary comparator (H2, minimum usefulness); floor for G2 and G4 |
+| **A** | naive: affected if listed by bare name, otherwise not affected | safety comparator |
+| **V** | strong conservative baseline (TR (v)), factorial cell T_K: C's model (typed scopes, completeness basis, curated identity) with ecosystem comparators and no engine-specific matching | equivalence comparator |
+| **R** | existing-representation baseline (TR (vi)), factorial cell X₀: each event re-encoded in OSV or OpenVEX and read by a careful conservative consumer, without C's model and without the catalogue (below) | reported contrast |
+| **X_K** | R with the frozen catalogue: an OSV package or a statement matches if it names any identifier that a curated, verified mapping ties to the dependency. Differs from V only in representation. **Not yet implemented** | S3 comparator |
+| **L₀**, **L_K** | B's literal reading with exact canonical identity (L₀) or catalogue identity (L_K) in place of bare names. **Not yet implemented** | reported contrasts |
+| **T₀** | V with an empty catalogue: exact canonical identity only. This is the policy that earlier TR drafts described as (iv). **Not yet implemented** | reported contrast |
 
 **Policy R.** R asks what the model adds over formats that already exist, read with care.
 
@@ -70,18 +75,32 @@ All policies receive the same replayed events and the same dependency, and none 
   - a `not_affected` statement names the exact purl.
 
   Everything else is unresolved.
-- **What R lacks.** Identity is exact purl equality. R has no curated catalogue, no typed namespace elements and no completeness declaration.
+- **What R lacks.** Identity is exact purl equality. R has no curated catalogue, no typed namespace elements and no completeness declaration. X_K is R given the same catalogue as V and C.
 
 R's code is `evaluation/existing_representation.py`, frozen with the other policies (§10).
 
-**Attribution.** The four comparators separate the following contributions (reported in §4, never tested together):
-- B to R: what existing formats and a careful consumer add;
-- R to V: what the typed model adds (typed elements, completeness with a basis, curated identity);
-- V to C: what the engine adds.
+**Attribution: a 3×2 factorial** (amended 2026-10-31, §12). The earlier chain B→R→V→C changed identity knowledge at every step: B matches bare names, R exact purls, and V and C the curated catalogue. A gain from R to V could therefore come from curated identity rather than from the model. The comparison now crosses two factors and holds the decision consumer fixed (the oracle parser, the pinned comparators, clearing only where the representation licenses it, and the summary rule affected > unresolved > cleared > no association):
+- **representation:** a literal affected list (L), the event re-encoded as OSV and OpenVEX (X), or typed elements with completeness and the admission policy (T);
+- **identity knowledge:** exact canonical identity (0), or its closure under one frozen catalogue snapshot (K).
 
-Each step is reported with its resolution gain and its review cost (W1–W3, §5).
+| | exact (0) | frozen catalogue (K) |
+|---|---|---|
+| L | L₀ | L_K |
+| X | X₀ = R | X_K |
+| T | T₀ | T_K = V |
+| engine | – | C |
+
+Contrasts, each an event-clustered paired bootstrap difference in resolution, with the false-clear events of both cells and the review cost (W1–W3, §5):
+- the model at fixed identity: T_K − X_K and T₀ − X₀; also X_K − L_K and X₀ − L₀;
+- curated identity at fixed representation: X_K − X₀, T_K − T₀ and L_K − L₀;
+- their interaction: (T_K − X_K) − (T₀ − X₀);
+- the engine: C − T_K (S1).
+
+C − X_K (S3) is the sum of the model and engine contributions. Only S1, S2 and S3 are tested (§4); the other contrasts are reported.
 
 **Why B, not V, is primary.** This is a change from the draft in TR-2026-01 §10, and it is disclosed in §12. V shares C's model, so C against V measures only the engine. The claim under test is about the model, so the primary comparison sets OpenPulse against a policy without the model. C against V is kept as a secondary equivalence test.
+
+*Note added 2026-10-31, after the thirteenth review.* B never clears, so H2 against B shows only that C's clearing rule resolves more than a policy that reads no negatives. It is a minimum, not a comparison with careful practice. The practical claim rests on S3 (C against X_K), which is reported next to the primary verdict whatever H2 shows. The author's decision of 2026-10-31 to keep S3 secondary stands (§12).
 
 ## 3. Primary hypotheses
 
@@ -89,7 +108,7 @@ Both must hold for the primary result to be a success.
 
 **H1, safety (non-inferiority).**
 - **Measure:** the event-level false-clear share. A false-clear event is an event with at least one in-scope pair that C reports as NOT_AFFECTED. The share is false-clear events divided by events with at least one in-scope pair ("events at risk").
-- **Decision rule:** the exact one-sided 95% upper bound (Clopper–Pearson) of C's share, minus B's observed share, must be **≤ δ = 0.05**. B never clears, so its share is 0 by construction.
+- **Decision rule:** the exact one-sided 95% upper bound (Clopper–Pearson) of C's share must be **≤ δ = 0.05**. This is an absolute bound, not a comparison. (Until 2026-10-31 the rule subtracted B's observed share. B never clears, so that share is 0 by construction, and the restatement changes nothing in effect; §12.) The false-clear events and exact bounds of every other policy are reported beside H1.
 - **Decidability:** H1 is decidable only with **at least 60 events at risk**. With fewer, the result is "not decidable", never a pass.
 - **Why events, not pairs:** pairs that share an event are correlated, and with zero false clears a clustered interval has zero width, which is uninformative. The rule of three over independent events is the honest instrument.
 
@@ -97,6 +116,8 @@ Both must hold for the primary result to be a success.
 - **Measure:** resolution rate, meaning correct decisive outcomes (AFFECTS on an in-scope pair, NOT_AFFECTED on an out-of-scope pair) over decidable pairs. Undeterminable pairs are excluded from the denominator.
 - **Decision rule:** the paired difference, C minus B, must be **≥ 0.10**, *and* its one-sided 95% lower bound must be **above 0**.
 - **Interval:** an event-clustered paired bootstrap, resampling a case's event set with replacement. 4,000 resamples, seed 20261030.
+- **What it shows:** because B never clears, H2 is a test of *minimum* usefulness: that C's clearing rule resolves more than a policy that reads no negatives. It is not a comparison with careful practice; S3 (§4) is.
+- **Not decisive coverage:** decisive coverage (decisive outcomes, right or wrong, over all pairs) is reported and never tested (§4).
 
 **Verdict.**
 - **success:** H1 passes and H2 passes;
@@ -120,16 +141,16 @@ Holm-corrected together at α = 0.05, and never used to rescue a failed primary 
 |---|---|---|
 | **S1:** C vs V equivalence | Two one-sided tests: the 90% bootstrap interval of the resolution difference, C minus V, lies within **±0.05** | whether the engine adds anything beyond a careful implementation of the same model |
 | **S2:** A vs C safety | The event-level false-clear share of A minus C is above 0, one-sided, by paired event bootstrap | whether reading absence as exclusion causes false clears that the model avoids |
-| **S3:** C vs R usefulness | The resolution difference, C minus R, is above 0: one-sided 95% lower bound of the event-clustered paired bootstrap | whether the model decides correctly more often than a careful consumer of existing formats |
+| **S3:** C vs X_K usefulness | The resolution difference, C minus X_K, is above 0: one-sided 95% lower bound of the event-clustered paired bootstrap | whether the model, with the engine, decides correctly more often than a careful consumer of existing formats given the same identity knowledge |
 
-R's false-clear events and their exact bound are reported next to S3. A gain over R that comes with more false-clear events than R is reported as a trade-off, not as an improvement.
+S3 compared C with R (X₀) until 2026-10-31 (§12). X_K's false-clear events and their exact bound are reported next to S3. A gain over X_K that comes with more false-clear events than X_K is reported as a trade-off, not as an improvement. The S3 result is reported next to the primary verdict, in the abstract and in the conclusion of any report of this study, whatever H2 shows.
 
 **Reported but never tested:**
 - A's false-clear events and their bound;
 - C minus A in resolution rate. A answers everything, so this can favour A even while A falsely clears;
 - every metric of `evaluation/PROTOCOL.md` §4: pair-level FCR_affected and FCR_clear, false impact, decisive coverage, unsupported decisiveness, evidence completeness;
-- the ablations (completeness, freshness, both, identity);
-- the attribution steps B→R→V→C (§2), each with its resolution difference and interval and its review-burden difference (W1);
+- the ablations (completeness, freshness, both, identity); the completeness ablation is reported as the decisions it changes, split into false clears avoided and correct negatives withheld, per basis;
+- the factorial contrasts of §2 other than S1 and S3 (the model at fixed identity, curated identity at fixed representation, their interaction), each with its resolution difference and interval and its review-burden difference (W1), including C minus R (X₀);
 - the encoding loss per event and event class (§2), and R's results restricted to events with no encoding loss;
 - the review-burden measures W1–W3 (§5) and the reliability measures D1–D2 (§5a);
 - every result stratified by event class, identity status, completeness basis and label independence.
@@ -187,6 +208,7 @@ The soundness lemma makes a negative sound only if its inputs are true of the re
 **Power for H2** (rough, stated so it can be checked):
 - **Assumptions:** a design effect of 2–3 for clustering, giving about 200 effective pairs, and C and B disagreeing on 20–30% of pairs.
 - **Result:** the standard error of the paired difference is about 0.035, so a true gain of 0.10 gives roughly 80% one-sided power.
+- **S3 (added 2026-10-31):** no power is claimed for S3. C and X_K plausibly disagree on far fewer pairs than C and B: on the development set's three lossless events, R and C each resolved 5 of 11 decidable pairs (illustrative). No margin or threshold was changed for that reason, and a failed S3 is an expected possible outcome.
 - **Caveat:** the design effect is the weakest assumption. The development set (13 event sets) gave a C-minus-B difference of 0.196, 95% interval 0.02–0.34, in the run that informed this draft (revision 2, 2026-10-30). The current code gives 0.216, 0.07–0.34, because one pair (fa-01) is now resolved (PROTOCOL §7). Either way, that is far too few events to estimate the design effect.
 
 **Labelling budget.** About 500 pairs × 2 annotators at 3–5 minutes per pair, so 25–40 hours per annotator, plus adjudication. The amendments add, roughly:
@@ -280,6 +302,7 @@ Specifically:
 
 - **Implementation:** the tested OpenPulse is frozen at a tag before labelling. A defect fixed after the freeze is reported as a separate, labelled run, and never replaces the registered one.
 - **Policies:** the definitions in `evaluation/policies.py`, `evaluation/strong_baseline.py` and `evaluation/existing_representation.py`, and the event-replay code, are frozen with the implementation.
+- **Catalogue:** one catalogue snapshot, which every K cell, V and C read, is frozen with the implementation, with its SHA-256 recorded (added 2026-10-31).
 - **R encodings:** `ENCODING.md` is frozen at archiving. The per-event OSV and OpenVEX encodings are frozen, with their SHA-256 recorded, before any policy runs. They are never revised after a result is seen.
 - **Labels:** frozen independently, before any policy runs on the held-out pairs.
 - **Separation from the development set:** held-out events come from a later window, and from projects outside the development set.
@@ -332,12 +355,24 @@ The author also decided two points the review raised, both leaving this registra
 
 H1 and H2 remain the only primary tests.
 
+**Amended 2026-10-31, before archiving, after the thirteenth review.** The review found that TR-2026-01 described baseline (iv) in two incompatible ways, that the primary comparator is weak, and that the chain B→R→V→C does not hold identity knowledge constant. Five changes:
+
+1. **B's definition corrected.** TR-2026-01's text had described (iv) as admitting negatives from scopes in the admissible set with exact identity. No such policy was implemented. B as implemented, and as the retrospective study ran it, never clears, matches by bare name and reads versions by release-line prefix. §2 now states that rule. The policy the TR text had described is now cell T₀. No code changed.
+2. **H1 restated as absolute** (§3). It had subtracted B's share, which is 0 by construction. No effect on any decision.
+3. **The chain replaced by a 3×2 factorial** (§2), representation × identity knowledge, adding the policies L₀, L_K, X_K and T₀ and a frozen catalogue snapshot (§10). None is implemented yet, so the draft is again not archivable (header).
+4. **S3 now compares C with X_K** (R given the same catalogue), not with R (§4). C minus R is still reported (§4). S3 is reported next to the primary verdict whatever H2 shows.
+5. **Completeness ablation split** (§4, reported, not tested). The decisions the completeness ablation changes are reported as false clears avoided and correct negatives withheld, per completeness basis. In the retrospective study the condition withheld seven correct negatives and prevented no false clear (TR-2026-01 §"Q3: Retrospective Study"), which informed this reporting change. No test, margin or threshold changed.
+
+The author's decision of 2026-10-31 above stands: B remains the primary comparator for H2, now described as minimum usefulness, and S3 remains a Holm-corrected secondary test. Making X_K the H2 comparator was considered and not adopted, because it would reverse that decision. No margin, threshold, sample-size rule, seed or resample count changed.
+
+These choices were made after the retrospective study and the development set had been seen. The retrospective study never ran R or any X cell, so no X result informed them. The retrospective decomposition of C's gain over B (16 of the 20 positives B reached and C did not are uncatalogued packages that B matched by bare name; TR-2026-01 §"Q3: Retrospective Study") informed the decision to hold identity knowledge constant.
+
 **Set 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** Drafted with Claude Code and approved by the author. They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
 
 ## 13. Known limitations of the design
 
 - The policies are compared given the same events. Discovery (whether events are found at all) is measured separately, so a missed event is not a false clear here.
-- Identity mappings come from OpenPulse's curated catalog for both C and V. The comparison with V therefore cannot detect a curation error that both share. D2 measures those errors directly. R does not use the catalogue, and the annotators' labels are a further check.
+- Identity mappings come from OpenPulse's curated catalog for C, V and X_K. The comparisons with V and X_K (S1, S3) therefore cannot detect a curation error that they share. D2 measures those errors directly. R (X₀) does not use the catalogue and so cannot share a curation error with C; C minus X₀ is the reported check that does not depend on curation, and the annotators' labels are a further check.
 - R is only as good as its encoder and its encoding rules. A poor encoding would flatter C. That is why the encoding loss is reported per event, and R's results are reported on events with no loss.
 - D1 and D2 measure inputs on the held-out events only. They are not estimates for curated data in general.
 - The agent interface's freshness modes (TR-2026-01 §7) are not evaluated. C here is the engine with the freshness bound set, which corresponds to the interface's current mode.
