@@ -53,5 +53,5 @@ Zenodo with the run.
 covers every package where both values exist (5,531), not the random 10%
 named in PROTOCOL.md §6. The full set contains any 10% sample, so this
 adds rather than changes information; the paper reports it as such.
-- `*raw.jsonl.gz`: `5417362034b810781427bb8b1cb437f9bb0f1a047c2128d067e49fe46038f923`
-- `*measures.jsonl`: `1fb61b86443ae248d4e28f0354d65b1fc645047893fa4918e4b813e59cae454f`
+- `raw.jsonl.gz`: `5417362034b810781427bb8b1cb437f9bb0f1a047c2128d067e49fe46038f923`
+- `measures.jsonl`: `1fb61b86443ae248d4e28f0354d65b1fc645047893fa4918e4b813e59cae454f`
