@@ -15,7 +15,22 @@ from core.version import openpulse_version
 @click.group()
 @click.version_option(version=openpulse_version(), prog_name="openpulse")
 def cli():
-    pass
+    _check_catalog()
+
+
+def _check_catalog() -> None:
+    """Fail every command cleanly on a broken catalog, before any verdict (#144)."""
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map, load_catalog
+
+    try:
+        catalog_alias_map(load_catalog())
+    except FileNotFoundError:
+        pass  # no catalog: identity resolution falls back to self, as documented
+    except CatalogCollisionError as exc:
+        raise click.ClickException(
+            f"{exc}. Fix data/canonical_projects.yaml so each alias and image "
+            "names one project."
+        ) from exc
 
 
 MAX_INPUT_BYTES = 1_000_000

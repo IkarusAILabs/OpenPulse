@@ -4,6 +4,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Fixed
+
+- **A catalog alias collision now fails loudly instead of resolving to the first entry (#144, #151).** If two entries in `data/canonical_projects.yaml` claim the same alias or Docker image, `catalog_alias_map` raises `CatalogCollisionError`, naming the alias and both slugs.
+  - The resolver no longer turns a broken catalog into an empty one. Before, one bad entry silently made every reference resolve to itself. Now `{}` is used only when the catalog file is missing.
+  - Every CLI command, including `openpulse mcp`, checks the catalog at start-up and exits with a one-line message instead of a traceback.
+
 ### Documentation
 
 - **OpenPulse is presented as academic research software.** The README has a new *Research status* section. It says what OpenPulse is (a research instrument of the [Ikarus AI Labs](https://ikaruslabs.net/research) programme, described in TR-2026-01) and what it is not (a commercial product or a certified security control). It also says how to read the project's claims and how to collaborate. The README's product and commercial wording is reframed, and the mentions of a separate SaaS layer are removed. `SECURITY.md`, `docs/MCP.md` and `docs/GITHUB_ACTION.md` carry a short research-software note, and the package description now says the same.

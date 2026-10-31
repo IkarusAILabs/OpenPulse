@@ -26,6 +26,10 @@ def load_catalog(path: str | None = None) -> list[dict[str, Any]]:
         return yaml.safe_load(f) or []
 
 
+class CatalogCollisionError(ValueError):
+    """Two catalog entries claim the same alias or Docker image (#144)."""
+
+
 #: Derived maps, memoised per catalog object. Identity resolution asked for
 #: them on every dependency check and rebuilt them each time, which made
 #: matching about 1.8x slower after F1 (benchmarks/REPORT.md). Each entry
@@ -49,7 +53,12 @@ def _memo(kind: str, catalog: list[dict[str, Any]], build: Callable[[], Any]) ->
 
 
 def catalog_alias_map(catalog: list[dict[str, Any]]) -> Mapping[str, str]:
-    """alias -> slug for every alias and docker image in the catalog."""
+    """alias -> slug for every alias and docker image in the catalog.
+
+    Raises CatalogCollisionError if two different slugs claim the same alias
+    or Docker image. First-wins would silently resolve one project to
+    another's identity; every caller sees the error instead (#144).
+    """
     return _memo("alias", catalog, lambda: MappingProxyType(_alias_map(catalog)))
 
 
@@ -60,7 +69,7 @@ def _alias_map(catalog: list[dict[str, Any]]) -> dict[str, str]:
         for alias in (entry.get("aliases") or []) + (entry.get("docker_images") or []):
             key = str(alias).strip().lower()
             if key in out and out[key] != slug:
-                raise ValueError(
+                raise CatalogCollisionError(
                     f"catalog alias collision: {key!r} claimed by both "
                     f"{out[key]!r} and {slug!r}"
                 )
