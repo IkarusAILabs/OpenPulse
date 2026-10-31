@@ -1,0 +1,41 @@
+{
+ "dataset": "dev",
+ "policy": "C-openpulse",
+ "dataset_sha256": "6676778c95f44319f5b68810b89d7191dae603474ecd20718b49f8033509855b",
+ "versions": {
+  "47fd707": "evaluation/results/openpulse-dev-2026-10.json",
+  "current (this tree)": "research/results"
+ },
+ "commits": {
+  "47fd707": "47fd707239b8f3cb5beb9dcacfd4c161f095e9e9",
+  "current (this tree)": null
+ },
+ "categories": {
+  "47fd707": {
+   "correct_affected": 25,
+   "abstained_undeterminable": 9,
+   "correct_unaffected": 8,
+   "unresolved": 17,
+   "no_association": 1
+  },
+  "current (this tree)": {
+   "correct_affected": 25,
+   "abstained_undeterminable": 9,
+   "correct_unaffected": 8,
+   "unresolved": 17,
+   "no_association": 1
+  }
+ },
+ "steps": [
+  {
+   "from": "47fd707",
+   "to": "current (this tree)",
+   "pairs": 60,
+   "changed": 0,
+   "transitions": {},
+   "new_safety_errors": [],
+   "fixed_safety_errors": [],
+   "pairs_changed": []
+  }
+ ]
+}

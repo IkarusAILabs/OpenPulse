@@ -7,6 +7,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -17,6 +18,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -27,6 +29,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -37,6 +40,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -47,6 +51,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -57,6 +62,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -67,6 +73,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -77,6 +84,7 @@
    "randomized": false,
    "regression_tests": true,
    "version_differential": true,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -87,6 +95,7 @@
    "randomized": false,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -97,6 +106,7 @@
    "randomized": false,
    "regression_tests": true,
    "version_differential": true,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -107,6 +117,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -117,6 +128,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -127,6 +139,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -137,6 +150,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -147,6 +161,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -157,6 +172,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -167,6 +183,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -177,6 +194,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -187,6 +205,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": false,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -197,6 +216,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -207,6 +227,7 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   },
@@ -217,13 +238,25 @@
    "randomized": true,
    "regression_tests": true,
    "version_differential": false,
+   "invariants": true,
+   "caught": true,
+   "caught_without_regression_tests": true
+  },
+  {
+   "mutant": "D16",
+   "reintroduces": "a heuristic or unreviewed mapping disassociates (image path)",
+   "matrix": false,
+   "randomized": false,
+   "regression_tests": true,
+   "version_differential": false,
+   "invariants": true,
    "caught": true,
    "caught_without_regression_tests": true
   }
  ],
- "caught": 22,
- "total": 22,
- "caught_without_regression_tests": 22,
+ "caught": 23,
+ "total": 23,
+ "caught_without_regression_tests": 23,
  "not_reinjected": {
   "D2": "union of OSV intervals: a multi-line walk, not a one-function change",
   "D5": "heuristic exclusion: subsumed by D10 and S2 in the current resolver",

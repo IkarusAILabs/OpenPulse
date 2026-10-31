@@ -963,3 +963,63 @@ def test_f4_uncurated_package_named_like_the_project_is_unresolved():
     named = _event("f4-named", scope=Scope(kind="package", packages=["pkg:pypi/acme"]))
     dep = {"kind": "package", "package": "acme", "ecosystem": "PyPI", "version": "1.0"}
     assert check_dependency(dep, [named]).relationship == "AFFECTS_PACKAGE"
+
+
+# D16 -- a heuristic or unreviewed mapping does not prove another project
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        None,
+        Scope(kind="version", versions=["16"], exhaustive=True, basis="definitional"),
+        Scope(kind="package", packages=["acme"], exhaustive=True, basis="definitional"),
+    ],
+    ids=["project-wide", "release-line", "package"],
+)
+def test_d16_heuristic_mapping_keeps_the_association_undetermined(scope):
+    """D16: docker.io/bitnami/postgresql resolves to bitnami-postgresql only
+    by the namespace heuristic (REVIEW_REQUIRED). That names another project
+    but does not prove one, so against an acme event it is RELATED, never
+    no association and never a clearance (TR-2026-01, Section 5.3 tests)."""
+    verdict = check_dependency(
+        _image("docker.io/bitnami/postgresql:16"), [_event("d16", scope=scope)]
+    )
+    assert verdict.relationship == "RELATED"
+    assert "namespace_rule" in verdict.reason
+
+
+def test_d16_package_path_heuristic_mapping_is_undetermined():
+    dep = {"kind": "package", "package": "bitnami/postgresql", "version": "16"}
+    eol = _event(
+        "d16-pkg",
+        scope=Scope(kind="version", versions=["16"], exhaustive=True, basis="definitional"),
+    )
+    verdict = check_dependency(dep, [eol])
+    assert verdict.relationship == "RELATED"
+    assert "not a proven disassociation" in verdict.reason
+
+
+def test_d16_curated_verified_mapping_still_has_no_association():
+    """The fix is narrow: a curated VERIFIED mapping to another project
+    (docker.io/bitnami/redis -> bitnami-redis-stack) is positive evidence."""
+    verdict = check_dependency(_image("docker.io/bitnami/redis:7.2"), [_event("d16-curated")])
+    assert verdict.relationship == "UNKNOWN"
+
+
+def test_d16_heuristic_mapping_blocks_a_clear_from_another_event():
+    """The user-facing consequence D16 had: a summary showing "cleared" over
+    an association it should keep."""
+    complete = _event(
+        "d16-clear",
+        scope=Scope(
+            kind="artifact",
+            artifacts=["docker.io/library/acme"],
+            exhaustive=True,
+            basis="definitional",
+        ),
+    )
+    verdict = check_dependency(
+        _image("docker.io/bitnami/postgresql:16"), [complete, _event("d16-project")]
+    )
+    assert verdict.relationship == "RELATED"

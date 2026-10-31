@@ -1,0 +1,1715 @@
+{
+ "dataset": "openpulse-dev-2026-10",
+ "dataset_sha256": "6676778c95f44319f5b68810b89d7191dae603474ecd20718b49f8033509855b",
+ "clusters": {
+  "unit": "event (a case's event set)",
+  "events": 13,
+  "pairs": 60,
+  "mean_pairs_per_event": 4.62,
+  "max_pairs_per_event": 10
+ },
+ "bootstrap": {
+  "resamples": 10000,
+  "seed": 20261031,
+  "interval": "percentile 95%"
+ },
+ "denominators": {
+  "false_clear_rate": "in-scope pairs",
+  "silent_miss_rate": "in-scope pairs",
+  "correct_affected_rate": "in-scope pairs",
+  "false_positive_rate": "out-of-scope pairs",
+  "correct_unaffected_rate": "out-of-scope pairs",
+  "resolution_rate": "determinable pairs (in- or out-of-scope)",
+  "unresolved_rate": "all evaluated pairs",
+  "decisive_rate": "all evaluated pairs"
+ },
+ "policies": {
+  "A-naive": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 5,
+    "n": 27,
+    "rate": 0.1852,
+    "clopper_pearson_95": [
+     0.063,
+     0.3808
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.4074
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 22,
+    "n": 27,
+    "rate": 0.8148,
+    "clopper_pearson_95": [
+     0.6192,
+     0.937
+    ],
+    "event_bootstrap_95": [
+     0.5926,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 6,
+    "n": 24,
+    "rate": 0.25,
+    "clopper_pearson_95": [
+     0.0977,
+     0.4671
+    ],
+    "event_bootstrap_95": [
+     0.087,
+     0.4444
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 18,
+    "n": 24,
+    "rate": 0.75,
+    "clopper_pearson_95": [
+     0.5329,
+     0.9023
+    ],
+    "event_bootstrap_95": [
+     0.5556,
+     0.913
+    ]
+   },
+   "resolution_rate": {
+    "k": 40,
+    "n": 51,
+    "rate": 0.7843,
+    "clopper_pearson_95": [
+     0.6468,
+     0.8871
+    ],
+    "event_bootstrap_95": [
+     0.6522,
+     0.8936
+    ]
+   },
+   "unresolved_rate": {
+    "k": 0,
+    "n": 60,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.0596
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "decisive_rate": {
+    "k": 60,
+    "n": 60,
+    "rate": 1.0,
+    "clopper_pearson_95": [
+     0.9404,
+     1.0
+    ],
+    "event_bootstrap_95": [
+     1.0,
+     1.0
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 3,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0504,
+     0.5381
+    ],
+    "events": [
+     "itext-license",
+     "postgresql-13-eol",
+     "react-18-breaking"
+    ]
+   }
+  },
+  "B-conservative": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 22,
+    "n": 27,
+    "rate": 0.8148,
+    "clopper_pearson_95": [
+     0.6192,
+     0.937
+    ],
+    "event_bootstrap_95": [
+     0.5926,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 6,
+    "n": 24,
+    "rate": 0.25,
+    "clopper_pearson_95": [
+     0.0977,
+     0.4671
+    ],
+    "event_bootstrap_95": [
+     0.087,
+     0.4444
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "k": 22,
+    "n": 51,
+    "rate": 0.4314,
+    "clopper_pearson_95": [
+     0.2935,
+     0.5775
+    ],
+    "event_bootstrap_95": [
+     0.2917,
+     0.566
+    ]
+   },
+   "unresolved_rate": {
+    "k": 26,
+    "n": 60,
+    "rate": 0.4333,
+    "clopper_pearson_95": [
+     0.3059,
+     0.5676
+    ],
+    "event_bootstrap_95": [
+     0.2963,
+     0.5763
+    ]
+   },
+   "decisive_rate": {
+    "k": 34,
+    "n": 60,
+    "rate": 0.5667,
+    "clopper_pearson_95": [
+     0.4324,
+     0.6941
+    ],
+    "event_bootstrap_95": [
+     0.4242,
+     0.7037
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "R-existing-representation": {
+   "pairs": 60,
+   "not_encoded": 20,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1853
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 18,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1853
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 3,
+    "n": 18,
+    "rate": 0.1667,
+    "clopper_pearson_95": [
+     0.0358,
+     0.4142
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.5556
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 15,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.218
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 2,
+    "n": 15,
+    "rate": 0.1333,
+    "clopper_pearson_95": [
+     0.0166,
+     0.4046
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.3333
+    ]
+   },
+   "resolution_rate": {
+    "k": 5,
+    "n": 33,
+    "rate": 0.1515,
+    "clopper_pearson_95": [
+     0.0511,
+     0.319
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.4231
+    ]
+   },
+   "unresolved_rate": {
+    "k": 35,
+    "n": 40,
+    "rate": 0.875,
+    "clopper_pearson_95": [
+     0.732,
+     0.9581
+    ],
+    "event_bootstrap_95": [
+     0.6667,
+     1.0
+    ]
+   },
+   "decisive_rate": {
+    "k": 5,
+    "n": 40,
+    "rate": 0.125,
+    "clopper_pearson_95": [
+     0.0419,
+     0.268
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.3333
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 7,
+    "clopper_pearson_95": [
+     0.0,
+     0.4096
+    ],
+    "events": []
+   }
+  },
+  "V-strong-conservative": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 24,
+    "n": 27,
+    "rate": 0.8889,
+    "clopper_pearson_95": [
+     0.7084,
+     0.9765
+    ],
+    "event_bootstrap_95": [
+     0.75,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 8,
+    "n": 24,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.1563,
+     0.5532
+    ],
+    "event_bootstrap_95": [
+     0.1364,
+     0.5385
+    ]
+   },
+   "resolution_rate": {
+    "k": 32,
+    "n": 51,
+    "rate": 0.6275,
+    "clopper_pearson_95": [
+     0.4808,
+     0.7587
+    ],
+    "event_bootstrap_95": [
+     0.4615,
+     0.7755
+    ]
+   },
+   "unresolved_rate": {
+    "k": 27,
+    "n": 60,
+    "rate": 0.45,
+    "clopper_pearson_95": [
+     0.3212,
+     0.5839
+    ],
+    "event_bootstrap_95": [
+     0.3333,
+     0.5918
+    ]
+   },
+   "decisive_rate": {
+    "k": 32,
+    "n": 60,
+    "rate": 0.5333,
+    "clopper_pearson_95": [
+     0.4,
+     0.6633
+    ],
+    "event_bootstrap_95": [
+     0.4,
+     0.6543
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-openpulse": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 8,
+    "n": 24,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.1563,
+     0.5532
+    ],
+    "event_bootstrap_95": [
+     0.1364,
+     0.5385
+    ]
+   },
+   "resolution_rate": {
+    "k": 33,
+    "n": 51,
+    "rate": 0.6471,
+    "clopper_pearson_95": [
+     0.5007,
+     0.7757
+    ],
+    "event_bootstrap_95": [
+     0.4783,
+     0.7903
+    ]
+   },
+   "unresolved_rate": {
+    "k": 26,
+    "n": 60,
+    "rate": 0.4333,
+    "clopper_pearson_95": [
+     0.3059,
+     0.5676
+    ],
+    "event_bootstrap_95": [
+     0.3231,
+     0.5714
+    ]
+   },
+   "decisive_rate": {
+    "k": 33,
+    "n": 60,
+    "rate": 0.55,
+    "clopper_pearson_95": [
+     0.4161,
+     0.6788
+    ],
+    "event_bootstrap_95": [
+     0.4167,
+     0.6667
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-ablate-completeness": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 8,
+    "n": 24,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.1563,
+     0.5532
+    ],
+    "event_bootstrap_95": [
+     0.1364,
+     0.5385
+    ]
+   },
+   "resolution_rate": {
+    "k": 33,
+    "n": 51,
+    "rate": 0.6471,
+    "clopper_pearson_95": [
+     0.5007,
+     0.7757
+    ],
+    "event_bootstrap_95": [
+     0.4783,
+     0.7903
+    ]
+   },
+   "unresolved_rate": {
+    "k": 26,
+    "n": 60,
+    "rate": 0.4333,
+    "clopper_pearson_95": [
+     0.3059,
+     0.5676
+    ],
+    "event_bootstrap_95": [
+     0.3231,
+     0.5714
+    ]
+   },
+   "decisive_rate": {
+    "k": 33,
+    "n": 60,
+    "rate": 0.55,
+    "clopper_pearson_95": [
+     0.4161,
+     0.6788
+    ],
+    "event_bootstrap_95": [
+     0.4167,
+     0.6667
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-ablate-freshness": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 8,
+    "n": 24,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.1563,
+     0.5532
+    ],
+    "event_bootstrap_95": [
+     0.1364,
+     0.5385
+    ]
+   },
+   "resolution_rate": {
+    "k": 33,
+    "n": 51,
+    "rate": 0.6471,
+    "clopper_pearson_95": [
+     0.5007,
+     0.7757
+    ],
+    "event_bootstrap_95": [
+     0.4783,
+     0.7903
+    ]
+   },
+   "unresolved_rate": {
+    "k": 26,
+    "n": 60,
+    "rate": 0.4333,
+    "clopper_pearson_95": [
+     0.3059,
+     0.5676
+    ],
+    "event_bootstrap_95": [
+     0.3231,
+     0.5714
+    ]
+   },
+   "decisive_rate": {
+    "k": 33,
+    "n": 60,
+    "rate": 0.55,
+    "clopper_pearson_95": [
+     0.4161,
+     0.6788
+    ],
+    "event_bootstrap_95": [
+     0.4167,
+     0.6667
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-ablate-both": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 1,
+    "n": 27,
+    "rate": 0.037,
+    "clopper_pearson_95": [
+     0.0009,
+     0.1897
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.1304
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 9,
+    "n": 24,
+    "rate": 0.375,
+    "clopper_pearson_95": [
+     0.188,
+     0.5941
+    ],
+    "event_bootstrap_95": [
+     0.1818,
+     0.5652
+    ]
+   },
+   "resolution_rate": {
+    "k": 34,
+    "n": 51,
+    "rate": 0.6667,
+    "clopper_pearson_95": [
+     0.5208,
+     0.7924
+    ],
+    "event_bootstrap_95": [
+     0.5128,
+     0.8
+    ]
+   },
+   "unresolved_rate": {
+    "k": 24,
+    "n": 60,
+    "rate": 0.4,
+    "clopper_pearson_95": [
+     0.2756,
+     0.5346
+    ],
+    "event_bootstrap_95": [
+     0.2985,
+     0.5263
+    ]
+   },
+   "decisive_rate": {
+    "k": 35,
+    "n": 60,
+    "rate": 0.5833,
+    "clopper_pearson_95": [
+     0.4488,
+     0.7093
+    ],
+    "event_bootstrap_95": [
+     0.459,
+     0.6935
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 1,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0019,
+     0.3603
+    ],
+    "events": [
+     "react-18-breaking"
+    ]
+   }
+  },
+  "C-ablate-identity": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 8,
+    "n": 24,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.1563,
+     0.5532
+    ],
+    "event_bootstrap_95": [
+     0.1364,
+     0.5385
+    ]
+   },
+   "resolution_rate": {
+    "k": 33,
+    "n": 51,
+    "rate": 0.6471,
+    "clopper_pearson_95": [
+     0.5007,
+     0.7757
+    ],
+    "event_bootstrap_95": [
+     0.4783,
+     0.7903
+    ]
+   },
+   "unresolved_rate": {
+    "k": 14,
+    "n": 60,
+    "rate": 0.2333,
+    "clopper_pearson_95": [
+     0.1338,
+     0.3604
+    ],
+    "event_bootstrap_95": [
+     0.1481,
+     0.3143
+    ]
+   },
+   "decisive_rate": {
+    "k": 33,
+    "n": 60,
+    "rate": 0.55,
+    "clopper_pearson_95": [
+     0.4161,
+     0.6788
+    ],
+    "event_bootstrap_95": [
+     0.4167,
+     0.6667
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-posthoc-binary": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 2,
+    "n": 27,
+    "rate": 0.0741,
+    "clopper_pearson_95": [
+     0.0091,
+     0.2429
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.1923
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 25,
+    "n": 27,
+    "rate": 0.9259,
+    "clopper_pearson_95": [
+     0.7571,
+     0.9909
+    ],
+    "event_bootstrap_95": [
+     0.8077,
+     1.0
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 24,
+    "n": 24,
+    "rate": 1.0,
+    "clopper_pearson_95": [
+     0.8575,
+     1.0
+    ],
+    "event_bootstrap_95": [
+     1.0,
+     1.0
+    ]
+   },
+   "resolution_rate": {
+    "k": 49,
+    "n": 51,
+    "rate": 0.9608,
+    "clopper_pearson_95": [
+     0.8654,
+     0.9952
+    ],
+    "event_bootstrap_95": [
+     0.898,
+     1.0
+    ]
+   },
+   "unresolved_rate": {
+    "k": 0,
+    "n": 60,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.0596
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "decisive_rate": {
+    "k": 60,
+    "n": 60,
+    "rate": 1.0,
+    "clopper_pearson_95": [
+     0.9404,
+     1.0
+    ],
+    "event_bootstrap_95": [
+     1.0,
+     1.0
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 2,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0192,
+     0.4545
+    ],
+    "events": [
+     "fbsdk-archive",
+     "react-18-breaking"
+    ]
+   }
+  },
+  "C-posthoc-no-curated-identity": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 0,
+    "n": 27,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1277
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 14,
+    "n": 27,
+    "rate": 0.5185,
+    "clopper_pearson_95": [
+     0.3195,
+     0.7133
+    ],
+    "event_bootstrap_95": [
+     0.2174,
+     0.7879
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 3,
+    "n": 24,
+    "rate": 0.125,
+    "clopper_pearson_95": [
+     0.0266,
+     0.3236
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.3333
+    ]
+   },
+   "resolution_rate": {
+    "k": 17,
+    "n": 51,
+    "rate": 0.3333,
+    "clopper_pearson_95": [
+     0.2076,
+     0.4792
+    ],
+    "event_bootstrap_95": [
+     0.1132,
+     0.5893
+    ]
+   },
+   "unresolved_rate": {
+    "k": 43,
+    "n": 60,
+    "rate": 0.7167,
+    "clopper_pearson_95": [
+     0.5856,
+     0.8255
+    ],
+    "event_bootstrap_95": [
+     0.5065,
+     0.9038
+    ]
+   },
+   "decisive_rate": {
+    "k": 17,
+    "n": 60,
+    "rate": 0.2833,
+    "clopper_pearson_95": [
+     0.1745,
+     0.4144
+    ],
+    "event_bootstrap_95": [
+     0.0962,
+     0.4935
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 0,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0,
+     0.2471
+    ],
+    "events": []
+   }
+  },
+  "C-posthoc-name-identity": {
+   "pairs": 60,
+   "not_encoded": 0,
+   "false_clear_rate": {
+    "k": 1,
+    "n": 27,
+    "rate": 0.037,
+    "clopper_pearson_95": [
+     0.0009,
+     0.1897
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.1304
+    ]
+   },
+   "silent_miss_rate": {
+    "k": 12,
+    "n": 27,
+    "rate": 0.4444,
+    "clopper_pearson_95": [
+     0.2548,
+     0.6467
+    ],
+    "event_bootstrap_95": [
+     0.1724,
+     0.75
+    ]
+   },
+   "correct_affected_rate": {
+    "k": 14,
+    "n": 27,
+    "rate": 0.5185,
+    "clopper_pearson_95": [
+     0.3195,
+     0.7133
+    ],
+    "event_bootstrap_95": [
+     0.2174,
+     0.7879
+    ]
+   },
+   "false_positive_rate": {
+    "k": 0,
+    "n": 24,
+    "rate": 0.0,
+    "clopper_pearson_95": [
+     0.0,
+     0.1425
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "correct_unaffected_rate": {
+    "k": 4,
+    "n": 24,
+    "rate": 0.1667,
+    "clopper_pearson_95": [
+     0.0474,
+     0.3738
+    ],
+    "event_bootstrap_95": [
+     0.0,
+     0.3913
+    ]
+   },
+   "resolution_rate": {
+    "k": 18,
+    "n": 51,
+    "rate": 0.3529,
+    "clopper_pearson_95": [
+     0.2243,
+     0.4993
+    ],
+    "event_bootstrap_95": [
+     0.125,
+     0.6102
+    ]
+   },
+   "unresolved_rate": {
+    "k": 9,
+    "n": 60,
+    "rate": 0.15,
+    "clopper_pearson_95": [
+     0.071,
+     0.2657
+    ],
+    "event_bootstrap_95": [
+     0.0698,
+     0.2131
+    ]
+   },
+   "decisive_rate": {
+    "k": 19,
+    "n": 60,
+    "rate": 0.3167,
+    "clopper_pearson_95": [
+     0.2026,
+     0.4496
+    ],
+    "event_bootstrap_95": [
+     0.1129,
+     0.5385
+    ]
+   },
+   "events_with_false_clear": {
+    "k": 1,
+    "n": 13,
+    "clopper_pearson_95": [
+     0.0019,
+     0.3603
+    ],
+    "events": [
+     "bitnami-2025+redis-6.2-eol"
+    ]
+   }
+  }
+ },
+ "paired_with_C": {
+  "A-naive": {
+   "events_false_clear_only_here": 3,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": 0.125,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.1852,
+    "event_bootstrap_95": [
+     0.0,
+     0.4074
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.1373,
+    "event_bootstrap_95": [
+     0.0196,
+     0.2727
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": -0.4333,
+    "event_bootstrap_95": [
+     -0.5714,
+     -0.3231
+    ]
+   }
+  },
+  "B-conservative": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": -0.2157,
+    "event_bootstrap_95": [
+     -0.34,
+     -0.0769
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     -0.193,
+     0.1594
+    ]
+   }
+  },
+  "V-strong-conservative": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": -0.0196,
+    "event_bootstrap_95": [
+     -0.0652,
+     0.0
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": 0.0167,
+    "event_bootstrap_95": [
+     0.0,
+     0.0556
+    ]
+   }
+  },
+  "C-ablate-completeness": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "C-ablate-freshness": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "C-ablate-both": {
+   "events_false_clear_only_here": 1,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": 0.5,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.037,
+    "event_bootstrap_95": [
+     0.0,
+     0.1304
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.0196,
+    "event_bootstrap_95": [
+     0.0,
+     0.0652
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": -0.0333,
+    "event_bootstrap_95": [
+     -0.1154,
+     0.0
+    ]
+   }
+  },
+  "C-ablate-identity": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": -0.2,
+    "event_bootstrap_95": [
+     -0.3333,
+     -0.1029
+    ]
+   }
+  },
+  "C-posthoc-binary": {
+   "events_false_clear_only_here": 2,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": 0.25,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0741,
+    "event_bootstrap_95": [
+     0.0,
+     0.1923
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": 0.3137,
+    "event_bootstrap_95": [
+     0.1875,
+     0.4545
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": -0.4333,
+    "event_bootstrap_95": [
+     -0.5714,
+     -0.3231
+    ]
+   }
+  },
+  "C-posthoc-no-curated-identity": {
+   "events_false_clear_only_here": 0,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": null,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.0,
+    "event_bootstrap_95": [
+     0.0,
+     0.0
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": -0.3137,
+    "event_bootstrap_95": [
+     -0.5,
+     -0.1277
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": 0.2833,
+    "event_bootstrap_95": [
+     0.1096,
+     0.46
+    ]
+   }
+  },
+  "C-posthoc-name-identity": {
+   "events_false_clear_only_here": 1,
+   "events_false_clear_only_C": 0,
+   "sign_test_one_sided_p": 0.5,
+   "sign_test_note": "within this purposive sample only; not a population inference",
+   "false_clear_rate": {
+    "difference_x_minus_C": 0.037,
+    "event_bootstrap_95": [
+     0.0,
+     0.1304
+    ]
+   },
+   "resolution_rate": {
+    "difference_x_minus_C": -0.2941,
+    "event_bootstrap_95": [
+     -0.48,
+     -0.1111
+    ]
+   },
+   "unresolved_rate": {
+    "difference_x_minus_C": -0.2833,
+    "event_bootstrap_95": [
+     -0.4545,
+     -0.1562
+    ]
+   }
+  }
+ }
+}

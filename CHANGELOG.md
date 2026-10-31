@@ -4,7 +4,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Upgrade notes
+
+- **A heuristic identity mapping no longer removes an association (TR-2026-01 D16).** This changes verdicts. A reference resolved to another project only by a heuristic rule, or by a REVIEW_REQUIRED or UNVERIFIED mapping, is now RELATED (undetermined) against an event of any project. It is no longer UNKNOWN ("no association"). The rule is the one TR-2026-01 §5.3 specifies, and it now applies to project-wide and package-scoped events on the image path, and to release lines on the package path. Example: `docker.io/bitnami/postgresql:16` against a project-wide PostgreSQL event. A curated, VERIFIED mapping to another project still means no association. No pair of the evaluation case sets changes.
+
 ### Fixed
+
+- **Agent and MCP answers carry the cause behind every verdict.** `dependency_status` and `check_dependency_file` listed only causes whose event belongs to the dependency's own project. A verdict could therefore arrive with no cause and no evidence URL: `docker.io/bitnami/redis:7.2` was AFFECTS_ARTIFACT through the `bitnami` event, with an empty `causes` list. Another project's cause is now listed when it is affected or unresolved, or when it is the only support for the verdict. Unrelated clearances are still left out.
+- **The registered analysis no longer adjusts rounded p-values, and no longer calls an empty population valid.** `evaluation/registration.py` passed 4-decimal p-values to Holm's procedure, so the smallest bootstrap p (1/4001) gave a Holm p of 0.0004 instead of 0.0005. A population with no pairs was reported `valid: true`. The H1 rule text now states the absolute rule that REGISTRATION.md registers.
 
 - **One large dependency file no longer uses up a repository's whole inspection budget (#103, #148).** The per-file cap was 50 MB, equal to the 50 MB total budget, so a single 50 MB lockfile left every other manifest in the repository uninspected. The per-file cap is now the smallest of three limits: the parser cap, GitHub's 100 MB blobs-API limit, and half the budget, which is 25 MB today. A larger file is skipped on its own, with a PARTIAL reason, and the rest are still read.
 
