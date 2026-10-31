@@ -68,12 +68,18 @@ def normalize_ref(ref: str) -> str:
 
 @lru_cache(maxsize=1)
 def _catalog_map() -> Mapping[str, str]:
-    try:
-        from core.entities.catalog import catalog_alias_map, load_catalog
+    """The catalog's alias map, or {} only when the catalog file is absent.
 
-        return catalog_alias_map(load_catalog())
-    except Exception:
+    A broken catalog (an alias collision, invalid YAML) raises: turning it
+    into {} would silently resolve every reference to itself (#132, #144).
+    """
+    from core.entities.catalog import catalog_alias_map, load_catalog
+
+    try:
+        catalog = load_catalog()
+    except FileNotFoundError:
         return {}
+    return catalog_alias_map(catalog)
 
 
 def _bitnami_rule(normalized: str) -> str | None:

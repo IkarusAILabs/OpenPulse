@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_legacy_aliases_preserved():
     from core.entities.resolve import resolve_project
 
@@ -19,6 +22,106 @@ def test_catalog_aliases():
     assert resolve_project("postgres:16") == "postgresql"
     assert resolve_project("docker.io/library/postgres:16") == "postgresql"
     assert resolve_project("apache/kafka") == "kafka"
+
+
+def test_catalog_alias_collision_names_both_slugs():
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map
+
+    with pytest.raises(
+        CatalogCollisionError, match=r"'shared' claimed by both 'slug-alpha' and 'slug-beta'"
+    ):
+        catalog_alias_map(
+            [
+                {"slug": "slug-alpha", "aliases": ["shared"]},
+                {"slug": "slug-beta", "aliases": ["shared"]},
+            ]
+        )
+
+
+def test_catalog_docker_image_collision_raises():
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map
+
+    with pytest.raises(CatalogCollisionError, match=r"'docker.io/acme/app'"):
+        catalog_alias_map(
+            [
+                {"slug": "slug-alpha", "docker_images": ["docker.io/acme/app"]},
+                {"slug": "slug-beta", "aliases": ["docker.io/acme/app"]},
+            ]
+        )
+
+
+def test_catalog_repeated_alias_within_one_slug_is_not_a_collision():
+    from core.entities.catalog import catalog_alias_map
+
+    alias_map = catalog_alias_map([{"slug": "solo", "aliases": ["x"], "docker_images": ["x"]}])
+    assert alias_map["x"] == "solo"
+
+
+def test_shipped_catalog_has_no_collisions():
+    from core.entities.catalog import catalog_alias_map, load_catalog
+
+    assert catalog_alias_map(load_catalog())
+
+
+def test_catalog_yaml_file_collision_raises(tmp_path):
+    import yaml
+
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map, load_catalog
+
+    path = tmp_path / "catalog.yaml"
+    path.write_text(
+        yaml.safe_dump([{"slug": "x", "aliases": ["dup"]}, {"slug": "y", "aliases": ["dup"]}]),
+        encoding="utf-8",
+    )
+    with pytest.raises(CatalogCollisionError, match=r"'dup' claimed by both 'x' and 'y'"):
+        catalog_alias_map(load_catalog(str(path)))
+
+
+@pytest.fixture
+def colliding_catalog(monkeypatch):
+    """The default catalog replaced by one with a collision, caches cleared."""
+    import core.entities.catalog as catalog_module
+    from core.entities import resolve
+
+    colliding = [
+        {"slug": "postgresql", "aliases": ["postgres"]},
+        {"slug": "impostor", "aliases": ["postgres"]},
+    ]
+    monkeypatch.setattr(catalog_module, "load_catalog", lambda path=None: colliding)
+    resolve._catalog_map.cache_clear()
+    yield
+    resolve._catalog_map.cache_clear()
+
+
+def test_collision_surfaces_in_resolution_not_as_an_empty_catalog(colliding_catalog):
+    from core.entities.catalog import CatalogCollisionError
+    from core.entities.resolve import resolve_project
+
+    # Before #144 the resolver swallowed this into {}, so every reference
+    # silently resolved to itself.
+    with pytest.raises(CatalogCollisionError):
+        resolve_project("postgres:16")
+
+
+def test_collision_surfaces_in_trust_resolution(colliding_catalog):
+    from core.entities.catalog import CatalogCollisionError
+    from core.entities.identity import resolution_trust
+
+    with pytest.raises(CatalogCollisionError):
+        resolution_trust("postgres:16")
+
+
+def test_cli_reports_a_collision_cleanly(colliding_catalog):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    watchlist = "data/fixtures/watchlist_sample.yaml"
+    result = CliRunner().invoke(cli, ["check", "--watchlist", watchlist])
+    assert result.exit_code == 1
+    assert "catalog alias collision: 'postgres' claimed by both" in result.output
+    assert "Traceback" not in result.output
+    assert not isinstance(result.exception, ValueError)  # a clean ClickException exit
 
 
 def test_catalog_hygiene():
@@ -309,8 +412,6 @@ def test_derived_catalog_maps_follow_a_different_or_grown_catalog():
 
 
 def test_derived_catalog_maps_are_read_only():
-    import pytest
-
     from core.entities.catalog import catalog_alias_map, load_catalog, package_map
 
     with pytest.raises(TypeError):
