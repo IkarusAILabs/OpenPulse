@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.8.0 — 2026-10-31
+
+The release that TR-2026-01 describes. **This release changes verdicts**: the audit fixes (D1–D15, F1–F4) withhold clearances the earlier engine gave, completeness now needs a recorded basis, and the CLI and MCP tools bound evidence age by default. Read the upgrade notes before upgrading CI gates.
 
 ### Upgrade notes
 

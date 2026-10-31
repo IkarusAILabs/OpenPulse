@@ -1,4 +1,4 @@
-# Implementation plan — v0.7 → v0.9 (2026-10-28)
+# Implementation plan — v0.7 → v0.10 (2026-10-28)
 
 The living build plan. It sequences the 2026-10-21 security review (finding matrix in `docs/ARCHITECTURE_REVIEW.md`), the distribution work since, and the open issues against `docs/ROADMAP.md`. Every item names its conceptual layer (1–10) where one applies, its finding ID or issue, a size (S ≈ a day, M ≈ 2–4 days, L ≈ a week or more) and who should build it.
 
@@ -33,11 +33,11 @@ Phase 0 (release + distribution)  ──►  v0.7.0 release
         │
         ├──► Phase 1 (hardening, mostly contributors)  ── runs alongside everything below
         │
-        ├──► Phase 2 (Anchored Trust, v0.8.0)
+        ├──► Phase 2 (Anchored Trust, v0.9.0)
         │        B1 ─► B2 ─► B3* ─► B4 ─► B5        (* key-management design approved first)
         │        B6, B7 independent
         │
-        ├──► Phase 3 (M6 operations, v0.9.0)
+        ├──► Phase 3 (M6 operations, v0.10.0)
         │        C2 any time;  C1 after B3 (alerts cite keyed-valid detections)
         │        C4 (bench) any time
         │
@@ -82,7 +82,7 @@ Each item has an issue with acceptance criteria, so it can go to contributors. M
 
 **Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel.
 
-## Phase 2 — v0.8.0 "Anchored Trust" (layers 2 and 6)
+## Phase 2 — v0.9.0 "Anchored Trust" (layers 2 and 6)
 
 Goal: authority, independence and history integrity are derived from verifiable facts or keyed secrets, never from strings the caller supplies. ROADMAP M1 says not to expand without a concrete requirement. The concrete requirement here is that lead time, the headline metric, rests on this history.
 
@@ -134,7 +134,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 - Reports cite lead times from keyed-valid detections only.
 - README, METHODOLOGY and ROADMAP move from "corruption-detecting" to "tamper-evident (keyed)" only once all of the above hold.
 
-## Phase 3 — v0.9.0 M6 operations (layers 7 and 8)
+## Phase 3 — v0.10.0 M6 operations (layers 7 and 8)
 
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|

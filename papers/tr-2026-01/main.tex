@@ -51,7 +51,7 @@
 \newcommand{\dtwelvecommit}{\code{784fed8}}
 \newcommand{\dfifteencommit}{\code{d4f7d1f}}
 \newcommand{\pincommit}{\code{8a9c3a8}}
-\newcommand{\snapcommit}{\code{787beb8}}
+\newcommand{\release}{v0.8.0}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -65,7 +65,7 @@ integrations described in this report: \url{https://ikaruslabs.net/}.}\\
 \href{mailto:mehmet@ikaruslabs.net}{\texttt{mehmet@ikaruslabs.net}}\quad
 \url{https://ikaruslabs.net/}}
 
-\date{Technical Report TR-2026-01\quad 31 October 2026\quad snapshot \snapcommit{}}
+\date{Technical Report TR-2026-01\quad 31 October 2026\quad OpenPulse \release{}}
 
 \begin{document}
 \maketitle
@@ -225,9 +225,9 @@ analysis code implemented, as an open protocol
 
 \paragraph{Status.} Table~\ref{tab:status} separates what is
 specified, what is implemented and what is open. Every statement about behaviour, and every
-measurement, refers to one snapshot, \snapcommit{} of
-\url{https://github.com/IkarusAILabs/OpenPulse}, released under the
-Apache License~2.0. Earlier states appear only where the method needs
+measurement, refers to one release, \op{} \release{} (git tag
+\code{\release{}} of \url{https://github.com/IkarusAILabs/OpenPulse}),
+under the Apache License~2.0. Earlier states appear only where the method needs
 them: the audited commit and the audit snapshot in
 Section~\ref{sec:audit}, and the retrospective study's freeze tag in
 Section~\ref{sec:retro}. The artifact manifest
@@ -258,7 +258,7 @@ its spelling in code identifiers.
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.3cm} >{\raggedright\arraybackslash}X@{}}
 \toprule
-Component & Specified & Implemented at \snapcommit{} & Open \\
+Component & Specified & Implemented at \release{} & Open \\
 \midrule
 Scope typing & Repository, namespace, tag, release-line, object,
   package, registry, project elements, each \emph{exact} or
@@ -298,8 +298,8 @@ First detection & Externally witnessed & Unkeyed local ledger &
   Backdating not detectable \\
 \bottomrule
 \end{tabularx}
-\caption{Specification versus implementation at the snapshot
-\snapcommit{}. \emph{Implemented}: present at the snapshot and covered
+\caption{Specification versus implementation at release
+\release{}. \emph{Implemented}: present at the release and covered
 by regression tests. \emph{Interim}: a fail-closed substitute that withholds
 negatives where the specified semantics are missing (Table~\ref{tab:interim}).
 \emph{Open}: specified but not implemented, or not established.}
@@ -1301,7 +1301,7 @@ or \NoA{} (no association):
     gives \Ind{}. The element-specific rules above apply only when the
     kinds agree. Appendix~\ref{app:membership} gives the normative
     table of forms, roles, purposes and results, and two places where
-    the snapshot departs from it.
+    the release departs from it.
 \end{description}
 
 \begin{algorithm}[t]
@@ -1550,7 +1550,7 @@ check.
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.9cm}@{}}
 \toprule
-Premise component & Established by & At the snapshot & Checked or trusted \\
+Premise component & Established by & At the release & Checked or trusted \\
 \midrule
 P1: event is faithful & Evidence gate, authority & Unsupported claims vetoed; a well-sourced wrong event is not detected & Trusted \\
 P1: elements are the right ones & Gate (artefact classes) & Missing element not detected & Trusted; D1 \\
@@ -1709,7 +1709,7 @@ negative.
 
 We audited the verdict engine and the version evaluator at \commit{}.
 Table~\ref{tab:defects} lists every defect the audit found at
-\pincommit{}, and one (D16) found at the snapshot, with its minimal
+\pincommit{}, and one (D16) found at the release, with its minimal
 input and its status. Five defects
 found later, by the retrospective study and its follow-up (D-R1,
 D-R2 and D-S1--D-S3, one of them a false clear), are reported in
@@ -1774,7 +1774,7 @@ D16 & \code{docker.io/bitnami/postgresql:16}, mapped by heuristic to
 \bottomrule
 \end{tabularx}
 \caption{The audit's defect inventory at \pincommit{} (later defects:
-Section~\ref{sec:retro}). D16 was found at the snapshot, while checking
+Section~\ref{sec:retro}). D16 was found at the release, while checking
 the membership table of Appendix~\ref{app:membership} against the
 code, and is not fixed (Appendix~\ref{app:defects}). D1--D3, D8, D9: implementation
 failures. D4: a specification gap, since completeness could not be
@@ -1834,7 +1834,7 @@ and N5 restrict negatives only (S1). A dependency curated as another
 project had been given \Ind{} by the cross-kind and package rules (S2).
 A package had been comparable with container-image elements (S3). And
 a named example had been able to exclude (S4).
-At the snapshot, the matrix has 21 scopes, adding qualified and
+At the release, the matrix has 21 scopes, adding qualified and
 mixed package values (F3) and an uncatalogued project's package (F4),
 and 21 dependency references, adding packages with a stated ecosystem
 and a package whose name is not its project's slug (F2): $(19 \times
@@ -1859,7 +1859,7 @@ left a reference undetermined, the event's scope was never evaluated,
 so a release-line member was only \textsc{Related}. It also found that
 the image path still made an identity exclusion for an image curated
 as another project, which needs a complete scope, where S2 gives no
-association. At the snapshot, with the generator extended for F2--F4,
+association. At the release, with the generator extended for F2--F4,
 the seed-7 run agrees on all 100{,}000 summaries and all 200{,}070
 per-event verdicts.
 \emph{Defect re-injection} (\code{conformance/mutation.py}) tests the
@@ -1917,7 +1917,7 @@ unmeasured (Section~\ref{sec:evalplan}).
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}X r r@{}}
 \toprule
-Severity of disagreement (implementation vs oracle) & First run & At the snapshot \\
+Severity of disagreement (implementation vs oracle) & First run & At the release \\
 \midrule
 Matrix cases & 3{,}995 & 6{,}195 \\
 Conforming cases & 3{,}350 & 6{,}123 \\
@@ -1935,7 +1935,7 @@ Randomised, seed 7: per-event verdicts agreeing & -- & 200{,}070 / 200{,}070 \\
 differential testing. The first run used the implementation before
 D12--D15 and the specification before S1--S4, on the 3{,}995-case
 matrix; most of its disagreements came from S1. The second column is
-the snapshot \snapcommit{} on the extended 6{,}195-case matrix.}
+release \release{} on the extended 6{,}195-case matrix.}
 \label{tab:conformance}
 \end{table}
 
@@ -1968,7 +1968,7 @@ F3 & Qualified value matched by name alone & \checkmark & \checkmark & & \checkm
 F4 & Self-resolved package named like the project is the project & & \checkmark & & \checkmark \\
 \bottomrule
 \end{tabularx}
-\caption{Defect re-injection at \snapcommit{}: 22 mutants (two N4
+\caption{Defect re-injection at \release{}: 22 mutants (two N4
 mutants and the D4/N3 pair shown together), all caught, and all caught
 without the regression tests (``Tests''). Detectors: the conformance matrix, 5{,}000 randomised cases, and
 the version differential against \code{packaging} and the SemVer
@@ -2061,7 +2061,7 @@ Agent lookup, cold (live, not repeated) & 5 packages & 0.5--2.5\,s, 2--3 request
 Agent lookup, warm (live, not repeated) & same packages & 2--5\,ms, 0 requests \\
 \bottomrule
 \end{tabularx}
-\caption{Basic cost at \snapcommit{} (\code{benchmarks/REPORT.md}). One
+\caption{Basic cost at \release{} (\code{benchmarks/REPORT.md}). One
 machine; medians of three runs for matching. History length: minimum
 of the last 10 sweeps, under other load, not yet in
 \code{benchmarks/REPORT.md}. Matching
@@ -2134,7 +2134,7 @@ Producer authenticity & Not implemented & Signature fields \code{null}
   & -- & No \\
 \bottomrule
 \end{tabularx}
-\caption{Assurance of a negative at \snapcommit{}: what the
+\caption{Assurance of a negative at \release{}: what the
 specification requires, where the implementation computes it, what
 leaves the system, and what is checked when a verdict is consumed.}
 \label{tab:assurance}
@@ -2323,7 +2323,7 @@ Input & How a wrong input, or an attacker controlling it, affects a negative & S
   untested \\
 \bottomrule
 \end{tabularx}
-\caption{Every input a negative depends on, at \snapcommit{}.
+\caption{Every input a negative depends on, at \release{}.
 ``Trusted'': a premise; no D1 or D2 result exists, and rows 1, 6 and 7
 have no planned measure. ``Checked'': pinned by
 \code{tests/test\_adversarial\_inputs.py} or the regression suite on
@@ -2923,7 +2923,8 @@ Earlier drafts modelled the repository as an exact scope element,
 under which the specification would give \textsc{Related} for the
 package and the case appeared as a discrepancy. That reading predates
 correction S4, which fixed the role of named examples; it is not a
-remaining difference, and the only one at either snapshot is the label
+remaining difference, and the only one at the audit snapshot or the
+release is the label
 difference of Section~\ref{sec:audit}.
 
 \paragraph{Unjustified negative, unresolved result, justified
@@ -3091,7 +3092,7 @@ the repository, though it covers every pin. All three are fixed in
 \dtwelvecommit{}.
 
 \paragraph{D16: untrusted mappings drop associations (open).} Found at
-the snapshot while checking Table~\ref{tab:membership} against the
+the release while checking Table~\ref{tab:membership} against the
 code. A heuristic or \textsc{Review-Required} mapping to another
 project yields no association (\textsc{Unknown}, left out of the
 summary) where Section~\ref{sec:tests} requires \Ind{}. On the image
@@ -3108,7 +3109,7 @@ the failure of D10's first reproduction. D5's fix stopped heuristics
 from excluding but not from disassociating. The conformance matrix
 cannot see it, because its oracle has no untrusted identity. The fix
 (return \Ind{} unless the mapping is curated and \textsc{Verified}) is
-not in the snapshot.
+not in the release.
 
 \paragraph{A latent gap: packages against source repositories
 (open).} A Go module curated as another project but located in a
@@ -3116,7 +3117,7 @@ source repository the event names gets no association, in the code and
 in the oracle, though Table~\ref{tab:membership} requires \Ind{}; P2
 fails under a correct mapping. The code also gives no association for
 any package against a source-repository \emph{bounding} element, where
-the oracle gives \Ind{}. Neither is reachable at the snapshot: no Go
+the oracle gives \Ind{}. Neither is reachable at the release: no Go
 module is curated, and no producer puts a source repository in a
 bounding scope. The matrix has no Go dependency and no
 source-repository element, so neither case, nor D-R1, is inside the
@@ -3127,20 +3128,21 @@ conformance claim.
 \begingroup
 \raggedright
 Every statement about behaviour, and every measurement, refers to one
-snapshot. The frozen data sets and the audit history below are states
-of the method, not further implementation snapshots.
+release. The frozen data sets and the audit history below are states
+of the method, not further implementation versions.
 
-\paragraph{Snapshot.}
+\paragraph{Release.}
 \begin{itemize}[leftmargin=*,nosep]
-  \item Commit \code{787beb82845ac56ff094b4d53b856b3fdd567874}
-    (\code{main}, 31 October 2026) of
-    \url{https://github.com/IkarusAILabs/OpenPulse}; licence
-    Apache-2.0. It is a commit, not a release: the submission release
-    will be tagged and archived with this report. The latest tagged
-    release, v0.7.1, predates the fixes.
+  \item Release \release{} (git tag \code{\release{}}, 31 October 2026)
+    of \url{https://github.com/IkarusAILabs/OpenPulse}; licence
+    Apache-2.0. The measurements were taken at commit
+    \code{787beb82845ac56ff094b4d53b856b3fdd567874}. Outside
+    documentation and this report, the release differs from that commit
+    only in its version number (\code{pyproject.toml},
+    \code{core/version.py}).
   \item Evidence contract 1.2.0; intelligence schema 0.7.0; Python
     $\ge$3.10 with the hash-locked \code{requirements.lock}. All tests
-    run offline: 1{,}162 collected at the snapshot, as run by CI. Test
+    run offline: 1{,}162 collected at the release, as run by CI. Test
     count is not evidence of semantic completeness.
   \item Conformance matrix: \code{python conformance/matrix.py}.
     Expected: 6{,}195 cases, 6{,}123 conform and 72 differ by one
@@ -3229,7 +3231,7 @@ of the method, not further implementation snapshots.
     \code{False} (cleared) at \dfourcommit{}, \code{None}
     (undetermined) at the D8 repair \deightcommit{}, and \code{True}
     (inside) from the D11 repair \delevencommit{} on, including
-    \pincommit{} and the snapshot.
+    \pincommit{} and the release.
   \item D9: \code{check\_dependency(\{"kind": "image", "ref":
     "index.docker.io/bitnami/nginx:1.25"\}, [event])}, with the event
     from \code{data/fixtures/bitnami/event.json}, returns
@@ -3265,13 +3267,13 @@ Total & 64 tests & 52 / 64 & & \\
 \end{tabularx}
 \caption{Audit reproducibility by defect. Passing tests at \commit{}
 pin behaviour that the fixes must preserve. Residual limitations are
-those at the snapshot \snapcommit{}.}
+those at release \release{}.}
 \label{tab:repro}
 \end{table}
 
 \paragraph{Changes after the audit snapshot.} Table~\ref{tab:since}
 lists the changes made after the audit snapshot \pincommit{}. All are
-included in the snapshot \snapcommit{}.
+included in release \release{}.
 
 \begin{table}[h]
 \centering
@@ -3342,7 +3344,7 @@ Freshness everywhere & \code{787beb8} & The
 \bottomrule
 \end{tabularx}
 \caption{Changes made after the audit snapshot \pincommit{}, all
-included in the snapshot \snapcommit{}. \emph{Commit} is where each
+included in release \release{}. \emph{Commit} is where each
 change landed. Each has regression tests; the oracle, the conformance
 matrix, the randomised generator, defect re-injection and the strong
 baseline were extended for F2--F4.}
@@ -3487,7 +3489,7 @@ regression tests, not measurements, and four of them had encoded D5.
 \section{Designs Not Yet Implemented}
 \label{app:designs}
 This appendix describes two designs that are not implemented at the
-snapshot \snapcommit{}. Nothing in it is evidence.
+release \release{}. Nothing in it is evidence.
 
 \paragraph{Cost of resolving OCI levels and tags.} Multi-architecture
 images make the interim OCI rule of Table~\ref{tab:interim} matter in
@@ -3901,7 +3903,7 @@ Table~\ref{tab:membership} restates the membership tests of
 Section~\ref{sec:tests} for every supported element form, role and
 purpose. It was derived from the specification and checked against
 \code{core/risk/match.py} and \code{core/risk/check.py} at
-\snapcommit{}. A cell marked \ddag{} is one where the snapshot departs
+\release{}. A cell marked \ddag{} is one where the release departs
 from it: D16 for untrusted mappings, and the latent package and
 source-repository gap (Appendix~\ref{app:defects}). The code is not
 changed in this revision.
@@ -3949,7 +3951,7 @@ Source repository & exact & example & -- & -- & Go module: \Mem{} at or
 completeness state. \NoA{} from identity occurs only in the
 identity-defined rows (project, release line, bare package). A
 location element is decided by location, whatever $d$'s project.
-\ddag: the snapshot departs from the table (Appendix~\ref{app:defects}).
+\ddag: the release departs from the table (Appendix~\ref{app:defects}).
 ``code \Ind{}'': the 72-case label difference of
 Section~\ref{sec:audit}.}
 \label{tab:membership}

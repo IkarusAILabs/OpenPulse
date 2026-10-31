@@ -44,7 +44,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.7.1
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -57,7 +57,7 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.1"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.8.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -242,7 +242,7 @@ everything else. We do not compete on EOL record counts.
 - **Change engine**: corruption-detecting digest-aware registry observations
   (hash-chained local history, frozen sealed records, per-repo locks;
   the chain is unkeyed, so it does not yet resist an adversary with
-  write access to `.openpulse/` - keyed integrity is planned for v0.8.0),
+  write access to `.openpulse/` - keyed integrity is planned for v0.9.0),
   observation diffs (`openpulse observe`), catalog sweep with
   first-detection tracking (`openpulse sweep`, `report --with-sweep`).
 - **Entity resolution**: canonical catalog with PURL builders,
@@ -253,6 +253,14 @@ everything else. We do not compete on EOL record counts.
 - **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract v1.2 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+
+## What's new in v0.8
+
+v0.8.0 is the release that the technical report [TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf) describes. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+- **Verdict change: please read before upgrading.** An audit of the verdict engine against a written specification found sixteen defects, thirteen of which could clear an affected dependency or show it as cleared. Fifteen are fixed; one (D16, untrusted identity mappings) is open. A NOT_AFFECTED now needs a scope declared complete *with a recorded basis*, a resolved identity, and evidence fetched within 90 days. Otherwise the answer is RELATED, never a clearance. Uncatalogued packages and images are therefore RELATED more often than before.
+- **Bounded evidence age.** `check`, `attest`, `digest`, `warnings` and the MCP tools apply a 90-day bound by default. Pipelines that replay old fixtures should pass `--replay`.
+- **Evidence contract 1.2.0.** Every verdict states what it does and does not assert (`verdict_meaning`), along with its scope's completeness and evaluation frame.
 
 ## What's new in v0.7
 
@@ -265,7 +273,7 @@ v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made, and v
 - **v0.7.1 hardening.**
   - Every collector response is size-capped while it streams, so a gzip bomb or an oversized reply can't exhaust a run.
   - Every install in CI and in the GitHub Action is hash-checked against a complete lock, so a tampered or re-uploaded package fails the install.
-- **Still true.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.8.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
+- **Still true.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.9.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
 
 ## Quickstart
 
@@ -419,7 +427,7 @@ The commercial SaaS layer (`openpulse-saas/`) is intentionally **not** in this r
 | `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
 | `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
 | `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 / v1.2 — machine-readable dependency verdicts |
-| `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.9: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
+| `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.10: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
 | `CHANGELOG.md` | What changed in each release |
 | `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
 
