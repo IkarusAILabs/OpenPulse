@@ -1,4 +1,4 @@
-# Methodology — how OpenPulse knows what it claims (schema v0.5.0)
+# Methodology — how OpenPulse knows what it claims (schema v0.7.0)
 
 ## Sources
 
@@ -70,6 +70,33 @@ carry `relationship` + `match_method` + `identity_evidence`:
 the ceiling at `AFFECTS_PACKAGE` or `RELATED`. Uncertainty never
 strengthens a conclusion.
 
+An OSV range is a **union of intervals**: events are walked in
+version order, `introduced` opens an interval and `fixed` (exclusive)
+or `last_affected` (inclusive) closes it, so `introduced 1.0, fixed
+1.2, introduced 2.0, fixed 2.3` covers `[1.0, 1.2)` and `[2.0, 2.3)`.
+Only `SEMVER` and `ECOSYSTEM` ranges are evaluated: `GIT` ranges need
+commit-graph reasoning and are `None`, as is any unknown range type
+and any version at or past a `limit`. An advisory is cleared for a
+version only when **every** affected entry decides `False`; one
+undetermined entry withholds the clearance. Withdrawn advisories
+assert nothing. Versions carrying an epoch (`1:2.3`, `1!2.3`) are not
+comparable: an epoch outranks every release number, so it is never
+read as one more dotted segment. The only comparable form is a dotted
+numeric core with at most one known prerelease marker (`dev`, `a`,
+`b`, `rc`, `pre` and their long forms) and an optional number:
+`2.0.0-rc.1`, `1.0b2`. The number orders within a marker (`rc1 <
+rc2`). A bare numeric or build suffix (`1.0.0-1`, `2.4.1-1`,
+`1.0.0+5`) is not comparable, because ecosystems disagree on it: SemVer
+reads `1.0.0-1` as a prerelease below `1.0.0`, Debian as a revision
+above it. Accepting a form is not enough: it must be ordered as the
+range's scheme orders it. So each OSV range is compared under its own
+scheme. `SEMVER` ranges use SemVer 2.0 precedence, where prerelease
+identifiers order lexically (`1.0.0-dev` above `1.0.0-beta`).
+`ECOSYSTEM` ranges use the advisory's ecosystem: PyPI the generic
+grammar above, npm/Go/crates.io SemVer, and anything else plain dotted
+numbers only, with padding-only equality (`1.0` vs `1.0.0`)
+undetermined.
+
 Event version scopes name **release lines** (endoflife.date cycles such
 as `4.2`, `13`, `18`), while dependencies pin releases. A line covers
 every version whose leading segments equal it (`versions.in_release_line`):
@@ -132,7 +159,7 @@ findings through impact eligibility (`core/risk/impact.py`):
 
 - `PROJECT_SIGNAL` — something exists (unscoped, unconfirmed).
 - `PROJECT_CHANGE` — scoped ecosystem change (what changed, with
-  versions/artifacts/dates). Never customer impact.
+  versions/artifacts/dates). Never impact on a user's environment.
 - `AFFECTS_DEPENDENCY` — a linked inventory entry matches.
 - `ACTION_REQUIRED` — affected + effective + strong confidence. Only
   here does EOL (or any change) become action for *your* software.
@@ -274,7 +301,7 @@ partial edits, and fork anomalies, and detects rollback only while
 full wipe re-baselines silently. It does not resist an adversary who
 recomputes the whole suffix (the hashes are unkeyed; there are no
 secrets in a local-first store). Keyed integrity, missing-tip
-rollback detection and external anchoring are planned for v0.7.0
+rollback detection and external anchoring are planned for v0.9.0
 (`docs/NEXT_PHASES.md`).
 
 Every registry-derived finding retains first-class observation
@@ -301,8 +328,13 @@ forms carry an explicit policy (`tag_vs_digest_policy`):
 - **Pinned digests match exactly.** Two refs that pin the same
   digest are the same immutable bytes — AFFECTS_ARTIFACT, the only
   form of exact artifact identity besides tag equality.
-- **Different digests are provably different content.** NOT_AFFECTED:
-  the pinned bytes are not the artifact the event names.
+- **Different digests of one repository are RELATED, not a
+  clearance.** Different bytes, but OCI object levels are not
+  recorded: one digest may be an image index and the other one of
+  its platform manifests -- the same image. Until levels are
+  resolved, digest inequality never clears. Every artifact the event
+  names is compared; any equal digest is AFFECTS_ARTIFACT. (A digest
+  of a *different repository* is still decisively outside.)
 - **A digest on one side and a tag on the other is RELATED, never
   AFFECTS_ARTIFACT and never NOT_AFFECTED.** The refs agree on the
   repository, but a tag can move onto (or away from) the pinned
@@ -359,7 +391,7 @@ Conflicting evidence → visible + blocking for strong actions.
 - SOURCE SIGNAL ≠ CHANGE ≠ AFFECTED DEPENDENCY ≠ ACTIONABLE
   INTELLIGENCE. A lifecycle date is a signal; a scoped, dated change
   is intelligence; impact requires a dependency.
-- Public intelligence (what changed in OSS) ≠ customer intelligence
+- Public intelligence (what changed in OSS) ≠ dependency-specific intelligence
   (does it affect my software). Public reports never assert the second.
 - MATCH STRENGTH ≠ EVIDENCE STRENGTH — precise identity answers
   "what matches", never "how trustworthy is the claim".
@@ -389,7 +421,7 @@ check; short timeouts and no-redirects bound the blast radius.
 ## Alert digest — the first M6 early-warning surface (`core/digest.py`)
 
 `openpulse digest` joins three things that already exist — the
-dependency inputs the customer just checked, the events the check
+dependency inputs the user just checked, the events the check
 ran against, and the durable first-detection ledger `openpulse
 check` records into — and renders one ranked briefing: what is
 changing in MY software, and by when. It computes nothing new and
@@ -398,9 +430,9 @@ so there is no second source of truth to drift.
 
 Rules the digest inherits rather than reinvents:
 
-- **Customer evidence is required.** An entry exists only for a
+- **Dependency evidence is required.** An entry exists only for a
   dependency the caller declared with an impact-asserting verdict.
-  Public intelligence never implies customer impact.
+  Public intelligence never implies user impact.
 - **Deadlines come from event evidence only.** `days_until_effective`
   is the evidence-declared effective date minus today; an affected
   dependency whose event declares no effective date has no deadline
@@ -440,9 +472,49 @@ consumption.
 
 AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE >
 NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN.
-`affected` is True only for ARTIFACT/VERSION/PACKAGE. A stronger
-negative (evaluated version outside the range) beats RELATED/UNKNOWN;
-no weaker match overrides it. The match implies a confidence *ceiling*
+`affected` is True only for ARTIFACT/VERSION/PACKAGE. Within one
+event, an evaluated negative beats RELATED/UNKNOWN. Across events, a
+clearance never outranks an unresolved association: while any cause
+is RELATED or AFFECTS_PROJECT, the headline is that cause, not
+NOT_AFFECTED (`winning_cause`). UNKNOWN causes ("matches nothing in
+this event") do not block a clearance. Every cause stays in
+`verdicts`.
+
+**When a negative is admissible.** NOT_AFFECTED requires (1) a
+scope the producer *declares* complete (`Scope.exhaustive: true`).
+Completeness is opt-in: unspecified means partial, and outside a
+partial scope is RELATED. Analysts declare it only where the scope
+is the event itself (one release line reaching EOL/EOS, one
+repository's distribution or registry change); curated events
+declare it explicitly, and a catalogue-wide change is stated with
+namespace elements (`docker.io/bitnami/*`), not example images. Each
+artifact element has a role. A plain namespace is an *envelope*: it
+bounds the affected set, so membership is only RELATED ("possibly in
+scope") while exclusion from it is decisive. Every other element is
+*exact*, and membership is a positive. Tag predicates make exact
+namespace elements expressible: `:<version>` covers version-like tags
+(not `latest`) and `:*` every tag, so the Bitnami move is
+`docker.io/bitnami/*:<version>` (exact) plus `docker.io/bitnami/*`
+(envelope). A named artifact's literal tag establishes that tag only.
+Nothing verifies a declaration, but every declaration must record
+its basis (`Scope.basis`: definitional, announced, corroborated,
+verified); `exhaustive` without a basis never clears. Withdrawn and
+superseded events are not evaluated, and an event whose own evidence
+contradicts it can associate but never clear. An optional freshness
+bound (`as_of`, `max_evidence_age`) turns negatives from events with
+older evidence into RELATED. (2) Every scope element evaluated
+and decisively excluded, with no early return on the first element.
+(3) An identity exclusion ("this ref is another project") resting on
+a VERIFIED resolution. A heuristic mapping such as the generic
+Bitnami namespace rule is RELATED, never an exclusion, and so is any
+unmapped ref that resolves only to itself, whatever its name
+(`github.com/etcd-io/etcd` against etcd, or a mirror called
+`zzz/kvstore`): its identity is unresolved, not another project. Only
+a curated mapping to a different project gives "no association" or an
+identity exclusion; the OpenTofu fork, for example, is curated as its
+own project so terraform events exclude it. Registry hosts are
+canonical before any comparison: `index.docker.io` and
+`registry-1.docker.io` are `docker.io`. The match implies a confidence *ceiling*
 (ARTIFACT → CONFIRMED, VERSION/NOT_AFFECTED → CORROBORATED, PACKAGE →
 EMERGING, project/related → EMERGING/UNVERIFIED, unknown →
 UNVERIFIED); the verdict takes the minimum of that ceiling and the

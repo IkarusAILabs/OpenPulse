@@ -1,7 +1,7 @@
 """`openpulse mcp` - OpenPulse as an MCP server for AI coding agents.
 
 Exposes the SDK-free tools in :mod:`core.agent_tools` over the official
-MCP Python SDK (optional extra: ``pip install "openpulse[mcp]"``), stdio
+MCP Python SDK (optional extra ``ikarus-openpulse[mcp]``, see docs/MCP.md), stdio
 transport. Agents (Claude Code, Cursor, Copilot, ...) can ask, before they
 add or upgrade a dependency, whether it is end-of-life, affected by an
 upstream distribution/license/support change, or has advisories for the
@@ -28,7 +28,9 @@ INSTRUCTIONS = (
     "exact version, with the evidence. Call dependency_status before adding or upgrading "
     "a dependency, check_dependency_file after editing a manifest or lockfile, and "
     "project_lifecycle to pick a supported release line. Verdicts are evidence, not "
-    "decisions: UNKNOWN means not established, never safe."
+    "decisions: UNKNOWN means not established, never safe, and NOT_AFFECTED is not a "
+    "clearance. Answers are current assessments: a negative needs evidence within the "
+    "freshness bound stated in evaluation_context."
 )
 
 

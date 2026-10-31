@@ -68,7 +68,14 @@ def test_osv_introduced_last_affected_and_ranges():
 def test_osv_multiple_affected_entries_and_exact():
     affected = {"versions": ["4.2.1", "4.2.2"], "ranges": []}
     assert osv_applicable("4.2.1", affected) is True
-    assert osv_applicable("4.2.3", affected) is None
+    # FLIPPED (OSV schema): the affected set is the union of ranges and
+    # listed versions, so with no range a version comparable with, and
+    # unequal to, every listed one is outside the entry. Undecided left
+    # faker 5.5.3 "affected" by the advisory for 6.6.6 only.
+    assert osv_applicable("4.2.3", affected) is False
+    # Any incomparable listed version still withholds the negative.
+    assert osv_applicable("4.2.3", {"versions": ["4.2.1", "4.2-ubuntu1"], "ranges": []}) is None
+    assert osv_applicable("4.2.3", {"versions": [], "ranges": []}) is None
 
 
 def test_cpe_range_attributes():

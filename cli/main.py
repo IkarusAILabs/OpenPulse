@@ -245,13 +245,15 @@ def analyze(project, raw_bundle, project_version):
 def mcp_command(root, offline):
     """MCP server (stdio) for AI coding agents: dependency evidence as tools.
 
-    Needs the optional extra: pip install "openpulse[mcp]".
+    Needs the optional `mcp` extra (see docs/MCP.md).
     """
     try:
         import mcp.server.mcpserver  # noqa: F401  (optional SDK present?)
     except ImportError:
+        from core.version import install_hint
+
         raise click.ClickException(
-            'the MCP server needs the optional SDK: pip install "openpulse[mcp]"'
+            f"the MCP server needs the optional SDK: {install_hint('mcp')}"
         ) from None
     from cli.mcp_server import run
 
@@ -658,6 +660,73 @@ def _echo(msg: Any = "", **kwargs: Any) -> None:
     click.echo(_safe_text(msg, stream=stream), **kwargs)
 
 
+def _evaluation_options(command):
+    """The frame a negative is admitted in (TR-2026-01 N4), as for the agent tools.
+
+    By default a verdict command runs in the *current* mode: a negative
+    needs evidence fetched within 90 days of the start of today (UTC), so a stale event can
+    associate a dependency but never clear it. ``--replay`` drops the
+    bound for replaying recorded evidence, and the run says so.
+    """
+    command = click.option(
+        "--as-of",
+        default=None,
+        help="Evaluate as of this ISO date or time, UTC (default: the start of today)",
+    )(command)
+    command = click.option(
+        "--max-evidence-age-days",
+        type=click.IntRange(min=0),
+        default=None,
+        help="Freshness bound for negatives, in days [default: 90]",
+    )(command)
+    return click.option(
+        "--replay",
+        is_flag=True,
+        help="Replay recorded evidence with no freshness bound: a negative may then rest "
+        "on evidence of any age",
+    )(command)
+
+
+def _evaluation(replay: bool, max_evidence_age_days: int | None, as_of: str | None):
+    """The run's Evaluation (``core.agent_tools``), announced on stderr."""
+    from datetime import datetime, timezone
+
+    from core.agent_tools import CURRENT, REPLAY, Evaluation
+
+    if replay and (max_evidence_age_days is not None or as_of):
+        raise click.UsageError(
+            "--replay applies no freshness bound; drop --max-evidence-age-days and --as-of"
+        )
+    when = None
+    if as_of:
+        try:
+            when = datetime.fromisoformat(as_of)
+        except ValueError as exc:
+            raise click.BadParameter(f"not an ISO date or time: {as_of}") from exc
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+    # The start of today (UTC) by default, so two runs on one day emit
+    # identical documents.
+    evaluation = Evaluation(
+        REPLAY if replay else CURRENT,
+        as_of=when,
+        max_evidence_age_days=max_evidence_age_days,
+        today=datetime.now(timezone.utc).date(),
+    )
+    if evaluation.bounded:
+        _echo(
+            f"evaluation: current, {evaluation.max_evidence_age.days}-day freshness bound "
+            f"as of {evaluation.as_of.date()}: stale or contested events cannot clear",
+            err=True,
+        )
+    else:
+        _echo(
+            "evaluation: replay, no freshness bound: a negative may rest on evidence of any age",
+            err=True,
+        )
+    return evaluation
+
+
 _COVERAGE_RANK = {"COMPLETE": 0, "PARTIAL": 1, "FAILED": 2}
 
 
@@ -688,6 +757,25 @@ def _echo_run_coverage(inspections) -> str:
         for reason in reasons:
             _echo(f"   - {reason}")
     return status
+
+
+def _github_auth_options(func):
+    """Shared GitHub credential options for commands that can inspect a repository."""
+    func = click.option(
+        "--github-token-file",
+        type=click.Path(exists=True, dir_okay=False),
+        default=None,
+        help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
+    )(func)
+    func = click.option(
+        "--github-token",
+        "github_token",
+        type=str,
+        default=None,
+        show_default=False,
+        help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
+    )(func)
+    return func
 
 
 def _load_check_inputs(
@@ -859,13 +947,19 @@ def _load_check_inputs(
     loaded_events = [_load_event(path) for path in events]
     bundles = {}
     if raw_bundle_dir:
+        from core.entities.identity import package_trust
+
         for dep in deps:
             if dep["kind"] != "package":
                 continue
-            slug = _resolve(dep["package"])
-            bundle = _Path(raw_bundle_dir) / f"{slug}.json"
-            if bundle.exists():
-                bundles[slug] = _load_bundle(bundle)
+            # The security stream reads bundles under the package's trust
+            # slug (PyPI `redis` -> `redis-py`); a file named by the plain
+            # resolution is still accepted, stored under that same key.
+            slug = package_trust(str(dep["package"]), dep.get("ecosystem"))["slug"]
+            for name in dict.fromkeys((slug, _resolve(dep["package"]))):
+                bundle = _Path(raw_bundle_dir) / f"{name}.json"
+                if slug and name and bundle.exists() and slug not in bundles:
+                    bundles[slug] = _load_bundle(bundle)
     if not deps:
         raise click.ClickException(
             "no checkable dependencies (watchlist/SBOM/lockfile/manifest/images yielded nothing)"
@@ -874,6 +968,7 @@ def _load_check_inputs(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
 )
@@ -917,20 +1012,7 @@ def _load_check_inputs(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default="",
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1003,6 +1085,9 @@ def check(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -1026,7 +1111,17 @@ def check(
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
     # Acquisition is best-effort BY DESIGN: the ledger is an
@@ -1142,6 +1237,7 @@ def check(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist", required=False, type=click.Path(exists=True), help="Watchlist YAML file"
 )
@@ -1184,20 +1280,7 @@ def check(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1246,6 +1329,9 @@ def digest(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
@@ -1271,7 +1357,17 @@ def digest(
             "digest needs at least one --event: deadlines come from event"
             " evidence, not from the ledger alone"
         )
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     built = build_digest(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
     if output == "json":
         import json as _json
@@ -1282,6 +1378,7 @@ def digest(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist",
     required=False,
@@ -1327,20 +1424,7 @@ def digest(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1389,6 +1473,9 @@ def warnings(
     github_repo="",
     github_token="",
     github_token_file=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
@@ -1414,7 +1501,17 @@ def warnings(
             "warnings needs at least one --event: deadlines come from event"
             " evidence, not from the ledger alone"
         )
-    results = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    results = [
+        check_dependency(
+            dep,
+            loaded_events,
+            bundles,
+            as_of=evaluation.as_of,
+            max_evidence_age=evaluation.max_evidence_age,
+        )
+        for dep in deps
+    ]
     built = build_warnings(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
     if output == "json":
         import json as _json
@@ -1425,6 +1522,7 @@ def warnings(
 
 
 @cli.command()
+@_evaluation_options
 @click.option(
     "--watchlist",
     required=False,
@@ -1469,20 +1567,7 @@ def warnings(
     help="GitHub repository (owner/repo or https://github.com/owner/repo) "
     "— discovers dependency files recursively, composable with all other inputs",
 )
-@click.option(
-    "--github-token",
-    "github_token",
-    type=str,
-    default=None,
-    show_default=False,
-    help="Deprecated: GitHub token in argv; prefer GITHUB_TOKEN or --github-token-file",
-)
-@click.option(
-    "--github-token-file",
-    type=click.Path(exists=True, dir_okay=False),
-    default=None,
-    help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
-)
+@_github_auth_options
 @click.option(
     "--event",
     "events",
@@ -1514,8 +1599,7 @@ def warnings(
     "summary_path",
     default="",
     type=click.Path(dir_okay=False),
-    help="Also append a Markdown summary of the SARIF results to PATH "
-    "(e.g. $GITHUB_STEP_SUMMARY)",
+    help="Also append a Markdown summary of the SARIF results to PATH (e.g. $GITHUB_STEP_SUMMARY)",
 )
 @click.option(
     "--defectdojo",
@@ -1548,6 +1632,9 @@ def attest(
     summary_path="",
     defectdojo_path="",
     fail_on=None,
+    replay=False,
+    max_evidence_age_days=None,
+    as_of=None,
 ):
     """Emit one evidence-contract v1 document per dependency × event pair.
 
@@ -1705,14 +1792,27 @@ def attest(
         for reason in run_reasons:
             _echo(f"   - {reason}", err=True)
         coverage_override = {"status": run_status, "reasons": run_reasons}
+    evaluation = _evaluation(replay, max_evidence_age_days, as_of)
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
     for dep, uri in zip(deps, uris, strict=True):
         for event in loaded_events:
-            verdict = check_dependency(dep, [event], bundles)
-            doc = build_v1_contract(event, verdict, inspection_coverage=coverage_override)
+            verdict = check_dependency(
+                dep,
+                [event],
+                bundles,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
+            doc = build_v1_contract(
+                event,
+                verdict,
+                inspection_coverage=coverage_override,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
             problems = validate_v1_contract(doc)
             if problems:
                 # A document OpenPulse itself cannot validate must
@@ -1760,7 +1860,16 @@ def attest(
 
         # The combined per-dependency verdict, exactly as `check` gates
         # it, so one run yields both the evidence and the CI decision.
-        combined = [check_dependency(dep, loaded_events, bundles) for dep in deps]
+        combined = [
+            check_dependency(
+                dep,
+                loaded_events,
+                bundles,
+                as_of=evaluation.as_of,
+                max_evidence_age=evaluation.max_evidence_age,
+            )
+            for dep in deps
+        ]
         if fail_on_threshold(combined, fail_on):
             _echo(f"fail-on {fail_on}: threshold breached", err=True)
             raise SystemExit(1)
@@ -1802,3 +1911,116 @@ def sweep(store, projects, out):
 
         _Path(out).write_text(_json.dumps(result["findings"], indent=2), encoding="utf-8")
         _echo(f"wrote {out}")
+
+
+@cli.command()
+@click.option("--watchlist", type=click.Path(exists=True), help="Watchlist YAML file")
+@click.option("--sbom", type=click.Path(exists=True), help="CycloneDX SBOM (JSON)")
+@click.option("--spdx", type=click.Path(exists=True), help="SPDX SBOM (JSON, 2.x)")
+@click.option("--images", type=click.Path(exists=True), help="Container image inventory")
+@click.option(
+    "--lockfile", type=click.Path(exists=True), help="package-lock.json / poetry.lock / Cargo.lock"
+)
+@click.option(
+    "--manifest",
+    type=click.Path(exists=True),
+    help="requirements.txt / pyproject.toml / pom.xml / go.mod / Cargo.toml",
+)
+@click.option(
+    "--github-repo", "github_repo", type=str, default="", help="GitHub repository to inspect"
+)
+@_github_auth_options
+@click.option(
+    "--out",
+    required=True,
+    type=click.Path(file_okay=False),
+    help="Directory for discovered event JSON (pass each to check --event)",
+)
+@click.option(
+    "--max-targets",
+    default=200,
+    show_default=True,
+    type=click.IntRange(min=1),
+    help="Probe at most this many repositories/images (GitHub's anonymous quota is 60/hour)",
+)
+@click.option(
+    "--max-packages",
+    default=500,
+    show_default=True,
+    type=click.IntRange(min=1),
+    help="Query OSV for at most this many packages",
+)
+def discover(
+    watchlist,
+    sbom,
+    spdx,
+    images,
+    lockfile,
+    manifest,
+    github_repo,
+    github_token,
+    github_token_file,
+    out,
+    max_targets,
+    max_packages,
+):
+    """Inventory-driven discovery: probe the repositories and images your
+    dependencies name, and write the events their changes support.
+
+    Targets come from the dependencies, not the catalog: Go module paths
+    (github.com, gopkg.in, golang.org/x), github.com references and
+    Docker Hub images. Every npm, PyPI, Maven, Go and crates.io package is
+    also queried on OSV by its own name, so malicious and compromised
+    versions are decided without a catalog entry; those advisories are
+    written as bundles under OUT/bundles. Anything else is listed as
+    unmapped with its reason. This is the networked step; check stays
+    offline on what it writes.
+    """
+    import re as _re
+    from pathlib import Path as _Path
+
+    from core.discovery import discover as _discover
+    from core.github_reader import get_github_token
+
+    if github_token:
+        _echo(
+            "warning: --github-token is deprecated; use GITHUB_TOKEN or "
+            "--github-token-file instead",
+            err=True,
+        )
+    try:
+        token = get_github_token(github_token, github_token_file)
+    except OSError as exc:
+        raise click.ClickException(f"cannot read GitHub token file: {exc.strerror or exc}") from exc
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    deps, _events, _bundles, _inspections = _load_check_inputs(
+        watchlist, sbom, spdx, images, lockfile, manifest, github_repo, token, (), None
+    )
+    result = _discover(deps, token, max_targets=max_targets, max_packages=max_packages)
+    _echo(
+        f"discover: {len(deps)} dependency(s) -> {len(result.targets)} target(s), "
+        f"{len(result.unmapped)} unmapped"
+    )
+    for label, reason in result.unmapped:
+        _echo(f"! unmapped: {label}: {reason}")
+    if result.skipped_targets:
+        _echo(f"! not probed: {len(result.skipped_targets)} target(s) over --max-targets")
+    for target, message in result.errors:
+        _echo(f"! error: {target.kind} {target.name}: {message}")
+    directory = _Path(out)
+    directory.mkdir(parents=True, exist_ok=True)
+    for event in result.events:
+        name = _re.sub(r"[^A-Za-z0-9._-]+", "_", event.id) + ".json"
+        (directory / name).write_text(event.model_dump_json(indent=2), encoding="utf-8")
+        _echo(f"- [{event.event_type.value}] {event.title} -> {directory / name}")
+    _echo(f"{len(result.events)} event(s) written to {directory}")
+    bundle_dir = directory / "bundles"
+    for slug, raw in sorted(result.bundles.items()):
+        path = bundle_dir / f"{slug}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+    _echo(
+        f"osv: {result.advisories} advisory record(s) for {len(result.bundles)} package(s)"
+        + (f" -> check --raw-bundle-dir {bundle_dir}" if result.bundles else "")
+    )

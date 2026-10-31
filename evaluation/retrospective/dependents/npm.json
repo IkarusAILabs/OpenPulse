@@ -1,0 +1,528 @@
+{
+ "group": "npm packages (DEP-1, DEP-3, DEP-4, CMP-1..CMP-5)",
+ "collected": "2026-10-30, research agent; each lockfile fetched at its commit and the resolved version parsed; spot-checked by the study author",
+ "events": [
+  {
+   "event": "DEP-1",
+   "in_scope": [
+    {
+     "repo": "npm/cli",
+     "commit_sha": "f533d61eb27c484fae84571fbea8bc1d83acb42b",
+     "commit_date": "2020-01-28T19:05:21Z",
+     "file": "package-lock.json",
+     "reference": "request",
+     "kind": "npm",
+     "version": "2.88.0"
+    },
+    {
+     "repo": "nodejs/node-gyp",
+     "commit_sha": "a79d866ac3bf6224b3a69268ebc86a0758e8c7c5",
+     "commit_date": "2020-01-08T01:11:08Z",
+     "file": "package.json",
+     "reference": "request",
+     "kind": "npm",
+     "version": "^2.88.0",
+     "note": "range; no lockfile in the repository"
+    },
+    {
+     "repo": "electron/electron",
+     "commit_sha": "fcee7212ce19ad1841d9a24d69fea954d4609160",
+     "commit_date": "2019-11-05T21:34:04Z",
+     "file": "yarn.lock",
+     "reference": "request",
+     "kind": "npm",
+     "version": "2.88.0"
+    },
+    {
+     "repo": "Microsoft/vscode",
+     "commit_sha": "99cce92f42203d538b88439151a99122bdde4ef6",
+     "commit_date": "2020-02-10T23:23:02Z",
+     "file": "yarn.lock",
+     "reference": "request",
+     "kind": "npm",
+     "version": "2.88.0"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n2",
+     "repo": "PolymathNetwork/polymath-core",
+     "commit_sha": "d7f1102f9c837ab3fefaa68e4a65bdc0eda92b6b",
+     "commit_date": "2019-12-27T04:38:16Z",
+     "file": "yarn.lock",
+     "reference": "request-promise",
+     "kind": "npm",
+     "version": "4.2.4"
+    },
+    {
+     "template": "n1",
+     "repo": "cypress-io/cypress",
+     "commit_sha": "c4ad4253ef96bd0b247af8f48261bca4e4076946",
+     "commit_date": "2023-05-25T18:55:33Z",
+     "file": "yarn.lock",
+     "reference": "@cypress/request",
+     "kind": "npm",
+     "version": "2.88.10"
+    }
+   ]
+  },
+  {
+   "event": "DEP-3",
+   "in_scope": [
+    {
+     "repo": "angular/angular",
+     "commit_sha": "318255a5f8728bcc9325e701290cb168fe115023",
+     "commit_date": "2020-11-25T19:10:01Z",
+     "file": "yarn.lock",
+     "reference": "tslint",
+     "kind": "npm",
+     "version": "6.1.3"
+    },
+    {
+     "repo": "palantir/blueprint",
+     "commit_sha": "6c8d1912891aa3866590f7130983de47dcdb1b57",
+     "commit_date": "2020-10-05T21:40:50Z",
+     "file": "yarn.lock",
+     "reference": "tslint",
+     "kind": "npm",
+     "version": "6.1.3"
+    },
+    {
+     "repo": "ReactiveX/rxjs",
+     "commit_sha": "7a11ad2c71f6d1f99bf4a6612fab961ffb0fc192",
+     "commit_date": "2020-11-23T23:19:10Z",
+     "file": "package-lock.json",
+     "reference": "tslint",
+     "kind": "npm",
+     "version": "5.20.1"
+    },
+    {
+     "repo": "Microsoft/vscode",
+     "commit_sha": "ac8fd91011cfcc86ecc433b9163acdafc1e95052",
+     "commit_date": "2019-02-19T15:57:20Z",
+     "file": "yarn.lock",
+     "reference": "tslint",
+     "kind": "npm",
+     "version": "5.11.0"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n2",
+     "repo": "ReactiveX/rxjs",
+     "commit_sha": "7a11ad2c71f6d1f99bf4a6612fab961ffb0fc192",
+     "commit_date": "2020-11-23T23:19:10Z",
+     "file": "package-lock.json",
+     "reference": "tslint-config-prettier",
+     "kind": "npm",
+     "version": "1.18.0"
+    },
+    {
+     "template": "n2",
+     "repo": "microsoft/vscode",
+     "commit_sha": "5e7cd9987627fbac91a4a811fd89e01a6578f222",
+     "commit_date": "2021-05-28T20:44:40Z",
+     "file": "yarn.lock",
+     "reference": "@typescript-eslint/eslint-plugin",
+     "kind": "npm",
+     "version": "3.2.0"
+    }
+   ]
+  },
+  {
+   "event": "DEP-4",
+   "in_scope": [
+    {
+     "repo": "btcpayserver/btcpayserver-design",
+     "commit_sha": "8bbb8d4bf955dd2748e236f04d5428b495a39c70",
+     "commit_date": "2024-06-27T08:17:34Z",
+     "file": "package-lock.json",
+     "reference": "node-sass",
+     "kind": "npm",
+     "version": "9.0.0"
+    },
+    {
+     "repo": "naver/typedoc-to-mdx",
+     "commit_sha": "bd7a09c18947f1d9e762223c1faeb2c7294d43b8",
+     "commit_date": "2023-03-10T04:20:47Z",
+     "file": "package-lock.json",
+     "reference": "node-sass",
+     "kind": "npm",
+     "version": "8.0.0"
+    },
+    {
+     "repo": "openSUSE/fuel-ignition",
+     "commit_sha": "d0aeecf9a8e74e710034152754ca4a18f1338dfc",
+     "commit_date": "2023-08-09T14:35:48Z",
+     "file": "package-lock.json",
+     "reference": "node-sass",
+     "kind": "npm",
+     "version": "7.0.1"
+    },
+    {
+     "repo": "akveo/ngx-admin",
+     "commit_sha": "651dadee338493143b96749f33a70e2322c07bb5",
+     "commit_date": "2023-10-29T14:06:39Z",
+     "file": "package-lock.json",
+     "reference": "node-sass",
+     "kind": "npm",
+     "version": "4.14.1"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n2",
+     "repo": "twbs/bootstrap",
+     "commit_sha": "f406388c1ba3f60c4114355a6db851827a8d9b70",
+     "commit_date": "2024-07-15T18:08:47Z",
+     "file": "package-lock.json",
+     "reference": "sass",
+     "kind": "npm",
+     "version": "1.77.8"
+    },
+    {
+     "template": "n2",
+     "repo": "engineervix/cv",
+     "commit_sha": "cdb5d7f471b640667fe3e525150a636d464a2488",
+     "commit_date": "2025-01-25T14:01:39Z",
+     "file": "package-lock.json",
+     "reference": "sass-embedded",
+     "kind": "npm",
+     "version": "1.78.0"
+    }
+   ]
+  },
+  {
+   "event": "CMP-1",
+   "in_scope": [
+    {
+     "repo": "karrot-dev/karrot-frontend",
+     "commit_sha": "5a65b679e2ce0dafb4ae7bfb57348117882a5988",
+     "commit_date": "2022-01-10T11:09:36Z",
+     "file": "yarn.lock",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.1"
+    },
+    {
+     "repo": "CaoMeiYouRen/koa2-template",
+     "commit_sha": "21798a4e3b24cdb4dafad3a520dfa8f37490d35f",
+     "commit_date": "2022-01-10T11:06:25Z",
+     "file": "yarn.lock",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.2"
+    },
+    {
+     "repo": "zulybot/zuly",
+     "commit_sha": "d5350e2a47e57fb6de59de19b5b4f8a8d67216db",
+     "commit_date": "2022-01-10T10:23:14Z",
+     "file": "yarn.lock",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.2"
+    },
+    {
+     "repo": "ingio/console-app",
+     "commit_sha": "b4a79c89d9383ea18f0b4554fbed6c4de62ad14f",
+     "commit_date": "2022-01-10T06:23:23Z",
+     "file": "package-lock.json",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.2"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "aws/aws-cdk",
+     "commit_sha": "455147a5c3ed2c519279d6a523881126e0856f21",
+     "commit_date": "2022-01-09T15:43:11Z",
+     "file": "yarn.lock",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.0"
+    },
+    {
+     "template": "n3",
+     "repo": "winstonjs/winston",
+     "commit_sha": "d18198d149357be2fc513eee6fd794bc5c72bdd9",
+     "commit_date": "2022-01-25T21:16:26Z",
+     "file": "package-lock.json",
+     "reference": "colors",
+     "kind": "npm",
+     "version": "1.4.0"
+    },
+    {
+     "template": "n1",
+     "repo": "winstonjs/winston",
+     "commit_sha": "70fc03d046ee41491d2f47d1242c32532414ffd9",
+     "commit_date": "2022-03-11T19:08:58Z",
+     "file": "package-lock.json",
+     "reference": "@colors/colors",
+     "kind": "npm",
+     "version": "1.5.0"
+    }
+   ]
+  },
+  {
+   "event": "CMP-2",
+   "in_scope": [
+    {
+     "repo": "pulumi/actions",
+     "commit_sha": "9e2ba1369a1338da55fd80aa8336c0f6d6b284af",
+     "commit_date": "2022-01-18T12:45:28Z",
+     "file": "yarn.lock",
+     "reference": "faker",
+     "kind": "npm",
+     "version": "6.6.6"
+    },
+    {
+     "repo": "rubyforgood/casa",
+     "commit_sha": "47e3af39d1feeedb4ccdfe6b9d5759afcd74cc10",
+     "commit_date": "2022-01-10T07:47:33Z",
+     "file": "yarn.lock",
+     "reference": "faker",
+     "kind": "npm",
+     "version": "6.6.6"
+    },
+    {
+     "repo": "pieforproviders/pieforproviders",
+     "commit_sha": "450b63596f3f07777072accf869c73392093d6da",
+     "commit_date": "2022-01-10T15:57:10Z",
+     "file": "yarn.lock",
+     "reference": "faker",
+     "kind": "npm",
+     "version": "6.6.6"
+    },
+    {
+     "repo": "dipjyotimetia/CypressTestFramework",
+     "commit_sha": "166c247b8b94490c665742109af9424bece5b670",
+     "commit_date": "2022-01-05T10:11:55Z",
+     "file": "package-lock.json",
+     "reference": "faker",
+     "kind": "npm",
+     "version": "6.6.6"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "pulumi/actions",
+     "commit_sha": "15a649aa40e12330b176bde39e29953fe0ac9866",
+     "commit_date": "2022-01-18T12:44:54Z",
+     "file": "yarn.lock",
+     "reference": "faker",
+     "kind": "npm",
+     "version": "5.5.3"
+    },
+    {
+     "template": "n1",
+     "repo": "forem/forem",
+     "commit_sha": "91e3b5e2cb79b288582a5facde490c81509294fd",
+     "commit_date": "2022-03-21T19:34:20Z",
+     "file": "yarn.lock",
+     "reference": "@faker-js/faker",
+     "kind": "npm",
+     "version": "6.0.0"
+    }
+   ]
+  },
+  {
+   "event": "CMP-3",
+   "in_scope": [
+    {
+     "repo": "vuejs/vue-cli",
+     "commit_sha": "37ef809c873f33c88ba7928fca785e87bfaf2491",
+     "commit_date": "2022-03-15T13:05:34Z",
+     "file": "yarn.lock",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "9.2.2"
+    },
+    {
+     "repo": "kodadot/nft-gallery",
+     "commit_sha": "500e4d4ef9707cce0e0910c14cbb7cfd307fe81a",
+     "commit_date": "2022-03-17T11:26:15Z",
+     "file": "yarn.lock",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "9.2.2",
+     "note": "node-ipc@^9.1.1 resolves 9.2.2; parent of the fix commit 31c2044 ('force node-ipc version'); verified by the study author"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "vuejs/vue-cli",
+     "commit_sha": "4c679ec525b47b22d4104a8e0152cf31e458ab24",
+     "commit_date": "2022-03-14T02:09:47Z",
+     "file": "yarn.lock",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "9.2.1"
+    },
+    {
+     "template": "n3",
+     "repo": "MillenniumEarl/recaptcha-harvester",
+     "commit_sha": "8a34196cc09c6cbef232a7b0da97c1591a0e44a8",
+     "commit_date": "2022-03-17T09:01:36Z",
+     "file": "package-lock.json",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "10.1.0"
+    },
+    {
+     "template": "n3",
+     "repo": "saproto/ProTube",
+     "commit_sha": "3aa4c8fb798e6e3a65ab1d2d981cea2c14551d13",
+     "commit_date": "2022-03-18T08:57:41Z",
+     "file": "vue-remote/package-lock.json",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "9.2.1"
+    },
+    {
+     "template": "n1",
+     "repo": "vuejs/vue-cli",
+     "commit_sha": "b2b07a569375fe6057f346ea3f09343dcf2a1045",
+     "commit_date": "2022-06-15T08:17:09Z",
+     "file": "yarn.lock",
+     "reference": "@achrinza/node-ipc",
+     "kind": "npm",
+     "version": "9.2.5"
+    },
+    {
+     "template": "n3",
+     "repo": "ca-risken/web",
+     "commit_sha": "d55f1a08bae1b07e372c5ecbbee8acce0eb6496f",
+     "commit_date": "2022-03-17T10:17:16Z",
+     "file": "yarn.lock",
+     "reference": "node-ipc",
+     "kind": "npm",
+     "version": "9.1.1",
+     "note": "parent of the fix merge 9bec8f7; verified by the study author"
+    }
+   ]
+  },
+  {
+   "event": "CMP-4",
+   "in_scope": [
+    {
+     "repo": "navikt/aksel-website",
+     "commit_sha": "3354bfa68750a1bd75a2484acc80f386f6747e3a",
+     "commit_date": "2021-10-22T14:56:14Z",
+     "file": "yarn.lock",
+     "reference": "ua-parser-js",
+     "kind": "npm",
+     "version": "0.7.29"
+    },
+    {
+     "repo": "Esger/Pentominos2",
+     "commit_sha": "86c582c0f7fead7c7003ac5d575497de9a073f79",
+     "commit_date": "2021-10-22T14:48:52Z",
+     "file": "package-lock.json",
+     "reference": "ua-parser-js",
+     "kind": "npm",
+     "version": "0.7.29"
+    },
+    {
+     "repo": "smartcoder0777/nebula.gl",
+     "commit_sha": "65812697f9468f486ec4f0bb5123ba690a5c7144",
+     "commit_date": "2021-10-22T18:53:49Z",
+     "file": "examples/sf/yarn.lock",
+     "reference": "ua-parser-js",
+     "kind": "npm",
+     "version": "0.7.29",
+     "note": "a Dependabot PR found only in this copy of uber/nebula.gl"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "navikt/aksel-website",
+     "commit_sha": "09036ceeae44cd7dd382df47888937e5c37302a2",
+     "commit_date": "2021-10-22T22:04:29Z",
+     "file": "yarn.lock",
+     "reference": "ua-parser-js",
+     "kind": "npm",
+     "version": "0.7.30"
+    },
+    {
+     "template": "n3",
+     "repo": "openwebdocs/mdn-bcd-collector",
+     "commit_sha": "a16a4f8a7565c4f9c60f1e8ca3a920b264785c5f",
+     "commit_date": "2021-10-25T13:59:09Z",
+     "file": "package-lock.json",
+     "reference": "ua-parser-js",
+     "kind": "npm",
+     "version": "0.7.28"
+    }
+   ]
+  },
+  {
+   "event": "CMP-5",
+   "in_scope": [
+    {
+     "repo": "swiftlang/sourcekit-lsp",
+     "commit_sha": "7b8e325f8f6ea920caeeb8d3e1ab9ae3c95eeac8",
+     "commit_date": "2018-11-26T21:24:40Z",
+     "file": "Editors/vscode/package-lock.json",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.6"
+    },
+    {
+     "repo": "bradtraversy/spacex_launch_stats",
+     "commit_sha": "1f393e3b922940e650566cb178142c7402221090",
+     "commit_date": "2018-11-12T20:19:33Z",
+     "file": "package-lock.json",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.6"
+    },
+    {
+     "repo": "sxei/vscode-plugin-demo",
+     "commit_sha": "978fa184dc836af6afdc225ad65e39b695088d2d",
+     "commit_date": "2018-10-15T02:06:19Z",
+     "file": "package-lock.json",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.6"
+    }
+   ],
+   "neighbours": [
+    {
+     "template": "n3",
+     "repo": "swiftlang/sourcekit-lsp",
+     "commit_sha": "a54129a22b538a158737dec7ef1ac5ed87f3ecf0",
+     "commit_date": "2018-11-28T16:40:08Z",
+     "file": "Editors/vscode/package-lock.json",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.4"
+    },
+    {
+     "template": "n3",
+     "repo": "concord-consortium/cloud-file-manager",
+     "commit_sha": "6b3340249cef1b5cc9587b89d8d7fa929cda1039",
+     "commit_date": "2018-11-28T17:03:34Z",
+     "file": "yarn.lock",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.5"
+    },
+    {
+     "template": "n3",
+     "repo": "amtrack/force-dev-tool",
+     "commit_sha": "442490e205fc69f5dbc4843ba835bf029cfdf317",
+     "commit_date": "2018-09-17T10:58:13Z",
+     "file": "package-lock.json",
+     "reference": "event-stream",
+     "kind": "npm",
+     "version": "3.3.4"
+    }
+   ]
+  }
+ ]
+}

@@ -4,6 +4,127 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Documentation
+
+- **OpenPulse is presented as academic research software.** The README has a new *Research status* section. It says what OpenPulse is (a research instrument of the [Ikarus AI Labs](https://ikaruslabs.net/research) programme, described in TR-2026-01) and what it is not (a commercial product or a certified security control). It also says how to read the project's claims and how to collaborate. The README's product and commercial wording is reframed, and the mentions of a separate SaaS layer are removed. `SECURITY.md`, `docs/MCP.md` and `docs/GITHUB_ACTION.md` carry a short research-software note, and the package description now says the same.
+- **`CITATION.cff`** added; it cites TR-2026-01. The README has a *Citing OpenPulse* section.
+- **`SECURITY.md`** now lists the latest 0.8.x release as supported. It also uses the renumbered roadmap: keyed history is planned for v0.9.0 and the DNS-pinned webhook transport for v0.10.0.
+
+## 0.8.0 — 2026-10-31
+
+The release that TR-2026-01 describes. **This release changes verdicts**: the audit fixes (D1–D15, F1–F4) withhold clearances the earlier engine gave, completeness now needs a recorded basis, and the CLI and MCP tools bound evidence age by default. Read the upgrade notes before upgrading CI gates.
+
+### Upgrade notes
+
+- **The CLI's verdict commands bound evidence age (TR-2026-01 N4).** This changes verdicts, as it did for the agent tools in PR #200. `check`, `attest`, `digest` and `warnings` now run in the *current* mode: a NOT_AFFECTED needs evidence fetched within 90 days of the start of today (UTC). Older evidence makes it RELATED ("stale"), never a clearance. `--max-evidence-age-days N` and `--as-of DATE` set the frame. `--replay` re-evaluates recorded evidence with no bound and says so on stderr, and contracts record the frame in `evaluation_context`. Contradicted events never clear in either mode. Pipelines that replay old fixtures should pass `--replay`.
+
+### Documentation
+
+- **Roadmap: track T, AI Dependency Trust Assurance (planned; a separate future study).** `docs/ROADMAP.md` adds the following:
+  - what exists today and what is planned;
+  - an initial threat model that separates demonstrated techniques from unmeasured prevalence;
+  - six workstreams: identity and impersonation, provenance and integrity, reputation integrity, AI selection evidence, policy enforcement, and evidence contracts;
+  - phases 0–4, with a small first milestone: registry existence for PyPI and npm;
+  - a proposed evaluation plan with research questions RQ1–RQ5.
+
+  Nothing is implemented, and no behaviour, interface, contract or dependency changes. Track R and the TR-2026-01 registration are unchanged.
+
+### Added
+
+- **Adversarial-input tests** (`tests/test_adversarial_inputs.py`). They pin, for each attacker capability the twelfth review lists, what the event-scope engine does:
+  - **inputs that cannot yield a negative:** contradicting evidence, a contradictory event pair, stale or retracted events, unresolvable references, and injected upstream text;
+  - **two trusted inputs:** a wrong completeness declaration, and a curated bare-name alias for a package without an ecosystem.
+- **Evaluation: strata, pair-level bounds, deduplicated burden** (`evaluation/registration.py`, `run.py`):
+  - results by completeness basis and identity status (REGISTRATION §4);
+  - the pair-level false-clear share, with both an independent-pairs exact bound and an event-clustered bound;
+  - per inventory and cycle, the actionable share and the unique review items after deduplication.
+
+- **Evaluation: the registration amendments of 2026-10-30, implemented** (`evaluation/REGISTRATION.md` §2, §4, §5, §5a). This adds:
+  - policy R, the existing-representation baseline: written rules for encoding an event as OSV or OpenVEX (`evaluation/representations/ENCODING.md`), and a careful consumer (`evaluation/existing_representation.py`) with exact purl identity and V's pinned comparators. Each event's encoding is frozen by SHA-256 in the case set, and `run.py --require-encodings` refuses an event without one;
+  - test S3 (C − R, Holm-corrected with S1 and S2), guardrail G4, and the attribution steps B→R→V→C;
+  - the review-burden measures W1–W3 (`run.py --inventories`) and the reliability measures D1–D2 (`--annotations`).
+
+  Six development-set events are encoded (dataset revision 2026.10.30-3), so R's numbers there are illustrative only. No OpenPulse verdict changes.
+- **Ecosystem-qualified package scopes (F3).** A package-scope value may be a purl without a version (`pkg:pypi/redis`). It names exactly one package: a dependency of that ecosystem and name is AFFECTS_PACKAGE whatever its curated project, a package of another ecosystem is excluded (only from a scope declared complete with a basis), and anything unreadable is undetermined. Bare values keep working and are read through curated identity.
+- **Evidence contract 1.2.0: what a verdict does and does not assert** (TR-2026-01 sections 5.1-5.2, ROADMAP R-B6). Every document now carries three new things:
+  - `verdict_meaning`: direct scope membership as a closed vocabulary; embedded components, availability, maintenance and security consequence marked `not_evaluated`; and a fixed statement with no upstream text;
+  - `scope.completeness`: whether the scope was declared complete, its basis, and whether that admits a negative;
+  - `evaluation_context`: whether a freshness bound was applied.
+
+  `openpulse attest` emits 1.2. The 1.1 and 1.0 schemas are unchanged and their documents still validate and verify. **Upgrade note:** a consumer that validates against the 1.1 schema must switch to `schemas/evidence-contract/v1.2/schema.json`, because a 1.2 document fails 1.1 validation (`additionalProperties: false`).
+- **MCP answers bound evidence age (TR-2026-01 N4).** This changes verdicts. `dependency_status` and `check_dependency_file` now run in a current-assessment mode: a negative needs evidence fetched within 90 days (configurable) of now, so a stale event can associate a dependency but no longer clear it. Answers carry an `evaluation_context` block (contract 1.2 fields plus `mode`), and every cause carries its `scope_completeness`. An explicit replay mode (Python API only) disables the bound and says so in `evaluation_context`, `not_established` and `note`.
+- **MCP responses state verdict meaning.** `verdict.meaning` carries the same closed vocabularies, every cause carries `direct_scope`, and the fixed note now says that NOT_AFFECTED is not a clearance either.
+
+### Fixed
+
+- **A package named like an uncatalogued event project was treated as that project (F4).** This changes verdicts. A package that resolves only to itself, because no curated mapping exists, is now RELATED (identity unresolved) against that project's events, even when its name is the project's. It was previously version-tested, and could be cleared. Images already behaved this way (D10). capa (PyPI `flare-capa`) and react-native-fbsdk (npm) are now curated, so their package pins keep their project tie.
+- **Package names in a package scope compare in canonical form (F2).** This changes verdicts. A Maven `groupId:artifactId` dependency now matches a listed `groupId/artifactId`, and PyPI names fold per PEP 503 (`Apache.Airflow` = `apache_airflow`). A scope value naming the event's own project still covers every package curated as that project; that rule is now part of the specification (TR-2026-01 §5.3, `conformance/independent/SPEC.md` §4.4) and of the conformance gate.
+- **Every catalog entry now curates its packages (F1, completed).** This changes verdicts.
+  - Libraries list the packages that are the project, Maven coordinates included. `groupId:artifactId` from manifests and SBOMs now matches the catalog's `groupId/artifactId`.
+  - Servers and tools declare none, so a package that only shares their name is unresolved (RELATED), not the project. Examples: PyPI `kubernetes` (the Python client), npm `mongodb` (the Node.js driver), npm `angular` (AngularJS 1.x), PyPI `kafka` and PyPI `postgres`.
+  - Curated iText modules such as `com.itextpdf:sign` now resolve to iText.
+  - Packages with no stated ecosystem resolve by name, as before. A catalog test requires every new entry to state its packages.
+- **MCP tools resolved package identity by name (F1, follow-up).** `dependency_status` and `check_dependency_file` now resolve packages per ecosystem, as the verdict engine does. PyPI `redis` is reported, and looked up, as redis-py.
+
+- **A package name was an identity across ecosystems (F1).** This changes verdicts. Package dependencies resolved by name alone, so PyPI `redis` 6.2.0 was AFFECTS_VERSION under Redis server 6.2 end of life, although PyPI `redis` is redis-py, the Python client. The catalog also mapped the Redis server to PyPI `redis` for OSV queries, so redis-py advisories were attributed to the server. The decision-policy evaluation (`evaluation/`) found it; the conformance oracle could not, because it takes identity as given.
+  - A package with a stated ecosystem now resolves through curated (ecosystem, name) mappings: the new `packages` list on catalog entries, plus their `osv` block.
+  - A name that only shares an alias with a project whose packages are curated is now unresolved (RELATED), never that project.
+  - Packages with no ecosystem (or purl's `generic`) resolve by name as before.
+  - redis-py and node-redis are curated as their own projects, so PyPI and npm `redis` now have no association with Redis server events.
+  - Redis declares no packages, and OSV queries for PyPI `redis` now go to `redis-py`.
+
+
+**This changes verdicts.** All of the following could report NOT_AFFECTED (a clearance) for a dependency that is in an event's scope. They were found by the conformance audit in technical report TR-2026-01.
+
+- **Multi-digest events checked only the first digest (D1).** When an event named several digests of one repository, a dependency pinning any digest after the first was cleared. Every named artifact is now compared: any match is AFFECTED, and one undetermined comparison (digest against tag) withholds the clearance.
+- **OSV ranges collapsed to their last interval (D2).** `introduced 1.0, fixed 1.2, introduced 2.0, fixed 2.3` was read as `[2.0, 2.3)`, so `1.1` was cleared. Ranges are now walked as unions of intervals. `GIT` and unknown range types, and versions at or past a `limit`, are undetermined. An advisory is cleared only if every affected entry clears the version. Withdrawn advisories no longer assert anything.
+- **A clearance from one event hid an unresolved one (D3).** The headline verdict is no longer NOT_AFFECTED while another event's cause is RELATED or AFFECTS_PROJECT. Per-cause verdicts were already kept, and `affected` is unchanged.
+- **Heuristic identity excluded dependencies (D5).** "This image is a different project" now needs a VERIFIED resolution. `docker.io/bitnami/<x>` images that resolve only through the generic Bitnami namespace rule are RELATED to upstream `<x>` lifecycle events, not NOT_AFFECTED: they package that upstream release. Four goldens flipped, with the justification recorded in `tests/test_golden.py`.
+- **Package-scoped events associated with every image.** An event scoped to packages (the iText licence change, for example) marked unrelated images RELATED. Only images of the event's project are now associated.
+- **Version epochs were read as extra version segments (D6).** `1:1.0` (Debian/RPM) and `1!1.0` (PEP 440) were compared as `1.1.0`, so `2.5` against an OSV range `fixed: 1:1.0` was cleared although epoch 1 sorts above every epoch-0 version. Versions with an epoch separator are now not comparable: undetermined, never a clearance.
+- **Numeric version suffixes were folded into the version (D8).** `1.0.0-1` was compared as `1.0.0.1`, so against an OSV `SEMVER` range `fixed: 1.0.0` the SemVer prereleases `1.0.0-0` and `1.0.0-1` were cleared, although they sort below `1.0.0`. The number after a prerelease marker was also ignored, so `1.0.0-rc1` equalled `rc2` and a fix in `rc2` cleared `rc1`. A version is now comparable only as a numeric core plus at most one known prerelease marker and number; bare numeric and build suffixes (`1.0.0-1`, `2.4.1-1`, `1.0.0+5`) are undetermined, and `rc1 < rc2`. `v`-prefixed versions (`v1.2`) are now comparable.
+- **Different digests of one repository cleared each other.** OCI object levels are not recorded, so an event naming an image-index digest cleared a dependency pinned to one of its platform manifests. Digest inequality within a repository is now RELATED until levels are resolved.
+- **Unmapped references named like a project were dropped as unrelated.** `github.com/etcd-io/etcd` resolves only to itself, so it was UNKNOWN against etcd events and ignored when summarising. An unmapped reference whose repository name is one the event's project is known by is now RELATED (identity unresolved). Four relocation goldens (capa, etcd, traefik, fbsdk) flipped UNKNOWN → RELATED for the new canonical path.
+- **Any unmapped reference could be excluded or dropped (D10).** An unmapped reference resolves only to itself, and self-resolution was treated as a VERIFIED different project. So a version-scoped event (an EOL, say) cleared an unmapped mirror of its project, `docker.io/zzz/kvstore:3.5` against etcd 3.5, and an unmapped reference with an unrelated name was UNKNOWN against project-wide events, letting another event's clearance headline. Every unmapped reference is now RELATED (identity unresolved), whatever its name. Only a curated mapping to another project gives UNKNOWN or an identity exclusion. **This lowers the share of clearances for dependencies the catalog does not know.** The OpenTofu fork is now curated as its own project (`opentofu`), so Terraform EOL events still exclude it on that evidence.
+- **Docker Hub host aliases were different registries (D9).** `index.docker.io/bitnami/nginx` and `registry-1.docker.io/bitnami/nginx` are the same image as `docker.io/bitnami/nginx`, but only the last was inside the Bitnami event's `docker.io/bitnami/*` scope, so the others were cleared. Both hosts now canonicalise to `docker.io`, for matching and identity alike.
+- **SemVer prerelease ordering under SEMVER ranges (D11).** One generic comparator served every OSV range, and its marker table (`dev` < `alpha` < `beta` < `rc`, with `a` = `alpha` and `c` = `rc`) is PEP 440's, not SemVer's. SemVer orders prerelease identifiers lexically, so `1.0.0-dev` against `introduced 1.0.0-beta, fixed 1.0.1`, `1.0.0-a` against `fixed 1.0.0-alpha`, and `1.0.0-c` against `fixed 1.0.0-rc` were all cleared. Each range is now compared under its own scheme: `SEMVER` ranges by SemVer 2.0 precedence; `ECOSYSTEM` ranges by the advisory's ecosystem (PyPI: the generic grammar, which agrees with PEP 440 on the forms it accepts; npm, Go, crates.io: SemVer). Any other or missing ecosystem compares plain dotted numbers only, and equality reached only by zero padding (`1.0` vs `1.0.0`, which Debian orders) is undetermined.
+- **`docker.io/<name>` was a different repository from `docker.io/library/<name>` (D12).** A two-segment reference whose first segment is a registry host was parsed with the host as the namespace, so `docker.io/redis:7.2` (Docker's spelling of the official image) was cleared by complete scopes naming `docker.io/library/redis`. Found by the TR-2026-01 conformance matrix (`conformance/`). Single-name repositories now go under `library` on Docker Hub only. The registry sweep's bare-namespace rule (`docker.io/<namespace>` names a catalogue) is now explicit instead of relying on the old parse.
+- **Unmapped packages were dropped as unrelated (D13).** A package that resolves only to itself was "no applicable evidence" for other projects' events, the package-side twin of D10. It is now RELATED against project-wide, release-line and package scopes, and still has no association with container-image and registry scopes. **This makes uncatalogued packages RELATED to loaded lifecycle and licence events; the reason says the identity is unresolved.** `boto3` and `serde` are now curated as their own projects.
+- **A repository element did not cover digest pins (D14).** `docker.io/acme/app` (or `:*`) against `docker.io/acme/app@sha256:...` was RELATED; a repository element covers every reference to the repository, so it is now AFFECTS_ARTIFACT.
+- **A named example hid the event's scope (D15).** When a named affected artifact left a reference undetermined (a tag against an example digest), the event's own scope was never evaluated, so a member of its release line was only RELATED. Named examples and the scope are now evaluated together and the strongest result wins. Found by randomised differential testing against the TR-2026-01 oracle.
+- **An image curated as another project is now "no association" for a release-line event, not an exclusion.** It was NOT_AFFECTED under a complete scope and RELATED under a partial one; a curated mapping to another project needs no complete scope (TR-2026-01 S2), and identity is now decided before the tag is read. Goldens for `docker.io/bitnami/redis` against a redis EOL and for OpenTofu against a Terraform EOL now expect UNKNOWN.
+- **A package name absent from a package scope cleared the dependency.** Package names are not canonicalised per ecosystem, so a different spelling of the same package was NOT_AFFECTED under a complete package scope. Inequality is now RELATED.
+
+### Added
+
+- **Completeness basis (TR-2026-01 N3)**, intelligence schema 0.6.0 → **0.7.0** (additive). `Scope.basis` records why a scope declared complete is complete: `definitional`, `announced`, `corroborated` or `verified`. A declaration **without a basis never clears**: `exhaustive: true` alone now gives RELATED. The analyst's seven definitional declarations, and the Django EOL, Bitnami Spark (`definitional`) and Bitnami catalogue (`announced`) fixtures, record their basis. **Producers that set `exhaustive` must now set `basis` too.** The evidence contract does not carry it yet.
+- **Event admissibility (TR-2026-01 N4, N5).** `OSSEvent.withdrawn` and `OSSEvent.superseded_by`: such events are not evaluated at all. An event whose own evidence includes a `contradicts` relation can associate a dependency but never clear it. `check_dependency` and `check_watchlist` take an opt-in freshness bound (`as_of`, `max_evidence_age`): a negative from an event whose newest evidence is older than the bound becomes RELATED (stale). The bound is off by default, since replaying recorded fixtures would otherwise make every negative stale.
+
+- **`Scope.exhaustive` (D4)**, intelligence schema 0.5.0 → **0.6.0** (additive, **default `false`**: completeness is opt-in). A dependency outside a scope is NOT_AFFECTED only when the producer declares the scope complete; unspecified or partial scopes give RELATED. Analysts declare it where the scope is the event itself (one release line's EOL/EOS/support change, one repository's distribution or registry change); the Django EOL and Bitnami Spark fixtures declare it; package-removal, breaking-change, licence and support-change lists stay partial. The evidence contract is unchanged.
+- **Namespace scope elements.** An artifact scope entry `<registry>/<namespace>/*` covers every repository under it. The curated Bitnami event now states its catalogue-wide scope this way (`docker.io/bitnami/*`, `docker.io/bitnamilegacy/*`, `registry-1.docker.io/bitnamicharts/*`) instead of five example images that were read as the complete scope -- which had cleared unlisted Bitnami images such as `bitnami/nginx`.
+- **Element roles and tag predicates (TR-2026-01, envelope-aware positives; D7).** A plain namespace element (`docker.io/acme/*`) is now an *envelope*: it bounds the affected set, so membership is RELATED ("possibly in scope") and only exclusion from it is decisive. Every other element is *exact*, and membership is AFFECTS_ARTIFACT. Two tag predicates make exact elements expressible: `:<version>` (version-like tags such as `1.25` or `7.2.4-debian-12-r3`, not `latest`) and `:*` (every tag). A named affected artifact with a literal tag (`redis:7.2`) now establishes that tag only: another tag of the same repository is RELATED, not AFFECTS_ARTIFACT (D7). A scope element with a literal tag excludes the repository's other tags. A ref with no tag is read as `latest`; a digest-only ref under a tag-restricted element is RELATED. **This changes verdicts:** the Bitnami scope is now `docker.io/bitnami/*:<version>` (exact) plus `docker.io/bitnami/*` (envelope), with `bitnamilegacy/*:*` and `bitnamicharts/*:*`, so versioned Bitnami images stay affected while `bitnami/redis:latest` becomes RELATED instead of a false impact.
+
+## 0.7.1 — 2026-10-28
+
+A hardening patch. No verdict or output changes.
+
+### Security
+
+- **Collector responses are size-capped** (#155). Every collector (endoflife.date, OSV, GitHub, registries) now streams its HTTP response and stops at a byte cap (32 MiB by default), counting *decoded* bytes so a gzip bomb is caught. Oversized responses fail that source with an error instead of exhausting memory. This closes A6b, the last unbounded input channel.
+- **Every install is hash-checked** (#156). CI, the MCP job and the GitHub Action install with `pip install --require-hashes` from complete, hash-pinned locks generated by `scripts/compile_locks.py`. A re-uploaded or tampered package with the same version now fails the install. `scripts/check_lock.py --exact` also fails CI on any installed package the lock doesn't list. The Action installs `requirements-runtime.lock` (no dev tools), then OpenPulse with `--no-deps`.
+
+### Fixed
+
+- **The lock was incomplete** (#156). `typing-inspection` (pulled in by pydantic) and `colorama` (Windows) weren't listed, so they floated. The locks are now resolved for every platform at once.
+
+### Notes
+
+- The `mcp` extra needs Python 3.11 or newer (MCP SDK 2.x requires it). The rest of OpenPulse still supports 3.10.
+
+## 0.7.0 — 2026-10-28 "Channels"
+
+OpenPulse reaches the places where dependency decisions are made: AI coding agents (MCP), DefectDojo and Dependency-Track. **This release changes verdicts** (#133, below), and the install name is now `ikarus-openpulse`. Read the upgrade notes before upgrading CI gates.
+
 ### Fixed
 
 - **End-of-life events missed real version pins** (#133). Lifecycle events are scoped to release lines (`4.2`, `13`), but versions were compared for equality, so `django==4.2.11` or `postgres:13.5` against an end-of-life cycle was reported NOT_AFFECTED. Lockfiles and SBOMs always pin patch versions, so end-of-life detection rarely fired on real projects in `check`, `attest`, the GitHub Action and digests. A release line now covers its patch releases, variant tags like `13.5-alpine` match, and a version that cannot be compared is RELATED, never NOT_AFFECTED.
@@ -11,10 +132,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- **Install name is now `ikarus-openpulse`.** `openpulse` on PyPI is an unrelated project (OpenQASM's pulse AST), and `pip install "openpulse[mcp]"` installed it. Install with `pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.7.0"` until the PyPI release lands. If you previously installed OpenPulse from git under the old name, run `pip uninstall openpulse` first, so two distributions don't claim the same modules. The CLI command is still `openpulse`.
 - **Gates may start failing.** Because of #133, pinned dependencies inside an end-of-life release line now report AFFECTED. That is the intended verdict, but a CI gate using `--fail-on` (or the Action's `fail-on`) may now fail where it used to pass.
 
 ### Added
 
+- **`python -m cli`** (#146) runs OpenPulse through the interpreter, for MCP clients that can't find the `openpulse` executable. Configure it as `["-I", "-m", "cli", "mcp"]`, or `-P` on Python 3.11+. Without the flag, the working directory is searched first, so a project's own `cli/` package would run instead of OpenPulse: in an untrusted repository, that means its code runs. See [`docs/MCP.md`](docs/MCP.md), which also shows the Windows interpreter path. Help and usage text read `openpulse` either way.
 - **`openpulse mcp`: an MCP server for AI coding agents** (optional extra, `pip install "openpulse[mcp]"`). It provides three read-only tools:
   - `dependency_status`: end-of-life/end-of-support status, curated upstream changes and version-specific OSV advisories for one dependency.
   - `check_dependency_file`: the same checks for every pinned entry in a project file.

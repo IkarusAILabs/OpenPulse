@@ -425,7 +425,8 @@ def test_cli_digest_json_output(tmp_path):
         ],
     )
     assert out.exit_code == 0, out.output
-    payload = json.loads(out.output)
+    # JSON goes to stdout; the evaluation notice goes to stderr.
+    payload = json.loads(out.stdout)
     assert payload["entries"][0]["dependency"] == "django==4.2"
     assert payload["entries"][0]["effective_date"] == "2026-12-31"
     assert payload["generated_at"]

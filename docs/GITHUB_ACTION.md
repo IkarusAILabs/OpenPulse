@@ -4,9 +4,11 @@ Runs `openpulse attest` on your dependency files in CI. It reports which upstrea
 
 - **Job summary**: a Markdown table in `$GITHUB_STEP_SUMMARY` (verdict, impact, evidence links, contract hash).
 - **SARIF 2.1.0**: a log you can upload to GitHub Code Scanning.
-- **Evidence contracts**: one schema-valid v1.1 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
+- **Evidence contracts**: one schema-valid v1.2 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
 
 The action needs no install step and no secrets. It runs on Linux, macOS and Windows runners.
+
+> **Research software.** OpenPulse is an academic research instrument from [Ikarus AI Labs](https://ikaruslabs.net), and it comes with no warranty or service level. A passing run means no warning was raised, not that every dependency was cleared. See [Research status](../README.md#research-status).
 
 ## Verdicts and SARIF levels
 
@@ -42,7 +44,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 
 **Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`) and `threshold-breached` (`true`/`false`).
 
-The action installs OpenPulse from its own checkout, constrained to the reviewed `requirements.lock`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
+The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
 ## Permissions
 
@@ -61,7 +63,7 @@ On pull requests from forks, the token is read-only and SARIF upload fails. Keep
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -93,7 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -126,7 +128,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.6.3
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
         with:
           upload-sarif: 'true'
           fail-on: none            # report, do not fail the scheduled run

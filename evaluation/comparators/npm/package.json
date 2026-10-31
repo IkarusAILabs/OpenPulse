@@ -1,0 +1,10 @@
+{
+  "name": "openpulse-comparator-npm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bridge to node-semver, pinned for evaluation baseline V (evaluation/REGISTRATION.md)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "semver": "7.8.5"
+  }
+}

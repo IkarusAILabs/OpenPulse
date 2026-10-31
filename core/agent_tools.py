@@ -25,7 +25,8 @@ import json
 import os
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from datetime import time as dt_time
 from typing import Any
 
 from core.resources import data_path
@@ -46,11 +47,97 @@ _CACHE_TTL_SECONDS = 3600.0
 
 NOTE = (
     "OpenPulse evidence, not a decision: verdicts state what the cited sources "
-    "establish for this exact dependency; UNKNOWN means not established, never safe."
+    "establish for this exact dependency; UNKNOWN means not established, never safe. "
+    "NOT_AFFECTED means outside the cited evidence's directly named scope only, never "
+    "safe: decide from verdict.meaning, whose fields say what was not evaluated, and "
+    "from evaluation_context, which says whether evidence age was bounded."
 )
+
+#: Appended to NOTE whenever no freshness bound was applied: a missing
+#: bound is stated, never left for the reader to infer from a null.
+UNBOUNDED_NOTE = (
+    " NO FRESHNESS BOUND: this answer was computed in replay mode, so a NOT_AFFECTED "
+    "may rest on evidence of any age."
+)
+
+#: Assessment modes (TR-2026-01 N4). ``current`` answers "is this dependency
+#: affected now": a negative needs evidence no older than the bound, so a
+#: stale event can associate a dependency but never clear it. ``replay``
+#: re-evaluates recorded evidence offline, where every negative would
+#: otherwise be stale; it disables the bound and says so in the response.
+CURRENT = "current"
+REPLAY = "replay"
+MODES = (CURRENT, REPLAY)
+
+#: Default freshness bound for current assessments, in days (the
+#: retrospective study, ``evaluation/run.py``, uses the same 90).
+DEFAULT_MAX_EVIDENCE_AGE_DAYS = 90
 
 Bundle = dict[str, list[dict[str, Any]]]
 Fetcher = Callable[[str], Bundle]
+
+
+class Evaluation:
+    """The time frame one agent answer is computed under.
+
+    ``as_of`` defaults to ``today`` at 00:00 UTC when a date is pinned
+    (deterministic tests and replays of a known day), else the current
+    time. ``context`` is the contract 1.2.0 ``evaluation_context`` block
+    plus the mode, so the response describes the verdict it carries.
+    """
+
+    def __init__(
+        self,
+        mode: str = CURRENT,
+        *,
+        as_of: datetime | None = None,
+        max_evidence_age_days: int | None = None,
+        today: date | None = None,
+    ):
+        if mode not in MODES:
+            raise ValueError(f"mode must be one of {', '.join(MODES)}, not {mode!r}")
+        self.mode = mode
+        self.as_of: datetime | None = None
+        self.max_evidence_age: timedelta | None = None
+        if mode == CURRENT:
+            days = (
+                DEFAULT_MAX_EVIDENCE_AGE_DAYS
+                if max_evidence_age_days is None
+                else int(max_evidence_age_days)
+            )
+            if days < 0:
+                raise ValueError("max_evidence_age_days must not be negative")
+            if as_of is None:
+                as_of = (
+                    datetime.combine(today, dt_time.min, tzinfo=timezone.utc)
+                    if today is not None
+                    else datetime.now(timezone.utc)
+                )
+            elif as_of.tzinfo is None:
+                as_of = as_of.replace(tzinfo=timezone.utc)
+            self.as_of = as_of
+            self.max_evidence_age = timedelta(days=days)
+
+    @property
+    def bounded(self) -> bool:
+        return self.as_of is not None and self.max_evidence_age is not None
+
+    @property
+    def context(self) -> dict[str, Any]:
+        as_of = self.as_of.isoformat().replace("+00:00", "Z") if self.as_of else None
+        return {
+            "mode": self.mode,
+            "as_of": as_of,
+            "max_evidence_age_days": self.max_evidence_age.days
+            if self.max_evidence_age is not None
+            else None,
+            "freshness_bound_applied": self.bounded,
+            "unresolved_identity": "undetermined",
+        }
+
+    @property
+    def note(self) -> str:
+        return NOTE if self.bounded else NOTE + UNBOUNDED_NOTE
 
 
 def curated_events() -> list[Any]:
@@ -193,19 +280,27 @@ def _dependency(
     return dep
 
 
+def _trust(dep: dict[str, Any]) -> dict[str, Any]:
+    """Identity the way the verdict engine resolves it: packages per ecosystem (F1)."""
+    from core.entities.identity import package_trust, resolution_trust
+
+    if dep["kind"] == "package":
+        return package_trust(str(dep["package"]), dep.get("ecosystem"))
+    return resolution_trust(str(dep["ref"]))
+
+
 def _assess(
     dep: dict[str, Any],
     lookups: Lookups | None,
     events: list[Any],
     today: date | None,
+    evaluation: Evaluation,
 ) -> dict[str, Any]:
-    from core.entities.identity import resolution_trust
-    from core.entities.resolve import resolve_project
     from core.risk.check import check_dependency
+    from core.verdict_meaning import DIRECT_SCOPE, scope_completeness, verdict_meaning
 
-    ref = str(dep.get("ref") or dep.get("package"))
-    slug = resolve_project(ref)
-    trust = resolution_trust(ref)
+    trust = _trust(dep)
+    slug = str(trust["slug"])
     sources: list[dict[str, Any]] = [
         {"source": "curated-events", "status": "ok", "records": len(events)}
     ]
@@ -224,8 +319,15 @@ def _assess(
         all_events += lifecycle_events(slug, raw, today=today)
         bundles[slug] = raw
         repository = _repository(raw)
-    verdict = check_dependency(dep, all_events, bundles)
+    verdict = check_dependency(
+        dep,
+        all_events,
+        bundles,
+        as_of=evaluation.as_of,
+        max_evidence_age=evaluation.max_evidence_age,
+    )
     urls = _event_urls(all_events)
+    scopes = {e.id: e.scope for e in all_events}
     relevant = [
         c
         for c in verdict.verdicts
@@ -238,6 +340,8 @@ def _assess(
             "event": c.get("event_id"),
             "type": c.get("event_type"),
             "relationship": c.get("relationship"),
+            "direct_scope": DIRECT_SCOPE.get(str(c.get("relationship")), "undetermined"),
+            "scope_completeness": scope_completeness(scopes.get(str(c.get("event_id")))),
             "affected": c.get("affected"),
             "evidence_confidence": c.get("evidence_confidence"),
             "reason": c.get("reason"),
@@ -250,6 +354,8 @@ def _assess(
     unknowns = [s["source"] for s in sources if s["status"] in ("error", "no-data", "disabled")]
     if dep["kind"] == "package" and not dep.get("version"):
         unknowns.append("version (without it only project-level applicability is possible)")
+    if not evaluation.bounded:
+        unknowns.append("evidence currency (replay mode: no freshness bound applied)")
     return {
         "dependency": verdict.dependency,
         "identity": {
@@ -261,6 +367,7 @@ def _assess(
             "affected": verdict.affected,
             "relationship": verdict.relationship,
             "confidence": verdict.confidence,
+            "meaning": verdict_meaning(verdict.relationship),
             "reason": _short(verdict.reason),
         },
         "causes": causes,
@@ -268,7 +375,8 @@ def _assess(
         "repository": repository,
         "sources": sources,
         "not_established": unknowns,
-        "note": NOTE,
+        "evaluation_context": evaluation.context,
+        "note": evaluation.note,
     }
 
 
@@ -281,13 +389,24 @@ def dependency_status(
     lookups: Lookups | None = None,
     live: bool = True,
     today: date | None = None,
+    mode: str = CURRENT,
+    as_of: datetime | None = None,
+    max_evidence_age_days: int | None = None,
 ) -> dict[str, Any]:
     """Evidence for one dependency: EOL/EOS, curated upstream changes
-    (distribution, license, support) and OSV advisories for its version."""
+    (distribution, license, support) and OSV advisories for its version.
+
+    ``mode="current"`` (default) bounds evidence age for negatives
+    (``max_evidence_age_days``, default 90, as of ``as_of``);
+    ``mode="replay"`` disables the bound and the response says so.
+    """
+    evaluation = Evaluation(
+        mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
+    )
     dep = _dependency(package, version, ecosystem, image)
     if live and lookups is None:
         lookups = Lookups()
-    return _assess(dep, lookups if live else None, curated_events(), today)
+    return _assess(dep, lookups if live else None, curated_events(), today, evaluation)
 
 
 def check_dependency_file(
@@ -296,12 +415,20 @@ def check_dependency_file(
     lookups: Lookups | None = None,
     live: bool = True,
     today: date | None = None,
+    mode: str = CURRENT,
+    as_of: datetime | None = None,
+    max_evidence_age_days: int | None = None,
 ) -> dict[str, Any]:
     """Every pinned dependency of one manifest, lockfile, SBOM or image list.
 
     Reuses the CLI's readers (bounded, skip-and-record): unpinned entries
-    are reported as skipped, never guessed.
+    are reported as skipped, never guessed. ``mode``, ``as_of`` and
+    ``max_evidence_age_days`` as in :func:`dependency_status`; one time
+    frame covers the whole file.
     """
+    evaluation = Evaluation(
+        mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
+    )
     deps, skipped, kind = _read_dependency_file(path)
     truncated = len(deps) > MAX_FILE_DEPENDENCIES
     deps = deps[:MAX_FILE_DEPENDENCIES]
@@ -310,14 +437,12 @@ def check_dependency_file(
     events = curated_events()
     results = []
     looked_up: set[str] = set()
-    from core.entities.resolve import resolve_project
-
     for dep in deps:
-        slug = resolve_project(str(dep.get("ref") or dep.get("package")))
+        slug = str(_trust(dep)["slug"])
         use_live = live and (slug in looked_up or len(looked_up) < MAX_LIVE_PROJECTS)
         if use_live:
             looked_up.add(slug)
-        results.append(_assess(dep, lookups if use_live else None, events, today))
+        results.append(_assess(dep, lookups if use_live else None, events, today, evaluation))
     flagged = [r for r in results if r["verdict"]["affected"] or r["causes"]]
     return {
         "file": path,
@@ -329,7 +454,8 @@ def check_dependency_file(
         "affected": [r["dependency"] for r in results if r["verdict"]["affected"]],
         "results": flagged,
         "unflagged": [r["dependency"] for r in results if r not in flagged],
-        "note": NOTE,
+        "evaluation_context": evaluation.context,
+        "note": evaluation.note,
     }
 
 

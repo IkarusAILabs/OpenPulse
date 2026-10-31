@@ -1,0 +1,60 @@
+{
+ "note": "References a kit case may use, with the project a curated mapping assigns (null: none). Tags, digests and versions are free: only the repository or package name must come from this list. A package without an ecosystem is identified by name (packages); with one, by ecosystem_packages. Projects with events: redis, mysql, and zzzpkg, which is not in the catalog (a package named like it is unresolved, F4).",
+ "projects": {
+  "redis": {
+   "release_lines_seen": [
+    "6",
+    "6.2",
+    "7",
+    "7.2",
+    "8"
+   ]
+  },
+  "mysql": {
+   "release_lines_seen": [
+    "5.7",
+    "8",
+    "8.0"
+   ]
+  },
+  "zzzpkg": {
+   "release_lines_seen": [
+    "1"
+   ],
+   "curated": false
+  }
+ },
+ "image_repositories": {
+  "docker.io/library/redis": "redis",
+  "docker.io/redis": "redis",
+  "docker.io/library/mysql": "mysql",
+  "docker.io/bitnami/redis": "bitnami-redis-stack",
+  "docker.io/zzz/kvstore": null,
+  "ghcr.io/zzz/redis": null,
+  "github.com/zzz/kvstore": null
+ },
+ "packages": {
+  "redis": "redis",
+  "redis-server": "redis",
+  "mysql": "mysql",
+  "zzzpkg": null,
+  "redis-py": null
+ },
+ "registries": [
+  "docker.io",
+  "ghcr.io",
+  "github.com"
+ ],
+ "ecosystem_packages": {
+  "PyPI:redis": "redis-py",
+  "npm:redis": "node-redis",
+  "PyPI:mysql": null,
+  "PyPI:zzzpkg": null
+ },
+ "qualified_scope_values_seen": [
+  "pkg:pypi/redis",
+  "pkg:npm/redis",
+  "pkg:pypi/mysql",
+  "pkg:maven/com.acme/redis"
+ ]
+}

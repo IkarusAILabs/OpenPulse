@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: >-
+  OpenPulse is academic research software from Ikarus AI Labs. If you use it
+  or its results, please cite the technical report below.
+title: "OpenPulse"
+abstract: >-
+  Research instrument for evidence-based dependency decisions: it collects,
+  qualifies and applies upstream change evidence to declared dependency
+  inventories. Part of the Ikarus AI Labs research programme on
+  Evidence-Based Assurance for AI-Mediated Software Change.
+type: software
+authors:
+  - given-names: Mehmet
+    family-names: KI
+    affiliation: "Ikarus AI Labs, Cambridge, United Kingdom"
+version: 0.8.0
+date-released: 2026-10-31
+license: Apache-2.0
+repository-code: "https://github.com/IkarusAILabs/OpenPulse"
+url: "https://ikaruslabs.net/openpulse"
+keywords:
+  - software supply chain
+  - dependency management
+  - evidence-based assurance
+  - AI-mediated software change
+preferred-citation:
+  type: report
+  title: "Evidence Before Impact: Upstream Change Intelligence for Dependency Decisions"
+  authors:
+    - given-names: Mehmet
+      family-names: KI
+      affiliation: "Ikarus AI Labs, Cambridge, United Kingdom"
+  institution:
+    name: "Ikarus AI Labs"
+    city: Cambridge
+    country: GB
+  number: "TR-2026-01"
+  date-published: 2026-10-31
+  url: "https://github.com/IkarusAILabs/OpenPulse/blob/v0.8.0/papers/tr-2026-01/OpenPulse-TR-2026-01.pdf"

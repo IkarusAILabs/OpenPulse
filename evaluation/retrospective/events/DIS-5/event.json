@@ -1,0 +1,35 @@
+{
+ "id": "retro-dis-5",
+ "project_slug": "adoptopenjdk",
+ "event_type": "DEPRECATION",
+ "title": "Official adoptopenjdk image deprecated in favour of eclipse-temurin",
+ "summary": "The adoptopenjdk Official Image was deprecated in favour of eclipse-temurin, with no further updates after 2021-08-01.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [],
+ "evidences": [
+  {
+   "source": {
+    "name": "docker-library/docs@4baab4b",
+    "url": "https://github.com/docker-library/docs/commit/4baab4b75b58",
+    "authority": "official",
+    "fetched_at": "2021-08-25T11:03:21Z",
+    "acquisition_method": "wayback:20210825110321 http://web.archive.org/web/20210825110321/https://hub.docker.com/_/adoptopenjdk",
+    "family": "docker-library"
+   },
+   "excerpt": "This image is officially deprecated in favor of the eclipse-temurin image, and will receive no further updates after 2021-08-01.",
+   "relation": "supports",
+   "announcement_date": "2021-08-13",
+   "effective_date": "2021-08-01"
+  }
+ ],
+ "created_at": "2021-08-25T11:03:21Z",
+ "scope": {
+  "kind": "artifact",
+  "artifacts": [
+   "docker.io/library/adoptopenjdk"
+  ],
+  "exhaustive": true,
+  "basis": "announced"
+ }
+}

@@ -235,4 +235,4 @@ def test_report_related_claims_no_affection():
     ):
         assert phrase not in narrative
     # The disclaimer negates customer impact explicitly — required.
-    assert "not assertions that a particular customer's environment" in md
+    assert "not assertions that a particular user's environment" in md

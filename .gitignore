@@ -8,3 +8,9 @@ build/
 .ruff_cache/
 .openpulse/
 sbom.json
+
+# Baseline V comparator bridges (evaluation/comparators/README.md)
+evaluation/comparators/npm/node_modules/
+evaluation/comparators/go/bridge
+evaluation/comparators/go/bridge.exe
+evaluation/comparators/maven/lib/

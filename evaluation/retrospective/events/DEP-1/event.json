@@ -1,0 +1,52 @@
+{
+ "id": "retro-dep-1",
+ "project_slug": "request",
+ "event_type": "DEPRECATION",
+ "title": "npm package request fully deprecated",
+ "summary": "request entered maintenance mode in 2019 and was fully deprecated on 2020-02-11; every published version carries the npm deprecation message.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "npm",
+   "ref": "npm:request"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "request/request@aded7e4f8e",
+    "url": "https://github.com/request/request/commit/aded7e4f8e",
+    "authority": "official",
+    "fetched_at": "2020-02-11T16:33:00Z",
+    "acquisition_method": "record:github commit aded7e4f8e (README)",
+    "family": "request"
+   },
+   "excerpt": "As of Feb 11th 2020, request is fully deprecated. No new changes are expected to land.",
+   "relation": "supports",
+   "announcement_date": "2019-03-30",
+   "effective_date": "2020-02-11"
+  },
+  {
+   "source": {
+    "name": "wayback/github.com-request-request",
+    "url": "https://github.com/request/request",
+    "authority": "primary",
+    "fetched_at": "2020-02-11T20:16:36Z",
+    "acquisition_method": "wayback:20200211201636 http://web.archive.org/web/20200211201636/https://github.com/request/request",
+    "family": "wayback"
+   },
+   "excerpt": "Repository README with the deprecation notice.",
+   "relation": "context"
+  }
+ ],
+ "created_at": "2020-02-11T20:16:36Z",
+ "scope": {
+  "kind": "package",
+  "packages": [
+   "pkg:npm/request"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

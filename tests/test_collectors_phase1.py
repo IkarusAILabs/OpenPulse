@@ -173,7 +173,9 @@ def test_osv_map_from_catalog():
 
     mapping = osv_map(load_catalog())
     # Catalog entries with a verified (package, ecosystem) pair only.
-    assert mapping["redis"] == ("redis", "PyPI")
+    # PyPI `redis` is redis-py, the client, not the Redis server (F1).
+    assert mapping["redis-py"] == ("redis", "PyPI")
+    assert "redis" not in mapping
     assert mapping["django"] == ("django", "PyPI")
     assert mapping["fastapi"] == ("fastapi", "PyPI")
     # Entries without an osv block are absent, never guessed.

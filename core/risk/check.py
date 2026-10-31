@@ -9,20 +9,25 @@ combines them only at the final verdict, retaining each cause.
 Decision matrix (final relationship):
   AFFECTS_ARTIFACT > AFFECTS_VERSION > AFFECTS_PACKAGE
   > NOT_AFFECTED > RELATED > AFFECTS_PROJECT > UNKNOWN
+except that a clearance from one event never outranks an unresolved
+association (RELATED / AFFECTS_PROJECT) from another
+(``winning_cause``).
 `affected` is True only for ARTIFACT/VERSION/PACKAGE. A project-only
 tie (AFFECTS_PROJECT) is contextual, never impact. Pure functions.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import re
+from datetime import datetime, timedelta, timezone
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from analyzers.security_analyst import correlate
 from core.detections import ledger
-from core.entities.identity import resolution_trust
-from core.entities.resolve import resolve_project
+from core.entities.catalog import is_qualified, package_name_key, qualified_package
+from core.entities.identity import UNRESOLVED_IDENTITY, package_trust, resolution_trust
 from core.risk.match import event_affects_ref
 from core.schema.models import OSSEvent
 from core.versions import in_release_line
@@ -38,6 +43,10 @@ _RANK = {
 }
 
 _AFFECTED = ("AFFECTS_ARTIFACT", "AFFECTS_VERSION", "AFFECTS_PACKAGE")
+
+#: Associations that are neither impact nor clearance: while any cause
+#: holds one, a NOT_AFFECTED from another event cannot headline.
+_UNRESOLVED = ("RELATED", "AFFECTS_PROJECT")
 
 #: Match strength answers "what matches" — never "how trustworthy is
 #: the underlying claim". The ceiling below is what a match *alone*
@@ -159,11 +168,178 @@ def _dep_label(dep: dict[str, Any]) -> str:
 
 
 def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
-    """Package dep vs one event's scope. None when the event says nothing usable."""
-    slug = resolve_project(str(dep["package"]))
-    if slug != event.project_slug:
+    """Package dep vs one event's scope. None when the event says nothing usable.
+
+    A negative stands only against a declared-complete scope; outside
+    a partial or unspecified one the cause is RELATED (see ``_exclusion``).
+    """
+    cause = _scope_cause(dep, event)
+    if cause is None or cause["relationship"] != "NOT_AFFECTED":
+        return cause
+    if event.scope is not None and event.scope.admits_negative():
+        return cause
+    why = (
+        "scope completeness has no recorded basis"
+        if event.scope is not None and event.scope.exhaustive
+        else "scope is not exhaustive"
+    )
+    return {
+        **cause,
+        "relationship": "RELATED",
+        "match_method": "project_scope",
+        "reason": f"{cause['reason']}; {why}, so not a clearance",
+    }
+
+
+def _qualified_results(dep: dict[str, Any], event: OSSEvent) -> list[str]:
+    """Element results for ecosystem-qualified package-scope values (F3).
+
+    A purl value names exactly one package, so it decides by (ecosystem,
+    canonical name) before identity: M when equal; N when the dependency
+    is a package of a different ecosystem (never the same object); ?
+    when the dependency states no ecosystem, the value does not parse,
+    or only the name differs (names are not fully canonical).
+    """
+    scope = event.scope
+    if scope is None or scope.kind != "package":
+        return []
+    ecosystem = str(dep.get("ecosystem") or "").strip()
+    mine = package_name_key(ecosystem, str(dep["package"])) if ecosystem else None
+    results = []
+    for value in scope.packages:
+        if not is_qualified(value):
+            continue
+        key = qualified_package(str(value))
+        if key is None or mine is None or ecosystem.lower() == "generic":
+            results.append("?")
+        elif key == mine:
+            results.append("M")
+        elif key[0] != mine[0]:
+            results.append("N")
+        else:
+            results.append("?")
+    return results
+
+
+def _go_module_repository(dep: dict[str, Any], event: OSSEvent) -> str | None:
+    """The event's source-repository artifact a Go module lives in, or None.
+
+    The module path equals the repository path or extends it by a
+    subdirectory or major-version suffix (`github.com/o/r/v3`). A module on
+    a fixed hosting convention (`gopkg.in/yaml.v3`, `golang.org/x/lint`)
+    also lives in the GitHub repository that convention names, the same
+    rule inventory discovery uses to find it. Compared case-insensitively,
+    as code hosts resolve repository paths.
+    """
+    from core.discovery import go_module_repository
+
+    if str(dep.get("ecosystem") or "").strip().lower() not in ("go", "golang"):
         return None
-    trust = resolution_trust(str(dep["package"]))
+    module = str(dep["package"]).strip().lower()
+    hosted = go_module_repository(module)
+    paths = {module, f"github.com/{hosted.lower()}"} if hosted else {module}
+    for artifact in event.affected_artifacts:
+        if artifact.kind != "source-repository":
+            continue
+        repo = re.sub(r"^[a-z][a-z0-9+.-]*://", "", str(artifact.ref).strip().lower()).rstrip("/")
+        if repo and any(p == repo or p.startswith(repo + "/") for p in paths):
+            return str(artifact.ref)
+    return None
+
+
+def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
+    qualified = _qualified_results(dep, event)
+    exact = {
+        "cause": "upstream_change",
+        "event_id": event.id,
+        "event_type": event.event_type.value,
+        "project": event.project_slug,
+        "impact": event.impact.value,
+        "evidence": [e.source.name for e in event.evidences],
+        "evidence_confidence": event.confidence.value,
+        "match_method": "event_scope_package",
+    }
+    if "M" in qualified:
+        # The event names this exact (ecosystem, package): self-identity,
+        # no mapping involved, whatever the catalog says.
+        return {
+            **exact,
+            "identity_status": "VERIFIED",
+            "identity_via": "exact-artifact",
+            "relationship": "AFFECTS_PACKAGE",
+            "affected": True,
+            "reason": f"{dep['ecosystem']} package {dep['package']} is named in event scope "
+            f"packages {event.scope.packages}",
+        }
+    repository = _go_module_repository(dep, event)
+    if repository is not None:
+        # A Go module path is a repository locator: a module at or below a
+        # named source repository lives in it (go.mod requires are what a
+        # relocation's repository artifact exists to reach). Self-identity,
+        # like the M case above. Positive only: a module outside the named
+        # paths may still be that repository under a vanity import path, so
+        # it is never cleared here.
+        return {
+            **exact,
+            "identity_status": "VERIFIED",
+            "identity_via": "exact-artifact",
+            "relationship": "AFFECTS_ARTIFACT",
+            "affected": True,
+            "match_method": "event_scope:artifact",
+            "reason": f"Go module {dep['package']} lives in affected source repository "
+            f"{repository}",
+        }
+    # A self-resolved package is unresolved even when its name is the event's
+    # project (F4): a name is not identity, as D10 holds for images.
+    unresolved = trust["via"] == "self"
+    if (slug != event.project_slug or unresolved) and (
+        not unresolved or UNRESOLVED_IDENTITY.get() == "unrelated"
+    ):
+        return None  # curated as another project: no association
+    bare = [p for p in (event.scope.packages if qualified else []) if not is_qualified(p)]
+    if qualified and not bare and set(qualified) == {"N"}:
+        # Every value names a package of another ecosystem: an exclusion by
+        # object kind, not by identity, so it needs no resolved identity.
+        # Admissibility (complete scope, basis, currency) is applied by
+        # _event_scope_cause.
+        return {
+            **exact,
+            "identity_status": trust["identity_status"],
+            "identity_via": trust["via"],
+            "relationship": "NOT_AFFECTED",
+            "affected": False,
+            "reason": f"{dep['ecosystem']} package {dep['package']} is not a package of the "
+            f"ecosystems named in event scope packages {event.scope.packages}",
+        }
+    if slug != event.project_slug or unresolved:
+        if event.scope is not None and event.scope.kind in ("artifact", "registry"):
+            # Container-image and registry scopes name locations a package
+            # reference never is: no association, whatever its identity.
+            return None
+        # An unmapped package resolves only to itself. That is not
+        # evidence of another project, so against the project, its
+        # release lines or its packages the association is undetermined,
+        # never dropped (TR-2026-01 D13; D10 for images).
+        return {
+            "cause": "upstream_change",
+            "event_id": event.id,
+            "event_type": event.event_type.value,
+            "project": event.project_slug,
+            "impact": event.impact.value,
+            "evidence": [e.source.name for e in event.evidences],
+            "evidence_confidence": event.confidence.value,
+            "identity_status": trust["identity_status"],
+            "identity_via": trust["via"],
+            "relationship": "RELATED",
+            "affected": False,
+            "match_method": "project_scope",
+            "reason": (
+                f"{dep['package']} resolves only to itself; identity unresolved, so it is "
+                f"neither excluded from nor unrelated to project {event.project_slug}"
+            ),
+        }
     scope = event.scope
     version = dep.get("version")
     base: dict[str, Any] = {
@@ -228,8 +404,13 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
             "reason": (f"{dep['package']}=={version} is outside scope versions {scope.versions}"),
         }
     if kind == "package" and scope.packages:
-        names = {str(p).lower() for p in scope.packages}
-        if str(dep["package"]).lower() in names or slug in names:
+        # Names compare in canonical form: lowercase, PEP 503 folding for
+        # PyPI, Maven groupId:artifactId = groupId/artifactId.
+        ecosystem = str(dep.get("ecosystem") or "generic")
+        names = {
+            package_name_key(ecosystem, str(p))[1] for p in scope.packages if not is_qualified(p)
+        }
+        if package_name_key(ecosystem, str(dep["package"]))[1] in names:
             return {
                 **base,
                 "relationship": "AFFECTS_PACKAGE",
@@ -237,12 +418,34 @@ def _event_scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] |
                 "match_method": "event_scope_package",
                 "reason": f"{dep['package']} is inside event scope packages {scope.packages}",
             }
+        # A project package element (TR-2026-01 F2): a listed value that is
+        # the event's own project denotes every package a curated mapping
+        # assigns to it. The slug equals the project only through such a
+        # mapping here, since an unmapped package resolves to itself.
+        if event.project_slug.lower() in {str(p).lower() for p in scope.packages}:
+            return {
+                **base,
+                "relationship": "AFFECTS_PACKAGE",
+                "affected": True,
+                "match_method": "event_scope_package",
+                "reason": (
+                    f"{dep['package']} is a curated package of project {slug}, which event "
+                    f"scope packages {scope.packages} name as a whole"
+                ),
+            }
+        # Canonical folding covers PyPI and Maven spelling only (npm scopes,
+        # Go module paths and other forms are not modelled), so a name that
+        # differs from every listed one may still be the same package:
+        # inequality is undetermined, never an exclusion.
         return {
             **base,
-            "relationship": "NOT_AFFECTED",
+            "relationship": "RELATED",
             "affected": False,
             "match_method": "event_scope_package",
-            "reason": f"{dep['package']} is outside event scope packages {scope.packages}",
+            "reason": (
+                f"{dep['package']} is not listed in event scope packages {scope.packages}; "
+                "package names are not canonicalised, so not a clearance"
+            ),
         }
     if kind == "artifact":
         return {
@@ -268,7 +471,8 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
     """CVE/package/version applicability stream (independent of events)."""
     if dep["kind"] != "package":
         return []
-    slug = resolve_project(str(dep["package"]))
+    trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    slug = trust["slug"]
     raw = bundles.get(slug)
     if raw is None:
         return []
@@ -279,7 +483,6 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
         "version": dep.get("version"),
     }
     causes = []
-    trust = resolution_trust(str(dep["package"]))
     for finding in correlate(raw, context):
         relationship = str(finding.get("relationship", "UNKNOWN"))
         if relationship == "UNKNOWN":
@@ -304,6 +507,25 @@ def _security_causes(dep: dict[str, Any], bundles: dict[str, dict[str, Any]]) ->
             }
         )
     return causes
+
+
+def winning_cause(causes: list[Cause]) -> Cause:
+    """The cause that headlines a verdict (non-empty ``causes``).
+
+    The highest-ranked cause, except that a clearance never outranks
+    an unresolved association from another event: when any cause is
+    RELATED or AFFECTS_PROJECT, NOT_AFFECTED cannot headline. UNKNOWN
+    causes ("matches nothing in this event") assert no association and
+    do not block a clearance. Per-cause verdicts stay retained either
+    way, and ``affected`` is unchanged -- neither side is affected.
+    """
+    top = max(causes, key=lambda c: _RANK.get(str(c.get("relationship", "")), 0))
+    if str(top.get("relationship")) != "NOT_AFFECTED":
+        return top
+    unresolved = [c for c in causes if str(c.get("relationship")) in _UNRESOLVED]
+    if not unresolved:
+        return top
+    return max(unresolved, key=lambda c: _RANK.get(str(c.get("relationship", "")), 0))
 
 
 def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
@@ -332,7 +554,7 @@ def _combine(dep: dict[str, Any], causes: list[Cause]) -> DependencyVerdict:
         cause.setdefault("detail", cause.get("reason", ""))
         cause.setdefault("evidence_confidence", "UNVERIFIED")
         cause.setdefault("identity_status", "VERIFIED")
-    top = max(causes, key=lambda c: _RANK.get(str(c["relationship"]), 0))
+    top = winning_cause(causes)
     relationship = str(top["relationship"])
     affected = relationship in _AFFECTED
     match_strength = _MATCH_STRENGTH.get(relationship, "none")
@@ -413,6 +635,7 @@ def fail_on_threshold(results: list[DependencyVerdict], threshold: str) -> bool:
         for result in results
     )
 
+
 def strict_affected(results: list[DependencyVerdict]) -> bool:
     """Whether --strict should fail: an affected verdict carried by an
     ACTION-level cause. REVIEW/WATCH-level affected verdicts (e.g. weak
@@ -429,18 +652,94 @@ def strict_affected(results: list[DependencyVerdict]) -> bool:
 Verdict = DependencyVerdict
 
 
+def inadmissible_reason(
+    event: OSSEvent,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
+) -> str | None:
+    """Why ``event`` may not support a negative, or None if it may.
+
+    Layer 1 of the applicability policy (TR-2026-01 N4, N5): an event
+    whose extent is contested by its own evidence, or whose newest
+    evidence is older than the caller's freshness bound, can still
+    associate a dependency but never clear one. Withdrawn and
+    superseded events are dropped before evaluation (``check_dependency``).
+    The freshness bound is opt-in: replaying recorded evidence offline
+    would otherwise make every negative stale.
+    """
+    if any(e.relation == "contradicts" for e in event.evidences):
+        return "the event's extent is contested by contradicting evidence"
+    if as_of is not None and max_evidence_age is not None:
+        newest = max(e.source.fetched_at for e in event.evidences)
+        if newest.tzinfo is None:
+            newest = newest.replace(tzinfo=timezone.utc)
+        if as_of - newest > max_evidence_age:
+            return (
+                f"newest evidence was fetched {newest.date()}, older than the "
+                f"{max_evidence_age.days}-day freshness bound (stale)"
+            )
+    return None
+
+
+def _admit(
+    cause: Cause, event: OSSEvent, as_of: datetime | None, max_age: timedelta | None
+) -> Cause:
+    """Turn a negative from an inadmissible event into RELATED."""
+    if cause.get("relationship") != "NOT_AFFECTED":
+        return cause
+    why = inadmissible_reason(event, as_of, max_age)
+    if why is None:
+        return cause
+    return {
+        **cause,
+        "relationship": "RELATED",
+        "reason": f"{cause['reason']}; {why}, so not a clearance",
+    }
+
+
 def check_dependency(
-    dep: dict[str, Any], events: list[OSSEvent], bundles: dict[str, dict[str, Any]] | None = None
+    dep: dict[str, Any],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
+    unresolved_identity: Literal["undetermined", "unrelated"] = "undetermined",
 ) -> DependencyVerdict:
-    """One dep vs events (+ optional raw bundles) -> explicit verdict."""
+    """One dep vs events (+ optional raw bundles) -> explicit verdict.
+
+    Withdrawn and superseded events are not evaluated. With ``as_of``
+    and ``max_evidence_age`` both given, a negative from an event whose
+    newest evidence is older than the bound becomes RELATED (stale).
+    ``unresolved_identity="unrelated"`` is the evaluation's identity
+    ablation (``core.entities.identity.UNRESOLVED_IDENTITY``): unsound by
+    design, never for production use.
+    """
+    if unresolved_identity not in ("undetermined", "unrelated"):
+        raise ValueError(f"unresolved_identity: {unresolved_identity!r}")
+    token = UNRESOLVED_IDENTITY.set(unresolved_identity)
+    try:
+        return _check_dependency(dep, events, bundles, as_of, max_evidence_age)
+    finally:
+        UNRESOLVED_IDENTITY.reset(token)
+
+
+def _check_dependency(
+    dep: dict[str, Any],
+    events: list[OSSEvent],
+    bundles: dict[str, dict[str, Any]] | None,
+    as_of: datetime | None,
+    max_evidence_age: timedelta | None,
+) -> DependencyVerdict:
     bundles = bundles or {}
+    events = [event for event in events if event.is_current_record()]
     causes: list[Cause] = []
     if dep["kind"] == "image":
         trust = resolution_trust(str(dep["ref"]))
         for event in events:
             match = event_affects_ref(event, dep["ref"])
             exact = match["via"] == "artifact"
-            causes.append(
+            cause = _admit(
                 {
                     "cause": "upstream_change",
                     "relationship": match["relationship"],
@@ -460,13 +759,17 @@ def check_dependency(
                     "identity_status": "VERIFIED" if exact else trust["identity_status"],
                     "identity_via": "exact-artifact" if exact else trust["via"],
                     "reason": str(match["detail"]),
-                }
+                },
+                event,
+                as_of,
+                max_evidence_age,
             )
+            causes.append(cause)
     else:
         for event in events:
             cause = _event_scope_cause(dep, event)
             if cause is not None:
-                causes.append(cause)
+                causes.append(_admit(cause, event, as_of, max_evidence_age))
         causes.extend(_security_causes(dep, bundles))
     return _combine(dep, causes)
 
@@ -475,9 +778,15 @@ def check_watchlist(
     deps: list[dict[str, Any]],
     events: list[OSSEvent],
     bundles: dict[str, dict[str, Any]] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
 ) -> list[DependencyVerdict]:
     """Whole watchlist -> one verdict per dependency."""
-    return [check_dependency(dep, events, bundles) for dep in deps]
+    return [
+        check_dependency(dep, events, bundles, as_of=as_of, max_evidence_age=max_evidence_age)
+        for dep in deps
+    ]
 
 
 #: Durable lifecycle fact types: one set, owned by the ledger (the

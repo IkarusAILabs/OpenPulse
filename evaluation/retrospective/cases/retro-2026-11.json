@@ -1,0 +1,3339 @@
+{
+ "dataset": "openpulse-retro-2026-11",
+ "version": "1",
+ "status": "frozen 2026-10-30: L1 labels; no independent labels (AI-assisted pilot only, labelling/PILOT.md); no policy run before freezing",
+ "labelled_by": "L1 (OpenPulse developer)",
+ "label_rules": "evaluation/retrospective/build_cases.py label(); DESIGN.md section 6",
+ "events": {
+  "CMP-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/CMP-1",
+   "class": "compromised",
+   "as_of": "2022-01-21"
+  },
+  "CMP-2": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/CMP-2",
+   "class": "compromised",
+   "as_of": "2022-03-22"
+  },
+  "CMP-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/CMP-3",
+   "class": "compromised",
+   "as_of": "2022-03-21"
+  },
+  "CMP-4": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/CMP-4",
+   "class": "compromised",
+   "as_of": "2021-10-23"
+  },
+  "CMP-5": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/CMP-5",
+   "class": "compromised",
+   "as_of": "2018-11-29"
+  },
+  "DEP-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-1",
+   "class": "deprecation",
+   "as_of": "2020-02-11"
+  },
+  "DEP-2": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-2",
+   "class": "deprecation",
+   "as_of": "2020-09-17"
+  },
+  "DEP-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-3",
+   "class": "deprecation",
+   "as_of": "2019-05-08"
+  },
+  "DEP-4": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-4",
+   "class": "deprecation",
+   "as_of": "2024-08-12"
+  },
+  "DEP-5": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-5",
+   "class": "deprecation",
+   "as_of": "2025-04-01"
+  },
+  "DEP-6": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DEP-6",
+   "class": "deprecation",
+   "as_of": "2021-05-11"
+  },
+  "DIS-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-1",
+   "class": "distribution",
+   "as_of": "2023-03-15"
+  },
+  "DIS-2": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-2",
+   "class": "distribution",
+   "as_of": "2022-07-18"
+  },
+  "DIS-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-3",
+   "class": "distribution",
+   "as_of": "2025-11-05"
+  },
+  "DIS-4": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-4",
+   "class": "distribution",
+   "as_of": "2024-12-12"
+  },
+  "DIS-5": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-5",
+   "class": "distribution",
+   "as_of": "2021-08-25"
+  },
+  "DIS-6": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/DIS-6",
+   "class": "distribution",
+   "as_of": "2016-10-27"
+  },
+  "EOL-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/EOL-1",
+   "class": "eol",
+   "as_of": "2020-01-02"
+  },
+  "EOL-2": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/EOL-2",
+   "class": "eol",
+   "as_of": "2020-12-11"
+  },
+  "EOL-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/EOL-3",
+   "class": "eol",
+   "as_of": "2022-04-30"
+  },
+  "LIC-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/LIC-1",
+   "class": "licence",
+   "as_of": "2021-01-15"
+  },
+  "LIC-2": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/LIC-2",
+   "class": "licence",
+   "as_of": "2023-10-04"
+  },
+  "LIC-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/LIC-3",
+   "class": "licence",
+   "as_of": "2021-04-21"
+  },
+  "LIC-4": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/LIC-4",
+   "class": "licence",
+   "as_of": "2018-10-23"
+  },
+  "REL-1": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/REL-1",
+   "class": "relocation",
+   "as_of": "2017-04-20"
+  },
+  "REL-3": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/REL-3",
+   "class": "relocation",
+   "as_of": "2021-02-05"
+  },
+  "REL-4": {
+   "source": "event",
+   "fixture": "../../evaluation/retrospective/events/REL-4",
+   "class": "relocation",
+   "as_of": "2020-08-05"
+  }
+ },
+ "cases": [
+  {
+   "id": "REL-1-s1",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/docker",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/docker; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-1/SOURCES.md; reference kubernetes/kubernetes@85bd96521932 Godeps/Godeps.json (2017-04-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-1-s2",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/docker",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/docker; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-1/SOURCES.md; reference hashicorp/nomad@4e61de3e5754 vendor/vendor.json (2017-04-12)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-1-s3",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/docker",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/docker; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-1/SOURCES.md; reference hashicorp/terraform@b8b896e11b5a vendor/vendor.json (2017-04-16)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-1-s4",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/docker",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/docker; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-1/SOURCES.md; reference openshift/origin@cc467d40b3a1 Godeps/Godeps.json (2017-04-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-1-n1",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/moby/moby",
+    "ecosystem": "Go",
+    "version": "v1.54.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not a reference to github.com/docker/docker: the new location or a different project.",
+   "label_source": "events/REL-1/SOURCES.md; reference google/cadvisor@f00f449b15bb go.mod (2026-10-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n4",
+   "synthetic": false
+  },
+  {
+   "id": "REL-1-n2",
+   "events": [
+    "REL-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/engine-api",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "out_of_scope",
+   "rationale": "Not a reference to github.com/docker/docker: the new location or a different project.",
+   "label_source": "events/REL-1/SOURCES.md; reference kubernetes/kubernetes@85bd96521932 Godeps/Godeps.json (2017-04-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-s1",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/distribution",
+    "ecosystem": "Go",
+    "version": "v2.7.1+incompatible"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/distribution; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-3/SOURCES.md; reference kubernetes/kubernetes@562a39a2e1e2 go.mod (2021-01-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-s2",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/distribution",
+    "ecosystem": "Go",
+    "version": "v2.7.1+incompatible"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/distribution; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-3/SOURCES.md; reference helm/helm@e8817d7a1867 go.mod (2021-01-27)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-s3",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/distribution",
+    "ecosystem": "Go",
+    "version": "v2.7.1+incompatible"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/distribution; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-3/SOURCES.md; reference containers/image@88cc8ef4bda7 go.mod (2021-01-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-s4",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/docker/distribution",
+    "ecosystem": "Go",
+    "version": "v2.7.1+incompatible"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/docker/distribution; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-3/SOURCES.md; reference goharbor/harbor@e6b53593ee5b src/go.mod (2020-12-09)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-n1",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/distribution/distribution",
+    "ecosystem": "Go",
+    "version": "v3.1.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not a reference to github.com/docker/distribution: the new location or a different project.",
+   "label_source": "events/REL-3/SOURCES.md; reference goreleaser/goreleaser@9adc473ee22f go.mod (2026-10-26)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n4",
+   "synthetic": false
+  },
+  {
+   "id": "REL-3-n2",
+   "events": [
+    "REL-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "cosmossdk.io/x/distribution",
+    "ecosystem": "Go",
+    "version": "v0.2.0-rc.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not a reference to github.com/docker/distribution: the new location or a different project.",
+   "label_source": "events/REL-3/SOURCES.md; reference cordialsys/crosschain@ca7c798d38d2 go.mod (2026-10-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-s1",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/coreos/prometheus-operator",
+    "ecosystem": "Go",
+    "version": "v0.40.0"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/coreos/prometheus-operator; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-4/SOURCES.md; reference openshift/cluster-monitoring-operator@9bbab32f5adf go.mod (2020-08-04)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-s2",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "github.com/coreos/prometheus-operator"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/coreos/prometheus-operator; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-4/SOURCES.md; reference prometheus-operator/kube-prometheus@2326773ee1c4 jsonnet/kube-prometheus/jsonnetfile.json (2020-07-31)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-s3",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/coreos/prometheus-operator",
+    "ecosystem": "Go",
+    "version": "v0.38.0"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/coreos/prometheus-operator; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-4/SOURCES.md; reference open-cluster-management/multicluster-observability-operator@958fa688022d go.mod (2020-06-18)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-s4",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/coreos/prometheus-operator",
+    "ecosystem": "Go",
+    "version": "v0.38.1-0.20200506070354-4231c1d4b313"
+   },
+   "label": "in_scope",
+   "rationale": "Names the relocated repository path github.com/coreos/prometheus-operator; it now resolves only through the redirect or the module proxy (relocation scope, TR-2026-01 §1).",
+   "label_source": "events/REL-4/SOURCES.md; reference tkestack/tke@1b39f9d9dd9c go.mod (2020-07-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-n1",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "quay.io/coreos/prometheus-operator:v0.40.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "A container image on quay.io, not the relocated GitHub repository; images kept being pushed to the old organisation.",
+   "label_source": "events/REL-4/SOURCES.md; reference prometheus-operator/kube-prometheus@63ad66e3f31e manifests/setup/prometheus-operator-deployment.yaml (2020-07-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "REL-4-n2",
+   "events": [
+    "REL-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/prometheus-operator/prometheus-operator",
+    "ecosystem": "Go",
+    "version": "v0.94.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not a reference to github.com/coreos/prometheus-operator: the new location or a different project.",
+   "label_source": "events/REL-4/SOURCES.md; reference openshift/cluster-monitoring-operator@8be14a1b0cc1 go.mod (2026-09-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n4",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-2-s1",
+   "events": [
+    "DEP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/golang/dep",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "The project uses the dep tool (Gopkg manifest or install), which is deprecated and archived.",
+   "label_source": "events/DEP-2/SOURCES.md; reference istio/istio@da7ef3fb9655 Makefile (2018-05-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-2-s2",
+   "events": [
+    "DEP-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "github.com/golang/dep"
+   },
+   "label": "in_scope",
+   "rationale": "The project uses the dep tool (Gopkg manifest or install), which is deprecated and archived.",
+   "label_source": "events/DEP-2/SOURCES.md; reference vmware-tanzu/velero@b2acd3b683c5 Gopkg.toml (2020-01-14)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-2-s3",
+   "events": [
+    "DEP-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "github.com/golang/dep"
+   },
+   "label": "in_scope",
+   "rationale": "The project uses the dep tool (Gopkg manifest or install), which is deprecated and archived.",
+   "label_source": "events/DEP-2/SOURCES.md; reference jaegertracing/jaeger@043b1ae85662 Gopkg.toml (2020-02-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-2-s4",
+   "events": [
+    "DEP-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "github.com/golang/dep"
+   },
+   "label": "in_scope",
+   "rationale": "The project uses the dep tool (Gopkg manifest or install), which is deprecated and archived.",
+   "label_source": "events/DEP-2/SOURCES.md; reference knative/serving@06d5f04a0fb5 Gopkg.toml (2020-04-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-2-n1",
+   "events": [
+    "DEP-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "github.com/tools/godep"
+   },
+   "label": "out_of_scope",
+   "rationale": "godep is a different tool; the deprecation is of golang/dep.",
+   "label_source": "events/DEP-2/SOURCES.md; reference kubernetes/kubernetes@85bd96521932 Godeps/Godeps.json (2017-04-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-s1",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "gopkg.in/yaml.v3",
+    "ecosystem": "Go",
+    "version": "v3.0.1"
+   },
+   "label": "in_scope",
+   "rationale": "gopkg.in/yaml.v3 is published from go-yaml/yaml, declared unmaintained and archived.",
+   "label_source": "events/DEP-5/SOURCES.md; reference helm/helm@ef64468187f9 go.mod (2025-04-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-s2",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "gopkg.in/yaml.v2",
+    "ecosystem": "Go",
+    "version": "v2.4.0"
+   },
+   "label": "in_scope",
+   "rationale": "gopkg.in/yaml.v2 is published from go-yaml/yaml, declared unmaintained and archived.",
+   "label_source": "events/DEP-5/SOURCES.md; reference prometheus/prometheus@f82e8433361a go.mod (2025-04-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-s3",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "gopkg.in/yaml.v3",
+    "ecosystem": "Go",
+    "version": "v3.0.1"
+   },
+   "label": "in_scope",
+   "rationale": "gopkg.in/yaml.v3 is published from go-yaml/yaml, declared unmaintained and archived.",
+   "label_source": "events/DEP-5/SOURCES.md; reference docker/compose@955e4ed94ec8 go.mod (2025-04-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-s4",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "gopkg.in/yaml.v2",
+    "ecosystem": "Go",
+    "version": "v2.4.0"
+   },
+   "label": "in_scope",
+   "rationale": "gopkg.in/yaml.v2 is published from go-yaml/yaml, declared unmaintained and archived.",
+   "label_source": "events/DEP-5/SOURCES.md; reference argoproj/argo-cd@0be041a83474 go.mod (2025-04-23)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-n1",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "sigs.k8s.io/yaml",
+    "ecosystem": "Go",
+    "version": "v1.4.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "sigs.k8s.io/yaml is a different module (a wrapper, fork or other library), not go-yaml/yaml.",
+   "label_source": "events/DEP-5/SOURCES.md; reference kubernetes/kubernetes@0d3d2733f609 go.mod (2025-04-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-n2",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "go.yaml.in/yaml/v3",
+    "ecosystem": "Go",
+    "version": "v3.0.5"
+   },
+   "label": "out_of_scope",
+   "rationale": "go.yaml.in/yaml/v3 is a different module (a wrapper, fork or other library), not go-yaml/yaml.",
+   "label_source": "events/DEP-5/SOURCES.md; reference prometheus/prometheus@a87694bbef54 go.mod (2026-10-29)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-5-n3",
+   "events": [
+    "DEP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/goccy/go-yaml",
+    "ecosystem": "Go",
+    "version": "v1.10.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "github.com/goccy/go-yaml is a different module (a wrapper, fork or other library), not go-yaml/yaml.",
+   "label_source": "events/DEP-5/SOURCES.md; reference gobitfly/eth2-beaconchain-explorer@5a5a65bd4a64 go.mod (2025-04-23)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-s1",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "golang.org/x/lint",
+    "ecosystem": "Go",
+    "version": "v0.0.0-20200302205851-738671d3881b"
+   },
+   "label": "in_scope",
+   "rationale": "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal.",
+   "label_source": "events/DEP-6/SOURCES.md; reference kubernetes/kubernetes@185f65fbddb5 go.mod (2021-05-06)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-s2",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "golang.org/x/lint",
+    "ecosystem": "Go",
+    "version": "v0.0.0-20190313153728-d0100b6bd8b3"
+   },
+   "label": "in_scope",
+   "rationale": "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal.",
+   "label_source": "events/DEP-6/SOURCES.md; reference grpc/grpc-go@4e8458e5c638 test/tools/go.mod (2020-10-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-s3",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "golang.org/x/lint",
+    "ecosystem": "Go",
+    "version": "v0.0.0-20200302205851-738671d3881b"
+   },
+   "label": "in_scope",
+   "rationale": "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal.",
+   "label_source": "events/DEP-6/SOURCES.md; reference jaegertracing/jaeger@56af6b4d3bdb go.mod (2021-03-30)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-s4",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "golang.org/x/lint",
+    "ecosystem": "Go",
+    "version": "v0.0.0-20200302205851-738671d3881b"
+   },
+   "label": "in_scope",
+   "rationale": "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal.",
+   "label_source": "events/DEP-6/SOURCES.md; reference cockroachdb/cockroach@1d45c87e4702 go.mod (2021-05-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-n1",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/golang/lint",
+    "ecosystem": "Go",
+    "version": null
+   },
+   "label": "in_scope",
+   "rationale": "golint (golang.org/x/lint, formerly imported as github.com/golang/lint), frozen and deprecated by the accepted proposal.",
+   "label_source": "events/DEP-6/SOURCES.md; reference bitrise-io/bitrise@ebc001294738 Dockerfile (2018-11-30)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-n2",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "github.com/mgechev/revive",
+    "ecosystem": "Go",
+    "version": "v1.0.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "github.com/mgechev/revive is a different linter.",
+   "label_source": "events/DEP-6/SOURCES.md; reference etcd-io/etcd@3423a949c0fc tools/mod/go.mod (2021-04-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-6-n3",
+   "events": [
+    "DEP-6"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "honnef.co/go/tools",
+    "ecosystem": "Go",
+    "version": "v0.0.1-2020.1.6"
+   },
+   "label": "out_of_scope",
+   "rationale": "honnef.co/go/tools is a different linter.",
+   "label_source": "events/DEP-6/SOURCES.md; reference cockroachdb/cockroach@1d45c87e4702 go.mod (2021-05-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-s1",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.6.4"
+   },
+   "label": "in_scope",
+   "rationale": "Terraform 1.6.4 >= 1.6.0, under BSL 1.1 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference TelkomIndonesia/terraq@aabe715f5be5 Dockerfile (2023-11-20)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-s2",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.6.5"
+   },
+   "label": "in_scope",
+   "rationale": "Terraform 1.6.5 >= 1.6.0, under BSL 1.1 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference KazanExpress/ke-infra-docker@25e3d7148dfb images/terragrunt/v0.53.8-tfv1.6.5-tools/Dockerfile (2023-12-06)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-s3",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.6.2"
+   },
+   "label": "in_scope",
+   "rationale": "Terraform 1.6.2 >= 1.6.0, under BSL 1.1 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference thedatafoundation/gha-iac@de9e61bd1c17 Dockerfile (2023-12-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-s4",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.6@sha256:e46b41c74b6f036c255e2082bcd6284054b108508bae16813bc1257a0e70e2dd"
+   },
+   "label": "in_scope",
+   "rationale": "Terraform 1.6 >= 1.6.0, under BSL 1.1 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference observeinc/aws-test-kitchen@3804d4d3bcbf Dockerfile (2023-11-29)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-n1",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.5.4"
+   },
+   "label": "out_of_scope",
+   "rationale": "Terraform 1.5.4 <= 1.5.7, MPL-2.0 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference cmdlabs/terraform-aws-gitlab-runner-scale@c3c8e7b3dbe4 Dockerfile-terraform (2023-08-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-n2",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "hashicorp/terraform:1.5.7"
+   },
+   "label": "out_of_scope",
+   "rationale": "Terraform 1.5.7 <= 1.5.7, MPL-2.0 (tag LICENSE).",
+   "label_source": "events/LIC-2/SOURCES.md; reference KazanExpress/ke-infra-docker@1f7fca9bb1ca images/terragrunt/v0.51.3-tfv1.5.7-tools/Dockerfile (2023-09-20)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-2-n3",
+   "events": [
+    "LIC-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "ghcr.io/opentofu/opentofu:1.12.1-minimal"
+   },
+   "label": "out_of_scope",
+   "rationale": "OpenTofu is a different project (the MPL fork).",
+   "label_source": "events/LIC-2/SOURCES.md; reference flux-iac/tofu-controller@c2c83130c236 runner.Dockerfile (2026-05-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-s1",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "python:2.7"
+   },
+   "label": "in_scope",
+   "rationale": "python:2.7, Python 2.7, end of life on 2020-01-01.",
+   "label_source": "events/EOL-1/SOURCES.md; reference Netflix-Skunkworks/stethoscope@b9f3a74a1f3f Dockerfile (2018-03-13)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-s2",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "python:2.7.10"
+   },
+   "label": "in_scope",
+   "rationale": "python:2.7.10, Python 2.7, end of life on 2020-01-01.",
+   "label_source": "events/EOL-1/SOURCES.md; reference cloudtools/stacker@49a5fa71dc07 Dockerfile (2016-11-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-s3",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "python:2.7"
+   },
+   "label": "in_scope",
+   "rationale": "python:2.7, Python 2.7, end of life on 2020-01-01.",
+   "label_source": "events/EOL-1/SOURCES.md; reference openshift/openshift-restclient-python@a0313b721d73 Dockerfile (2017-11-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-s4",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "python:2.7"
+   },
+   "label": "in_scope",
+   "rationale": "python:2.7, Python 2.7, end of life on 2020-01-01.",
+   "label_source": "events/EOL-1/SOURCES.md; reference globocom/database-as-a-service@2f55198bcc3d Dockerfile (2019-08-30)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-n1",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "circleci/python:2.7"
+   },
+   "label": "undeterminable",
+   "rationale": "A CircleCI convenience image that ships Python 2.7: a downstream distribution, whose support the upstream end of life does not settle (TR §5.1).",
+   "label_source": "events/EOL-1/SOURCES.md; reference remind101/empire@775178497a2c .circleci/config.yml (2019-03-30)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-1-n2",
+   "events": [
+    "EOL-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "python:3.7-slim"
+   },
+   "label": "out_of_scope",
+   "rationale": "python:3.7-slim is Python 3.",
+   "label_source": "events/EOL-1/SOURCES.md; reference duo-labs/cloudmapper@2cafc9c10397 Dockerfile (2019-07-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-s1",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:8"
+   },
+   "label": "in_scope",
+   "rationale": "centos:8, CentOS Linux 8, end of life on 2021-12-31.",
+   "label_source": "events/EOL-2/SOURCES.md; reference mhallsmoore/qstrader@ce38e604777e dockerfiles/centos8/Dockerfile (2021-01-06)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-s2",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:8"
+   },
+   "label": "in_scope",
+   "rationale": "centos:8, CentOS Linux 8, end of life on 2021-12-31.",
+   "label_source": "events/EOL-2/SOURCES.md; reference Tencent/plato@e8c8aa52f028 docker/Dockerfile.centos.8 (2019-11-26)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-s3",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:8"
+   },
+   "label": "in_scope",
+   "rationale": "centos:8, CentOS Linux 8, end of life on 2021-12-31.",
+   "label_source": "events/EOL-2/SOURCES.md; reference bbc/audiowaveform@4548d9cd33a1 rpm/Dockerfile-centos8 (2021-08-07)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-s4",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:8"
+   },
+   "label": "in_scope",
+   "rationale": "centos:8, CentOS Linux 8, end of life on 2021-12-31.",
+   "label_source": "events/EOL-2/SOURCES.md; reference wxWidgets/Phoenix@07a1e9ea96ed docker/build/centos-8/Dockerfile (2020-07-31)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-n1",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "quay.io/centos/centos:stream8"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not CentOS Linux 8: CentOS Stream 8 or CentOS Linux 7, which the announcement excludes.",
+   "label_source": "events/EOL-2/SOURCES.md; reference nmstate/nmstate@f7cae5584451 packaging/Dockerfile.c8s-nmstate-dev (2021-12-01)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-2-n2",
+   "events": [
+    "EOL-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:7"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not CentOS Linux 8: CentOS Stream 8 or CentOS Linux 7, which the announcement excludes.",
+   "label_source": "events/EOL-2/SOURCES.md; reference aliyun/rds_dbsync@35bb00a26273 Dockerfile (2018-12-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-s1",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "k8s.gcr.io/etcd-amd64:3.1.12"
+   },
+   "label": "in_scope",
+   "rationale": "An image on k8s.gcr.io: 'ALL images on k8s.gcr.io will be impacted' (redirect, then freeze).",
+   "label_source": "events/DIS-1/SOURCES.md; reference deitch/kubesync@235189b7d317 test/docker-compose.yml (2018-07-20)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-s2",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "k8s.gcr.io/echoserver:1.10"
+   },
+   "label": "in_scope",
+   "rationale": "An image on k8s.gcr.io: 'ALL images on k8s.gcr.io will be impacted' (redirect, then freeze).",
+   "label_source": "events/DIS-1/SOURCES.md; reference pjoe/loadem@367ddb4a764f docker-compose.yml (2020-10-14)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-s3",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "k8s.gcr.io/pause"
+   },
+   "label": "in_scope",
+   "rationale": "An image on k8s.gcr.io: 'ALL images on k8s.gcr.io will be impacted' (redirect, then freeze).",
+   "label_source": "events/DIS-1/SOURCES.md; reference jpetazzo/obs-docker@605d8163db53 docker-compose.yml (2021-05-07)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-s4",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "k8s.gcr.io/ingress-gce-glbc-amd64:v1.8.0"
+   },
+   "label": "in_scope",
+   "rationale": "An image on k8s.gcr.io: 'ALL images on k8s.gcr.io will be impacted' (redirect, then freeze).",
+   "label_source": "events/DIS-1/SOURCES.md; reference kubernetes/ingress-gce@75f14a06c244 docs/deploy/gke/non-gcp/glbc.yaml (2023-03-06)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-n1",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "registry.k8s.io/pause:3.8"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not on k8s.gcr.io: the new registry or another host.",
+   "label_source": "events/DIS-1/SOURCES.md; reference sergelogvinov/devops-examples@8cd3b1473506 python/docker-compose.yml (2024-09-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n4",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-n2",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "registry.k8s.io/metrics-server/metrics-server"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not on k8s.gcr.io: the new registry or another host.",
+   "label_source": "events/DIS-1/SOURCES.md; reference kubernetes-sigs/metrics-server@e86a9f02b73a charts/metrics-server/values.yaml (2022-12-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n4",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-1-n3",
+   "events": [
+    "DIS-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "gcr.io/cadvisor/cadvisor:v0.37.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "Not on k8s.gcr.io: the new registry or another host.",
+   "label_source": "events/DIS-1/SOURCES.md; reference mbugeia/srt2hls@fe87a0f8fa2d docker-compose.yml (2021-10-04)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-s1",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:8-jre-slim-bullseye"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:8-jre-slim-bullseye, a non-EA tag of the deprecated official image.",
+   "label_source": "events/DIS-2/SOURCES.md; reference Graylog2/graylog-docker@47ec065f1814 docker/oss/Dockerfile (2021-12-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-s2",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:8-jdk-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:8-jdk-alpine, a non-EA tag of the deprecated official image.",
+   "label_source": "events/DIS-2/SOURCES.md; reference shzlw/poli@75137ec7abc1 Dockerfile (2020-05-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-s3",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:8-jdk-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:8-jdk-alpine, a non-EA tag of the deprecated official image.",
+   "label_source": "events/DIS-2/SOURCES.md; reference confluentinc/kafka-connect-http-demo@35af36e97cc5 Dockerfile (2019-05-09)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-s4",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:8-jdk-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:8-jdk-alpine, a non-EA tag of the deprecated official image.",
+   "label_source": "events/DIS-2/SOURCES.md; reference dsyer/kubernetes-intro@c3ea9a8c5cfe Dockerfile (2020-03-23)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-n1",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk/openjdk11:alpine-slim"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (another namespace or a successor).",
+   "label_source": "events/DIS-2/SOURCES.md; reference virtualansoftware/service-virtualization-openapi@290daa4adfb2 Dockerfile (2022-03-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-n2",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "eclipse-temurin:17"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (another namespace or a successor).",
+   "label_source": "events/DIS-2/SOURCES.md; reference gaia-app/gaia@619bf1e92922 Dockerfile (2021-10-08)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-2-n3",
+   "events": [
+    "DIS-2"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:19-ea-16-slim"
+   },
+   "label": "out_of_scope",
+   "rationale": "openjdk:19-ea-16-slim is an Early Access tag, which the notice excludes.",
+   "label_source": "events/DIS-2/SOURCES.md; reference ttrzcinski/RestJ12@4d7fcd824583 Dockerfile (2022-05-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-s1",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "library/openjdk:21"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:21 is in the published list of 1,051 deleted tags.",
+   "label_source": "events/DIS-3/SOURCES.md; reference navikt/statusplattform@a3f0baef4057 Dockerfile (2025-03-07)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-s2",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:21-slim"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:21-slim is in the published list of 1,051 deleted tags.",
+   "label_source": "events/DIS-3/SOURCES.md; reference tencentmusic/supersonic@614917ba7648 docker/Dockerfile (2025-04-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-s3",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:17-jdk-slim"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:17-jdk-slim is in the published list of 1,051 deleted tags.",
+   "label_source": "events/DIS-3/SOURCES.md; reference melonlee/LazyAdmin@07e4969e9cdf Dockerfile (2025-07-13)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-s4",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:jre"
+   },
+   "label": "in_scope",
+   "rationale": "openjdk:jre is in the published list of 1,051 deleted tags.",
+   "label_source": "events/DIS-3/SOURCES.md; reference fabric8io/docker-maven-plugin@d36d5c70e7b6 samples/run-java/Dockerfile (2018-05-16)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-n1",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:8u342-jre"
+   },
+   "label": "out_of_scope",
+   "rationale": "openjdk:8u342-jre is not in the deleted-tag list: an explicit version that was kept.",
+   "label_source": "events/DIS-3/SOURCES.md; reference arempter/hive-metastore-docker@e15fc5116d10 Dockerfile (2023-01-31)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-n2",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "openjdk:11.0.16-jdk-slim"
+   },
+   "label": "out_of_scope",
+   "rationale": "openjdk:11.0.16-jdk-slim is not in the deleted-tag list: an explicit version that was kept.",
+   "label_source": "events/DIS-3/SOURCES.md; reference adyach/nakadi-docker@cac260904ea4 Dockerfile (2022-09-13)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-3-n3",
+   "events": [
+    "DIS-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "eclipse-temurin:21"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image.",
+   "label_source": "events/DIS-3/SOURCES.md; reference genome-nexus/genome-nexus@e7d088c16528 Dockerfile (2025-08-04)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-s1",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:8"
+   },
+   "label": "in_scope",
+   "rationale": "centos:8, a tag of the deprecated official image ('All tags of this image are EOL').",
+   "label_source": "events/DIS-4/SOURCES.md; reference harvard-nrg/anatqc@28b27180651e Dockerfile (2022-06-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-s2",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:7"
+   },
+   "label": "in_scope",
+   "rationale": "centos:7, a tag of the deprecated official image ('All tags of this image are EOL').",
+   "label_source": "events/DIS-4/SOURCES.md; reference naver/arcus-memcached@f29fde9df908 Dockerfile (2024-06-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-s3",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:7"
+   },
+   "label": "in_scope",
+   "rationale": "centos:7, a tag of the deprecated official image ('All tags of this image are EOL').",
+   "label_source": "events/DIS-4/SOURCES.md; reference orlabs/orange@285e4f4a195f Dockerfile (2022-08-01)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-s4",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "centos:7"
+   },
+   "label": "in_scope",
+   "rationale": "centos:7, a tag of the deprecated official image ('All tags of this image are EOL').",
+   "label_source": "events/DIS-4/SOURCES.md; reference aliyun/rds_dbsync@35bb00a26273 Dockerfile (2018-12-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-n1",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "quay.io/centos/centos:stream9"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (quay.io CentOS Stream or another distribution).",
+   "label_source": "events/DIS-4/SOURCES.md; reference theforeman/foreman@a88d8d36b233 Dockerfile (2024-04-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-n2",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "quay.io/centos/centos:stream8"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (quay.io CentOS Stream or another distribution).",
+   "label_source": "events/DIS-4/SOURCES.md; reference firewalld/firewalld@c7370b4238da Dockerfile (2022-03-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-4-n3",
+   "events": [
+    "DIS-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "rockylinux:8"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (quay.io CentOS Stream or another distribution).",
+   "label_source": "events/DIS-4/SOURCES.md; reference harvard-nrg/anatqc@16889526c983 Dockerfile (2023-06-06)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-s1",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk:11"
+   },
+   "label": "in_scope",
+   "rationale": "adoptopenjdk:11, a tag of the deprecated official image.",
+   "label_source": "events/DIS-5/SOURCES.md; reference metriql/metriql@3752b9643984 Dockerfile (2021-07-31)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-s2",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk:11-jre-openj9"
+   },
+   "label": "in_scope",
+   "rationale": "adoptopenjdk:11-jre-openj9, a tag of the deprecated official image.",
+   "label_source": "events/DIS-5/SOURCES.md; reference adevinta/zoe@a84a8e01bf07 zoe-cli/Dockerfile (2021-04-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-s3",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk:11-jre-hotspot"
+   },
+   "label": "in_scope",
+   "rationale": "adoptopenjdk:11-jre-hotspot, a tag of the deprecated official image.",
+   "label_source": "events/DIS-5/SOURCES.md; reference thombergs/code-examples@029a5f03fb19 spring-boot/spring-boot-health-check/Dockerfile (2020-09-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-s4",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk:11-jre"
+   },
+   "label": "in_scope",
+   "rationale": "adoptopenjdk:11-jre, a tag of the deprecated official image.",
+   "label_source": "events/DIS-5/SOURCES.md; reference box/mojito@fc9501edbcd8 docker/Dockerfile-bk11 (2021-06-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-n1",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "adoptopenjdk/openjdk11:alpine"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image: the non-official adoptopenjdk/* namespace or the successor.",
+   "label_source": "events/DIS-5/SOURCES.md; reference gomint/gomint@eb083dd0ba6b Dockerfile (2020-07-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-5-n2",
+   "events": [
+    "DIS-5"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "eclipse-temurin:17"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image: the non-official adoptopenjdk/* namespace or the successor.",
+   "label_source": "events/DIS-5/SOURCES.md; reference gaia-app/gaia@619bf1e92922 Dockerfile (2021-10-08)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DIS-6-s1",
+   "events": [
+    "DIS-6"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "java:8-jre"
+   },
+   "label": "in_scope",
+   "rationale": "java:8-jre, a tag of the deprecated official image.",
+   "label_source": "events/DIS-6/SOURCES.md; reference mesos/chronos@35ca3295ed7e Dockerfile (2016-12-03)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-6-s2",
+   "events": [
+    "DIS-6"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "java:8"
+   },
+   "label": "in_scope",
+   "rationale": "java:8, a tag of the deprecated official image.",
+   "label_source": "events/DIS-6/SOURCES.md; reference SwellRT/swellrt@ddf7a8361fa9 Dockerfile (2016-12-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-6-s3",
+   "events": [
+    "DIS-6"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "java:8"
+   },
+   "label": "in_scope",
+   "rationale": "java:8, a tag of the deprecated official image.",
+   "label_source": "events/DIS-6/SOURCES.md; reference cptactionhank/docker-atlassian-jira-software@557212a6a112 Dockerfile (2016-12-29)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-6-s4",
+   "events": [
+    "DIS-6"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "java:8"
+   },
+   "label": "in_scope",
+   "rationale": "java:8, a tag of the deprecated official image.",
+   "label_source": "events/DIS-6/SOURCES.md; reference cer/event-sourcing-examples@bbea6d9d2f8f scala-spring/docker-compose.yml (2015-12-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DIS-6-n1",
+   "events": [
+    "DIS-6"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "dockerfile/java:oracle-java8"
+   },
+   "label": "out_of_scope",
+   "rationale": "A different image (another namespace).",
+   "label_source": "events/DIS-6/SOURCES.md; reference baasbox/baasbox@313f7dea3d06 Dockerfile (2015-03-20)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-1-s1",
+   "events": [
+    "LIC-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.12.0"
+   },
+   "label": "in_scope",
+   "rationale": "Elasticsearch/Kibana 7.12.0 >= 7.11, under the dual SSPL / Elastic License.",
+   "label_source": "events/LIC-1/SOURCES.md; reference dineshsonachalam/tech-courses-search-engine@137f0cb3fcf6 docker-compose.yml (2021-05-08)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-1-s2",
+   "events": [
+    "LIC-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "docker.elastic.co/kibana/kibana:7.12.0"
+   },
+   "label": "in_scope",
+   "rationale": "Elasticsearch/Kibana 7.12.0 >= 7.11, under the dual SSPL / Elastic License.",
+   "label_source": "events/LIC-1/SOURCES.md; reference mooreniemi/Transbucket_Rails@25287a3c7be8 docker-compose.yml (2021-04-04)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-1-s3",
+   "events": [
+    "LIC-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.13.0"
+   },
+   "label": "in_scope",
+   "rationale": "Elasticsearch/Kibana 7.13.0 >= 7.11, under the dual SSPL / Elastic License.",
+   "label_source": "events/LIC-1/SOURCES.md; reference netsampler/goflow2@80ef166b84b9 compose/elk/docker-compose.yml (2021-06-01)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-1-s4",
+   "events": [
+    "LIC-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.13.4"
+   },
+   "label": "in_scope",
+   "rationale": "Elasticsearch/Kibana 7.13.4 >= 7.11, under the dual SSPL / Elastic License.",
+   "label_source": "events/LIC-1/SOURCES.md; reference reelyactive/pareto-anywhere@4827d9f3e515 docker-compose.yml (2021-08-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-1-n1",
+   "events": [
+    "LIC-1"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.10.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "7.10.2 < 7.11, still Apache-2.0 at the default level.",
+   "label_source": "events/LIC-1/SOURCES.md; reference deric/es-dedupe@04fdb3701b4c docker-compose.yml (2021-02-03)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-s1",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:8.0.2"
+   },
+   "label": "in_scope",
+   "rationale": "Grafana 8.0.2 >= 8.0.0, AGPLv3 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference bcremer/docker-telegraf-influx-grafana-stack@70b806c2b8c0 docker-compose.yml (2021-06-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-s2",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:8.0.3"
+   },
+   "label": "in_scope",
+   "rationale": "Grafana 8.0.3 >= 8.0.0, AGPLv3 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference OtusGolang/webinars_practical_part@06a8facf525e 32-monitoring/docker-compose.yml (2021-07-01)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-s3",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:8.0.6"
+   },
+   "label": "in_scope",
+   "rationale": "Grafana 8.0.6 >= 8.0.0, AGPLv3 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference harryjubb/bee_iot@d87929131dc4 server/docker-compose.yml (2021-08-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-s4",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:8.0.5"
+   },
+   "label": "in_scope",
+   "rationale": "Grafana 8.0.5 >= 8.0.0, AGPLv3 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference akoutmos/nerves_weather_station@3895389fc5c5 server_code/docker-compose.yml (2021-07-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-n1",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:7.5.5"
+   },
+   "label": "out_of_scope",
+   "rationale": "Grafana 7.5.5 < 8.0.0, Apache-2.0 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference orb-community/orb@d69b91f3ed6c docker/docker-compose.yml (2021-05-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-n2",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:7.5.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "Grafana 7.5.2 < 8.0.0, Apache-2.0 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference testinggospels/camouflage@7599ad9f269c docker-compose.yml (2021-05-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-3-n3",
+   "events": [
+    "LIC-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "grafana/grafana:7.5.5"
+   },
+   "label": "out_of_scope",
+   "rationale": "Grafana 7.5.5 < 8.0.0, Apache-2.0 (tag LICENSE).",
+   "label_source": "events/LIC-3/SOURCES.md; reference warriorBrian/nuxt-blog@ee3d8b87420b prometheus/docker-compose.yml (2021-05-24)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-4-s1",
+   "events": [
+    "LIC-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "mongo:4.0.4"
+   },
+   "label": "in_scope",
+   "rationale": "MongoDB 4.0.4 was tagged on 2018-11-06, after 2018-10-16, so it is under the SSPL (evidence/mongodb-release-tags.txt).",
+   "label_source": "events/LIC-4/SOURCES.md; reference Den1al/JSShell@89800add6bc6 docker-compose.yml (2018-12-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-4-s2",
+   "events": [
+    "LIC-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "mongo:4.0.4"
+   },
+   "label": "in_scope",
+   "rationale": "MongoDB 4.0.4 was tagged on 2018-11-06, after 2018-10-16, so it is under the SSPL (evidence/mongodb-release-tags.txt).",
+   "label_source": "events/LIC-4/SOURCES.md; reference mydeveloperplanet/mydockercomposeplanet@5111bd128a6e docker-compose.yml (2018-11-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "LIC-4-n1",
+   "events": [
+    "LIC-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "mongo:4.0.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "MongoDB 4.0.2 was tagged on 2018-08-27, before 2018-10-16, so it stays under the AGPL (evidence/mongodb-release-tags.txt).",
+   "label_source": "events/LIC-4/SOURCES.md; reference NCBI-Hackathons/CTEligible@4182f482417b ct-eligible-flask/docker-compose.yml (2018-09-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "LIC-4-n2",
+   "events": [
+    "LIC-4"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "mongo:4.0.2"
+   },
+   "label": "out_of_scope",
+   "rationale": "MongoDB 4.0.2 was tagged on 2018-08-27, before 2018-10-16, so it stays under the AGPL (evidence/mongodb-release-tags.txt).",
+   "label_source": "events/LIC-4/SOURCES.md; reference oktadev/okta-jhipster-microservices-oauth-example@70d4f0a65faa docker-compose/docker-compose.yml (2018-10-12)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-s1",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:12"
+   },
+   "label": "in_scope",
+   "rationale": "node:12, Node.js 12, end of life on 2022-04-30.",
+   "label_source": "events/EOL-3/SOURCES.md; reference jmcdo29/testing-nestjs@fa73e575a145 Dockerfile (2020-05-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-s2",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:12-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "node:12-alpine, Node.js 12, end of life on 2022-04-30.",
+   "label_source": "events/EOL-3/SOURCES.md; reference taniarascia/takenote@1ba749d1690f Dockerfile (2020-12-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-s3",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:12-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "node:12-alpine, Node.js 12, end of life on 2022-04-30.",
+   "label_source": "events/EOL-3/SOURCES.md; reference adtac/commento@84bfd64e3297 Dockerfile (2021-02-02)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-s4",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:12-alpine"
+   },
+   "label": "in_scope",
+   "rationale": "node:12-alpine, Node.js 12, end of life on 2022-04-30.",
+   "label_source": "events/EOL-3/SOURCES.md; reference excalidraw/excalidraw-room@a0b69ee474b5 Dockerfile (2020-10-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-n1",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:14"
+   },
+   "label": "out_of_scope",
+   "rationale": "node:14 is a supported line.",
+   "label_source": "events/EOL-3/SOURCES.md; reference nteract/commuter@ea2f3d9878d9 Dockerfile (2020-07-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-n2",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "node:16-alpine"
+   },
+   "label": "out_of_scope",
+   "rationale": "node:16-alpine is a supported line.",
+   "label_source": "events/EOL-3/SOURCES.md; reference nolanlawson/pinafore@05a3b2d31f47 Dockerfile (2022-04-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "EOL-3-n3",
+   "events": [
+    "EOL-3"
+   ],
+   "dependency": {
+    "kind": "image",
+    "ref": "circleci/node:12"
+   },
+   "label": "undeterminable",
+   "rationale": "A CircleCI convenience image that ships Node.js 12: a downstream distribution (TR §5.1).",
+   "label_source": "events/EOL-3/SOURCES.md; reference alibaba/butterfly@d26f5e78dfa0 .circleci/config.yml (2021-05-18)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-s1",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "request",
+    "ecosystem": "npm",
+    "version": "2.88.0"
+   },
+   "label": "in_scope",
+   "rationale": "The npm package request; the README and the registry deprecate every version.",
+   "label_source": "events/DEP-1/SOURCES.md; reference npm/cli@f533d61eb27c package-lock.json (2020-01-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-s2",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "request",
+    "ecosystem": "npm",
+    "version": "^2.88.0"
+   },
+   "label": "in_scope",
+   "rationale": "The npm package request; the README and the registry deprecate every version.",
+   "label_source": "events/DEP-1/SOURCES.md; reference nodejs/node-gyp@a79d866ac3bf package.json (2020-01-08)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-s3",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "request",
+    "ecosystem": "npm",
+    "version": "2.88.0"
+   },
+   "label": "in_scope",
+   "rationale": "The npm package request; the README and the registry deprecate every version.",
+   "label_source": "events/DEP-1/SOURCES.md; reference electron/electron@fcee7212ce19 yarn.lock (2019-11-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-s4",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "request",
+    "ecosystem": "npm",
+    "version": "2.88.0"
+   },
+   "label": "in_scope",
+   "rationale": "The npm package request; the README and the registry deprecate every version.",
+   "label_source": "events/DEP-1/SOURCES.md; reference Microsoft/vscode@99cce92f4220 yarn.lock (2020-02-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-n1",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "request-promise",
+    "ecosystem": "npm",
+    "version": "4.2.4"
+   },
+   "label": "out_of_scope",
+   "rationale": "request-promise is a different npm package; the deprecation is of request itself.",
+   "label_source": "events/DEP-1/SOURCES.md; reference PolymathNetwork/polymath-core@d7f1102f9c83 yarn.lock (2019-12-27)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-1-n2",
+   "events": [
+    "DEP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "@cypress/request",
+    "ecosystem": "npm",
+    "version": "2.88.10"
+   },
+   "label": "out_of_scope",
+   "rationale": "@cypress/request is a different npm package; the deprecation is of request itself.",
+   "label_source": "events/DEP-1/SOURCES.md; reference cypress-io/cypress@c4ad4253ef96 yarn.lock (2023-05-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-s1",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "tslint",
+    "ecosystem": "npm",
+    "version": "6.1.3"
+   },
+   "label": "in_scope",
+   "rationale": "tslint 6.1.3: the announcement deprecates the whole project (the registry flags only 6.x; the announcing source defines the scope).",
+   "label_source": "events/DEP-3/SOURCES.md; reference angular/angular@318255a5f872 yarn.lock (2020-11-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-s2",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "tslint",
+    "ecosystem": "npm",
+    "version": "6.1.3"
+   },
+   "label": "in_scope",
+   "rationale": "tslint 6.1.3: the announcement deprecates the whole project (the registry flags only 6.x; the announcing source defines the scope).",
+   "label_source": "events/DEP-3/SOURCES.md; reference palantir/blueprint@6c8d1912891a yarn.lock (2020-10-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-s3",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "tslint",
+    "ecosystem": "npm",
+    "version": "5.20.1"
+   },
+   "label": "in_scope",
+   "rationale": "tslint 5.20.1: the announcement deprecates the whole project (the registry flags only 6.x; the announcing source defines the scope).",
+   "label_source": "events/DEP-3/SOURCES.md; reference ReactiveX/rxjs@7a11ad2c71f6 package-lock.json (2020-11-23)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-s4",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "tslint",
+    "ecosystem": "npm",
+    "version": "5.11.0"
+   },
+   "label": "in_scope",
+   "rationale": "tslint 5.11.0: the announcement deprecates the whole project (the registry flags only 6.x; the announcing source defines the scope).",
+   "label_source": "events/DEP-3/SOURCES.md; reference Microsoft/vscode@ac8fd91011cf yarn.lock (2019-02-19)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-n1",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "tslint-config-prettier",
+    "ecosystem": "npm",
+    "version": "1.18.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "tslint-config-prettier is a different package.",
+   "label_source": "events/DEP-3/SOURCES.md; reference ReactiveX/rxjs@7a11ad2c71f6 package-lock.json (2020-11-23)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-3-n2",
+   "events": [
+    "DEP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "@typescript-eslint/eslint-plugin",
+    "ecosystem": "npm",
+    "version": "3.2.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "@typescript-eslint/eslint-plugin is a different package.",
+   "label_source": "events/DEP-3/SOURCES.md; reference microsoft/vscode@5e7cd9987627 yarn.lock (2021-05-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-s1",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-sass",
+    "ecosystem": "npm",
+    "version": "9.0.0"
+   },
+   "label": "in_scope",
+   "rationale": "node-sass: every version is deprecated and the repository archived.",
+   "label_source": "events/DEP-4/SOURCES.md; reference btcpayserver/btcpayserver-design@8bbb8d4bf955 package-lock.json (2024-06-27)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-s2",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-sass",
+    "ecosystem": "npm",
+    "version": "8.0.0"
+   },
+   "label": "in_scope",
+   "rationale": "node-sass: every version is deprecated and the repository archived.",
+   "label_source": "events/DEP-4/SOURCES.md; reference naver/typedoc-to-mdx@bd7a09c18947 package-lock.json (2023-03-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-s3",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-sass",
+    "ecosystem": "npm",
+    "version": "7.0.1"
+   },
+   "label": "in_scope",
+   "rationale": "node-sass: every version is deprecated and the repository archived.",
+   "label_source": "events/DEP-4/SOURCES.md; reference openSUSE/fuel-ignition@d0aeecf9a8e7 package-lock.json (2023-08-09)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-s4",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-sass",
+    "ecosystem": "npm",
+    "version": "4.14.1"
+   },
+   "label": "in_scope",
+   "rationale": "node-sass: every version is deprecated and the repository archived.",
+   "label_source": "events/DEP-4/SOURCES.md; reference akveo/ngx-admin@651dadee3384 package-lock.json (2023-10-29)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-n1",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "sass",
+    "ecosystem": "npm",
+    "version": "1.77.8"
+   },
+   "label": "out_of_scope",
+   "rationale": "sass is the recommended replacement, a different package.",
+   "label_source": "events/DEP-4/SOURCES.md; reference twbs/bootstrap@f406388c1ba3 package-lock.json (2024-07-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "DEP-4-n2",
+   "events": [
+    "DEP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "sass-embedded",
+    "ecosystem": "npm",
+    "version": "1.78.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "sass-embedded is the recommended replacement, a different package.",
+   "label_source": "events/DEP-4/SOURCES.md; reference engineervix/cv@cdb5d7f471b6 package-lock.json (2025-01-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n2",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-s1",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.1"
+   },
+   "label": "in_scope",
+   "rationale": "colors 1.4.1 is in both advisories' affected set.",
+   "label_source": "events/CMP-1/SOURCES.md; reference karrot-dev/karrot-frontend@5a65b679e2ce yarn.lock (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-s2",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.2"
+   },
+   "label": "in_scope",
+   "rationale": "colors 1.4.2 is in both advisories' affected set.",
+   "label_source": "events/CMP-1/SOURCES.md; reference CaoMeiYouRen/koa2-template@21798a4e3b24 yarn.lock (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-s3",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.2"
+   },
+   "label": "in_scope",
+   "rationale": "colors 1.4.2 is in both advisories' affected set.",
+   "label_source": "events/CMP-1/SOURCES.md; reference zulybot/zuly@d5350e2a47e5 yarn.lock (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-s4",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.2"
+   },
+   "label": "in_scope",
+   "rationale": "colors 1.4.2 is in both advisories' affected set.",
+   "label_source": "events/CMP-1/SOURCES.md; reference ingio/console-app@b4a79c89d938 package-lock.json (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-n1",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "colors 1.4.0 is outside both advisories (1.4.0, or the @colors/colors fork).",
+   "label_source": "events/CMP-1/SOURCES.md; reference aws/aws-cdk@455147a5c3ed yarn.lock (2022-01-09)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-n2",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "colors",
+    "ecosystem": "npm",
+    "version": "1.4.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "colors 1.4.0 is outside both advisories (1.4.0, or the @colors/colors fork).",
+   "label_source": "events/CMP-1/SOURCES.md; reference winstonjs/winston@d18198d14935 package-lock.json (2022-01-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-1-n3",
+   "events": [
+    "CMP-1"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "@colors/colors",
+    "ecosystem": "npm",
+    "version": "1.5.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "@colors/colors 1.5.0 is outside both advisories (1.4.0, or the @colors/colors fork).",
+   "label_source": "events/CMP-1/SOURCES.md; reference winstonjs/winston@70fc03d046ee package-lock.json (2022-03-11)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-s1",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "faker",
+    "ecosystem": "npm",
+    "version": "6.6.6"
+   },
+   "label": "in_scope",
+   "rationale": "faker 6.6.6, the sabotaged version.",
+   "label_source": "events/CMP-2/SOURCES.md; reference pulumi/actions@9e2ba1369a13 yarn.lock (2022-01-18)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-s2",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "faker",
+    "ecosystem": "npm",
+    "version": "6.6.6"
+   },
+   "label": "in_scope",
+   "rationale": "faker 6.6.6, the sabotaged version.",
+   "label_source": "events/CMP-2/SOURCES.md; reference rubyforgood/casa@47e3af39d1fe yarn.lock (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-s3",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "faker",
+    "ecosystem": "npm",
+    "version": "6.6.6"
+   },
+   "label": "in_scope",
+   "rationale": "faker 6.6.6, the sabotaged version.",
+   "label_source": "events/CMP-2/SOURCES.md; reference pieforproviders/pieforproviders@450b63596f3f yarn.lock (2022-01-10)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-s4",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "faker",
+    "ecosystem": "npm",
+    "version": "6.6.6"
+   },
+   "label": "in_scope",
+   "rationale": "faker 6.6.6, the sabotaged version.",
+   "label_source": "events/CMP-2/SOURCES.md; reference dipjyotimetia/CypressTestFramework@166c247b8b94 package-lock.json (2022-01-05)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-n1",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "faker",
+    "ecosystem": "npm",
+    "version": "5.5.3"
+   },
+   "label": "out_of_scope",
+   "rationale": "faker 5.5.3 is not faker 6.6.6.",
+   "label_source": "events/CMP-2/SOURCES.md; reference pulumi/actions@15a649aa40e1 yarn.lock (2022-01-18)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-2-n2",
+   "events": [
+    "CMP-2"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "@faker-js/faker",
+    "ecosystem": "npm",
+    "version": "6.0.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "@faker-js/faker 6.0.0 is not faker 6.6.6.",
+   "label_source": "events/CMP-2/SOURCES.md; reference forem/forem@91e3b5e2cb79 yarn.lock (2022-03-21)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-s1",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "9.2.2"
+   },
+   "label": "in_scope",
+   "rationale": "node-ipc 9.2.2 is in an advisory's affected range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference vuejs/vue-cli@37ef809c873f yarn.lock (2022-03-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-s2",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "9.2.2"
+   },
+   "label": "in_scope",
+   "rationale": "node-ipc 9.2.2 is in an advisory's affected range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference kodadot/nft-gallery@500e4d4ef970 yarn.lock (2022-03-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-n1",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "9.2.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "node-ipc 9.2.1 is outside every advisory's range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference vuejs/vue-cli@4c679ec525b4 yarn.lock (2022-03-14)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-n2",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "10.1.0"
+   },
+   "label": "out_of_scope",
+   "rationale": "node-ipc 10.1.0 is outside every advisory's range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference MillenniumEarl/recaptcha-harvester@8a34196cc09c package-lock.json (2022-03-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-n3",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "9.2.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "node-ipc 9.2.1 is outside every advisory's range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference saproto/ProTube@3aa4c8fb798e vue-remote/package-lock.json (2022-03-18)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-n4",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "@achrinza/node-ipc",
+    "ecosystem": "npm",
+    "version": "9.2.5"
+   },
+   "label": "out_of_scope",
+   "rationale": "@achrinza/node-ipc 9.2.5 is outside every advisory's range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference vuejs/vue-cli@b2b07a569375 yarn.lock (2022-06-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n1",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-3-n5",
+   "events": [
+    "CMP-3"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "node-ipc",
+    "ecosystem": "npm",
+    "version": "9.1.1"
+   },
+   "label": "out_of_scope",
+   "rationale": "node-ipc 9.1.1 is outside every advisory's range.",
+   "label_source": "events/CMP-3/SOURCES.md; reference ca-risken/web@d55f1a08bae1 yarn.lock (2022-03-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-4-s1",
+   "events": [
+    "CMP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "ua-parser-js",
+    "ecosystem": "npm",
+    "version": "0.7.29"
+   },
+   "label": "in_scope",
+   "rationale": "ua-parser-js 0.7.29, a hijacked version.",
+   "label_source": "events/CMP-4/SOURCES.md; reference navikt/aksel-website@3354bfa68750 yarn.lock (2021-10-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-4-s2",
+   "events": [
+    "CMP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "ua-parser-js",
+    "ecosystem": "npm",
+    "version": "0.7.29"
+   },
+   "label": "in_scope",
+   "rationale": "ua-parser-js 0.7.29, a hijacked version.",
+   "label_source": "events/CMP-4/SOURCES.md; reference Esger/Pentominos2@86c582c0f7fe package-lock.json (2021-10-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-4-s3",
+   "events": [
+    "CMP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "ua-parser-js",
+    "ecosystem": "npm",
+    "version": "0.7.29"
+   },
+   "label": "in_scope",
+   "rationale": "ua-parser-js 0.7.29, a hijacked version.",
+   "label_source": "events/CMP-4/SOURCES.md; reference smartcoder0777/nebula.gl@65812697f946 examples/sf/yarn.lock (2021-10-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-4-n1",
+   "events": [
+    "CMP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "ua-parser-js",
+    "ecosystem": "npm",
+    "version": "0.7.30"
+   },
+   "label": "out_of_scope",
+   "rationale": "ua-parser-js 0.7.30 is not a hijacked version.",
+   "label_source": "events/CMP-4/SOURCES.md; reference navikt/aksel-website@09036ceeae44 yarn.lock (2021-10-22)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-4-n2",
+   "events": [
+    "CMP-4"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "ua-parser-js",
+    "ecosystem": "npm",
+    "version": "0.7.28"
+   },
+   "label": "out_of_scope",
+   "rationale": "ua-parser-js 0.7.28 is not a hijacked version.",
+   "label_source": "events/CMP-4/SOURCES.md; reference openwebdocs/mdn-bcd-collector@a16a4f8a7565 package-lock.json (2021-10-25)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-s1",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.6"
+   },
+   "label": "in_scope",
+   "rationale": "event-stream 3.3.6, which pulled in flatmap-stream 0.1.1.",
+   "label_source": "events/CMP-5/SOURCES.md; reference swiftlang/sourcekit-lsp@7b8e325f8f6e Editors/vscode/package-lock.json (2018-11-26)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-s2",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.6"
+   },
+   "label": "in_scope",
+   "rationale": "event-stream 3.3.6, which pulled in flatmap-stream 0.1.1.",
+   "label_source": "events/CMP-5/SOURCES.md; reference bradtraversy/spacex_launch_stats@1f393e3b9229 package-lock.json (2018-11-12)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-s3",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.6"
+   },
+   "label": "in_scope",
+   "rationale": "event-stream 3.3.6, which pulled in flatmap-stream 0.1.1.",
+   "label_source": "events/CMP-5/SOURCES.md; reference sxei/vscode-plugin-demo@978fa184dc83 package-lock.json (2018-10-15)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "in_scope_candidate",
+   "template": null,
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-n1",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.4"
+   },
+   "label": "out_of_scope",
+   "rationale": "event-stream 3.3.4 does not depend on flatmap-stream.",
+   "label_source": "events/CMP-5/SOURCES.md; reference swiftlang/sourcekit-lsp@a54129a22b53 Editors/vscode/package-lock.json (2018-11-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-n2",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.5"
+   },
+   "label": "out_of_scope",
+   "rationale": "event-stream 3.3.5 does not depend on flatmap-stream.",
+   "label_source": "events/CMP-5/SOURCES.md; reference concord-consortium/cloud-file-manager@6b3340249cef yarn.lock (2018-11-28)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  },
+  {
+   "id": "CMP-5-n3",
+   "events": [
+    "CMP-5"
+   ],
+   "dependency": {
+    "kind": "package",
+    "package": "event-stream",
+    "ecosystem": "npm",
+    "version": "3.3.4"
+   },
+   "label": "out_of_scope",
+   "rationale": "event-stream 3.3.4 does not depend on flatmap-stream.",
+   "label_source": "events/CMP-5/SOURCES.md; reference amtrack/force-dev-tool@442490e205fc package-lock.json (2018-09-17)",
+   "labelled_by": "L1",
+   "independent_label": false,
+   "role": "neighbour",
+   "template": "n3",
+   "synthetic": false
+  }
+ ]
+}

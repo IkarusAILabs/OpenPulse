@@ -1,0 +1,11 @@
+{
+ "seed": 7,
+ "cases": 100000,
+ "summary_severity": {
+  "conform": 100000
+ },
+ "per_event_severity": {
+  "conform": 200070
+ },
+ "examples": {}
+}

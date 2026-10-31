@@ -2,7 +2,7 @@
 
 Security teams triage in DefectDojo; this puts OpenPulse findings there
 without a new dashboard. Like ``core.sarif`` it is a presentation layer
-over the v1.1 contracts ``attest`` emits, and it reuses the SARIF
+over the v1.2 contracts ``attest`` emits, and it reuses the SARIF
 module's decisions, so the JSONL, SARIF and DefectDojo outputs can never
 disagree:
 

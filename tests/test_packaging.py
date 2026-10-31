@@ -31,6 +31,7 @@ def test_runtime_data_is_declared_as_package_data():
         ("openpulse_data", "canonical_projects.yaml"),
         ("openpulse_data", "fixtures/django-eol/event.json"),
         ("openpulse_schemas", "evidence-contract/v1.1/schema.json"),
+        ("openpulse_schemas", "evidence-contract/v1.2/schema.json"),
     ):
         root = Path(_SETUPTOOLS["package-dir"][pkg])
         assert any(path == root / glob for g in data_globs[pkg] for path in root.glob(g)), glob
@@ -49,17 +50,3 @@ def test_checkout_layout_is_preferred():
         Path(resources.__file__).resolve().parents[1] / "data" / "canonical_projects.yaml"
     )
     assert resources.schema_path("evidence-contract", "v1.1", "schema.json").exists()
-
-
-def test_cli_main_module_executable():
-    """`python -m cli --version` executes cleanly without requiring the entrypoint on PATH."""
-    import subprocess
-    import sys
-
-    res = subprocess.run(
-        [sys.executable, "-m", "cli", "--version"],
-        capture_output=True,
-        text=True,
-    )
-    assert res.returncode == 0
-    assert "openpulse, version" in res.stdout

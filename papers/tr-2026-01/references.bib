@@ -1,0 +1,643 @@
+% Related work for OpenPulse. Each entry's metadata was checked on 2026-10-28
+% against Crossref (api.crossref.org/works/<DOI>), USENIX, arXiv, IETF/RFC Editor,
+% or the official spec/standard page. See related_notes.md for verification URLs.
+
+% ---------------------------------------------------------------------------
+% 1. Abandonment, deprecation, sustainability
+% ---------------------------------------------------------------------------
+
+@inproceedings{valiev2018ecosystem,
+  author    = {Marat Valiev and Bogdan Vasilescu and James Herbsleb},
+  title     = {Ecosystem-Level Determinants of Sustained Activity in Open-Source Projects: A Case Study of the {PyPI} Ecosystem},
+  booktitle = {Proceedings of the 26th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)},
+  pages     = {644--655},
+  year      = {2018},
+  publisher = {ACM},
+  doi       = {10.1145/3236024.3236062}
+}
+
+@inproceedings{avelino2019abandonment,
+  author    = {Guilherme Avelino and Eleni Constantinou and Marco Tulio Valente and Alexander Serebrenik},
+  title     = {On the Abandonment and Survival of Open Source Projects: An Empirical Investigation},
+  booktitle = {2019 ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM)},
+  pages     = {1--12},
+  year      = {2019},
+  publisher = {IEEE},
+  doi       = {10.1109/ESEM.2019.8870181}
+}
+
+@inproceedings{miller2023winging,
+  author    = {Courtney Miller and Christian K{\"a}stner and Bogdan Vasilescu},
+  title     = {``{We} Feel Like We're Winging It:'' A Study on Navigating Open-Source Dependency Abandonment},
+  booktitle = {Proceedings of the 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)},
+  pages     = {1281--1293},
+  year      = {2023},
+  publisher = {ACM},
+  doi       = {10.1145/3611643.3616293}
+}
+
+@article{cogo2022deprecation,
+  author  = {Filipe R. Cogo and Gustavo A. Oliva and Ahmed E. Hassan},
+  title   = {Deprecation of Packages and Releases in Software Ecosystems: A Case Study on {npm}},
+  journal = {IEEE Transactions on Software Engineering},
+  volume  = {48},
+  number  = {7},
+  pages   = {2208--2223},
+  year    = {2022},
+  doi     = {10.1109/TSE.2021.3055123}
+}
+
+@inproceedings{jabrayilzade2022bus,
+  author    = {Elgun Jabrayilzade and Mikhail Evtikhiev and Eray T{\"u}z{\"u}n and Vladimir Kovalenko},
+  title     = {Bus Factor in Practice},
+  booktitle = {Proceedings of the 44th International Conference on Software Engineering: Software Engineering in Practice (ICSE-SEIP)},
+  pages     = {97--106},
+  year      = {2022},
+  publisher = {ACM},
+  doi       = {10.1145/3510457.3513082}
+}
+
+% ---------------------------------------------------------------------------
+% 2. Supply-chain attacks, taxonomies, hijacking / namespace takeover
+% ---------------------------------------------------------------------------
+
+@inproceedings{ohm2020backstabber,
+  author    = {Marc Ohm and Henrik Plate and Arnold Sykosch and Michael Meier},
+  title     = {Backstabber's Knife Collection: A Review of Open Source Software Supply Chain Attacks},
+  booktitle = {Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2020)},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {23--43},
+  year      = {2020},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-030-52683-2_2}
+}
+
+@inproceedings{ladisa2023sok,
+  author    = {Piergiorgio Ladisa and Henrik Plate and Matias Martinez and Olivier Barais},
+  title     = {{SoK}: Taxonomy of Attacks on Open-Source Software Supply Chains},
+  booktitle = {2023 IEEE Symposium on Security and Privacy (SP)},
+  pages     = {1509--1526},
+  year      = {2023},
+  publisher = {IEEE},
+  doi       = {10.1109/SP46215.2023.10179304}
+}
+
+@inproceedings{zimmermann2019small,
+  author    = {Markus Zimmermann and Cristian-Alexandru Staicu and Cam Tenny and Michael Pradel},
+  title     = {Small World with High Risks: A Study of Security Threats in the {npm} Ecosystem},
+  booktitle = {28th USENIX Security Symposium (USENIX Security 19)},
+  pages     = {995--1010},
+  year      = {2019},
+  publisher = {USENIX Association},
+  isbn      = {978-1-939133-06-9},
+  url       = {https://www.usenix.org/conference/usenixsecurity19/presentation/zimmerman}
+}
+
+@inproceedings{zahan2022weak,
+  author    = {Nusrat Zahan and Thomas Zimmermann and Patrice Godefroid and Brendan Murphy and Chandra Maddila and Laurie Williams},
+  title     = {What are Weak Links in the {npm} Supply Chain?},
+  booktitle = {2022 IEEE/ACM 44th International Conference on Software Engineering: Software Engineering in Practice (ICSE-SEIP)},
+  pages     = {331--340},
+  year      = {2022},
+  publisher = {IEEE},
+  doi       = {10.1109/ICSE-SEIP55303.2022.9794068}
+}
+
+@inproceedings{gu2023investigating,
+  author    = {Yacong Gu and Lingyun Ying and Yingyuan Pu and Xiao Hu and Huajun Chai and Ruimin Wang and Xing Gao and Haixin Duan},
+  title     = {Investigating Package Related Security Threats in Software Registries},
+  booktitle = {2023 IEEE Symposium on Security and Privacy (SP)},
+  pages     = {1578--1595},
+  year      = {2023},
+  publisher = {IEEE},
+  doi       = {10.1109/SP46215.2023.10179332}
+}
+
+@misc{goldman2023repojacking,
+  author       = {Ilay Goldman and Yakir Kadkoda},
+  title        = {{GitHub} Dataset Research Reveals Millions Potentially Vulnerable to {RepoJacking}},
+  howpublished = {Aqua Security (Aqua Nautilus) blog},
+  year         = {2023},
+  month        = jun,
+  note         = {Published June 21, 2023. Accessed 2026-10-28},
+  url          = {https://www.aquasec.com/blog/github-dataset-research-reveals-millions-potentially-vulnerable-to-repojacking/}
+}
+
+@misc{github2026transfer,
+  author       = {{GitHub}},
+  title        = {Transferring a Repository},
+  howpublished = {GitHub Docs},
+  note         = {Accessed 2026-10-28},
+  url          = {https://docs.github.com/en/repositories/creating-and-managing-repositories/transferring-a-repository}
+}
+
+% ---------------------------------------------------------------------------
+% 3. SCA, reachability, applicability, VEX
+% ---------------------------------------------------------------------------
+
+@inproceedings{ponta2018beyond,
+  author    = {Serena Elisa Ponta and Henrik Plate and Antonino Sabetta},
+  title     = {Beyond Metadata: Code-Centric and Usage-Based Analysis of Known Vulnerabilities in Open-Source Software},
+  booktitle = {2018 IEEE International Conference on Software Maintenance and Evolution (ICSME)},
+  pages     = {449--460},
+  year      = {2018},
+  publisher = {IEEE},
+  doi       = {10.1109/ICSME.2018.00054}
+}
+
+@article{ponta2020detection,
+  author  = {Serena Elisa Ponta and Henrik Plate and Antonino Sabetta},
+  title   = {Detection, Assessment and Mitigation of Vulnerabilities in Open Source Dependencies},
+  journal = {Empirical Software Engineering},
+  volume  = {25},
+  number  = {5},
+  pages   = {3175--3215},
+  year    = {2020},
+  doi     = {10.1007/s10664-020-09830-x}
+}
+
+@inproceedings{pashchenko2018vulnerable,
+  author    = {Ivan Pashchenko and Henrik Plate and Serena Elisa Ponta and Antonino Sabetta and Fabio Massacci},
+  title     = {Vulnerable Open Source Dependencies: Counting Those That Matter},
+  booktitle = {Proceedings of the 12th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM)},
+  pages     = {1--10},
+  year      = {2018},
+  publisher = {ACM},
+  doi       = {10.1145/3239235.3268920}
+}
+
+@inproceedings{imtiaz2021comparative,
+  author    = {Nasif Imtiaz and Seaver Thorn and Laurie Williams},
+  title     = {A Comparative Study of Vulnerability Reporting by Software Composition Analysis Tools},
+  booktitle = {Proceedings of the 15th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM)},
+  pages     = {1--11},
+  year      = {2021},
+  publisher = {ACM},
+  doi       = {10.1145/3475716.3475769}
+}
+
+@techreport{cisa2023vex,
+  author      = {{Cybersecurity and Infrastructure Security Agency}},
+  title       = {Minimum Requirements for Vulnerability Exploitability {eXchange} ({VEX})},
+  institution = {CISA},
+  year        = {2023},
+  month       = apr,
+  note        = {Published April 21, 2023},
+  url         = {https://www.cisa.gov/resources-tools/resources/minimum-requirements-vulnerability-exploitability-exchange-vex}
+}
+
+@misc{openvex,
+  author       = {{OpenVEX Project}},
+  title        = {{OpenVEX} Specification},
+  howpublished = {GitHub repository openvex/spec},
+  note         = {Draft; JSON-LD context v0.2.0. Accessed 2026-10-28},
+  url          = {https://github.com/openvex/spec}
+}
+
+% ---------------------------------------------------------------------------
+% 4. Vulnerability data sources, quality and timeliness
+% ---------------------------------------------------------------------------
+
+@misc{osvschema,
+  author       = {{OpenSSF}},
+  title        = {Open Source Vulnerability ({OSV}) Format},
+  howpublished = {Schema specification, version 1.9.2},
+  note         = {Original authors Oliver Chang and Russ Cox. Accessed 2026-10-28},
+  url          = {https://ossf.github.io/osv-schema/}
+}
+
+@misc{ghsa,
+  author       = {{GitHub}},
+  title        = {{GitHub} Advisory Database},
+  howpublished = {GitHub repository github/advisory-database},
+  note         = {Advisories stored in OSV format. Accessed 2026-10-28},
+  url          = {https://github.com/github/advisory-database}
+}
+
+@misc{cisakev,
+  author       = {{Cybersecurity and Infrastructure Security Agency}},
+  title        = {Known Exploited Vulnerabilities Catalog},
+  howpublished = {CISA},
+  note         = {Accessed 2026-10-28},
+  url          = {https://www.cisa.gov/known-exploited-vulnerabilities-catalog}
+}
+
+@misc{nistnvd,
+  author       = {{National Institute of Standards and Technology}},
+  title        = {National Vulnerability Database ({NVD}): Program Updates},
+  howpublished = {NIST},
+  note         = {Status notices on the CVE enrichment backlog since early 2024, incl. updates of March 19, 2025 and April 15, 2026. Accessed 2026-10-28},
+  url          = {https://www.nist.gov/itl/nvd}
+}
+
+@article{anwar2022cleaning,
+  author  = {Afsah Anwar and Ahmed Abusnaina and Songqing Chen and Frank Li and David Mohaisen},
+  title   = {Cleaning the {NVD}: Comprehensive Quality Assessment, Improvements, and Analyses},
+  journal = {IEEE Transactions on Dependable and Secure Computing},
+  volume  = {19},
+  number  = {6},
+  pages   = {4255--4269},
+  year    = {2022},
+  doi     = {10.1109/TDSC.2021.3125270}
+}
+
+@inproceedings{li2017patches,
+  author    = {Frank Li and Vern Paxson},
+  title     = {A Large-Scale Empirical Study of Security Patches},
+  booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS)},
+  pages     = {2201--2215},
+  year      = {2017},
+  publisher = {ACM},
+  doi       = {10.1145/3133956.3134072}
+}
+
+@article{chinthanet2021lags,
+  author  = {Bodin Chinthanet and Raula Gaikovina Kula and Shane McIntosh and Takashi Ishio and Akinori Ihara and Kenichi Matsumoto},
+  title   = {Lags in the Release, Adoption, and Propagation of {npm} Vulnerability Fixes},
+  journal = {Empirical Software Engineering},
+  volume  = {26},
+  number  = {3},
+  year    = {2021},
+  doi     = {10.1007/s10664-021-09951-x}
+}
+
+@misc{endoflifedate,
+  author       = {{endoflife.date contributors}},
+  title        = {endoflife.date},
+  howpublished = {Website and API},
+  note         = {Accessed 2026-10-28},
+  url          = {https://endoflife.date/}
+}
+
+% ---------------------------------------------------------------------------
+% 5. Provenance, attestation, SBOM, ecosystem metadata
+% ---------------------------------------------------------------------------
+
+@misc{slsa12,
+  author       = {{SLSA Community}},
+  title        = {{SLSA} Specification, Version 1.2},
+  howpublished = {Supply-chain Levels for Software Artifacts},
+  note         = {Status: Approved. Accessed 2026-10-28},
+  url          = {https://slsa.dev/spec/v1.2/}
+}
+
+@inproceedings{torresarias2019intoto,
+  author    = {Santiago Torres-Arias and Hammad Afzali and Trishank Karthik Kuppusamy and Reza Curtmola and Justin Cappos},
+  title     = {in-toto: Providing Farm-to-Table Guarantees for Bits and Bytes},
+  booktitle = {28th USENIX Security Symposium (USENIX Security 19)},
+  pages     = {1393--1410},
+  year      = {2019},
+  publisher = {USENIX Association},
+  isbn      = {978-1-939133-06-9},
+  url       = {https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias}
+}
+
+@inproceedings{newman2022sigstore,
+  author    = {Zachary Newman and John Speed Meyers and Santiago Torres-Arias},
+  title     = {Sigstore: Software Signing for Everybody},
+  booktitle = {Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security (CCS)},
+  pages     = {2353--2367},
+  year      = {2022},
+  publisher = {ACM},
+  doi       = {10.1145/3548606.3560596}
+}
+
+@techreport{ecma424,
+  author      = {{Ecma International}},
+  title       = {{ECMA-424}: {CycloneDX} Bill of Materials Specification},
+  institution = {Ecma International},
+  type        = {Standard},
+  edition     = {2nd},
+  year        = {2025},
+  month       = dec,
+  url         = {https://ecma-international.org/publications-and-standards/standards/ecma-424/}
+}
+
+@misc{spdx,
+  author       = {{The Linux Foundation SPDX Project}},
+  title        = {The Software Package Data Exchange ({SPDX}) Specification},
+  howpublished = {Current version 3.0; the SPDX specification is an international open standard (ISO/IEC 5962:2021)},
+  note         = {Accessed 2026-10-28},
+  url          = {https://spdx.dev/use/specifications/}
+}
+
+@article{zahan2023scorecard,
+  author  = {Nusrat Zahan and Parth Kanakiya and Brian Hambleton and Shohanuzzaman Shohan and Laurie Williams},
+  title   = {{OpenSSF} Scorecard: On the Path Toward Ecosystem-Wide Automated Security Metrics},
+  journal = {IEEE Security \& Privacy},
+  volume  = {21},
+  number  = {6},
+  pages   = {76--88},
+  year    = {2023},
+  doi     = {10.1109/MSEC.2023.3279773}
+}
+
+@misc{depsdev,
+  author       = {{Google}},
+  title        = {Open Source Insights (deps.dev)},
+  howpublished = {Service and API documentation},
+  note         = {Accessed 2026-10-28},
+  url          = {https://docs.deps.dev/}
+}
+
+% ---------------------------------------------------------------------------
+% 6. Tamper-evident logs and hash chains
+% ---------------------------------------------------------------------------
+
+@inproceedings{crosby2009tamper,
+  author    = {Scott A. Crosby and Dan S. Wallach},
+  title     = {Efficient Data Structures for Tamper-Evident Logging},
+  booktitle = {18th USENIX Security Symposium},
+  year      = {2009},
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/legacy/event/sec09/tech/full_papers/crosby.pdf}
+}
+
+@article{schneier1999audit,
+  author  = {Bruce Schneier and John Kelsey},
+  title   = {Secure Audit Logs to Support Computer Forensics},
+  journal = {ACM Transactions on Information and System Security},
+  volume  = {2},
+  number  = {2},
+  pages   = {159--176},
+  year    = {1999},
+  doi     = {10.1145/317087.317089}
+}
+
+@techreport{rfc6962,
+  author      = {Ben Laurie and Adam Langley and Emilia Kasper},
+  title       = {Certificate Transparency},
+  institution = {RFC Editor},
+  type        = {RFC},
+  number      = {6962},
+  year        = {2013},
+  month       = jun,
+  note        = {Experimental; obsoleted by RFC 9162},
+  doi         = {10.17487/RFC6962}
+}
+
+@techreport{rfc9162,
+  author      = {Ben Laurie and Eran Messeri and Rob Stradling},
+  title       = {Certificate Transparency Version 2.0},
+  institution = {RFC Editor},
+  type        = {RFC},
+  number      = {9162},
+  year        = {2021},
+  month       = dec,
+  note        = {Experimental},
+  doi         = {10.17487/RFC9162}
+}
+
+% ---------------------------------------------------------------------------
+% 7. AI coding assistants/agents and dependency selection
+% ---------------------------------------------------------------------------
+
+@inproceedings{spracklen2025package,
+  author    = {Joseph Spracklen and Raveen Wijewickrama and A H M Nazmus Sakib and Anindya Maiti and Bimal Viswanath and Murtuza Jadliwala},
+  title     = {We Have a Package for You! {A} Comprehensive Analysis of Package Hallucinations by Code Generating {LLMs}},
+  booktitle = {34th USENIX Security Symposium (USENIX Security 25)},
+  pages     = {3687--3706},
+  year      = {2025},
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen}
+}
+
+@misc{krishna2025phantoms,
+  author        = {Arjun Krishna and Erick Galinkin and Leon Derczynski and Jeffrey Martin},
+  title         = {Importing Phantoms: Measuring {LLM} Package Hallucination Vulnerabilities},
+  year          = {2025},
+  eprint        = {2501.19012},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2501.19012}
+}
+
+@inproceedings{pearce2022asleep,
+  author    = {Hammond Pearce and Baleegh Ahmad and Benjamin Tan and Brendan Dolan-Gavitt and Ramesh Karri},
+  title     = {Asleep at the Keyboard? {Assessing} the Security of {GitHub Copilot}'s Code Contributions},
+  booktitle = {2022 IEEE Symposium on Security and Privacy (SP)},
+  pages     = {754--768},
+  year      = {2022},
+  publisher = {IEEE},
+  doi       = {10.1109/SP46214.2022.9833571}
+}
+
+@inproceedings{greshake2023indirect,
+  author    = {Kai Greshake and Sahar Abdelnabi and Shailesh Mishra and Christoph Endres and Thorsten Holz and Mario Fritz},
+  title     = {Not What You've Signed Up For: Compromising Real-World {LLM}-Integrated Applications with Indirect Prompt Injection},
+  booktitle = {Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec)},
+  pages     = {79--90},
+  year      = {2023},
+  publisher = {ACM},
+  doi       = {10.1145/3605764.3623985}
+}
+
+@misc{debenedetti2024agentdojo,
+  author        = {Edoardo Debenedetti and Jie Zhang and Mislav Balunovi{\'c} and Luca Beurer-Kellner and Marc Fischer and Florian Tram{\`e}r},
+  title         = {{AgentDojo}: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for {LLM} Agents},
+  year          = {2024},
+  eprint        = {2406.13352},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2406.13352}
+}
+
+% ---------------------------------------------------------------------------
+% 8. Container image ecosystem
+% ---------------------------------------------------------------------------
+
+@inproceedings{shu2017dockerhub,
+  author    = {Rui Shu and Xiaohui Gu and William Enck},
+  title     = {A Study of Security Vulnerabilities on {Docker Hub}},
+  booktitle = {Proceedings of the Seventh ACM Conference on Data and Application Security and Privacy (CODASPY)},
+  pages     = {269--280},
+  year      = {2017},
+  publisher = {ACM},
+  doi       = {10.1145/3029806.3029832}
+}
+
+@inproceedings{zerouali2019outdated,
+  author    = {Ahmed Zerouali and Tom Mens and Gregorio Robles and Jesus M. Gonzalez-Barahona},
+  title     = {On the Relation between Outdated {Docker} Containers, Severity Vulnerabilities, and Bugs},
+  booktitle = {2019 IEEE 26th International Conference on Software Analysis, Evolution and Reengineering (SANER)},
+  pages     = {491--501},
+  year      = {2019},
+  publisher = {IEEE},
+  doi       = {10.1109/SANER.2019.8668013}
+}
+
+@inproceedings{cito2017docker,
+  author    = {J{\"u}rgen Cito and Gerald Schermann and John Erik Wittern and Philipp Leitner and Sali Zumberi and Harald C. Gall},
+  title     = {An Empirical Analysis of the {Docker} Container Ecosystem on {GitHub}},
+  booktitle = {2017 IEEE/ACM 14th International Conference on Mining Software Repositories (MSR)},
+  pages     = {323--333},
+  year      = {2017},
+  publisher = {IEEE},
+  doi       = {10.1109/MSR.2017.67}
+}
+
+@inproceedings{lin2020dockerhub,
+  author    = {Changyuan Lin and Sarah Nadi and Hamzeh Khazaei},
+  title     = {A Large-scale Data Set and an Empirical Study of {Docker} Images Hosted on {Docker Hub}},
+  booktitle = {2020 IEEE International Conference on Software Maintenance and Evolution (ICSME)},
+  pages     = {371--381},
+  year      = {2020},
+  publisher = {IEEE},
+  doi       = {10.1109/ICSME46990.2020.00043}
+}
+
+@misc{bitnami2025catalog,
+  author       = {{Bitnami}},
+  title        = {Upcoming Changes to the {Bitnami} Catalog (effective {August} 28th, 2025)},
+  howpublished = {GitHub issue bitnami/containers\#83267},
+  year         = {2025},
+  month        = jul,
+  note         = {Opened July 16, 2025. Accessed 2026-10-28},
+  url          = {https://github.com/bitnami/containers/issues/83267}
+}
+
+% ---------------------------------------------------------------------------
+% Completeness and closed-world reasoning (checked against Crossref 2026-10-29)
+% ---------------------------------------------------------------------------
+
+@incollection{reiter1978closed,
+  author    = {Raymond Reiter},
+  title     = {On Closed World Data Bases},
+  booktitle = {Logic and Data Bases},
+  pages     = {55--76},
+  year      = {1978},
+  publisher = {Springer},
+  doi       = {10.1007/978-1-4684-3384-5_3}
+}
+
+@article{imielinski1984incomplete,
+  author    = {Tomasz Imieli{\'n}ski and Witold Lipski},
+  title     = {Incomplete Information in Relational Databases},
+  journal   = {Journal of the ACM},
+  volume    = {31},
+  number    = {4},
+  pages     = {761--791},
+  year      = {1984},
+  doi       = {10.1145/1634.1886}
+}
+
+@article{motro1989integrity,
+  author    = {Amihai Motro},
+  title     = {Integrity = Validity + Completeness},
+  journal   = {ACM Transactions on Database Systems},
+  volume    = {14},
+  number    = {4},
+  pages     = {480--502},
+  year      = {1989},
+  doi       = {10.1145/76902.76904}
+}
+
+@article{etzioni1997closed,
+  author    = {Oren Etzioni and Keith Golden and Daniel S. Weld},
+  title     = {Sound and Efficient Closed-World Reasoning for Planning},
+  journal   = {Artificial Intelligence},
+  volume    = {89},
+  number    = {1--2},
+  pages     = {113--148},
+  year      = {1997},
+  doi       = {10.1016/S0004-3702(96)00026-4}
+}
+
+@inproceedings{cousot1977abstract,
+  author    = {Patrick Cousot and Radhia Cousot},
+  title     = {Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs by Construction or Approximation of Fixpoints},
+  booktitle = {Proceedings of the 4th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages (POPL)},
+  pages     = {238--252},
+  year      = {1977},
+  publisher = {ACM},
+  doi       = {10.1145/512950.512973}
+}
+
+% --- Added for the novelty and related-work revision (2026-10-30). ---
+% Bibliographic details entered from memory without DOIs; verify before
+% submission.
+
+@book{kleene1952introduction,
+  author    = {Stephen Cole Kleene},
+  title     = {Introduction to Metamathematics},
+  publisher = {North-Holland},
+  year      = {1952}
+}
+
+@article{codd1979extending,
+  author    = {E. F. Codd},
+  title     = {Extending the Database Relational Model to Capture More Meaning},
+  journal   = {ACM Transactions on Database Systems},
+  volume    = {4},
+  number    = {4},
+  pages     = {397--434},
+  year      = {1979}
+}
+
+@inproceedings{levy1996obtaining,
+  author    = {Alon Y. Levy},
+  title     = {Obtaining Complete Answers from Incomplete Databases},
+  booktitle = {Proceedings of the 22nd International Conference on Very Large Data Bases (VLDB)},
+  pages     = {402--412},
+  year      = {1996}
+}
+
+@article{razniewski2011completeness,
+  author    = {Simon Razniewski and Werner Nutt},
+  title     = {Completeness of Queries over Incomplete Databases},
+  journal   = {Proceedings of the VLDB Endowment},
+  volume    = {4},
+  number    = {11},
+  pages     = {749--760},
+  year      = {2011}
+}
+
+@techreport{oasis2022csaf,
+  author      = {{OASIS}},
+  title       = {Common Security Advisory Framework Version 2.0},
+  institution = {OASIS Open},
+  type        = {OASIS Standard},
+  year        = {2022},
+  month       = nov
+}
+
+@inproceedings{xia2023sbom,
+  author    = {Boming Xia and Tingting Bi and Zhenchang Xing and Qinghua Lu and Liming Zhu},
+  title     = {An Empirical Study on Software Bill of Materials: Where We Stand and the Road Ahead},
+  booktitle = {Proceedings of the 45th International Conference on Software Engineering (ICSE)},
+  pages     = {2630--2642},
+  year      = {2023}
+}
+
+@inproceedings{stalnaker2024boms,
+  author    = {Trevor Stalnaker and Nathan Wintersgill and Oscar Chaparro and Massimiliano Di Penta and Daniel M. German and Denys Poshyvanyk},
+  title     = {{BOMs} Away! Inside the Minds of Stakeholders: A Comprehensive Study of Bills of Materials for Software Systems},
+  booktitle = {Proceedings of the 46th International Conference on Software Engineering (ICSE)},
+  year      = {2024}
+}
+
+@article{decan2019empirical,
+  author    = {Alexandre Decan and Tom Mens and Philippe Grosjean},
+  title     = {An Empirical Comparison of Dependency Network Evolution in Seven Software Packaging Ecosystems},
+  journal   = {Empirical Software Engineering},
+  volume    = {24},
+  number    = {1},
+  pages     = {381--416},
+  year      = {2019}
+}
+
+@article{kula2018developers,
+  author    = {Raula Gaikovina Kula and Daniel M. German and Ali Ouni and Takashi Ishio and Katsuro Inoue},
+  title     = {Do Developers Update Their Library Dependencies?},
+  journal   = {Empirical Software Engineering},
+  volume    = {23},
+  number    = {1},
+  pages     = {384--417},
+  year      = {2018}
+}
+
+@inproceedings{plate2015impact,
+  author    = {Henrik Plate and Serena Elisa Ponta and Antonino Sabetta},
+  title     = {Impact Assessment for Vulnerabilities in Open-Source Software Libraries},
+  booktitle = {2015 IEEE International Conference on Software Maintenance and Evolution (ICSME)},
+  pages     = {411--420},
+  year      = {2015}
+}

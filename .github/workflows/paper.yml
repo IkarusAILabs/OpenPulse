@@ -1,0 +1,33 @@
+name: paper
+# Builds papers/tr-2026-01 (TR-2026-01) with latexmk and uploads the PDF
+# and the build log, so the published PDF always comes from the committed
+# source. The authoring machine has no TeX installation.
+on:
+  pull_request:
+    paths: ['papers/**', '.github/workflows/paper.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: main.tex
+          working_directory: papers/tr-2026-01
+          latexmk_use_lualatex: false
+      # Undefined references or citations leave "??" in the PDF; fail on them.
+      - run: |
+          log=papers/tr-2026-01/main.log
+          ! grep -E "LaTeX Warning: (Reference|Citation) .* undefined|There were undefined references" "$log"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: tr-2026-01
+          path: |
+            papers/tr-2026-01/main.pdf
+            papers/tr-2026-01/main.log
+            papers/tr-2026-01/main.blg
+          if-no-files-found: warn

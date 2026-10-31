@@ -6,11 +6,19 @@ from typing import Any
 
 import httpx
 
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
 API = "https://api.github.com/repos/{repo}/releases?per_page=20"
 REPO_API = "https://api.github.com/repos/{repo}"
+
+#: GitHub answers a transferred or renamed repository with a redirect to
+#: `/repositories/<id>` (a 301). Shared HTTP never follows redirects, so the
+#: collector follows exactly one hop, and only to this origin: the token
+#: is never sent anywhere else.
+_API_ORIGIN = ("https", "api.github.com")
+_REDIRECTS = (301, 302, 307, 308)
 
 
 def parse_releases(repo: str, payload: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -68,6 +76,14 @@ class GitHubCollector(BaseCollector):
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
 
+    def _get(self, url: str) -> httpx.Response:
+        r = http.get(url, timeout=self.timeout, headers=self._headers())
+        if r.status_code in _REDIRECTS:
+            target = httpx.URL(url).join(r.headers.get("location", ""))
+            if (target.scheme, target.host) == _API_ORIGIN and target.port is None:
+                r = http.get(str(target), timeout=self.timeout, headers=self._headers())
+        return r
+
     def collect(self, project_slug: str) -> list[dict[str, Any]]:
         repo = self.repo_map.get(project_slug)
         if not repo:
@@ -79,11 +95,7 @@ class GitHubCollector(BaseCollector):
                 }
             ]
         try:
-            r = httpx.get(
-                API.format(repo=repo),
-                timeout=self.timeout,
-                headers=self._headers(),
-            )
+            r = self._get(API.format(repo=repo))
             r.raise_for_status()
             return parse_releases(repo, r.json())
         except Exception as e:  # network/API failure must never crash pipeline
@@ -100,11 +112,7 @@ class GitHubCollector(BaseCollector):
                 "skipped": f"no repo mapping for {project_slug}",
             }
         try:
-            r = httpx.get(
-                REPO_API.format(repo=repo),
-                timeout=self.timeout,
-                headers=self._headers(),
-            )
+            r = self._get(REPO_API.format(repo=repo))
             r.raise_for_status()
             return parse_repo(repo, r.json())
         except Exception as e:
