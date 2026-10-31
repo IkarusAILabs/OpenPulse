@@ -26,16 +26,18 @@ from core.sbom_reader import MAX_SBOM_BYTES, load_sbom_doc, load_spdx_doc
 
 GITHUB_API = "https://api.github.com"
 DEFAULT_TIMEOUT = 30.0
-# GitHub's blobs API serves base64 payloads up to 100 MB, but every reader
-# refuses input over the shared parser cap (MAX_SBOM_BYTES), so a larger blob
-# is skipped by its tree-declared size before download instead of being fetched
-# only to be rejected. Over the cap is an explicit PARTIAL skip, never a silent
-# "no dependencies" (F2). Derived from MAX_SBOM_BYTES so the two caps can never
-# diverge (enforced by tests).
-MAX_BLOB_BYTES = MAX_SBOM_BYTES
 MAX_FILES = 200  # max dependency files to process
 MAX_TREE_ENTRIES = 20_000  # bound recursive Git tree expansion before filtering
 MAX_DISCOVERED_BYTES = 50 * 1024 * 1024  # 50MB total supported-file budget
+#: GitHub's blobs API serves base64 payloads up to 100 MB.
+GITHUB_BLOB_API_LIMIT = 100 * 1024 * 1024
+# Per-file cap, checked against the tree-declared size before download: the
+# smallest of what a reader will parse (MAX_SBOM_BYTES), what the blobs API
+# serves, and half the repository budget, so one large file cannot use up
+# the whole budget and leave every other manifest uninspected (#103). Over
+# the cap is an explicit PARTIAL skip, never a silent "no dependencies"
+# (F2). The invariants are pinned in tests/test_bounded_io.py.
+MAX_BLOB_BYTES = min(MAX_SBOM_BYTES, GITHUB_BLOB_API_LIMIT, MAX_DISCOVERED_BYTES // 2)
 
 #: Repository inspection coverage. COMPLETE means every discovered
 #: dependency file was read, integrity-verified and parsed; PARTIAL means

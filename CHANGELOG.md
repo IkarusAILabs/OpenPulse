@@ -4,6 +4,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Fixed
+
+- **One large dependency file no longer uses up a repository's whole inspection budget (#103, #148).** The per-file cap was 50 MB, equal to the 50 MB total budget, so a single 50 MB lockfile left every other manifest in the repository uninspected. The per-file cap is now the smallest of three limits: the parser cap, GitHub's 100 MB blobs-API limit, and half the budget, which is 25 MB today. A larger file is skipped on its own, with a PARTIAL reason, and the rest are still read.
+
 ### Documentation
 
 - **OpenPulse is presented as academic research software.** The README has a new *Research status* section. It says what OpenPulse is (a research instrument of the [Ikarus AI Labs](https://ikaruslabs.net/research) programme, described in TR-2026-01) and what it is not (a commercial product or a certified security control). It also says how to read the project's claims and how to collaborate. The README's product and commercial wording is reframed, and the mentions of a separate SaaS layer are removed. `SECURITY.md`, `docs/MCP.md` and `docs/GITHUB_ACTION.md` carry a short research-software note, and the package description now says the same.

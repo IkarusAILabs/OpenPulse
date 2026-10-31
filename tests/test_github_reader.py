@@ -451,6 +451,59 @@ class TestGitHubRepositoryIntegration:
         assert any("truncated" in reason for reason in inspection.coverage_reasons)
         assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
 
+    def test_oversized_file_does_not_use_up_the_budget(self, monkeypatch):
+        """#103: one lockfile just under the total budget used to leave every
+        other manifest uninspected. It is now skipped on its own."""
+        from core.github_reader import MAX_DISCOVERED_BYTES
+
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {
+                    "type": "blob",
+                    "path": "big/package-lock.json",
+                    "size": MAX_DISCOVERED_BYTES - 1,
+                    "sha": "big",
+                },
+                {"type": "blob", "path": "svc0/requirements.txt", "size": 20, "sha": "file1"},
+                {"type": "blob", "path": "svc1/requirements.txt", "size": 20, "sha": "file2"},
+            ],
+            blobs={
+                "file1": ("requests==2.32.0\n", None),
+                "file2": ("flask==3.0.0\n", None),
+            },
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert len(inspection.coverage_reasons) == 1
+        assert "big/package-lock.json" in inspection.coverage_reasons[0]
+        assert "inspection limit" in inspection.coverage_reasons[0]
+        assert {d["package"] for d in inspection.dependencies} == {"requests", "flask"}
+
+    def test_repository_budget_still_reports_its_own_reason(self, monkeypatch):
+        from core.github_reader import MAX_BLOB_BYTES
+
+        size = MAX_BLOB_BYTES  # each file is allowed; three exceed the budget
+        self._patch_common(
+            monkeypatch,
+            tree=[
+                {"type": "blob", "path": f"svc{i}/requirements.txt", "size": size, "sha": f"f{i}"}
+                for i in range(3)
+            ],
+            blobs={f"f{i}": ("requests==2.32.0\n", None) for i in range(3)},
+        )
+
+        inspection = inspect_github_repo("owner/repo")
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any(
+            "svc2/requirements.txt" in r and "repository size cap" in r
+            for r in inspection.coverage_reasons
+        )
+        assert not any("inspection limit" in r for r in inspection.coverage_reasons)
+
     def test_fetch_failure_is_partial_not_zero_dependencies(self, monkeypatch):
         """A failed fetch must never look like a clean, empty inspection."""
         from collectors.errors import as_error

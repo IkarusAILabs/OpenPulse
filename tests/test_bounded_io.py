@@ -93,8 +93,10 @@ def test_readers_use_bounded_reads(tmp_path, monkeypatch):
             reader(str(path))
 
 
-def test_blob_cap_matches_the_parser_cap():
-    from core.github_reader import MAX_BLOB_BYTES
+def test_blob_cap_invariants():
+    from core.github_reader import GITHUB_BLOB_API_LIMIT, MAX_BLOB_BYTES, MAX_DISCOVERED_BYTES
     from core.sbom_reader import MAX_SBOM_BYTES
 
-    assert MAX_BLOB_BYTES == MAX_SBOM_BYTES
+    assert MAX_BLOB_BYTES <= MAX_SBOM_BYTES  # never fetch what no reader will parse
+    assert MAX_BLOB_BYTES < MAX_DISCOVERED_BYTES  # one file cannot use the whole budget (#103)
+    assert MAX_BLOB_BYTES <= GITHUB_BLOB_API_LIMIT == 100 * 1024 * 1024
