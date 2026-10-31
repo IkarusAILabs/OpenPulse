@@ -478,7 +478,8 @@ def test_cli_warnings_json_output(tmp_path, monkeypatch):
         ],
     )
     assert out.exit_code == 0, out.output
-    payload = json.loads(out.output)
+    # JSON goes to stdout; the evaluation notice goes to stderr.
+    payload = json.loads(out.stdout)
     assert payload["warnings"][0]["ref"] == "django==4.2"
     assert payload["warnings"][0]["severity"] == "MEDIUM"
     assert payload["warnings"][0]["days_until_effective"] == 86

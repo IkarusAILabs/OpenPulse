@@ -646,3 +646,13 @@ def test_inventory_run_and_annotations_reach_the_registered_tables(tmp_path):
     assert d1["per_basis"]["definitional"]["declarations"] == 1
     assert "bitnami-2025" in d1["admitted_not_judged"]
     assert block["missing_inputs"] == ["D2 mapping judgements"]
+
+
+def test_dev_set_is_stratified_by_completeness_basis_and_identity(dev):
+    rows = {r["case"]: r for r in dev["pairs"]["C-openpulse"]}
+    assert (rows["dj-03"]["basis"], rows["dj-03"]["identity"]) == ("definitional", "curated")
+    assert rows["rx-01"]["basis"] == "partial"
+    assert rows["et-01"]["identity"] == "self"
+    by_basis = dev["policies"]["C-openpulse"]["by_completeness_basis"]
+    assert {"definitional", "partial"} <= set(by_basis)
+    assert sum(b["pairs"] for b in by_basis.values()) == 60

@@ -76,6 +76,34 @@ def validate(dataset: dict[str, Any]) -> None:
             raise ValueError(f"{cid}: every label needs a rationale and a source")
 
 
+def _completeness_basis(events: list[Any]) -> str:
+    """The basis of each event's admitted completeness declaration, or partial.
+
+    REGISTRATION.md section 4 stratifies every result by it, so that no
+    basis is trusted on the strength of another's results.
+    """
+    bases = sorted(
+        {
+            str(e.scope.basis) if e.scope is not None and e.scope.admits_negative() else "partial"
+            for e in events
+        }
+    )
+    return "+".join(bases) or "none"
+
+
+def _identity_status(dep: dict[str, Any]) -> str:
+    """How the dependency's identity is established: curated, self or heuristic."""
+    from core.entities.identity import package_trust, resolution_trust
+
+    if dep["kind"] == "image":
+        trust = resolution_trust(str(dep["ref"]))
+    else:
+        trust = package_trust(str(dep["package"]), dep.get("ecosystem"))
+    if trust["identity_status"] != "VERIFIED":
+        return "heuristic"
+    return "curated" if trust["via"] in ("explicit", "catalog") else "self"
+
+
 def load_encodings(dataset: dict[str, Any], required: bool = False) -> dict[str, dict[str, Any]]:
     """Every event's frozen R encoding, by event name, each hash verified.
 
@@ -172,6 +200,8 @@ def _run(
                     "event": "+".join(names),
                     "class": dataset["events"][names[0]]["class"],
                     "independent": bool(case.get("independent_label", False)),
+                    "basis": _completeness_basis(events),
+                    "identity": _identity_status(case["dependency"]),
                     "label": case["label"],
                     **decision,
                 }
@@ -207,6 +237,8 @@ def _run(
                 "overall": metrics.summarise(r),
                 "by_class": metrics.stratify(r, "class"),
                 "by_label_independence": metrics.stratify(r, "independent"),
+                "by_completeness_basis": metrics.stratify(r, "basis"),
+                "by_identity_status": metrics.stratify(r, "identity"),
             }
             for name, r in rows.items()
         },
