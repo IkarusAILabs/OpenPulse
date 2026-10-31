@@ -70,6 +70,13 @@ What to expect:
   planned for v0.9.0.
 - **Unsigned contracts.** Evidence-contract documents are not signed. Their
   `signature` fields are always `null` in v1.
+- **No package-trust checks.** OpenPulse does not detect malicious
+  packages. It does not verify artifact signatures or provenance (Sigstore,
+  SLSA, PEP 740), does not check that a package exists in its registry, and
+  does not flag lookalike names or manipulated reputation. An answer
+  without findings is not a statement that a package is safe. MCP answers
+  are advice to the agent, not a security boundary. These checks are
+  planned as track T in `docs/ROADMAP.md`.
 
 ## Hardening already in place
 

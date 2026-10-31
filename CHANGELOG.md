@@ -4,6 +4,17 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Documentation
+
+- **Roadmap: track T, AI Dependency Trust Assurance (planned; a separate future study).** `docs/ROADMAP.md` adds the following:
+  - what exists today and what is planned;
+  - an initial threat model that separates demonstrated techniques from unmeasured prevalence;
+  - six workstreams: identity and impersonation, provenance and integrity, reputation integrity, AI selection evidence, policy enforcement, and evidence contracts;
+  - phases 0–4, with a small first milestone: registry existence for PyPI and npm;
+  - a proposed evaluation plan with research questions RQ1–RQ5.
+
+  Nothing is implemented, and no behaviour, interface, contract or dependency changes. Track R and the TR-2026-01 registration are unchanged.
+
 ### Added
 
 - **Evaluation: the registration amendments of 2026-10-30, implemented** (`evaluation/REGISTRATION.md` §2, §4, §5, §5a). This adds:
