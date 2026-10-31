@@ -54,6 +54,7 @@
 \newcommand{\cachecommit}{\code{0174a26}}
 \newcommand{\agentcommit}{\code{323bb3c}}
 \newcommand{\evalcommit}{\code{56b88e5}}
+\newcommand{\hardencommit}{\code{787beb8}}
 
 \title{Evidence Before Impact:\\
 Upstream Change Intelligence for Dependency Decisions}
@@ -96,10 +97,15 @@ non-blocking label, and catches all 22 historical-defect and
 rule-disabling mutants. An exploratory retrospective study on 27
 historical changes and 167 real dependency references found no false
 clear by the event-scope engine, where a naive reading of the same
-events produced 35 in 10 events. It also exposed a silent-miss
-defect, a discovery gap and a false clear in the separate advisory
-path, each since addressed. Its labels are the developer's, so it is
-not an effectiveness result. We specify a prospective evaluation that
+events produced 35 in 10 events. Zero observed false clears in 27
+events bounds the per-event rate only below $0.105$. It also exposed a
+silent-miss defect, a discovery gap and a false clear in the separate
+advisory path, each since addressed. The fixes were re-measured on the
+same events, so the improved figures are diagnostic. Its labels are
+the developer's, so it is not an effectiveness result. The security
+claim covers event-scope applicability only, under trusted
+completeness declarations and curated identity mappings; it does not
+extend to the advisory path or to agent behaviour. We specify a prospective evaluation that
 would provide one. Its analysis code is implemented, including a
 baseline that reads the same events re-encoded as OSV and OpenVEX.
 Its registration awaits archiving.
@@ -158,7 +164,14 @@ decision.
 \paragraph{Thesis and questions.} \op{} investigates how current
 upstream change evidence can inform dependency decisions made by
 developers and AI coding agents, while preventing incomplete evidence
-from becoming a false clearance. The report is organised around three
+from becoming a false clearance. Its claim is narrower than that
+motivation. \op{} is an evidence and applicability layer that could
+support agent-mediated dependency decisions; it is not a validated
+defence against malicious packages, prompt injection or unsafe agent
+actions, and no agent experiment has been run. The assurance it
+offers is conditional on two trusted inputs: a completeness
+declaration and a curated identity mapping
+(Table~\ref{tab:adversary}). The report is organised around three
 questions:
 \begin{enumerate}[leftmargin=*,label=Q\arabic*.]
   \item What upstream change evidence is missing from a dependency
@@ -209,7 +222,8 @@ questions:
     generated matrix, found three of them and four inconsistencies in
     the specification itself. The negative-admission conditions are now enforced, with
     stated gaps: the freshness bound is opt-in in the engine (the
-    agent interface applies one by default since \agentcommit{}), contradictions are
+    agent interface applies one by default since \agentcommit{}, and
+    the command line since \hardencommit{}), contradictions are
     detected only within an event's own evidence, and declarations are
     recorded but not verified. The audit also found an over-broad
     matching rule (D7), which is fixed: element roles now keep
@@ -269,8 +283,9 @@ under the Apache License~2.0.
 \toprule
 Change & What it does & Error it removes \\
 \midrule
-F1: identity per ecosystem & A package resolves to a project only
-  through a curated (ecosystem, name) pair; every catalogue entry now
+F1: identity per ecosystem & A package with a stated ecosystem
+  resolves to a project only through a curated (ecosystem, name) pair
+  (one with none, through a curated bare-name alias); every catalogue entry now
   lists its packages. PyPI \code{redis} (redis-py) had been treated as
   the Redis server & False impact \\
 F2: project package element & A package-scope value that names the
@@ -316,6 +331,13 @@ Registered analysis (\evalcommit{}, after \currentcommit{}) & The
   tests S3 and G4; the burden (W1--W3) and input-reliability (D1--D2)
   measures; the stopping rule and inclusion criteria
   (Section~\ref{sec:evalplan}) & -- \\
+Freshness everywhere (\hardencommit{}, after \currentcommit{}) & The
+  command line's verdict commands run in the agent tools' current mode
+  by default (90-day bound; \code{--replay} drops it and says so);
+  adversarial-input tests (Table~\ref{tab:adversary}); evaluation strata
+  by completeness basis and identity status, pair-level false-clear
+  bounds, deduplicated review items & CLI negatives on evidence of any
+  age \\
 \bottomrule
 \end{tabularx}
 \caption{Changes from the audit snapshot \pincommit{} to the current
@@ -1568,32 +1590,43 @@ the contract is machine-checkable once the data are recorded. At
 \pincommit{}, (N1) and (N2) are enforced and regression-tested. (N3)
 is enforced: a declaration without a recorded basis never clears.
 (N4) is enforced for withdrawn and superseded events, and for
-freshness only when the caller sets a bound. (N5) is enforced for a
-contradiction within an event's own evidence, not between separate
-events. Each enforced part has a regression test. Failure to establish identity is not
+freshness only when the caller sets a bound. The agent tools (since
+\agentcommit{}) and the command line (since \hardencommit{}) set one
+by default; only the library call and an explicit replay omit it. (N5)
+is enforced for a contradiction within an event's own evidence, in
+every interface. Between separate events no contradiction is detected,
+but the cross-event summary withholds a negative whenever any loaded
+event associates the dependency, so two disagreeing events yield an
+association, never a clear (Table~\ref{tab:adversary}). What remains
+trusted is the set of loaded events: an event that failed to load, or
+a superseding record whose scope is wrongly narrower, is not
+detected. Each enforced part has a regression test. Failure to establish identity is not
 evidence of non-identity, and (N2) is that principle stated as a
 check.
 
 \begin{table}[t]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.9cm}@{}}
 \toprule
-Premise component & Established by & At \pincommit{} \\
+Premise component & Established by & At \pincommit{} & Checked or trusted \\
 \midrule
-P1: event is faithful & Evidence gate, authority & Unsupported claims vetoed; a well-sourced wrong event is not detected \\
-P1: elements are the right ones & Gate (artefact classes) & Missing element not detected \\
-P1: completeness & $\chi$ & Opt-in declaration; never verified \\
-P1: currency, non-supersession & Layer 1 of Algorithm~\ref{alg:agg} & Withdrawn and superseded events dropped; freshness bound opt-in (Section~\ref{sec:temporal}) \\
-P2: identity & Resolver, trust status & Heuristics cannot exclude; a wrong \textsc{Verified} mapping is not detected \\
-P2: version semantics & Comparator, range evaluator & Scheme per range; differential for PEP~440, npm, Go and Maven; others untested \\
-P2: tag and object semantics & Matcher & Tag elements and predicates; unequal digests withheld as undetermined \\
-P2: inventory fidelity & Consumer & Outside \op{}: the declared reference is assumed to be what is deployed \\
-P3: exactness (positives) & Element roles & Envelopes never give positives; exactness of exact elements rests on curation \\
-P4: membership soundness & Matcher, canonical form & Docker Hub hosts folded (D9); package-name forms not canonical \\
+P1: event is faithful & Evidence gate, authority & Unsupported claims vetoed; a well-sourced wrong event is not detected & Trusted \\
+P1: elements are the right ones & Gate (artefact classes) & Missing element not detected & Trusted; D1 \\
+P1: completeness & $\chi$ & Opt-in declaration; never verified & Trusted per basis; D1 \\
+P1: currency, non-supersession & Layer 1 of Algorithm~\ref{alg:agg} & Withdrawn and superseded events dropped; freshness bound opt-in (Section~\ref{sec:temporal}) & Checked (bound default in agent and CLI) \\
+P2: identity & Resolver, trust status & Heuristics cannot exclude; a wrong \textsc{Verified} mapping is not detected & Curated mapping trusted; D2 \\
+P2: version semantics & Comparator, range evaluator & Scheme per range; differential for PEP~440, npm, Go and Maven; others untested & Checked (differential) \\
+P2: tag and object semantics & Matcher & Tag elements and predicates; unequal digests withheld as undetermined & Checked (oracle) \\
+P2: inventory fidelity & Consumer & Outside \op{}: the declared reference is assumed to be what is deployed & Outside \\
+P3: exactness (positives) & Element roles & Envelopes never give positives; exactness of exact elements rests on curation & Trusted \\
+P4: membership soundness & Matcher, canonical form & Docker Hub hosts folded (D9); package-name forms not canonical & Checked (oracle) \\
 \bottomrule
 \end{tabularx}
-\caption{Decomposition of the lemmas' premises.}
+\caption{Decomposition of the lemmas' premises. The last column says
+whether a premise is checked by code or tests, or is a trusted input,
+and which held-out measure (D1, D2; Section~\ref{sec:evalplan})
+estimates how often a trusted input is wrong.}
 \label{tab:premises}
 \end{table}
 
@@ -2293,6 +2326,64 @@ Downstream use & Injection via free-text fields & not handled & Structural
 \label{tab:threats}
 \end{table}
 
+\paragraph{Adversarial capabilities against a negative.}
+Table~\ref{tab:adversary} takes the attacker's view of the decision the
+report is about: can a manipulated input make the event-scope engine
+clear a dependency that is in scope? For each capability it states
+the mechanism and the test that pins it. Two inputs are trusted and
+the rest cannot produce a negative. A completeness declaration that
+omits an affected artefact yields a false clear by design, because the
+lemma assumes the declaration is true. A wrong curated identity
+mapping can do the same. The guarantee is therefore conditional on a
+trusted-declaration model: \op{} checks that a declaration exists
+and records its basis, and the held-out evaluation measures how often
+declarations of each basis, and curated mappings, are wrong (D1, D2).
+The tests are regression tests over constructed inputs, not an
+adversarial evaluation over a representative population.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.1cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.9cm}@{}}
+\toprule
+Attacker capability & Effect on a negative, and why & Status \\
+\midrule
+Misleading or incomplete announcement & Undeclared: never clears. Declared
+  complete: trusted, so an omitted artefact is falsely cleared; basis
+  recorded & Trusted; D1 \\
+Compromised upstream account & As above: recorded faithfully, never read
+  as trust & Out of scope \\
+Manipulated metadata, names, redirects, tags & Exclusion needs a curated
+  mapping; an unmapped lookalike resolves only to itself (D10); literal
+  tags compare by exact spelling; unequal digests undetermined & Checked;
+  mapping trusted (D2) \\
+Package--source ambiguity & A Go module reaches its repository
+  positively only (D-R1); a stated ecosystem needs a curated
+  (ecosystem, name) pair; with none, a curated bare-name alias decides &
+  Checked; alias trusted (D2) \\
+Inconsistent evidence across sources & Within an event, a contradiction
+  withholds the negative in every interface (N5); across events, any
+  association beats a clear; copies counted as independent are not
+  detected & Checked; copies not handled \\
+Stale, failed or superseding evidence & A stale event cannot clear under
+  the default bound; a retracted event is dropped (a silent miss, never a
+  clear); an event that failed to load, or a wrongly narrow superseding
+  record, is not detected & Checked; loaded set trusted \\
+Reference that cannot be canonicalised & Undetermined, never excluded &
+  Checked \\
+Influence on the downstream agent or policy & Upstream text never changes
+  a verdict; whether an agent respects unresolved states is untested &
+  Engine checked; agent untested \\
+\bottomrule
+\end{tabularx}
+\caption{Attacker capabilities against a negative verdict, at
+\hardencommit{}. ``Checked'': pinned by
+\code{tests/test\_adversarial\_inputs.py} or the regression suite on
+constructed inputs. ``Trusted'': a premise, estimated on held-out
+events by D1 or D2.}
+\label{tab:adversary}
+\end{table}
+
 \section{Q3: Development Case Ledger}
 \label{sec:cases}
 
@@ -2692,6 +2783,18 @@ express, such as ``every image under this namespace'', is recorded per
 event as encoding loss. (vi)'s results are also reported on the events
 with no loss, so that a poor encoding cannot flatter \op{}.
 
+\paragraph{What each comparison can show.} The baselines answer
+different questions and are not interchangeable competitors. The
+naive baseline shows the cost of reading absence as exclusion. The
+minimal reference (iv) is a safe floor: beating it establishes safety
+and a minimum of usefulness (H1, H2), not superiority over careful
+practice. The report's practical conclusion rests on the two strong
+comparisons. S3 against (vi) asks whether the model decides correctly
+more often than a careful consumer of existing formats. S1 against
+(v) asks whether the engine adds anything to a careful implementation
+of the same model. Both are reported overall, and (vi) also on events
+with no encoding loss, where the formats do not disadvantage it.
+
 The comparison chain (iv)$\to$(vi)$\to$(v)$\to$\op{} attributes
 resolution gains in turn to three sources: existing formats with a
 careful consumer, the typed model, and the engine. Each step is
@@ -2739,6 +2842,33 @@ semantics. \code{dpkg} ordering is out of scope, and Debian versions
 remain undetermined. Ablate the gate, the identity cap, completeness
 and the coverage qualifier.
 
+\paragraph{Two evaluation domains.} The registered study evaluates
+\emph{upstream-change applicability}: relocation, archival,
+distribution and lifecycle events linked to dependency references
+labelled from primary evidence. \emph{Advisory applicability}, which
+correlates vulnerability advisories by package, identity and version
+range, is a second domain with its own decision path, and the only one
+in which a false clear has been observed (Section~\ref{sec:retro}). It
+needs its own benchmark. The design
+(\code{evaluation/advisory/DESIGN.md}) freezes advisory snapshots as they
+stood on each date. It includes advisories without a CVE identifier,
+multi-package advisories, withdrawn advisories and version-only
+entries. It reports false clears, false impacts and unresolved
+decisions separately from the event-scope results. No result of one
+domain is claimed for the other.
+
+\paragraph{Safety reporting.} Each policy's false-clear share is
+reported per event, with an exact bound, and per pair. The pair-level
+share carries two bounds: an exact one that treats pairs as
+independent, which is optimistic, and an event-clustered bootstrap
+bound, which is withheld when no false clear is observed because it
+would have zero width. Zero observed false clears is reported as an
+observation, never as evidence that the rate is below a bound. Every
+result is also reported per completeness basis and per identity status,
+so that no basis is trusted on the strength of another's results.
+Review burden is reported with the actionable share and the number of
+unique review items after deduplication across inventories and cycles.
+
 \paragraph{Population.} Events are sampled from sources that do not
 feed \op{}: vendor and project announcements, distribution
 changelogs, and platform transfer and archival records, over an
@@ -2783,14 +2913,21 @@ actionable verdict for an affected pair. Build an
 independent reference set from sources that do not feed \op{}: vendor
 notices, distribution changelogs and manual review of a random sample.
 Report detections per event class, recall bounds limited to the
-reference set's coverage, and leads with monitoring context, as
+reference set's coverage, time to detection, and leads with
+monitoring context, as
 lead-time distributions rather than single values. Report four
 outcomes separately and never combine them into one lead-time claim:
 detection of a change already documented elsewhere; earlier detection
 of a change not yet in a relevant catalogue; discovery of a change that
 existing tools do not represent; and improved applicability of an
 already known change. Only the middle two measure additional
-discovery value. Measured recall is over the reference set; it is not
+discovery value. Discovery recall and time to detection are reported
+apart from the applicability metrics (false clears, false impacts,
+unresolved rate) and never combined with them: a correct engine cannot
+compensate for an event the collectors never saw. The eligible
+population is the reference set's events in the observation window,
+and an event counts as missed if no collector detects it before the
+window closes. Measured recall is over the reference set; it is not
 an estimate over all upstream changes. Events missed by both \op{} and the
 reference set cannot be counted. The overlap between the two gives a
 capture--recapture estimate of their number. We report it only as an
@@ -2845,8 +2982,9 @@ are reported per model and per task, not as one aggregate success
 rate.
 
 \paragraph{Cost and scale.} Measure along five dimensions: inventory
-size, number of loaded events, scope size, registry tag count and
-history length. Report separately the cost of offline matching and the
+size (small, medium and large), number of loaded events, scope size,
+registry tag count and history length, over repeated monitoring cycles
+rather than a single run. Report separately the cost of offline matching and the
 cost of upstream acquisition. Use small and large representative
 inventories, cache-cold and cache-warm runs, and injected failures.
 Compare candidate filtering by index with all-pairs evaluation, and
@@ -3042,7 +3180,14 @@ falsely cleared 35 pairs in 10 events; the event-level difference is
 significant (Holm-adjusted $p = 0.0004$). With 27 events the one-sided
 95\% upper bound on C's per-event false-clear share is $0.105$, above
 the pre-specified margin, and 27 is below the 60 events the pre-specified
-safety test needs, so non-inferiority is not decidable here. The gain
+safety test needs, so non-inferiority is not decidable here. At pair
+level, C cleared none of 103 in-scope pairs. The exact bound of
+$0.029$ treats those pairs as independent, which they are not (they
+cluster in 27 events), so the event-level $0.105$ is the honest one.
+For A, $35$ of $103$ in-scope pairs ($0.340$; event-clustered upper
+bound $0.486$) and 10 of 27 events (upper bound $0.547$). Zero observed
+false clears is an observation about these 27 events, not evidence of a
+low real-world rate. The gain
 in resolution over B ($0.091$, 95\% CI $[-0.054, 0.245]$) misses the
 pre-specified $0.10$, and equivalence with V within $\pm 0.05$ is not
 shown ($0.030$, 90\% CI $[0.000, 0.075]$). C's advantage is
@@ -3097,7 +3242,8 @@ $0.031$); C leads V by $0.109$; there is still no false clear; and
 discovery detects all three relocations, naming exactly the announced
 artefact. These figures are post hoc: the fixes were written after
 seeing the errors on the same events, so they show what caused the
-errors, not unbiased performance.
+errors, not unbiased performance on unseen events, and they are never
+pooled with a confirmatory result.
 
 \paragraph{Where C and V differ.} After the fixes, C and V decide 23
 of the 167 pairs differently, and only through the two mechanisms
@@ -3159,15 +3305,19 @@ are not established (Table~\ref{tab:premises}). The report shows that
 the aggregation is sound under its premises, not that the deployed
 system meets them often enough to justify its negatives. Completeness is
 declared, never verified, though each declaration now records its
-basis. The freshness bound is off unless the caller sets it, and the
-implementation's regression tests are chosen cases. The conformance
+basis, so the assurance holds under a trusted-declaration model
+(Table~\ref{tab:adversary}). The freshness bound is set by default in
+the agent tools and the command line, but not in the library call, and
+the implementation's regression tests are chosen cases. The conformance
 matrix covers chosen dimensions, and its oracle was written by the
 same team. Interim rules withhold negatives where
 semantics are missing (OCI levels), at the cost of more undetermined
 verdicts. All fifteen enumerated defects have regression fixes. Known
 gaps in the negative-admission conditions remain: freshness is opt-in
-outside the agent interface;
-conflicts between separate events are not detected; package names are
+in the library call (the agent tools and the command line set a bound);
+conflicts between separate events are not detected, although any
+association among loaded events blocks a clear; a failed acquisition
+does not withdraw a negative; package names are
 not canonicalised at \pincommit{}, and are made undetermined instead
 (at \currentcommit{} they are compared per ecosystem, and qualified
 values decide by ecosystem and name; Table~\ref{tab:since}); and
@@ -3243,9 +3393,17 @@ by the event-scope engine where a naive reader issued 35, and it also
 found what conformance alone could not: a reference form the engine
 never matched, a discovery path that saw nothing it had not been told
 about, and a false clear in a decision path the audit had not
-exercised. Each is fixed and reported. Whether the evidence changes
-dependency decisions, for developers or for agents, is the question
-the evaluation in Section~\ref{sec:evalplan} is designed to answer.
+exercised. Each is fixed and reported, and the re-measured figures
+are diagnostic, not estimates on unseen events. The defensible thesis
+is therefore narrow. It is a testable assurance model that makes the
+conditions for a negative explicit, an audit of one implementation
+against it, and a pre-specified study of its safety--coverage
+trade-off against a strong conservative baseline and a careful consumer
+of existing formats. The assurance holds under trusted completeness
+declarations and curated identity mappings, for event-scope decisions
+only. Whether the evidence changes dependency decisions, for
+developers or for agents, is the question that study and a separate
+agent experiment are designed to answer.
 
 \section*{Availability and Collaboration}
 \op{} is open source under the Apache License~2.0 at
