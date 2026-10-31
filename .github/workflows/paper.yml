@@ -1,7 +1,8 @@
 name: paper
 # Builds papers/tr-2026-01 (TR-2026-01) with latexmk and uploads the PDF
 # and the build log, so the published PDF always comes from the committed
-# source. The authoring machine has no TeX installation.
+# source, plus a verified arXiv source bundle. The authoring machine has
+# no TeX installation.
 on:
   pull_request:
     paths: ['papers/**', '.github/workflows/paper.yml']
@@ -31,3 +32,29 @@ jobs:
             papers/tr-2026-01/main.log
             papers/tr-2026-01/main.blg
           if-no-files-found: warn
+      # arXiv bundle: arXiv publishes the source and does not run BibTeX,
+      # so ship main.tex without full-line comments plus the generated
+      # main.bbl, then rebuild the bundle with BibTeX disabled to prove it
+      # compiles the way arXiv will compile it.
+      - name: Assemble arXiv bundle
+        run: |
+          mkdir -p arxiv
+          sed '/^[[:space:]]*%/d' papers/tr-2026-01/main.tex > arxiv/main.tex
+          cp papers/tr-2026-01/main.bbl arxiv/main.bbl
+      - uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: main.tex
+          working_directory: arxiv
+          args: "-pdf -bibtex- -file-line-error -halt-on-error -interaction=nonstopmode"
+      - name: Check and pack arXiv bundle
+        run: |
+          ! grep -E "LaTeX Warning: (Reference|Citation) .* undefined|There were undefined references" arxiv/main.log
+          tar -czf tr-2026-01-arxiv.tar.gz -C arxiv main.tex main.bbl
+          tar -tzf tr-2026-01-arxiv.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tr-2026-01-arxiv
+          path: |
+            tr-2026-01-arxiv.tar.gz
+            arxiv/main.pdf
+          if-no-files-found: error

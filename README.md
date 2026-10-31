@@ -488,4 +488,4 @@ Apache-2.0 — see [LICENSE](LICENSE). Use, modification and distribution, inclu
 
 If you use OpenPulse or its results in research, please cite the technical report. [`CITATION.cff`](CITATION.cff) gives the citation in machine-readable form.
 
-> Mehmet KI. *Evidence Before Impact: Upstream Change Intelligence for Dependency Decisions.* Technical Report TR-2026-01, Ikarus AI Labs, Cambridge, UK, 31 October 2026. OpenPulse v0.8.0. https://github.com/IkarusAILabs/OpenPulse
+> Mehmet Kış. *Evidence Before Impact: Upstream Change Intelligence for Dependency Decisions.* Technical Report TR-2026-01, Ikarus AI Labs, Cambridge, UK, 31 October 2026. OpenPulse v0.8.0. https://github.com/IkarusAILabs/OpenPulse
