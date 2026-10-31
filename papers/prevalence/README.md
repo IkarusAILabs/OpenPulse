@@ -18,7 +18,8 @@ Target venue: *Empirical Software Engineering* (research article).
 | `collect.py` | Collector: frame, sample and measures. Standard library only |
 | `analysis.py` | The pre-specified analysis; writes `RESULTS.md` for a run |
 | `test_collect.py` | Tests for the repository-URL rule. Outside the repository's `tests/`, so CI doesn't run them: `python -m pytest papers/prevalence/test_collect.py` |
-| `paper/main.tex` | Manuscript draft. Every result is a red `[RESULT: …]` placeholder until the frozen run exists |
+| `paper/main.tex` | Manuscript draft. Numbers come from `paper/results.tex`; what is still missing is a red `[RESULT: …]` placeholder |
+| `paper/tables.py` | Writes `paper/results.tex` (tables and named values) from a run, with the definitions of `analysis.py` |
 | `data/pilot-v1/`, `data/pilot-v2/` | Instrument pilots (top 100 per ecosystem). **Not results**: they were used only to fix the measures (see below) |
 
 ## Status
@@ -30,7 +31,7 @@ Target venue: *Empirical Software Engineering* (research article).
 | Protocol frozen | done: `data/FREEZE.md` (tag `prevalence-freeze-2026-10-31`) |
 | Main collection | done 2026-10-31: `data/main/` (6,000 packages, `RESULTS.md`); `raw.jsonl.gz` (615 MB) goes to Zenodo |
 | Ratings (§6) | not started; needs at least one rater who is not the author |
-| Paper results | not started |
+| Paper results | done from the frozen run via `paper/tables.py` → `paper/results.tex` (checked in CI); validation ratings and Discussion still open |
 
 ## Running
 
