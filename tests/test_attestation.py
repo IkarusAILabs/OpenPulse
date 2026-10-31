@@ -169,9 +169,11 @@ def test_unknown_relationship_stated(django_event):
 
     The version-scoped django event identity-EXCLUDES unrelated refs
     (NOT_AFFECTED, the #42 fix), so a true UNKNOWN needs the scopeless
-    shape: an unscoped event and a dep from a different project."""
+    shape: an unscoped event and a dep from a different project. That
+    dep must be curated as another project: an unmapped ref is
+    unresolved, hence RELATED, never UNKNOWN (TR-2026-01 D10)."""
     scopeless = django_event.model_copy(update={"scope": None, "project_slug": "totally-other"})
-    dep = {"kind": "image", "ref": "docker.io/unrelated/thing:1"}
+    dep = {"kind": "image", "ref": "docker.io/library/mysql:8"}
     verdict = check_dependency(dep, [scopeless])
     contract = build_contract(scopeless, verdict)
     assert contract.assessment.relationship == "UNKNOWN"

@@ -1,0 +1,21 @@
+{
+ "pep440_pairs": {
+  "versions": 483,
+  "pairs": 233289,
+  "agree": 224676,
+  "abstain": 6685,
+  "reference_invalid": 1928,
+  "disagreements": []
+ },
+ "pypi_ranges": {
+  "agree": 7110,
+  "abstain": 105,
+  "disagreements": []
+ },
+ "semver": {
+  "specification_vectors": 11,
+  "vector_failures": [],
+  "order_inconsistencies": 0,
+  "range_failures": []
+ }
+}

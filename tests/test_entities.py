@@ -206,3 +206,158 @@ def test_private_registry_images_do_not_cross_match():
 
     assert match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/redis:6")
     assert not match_artifact("localhost:5000/team/redis:7", "localhost:5000/team/nginx:1")
+
+
+def test_package_identity_is_per_ecosystem():
+    """F1: a package name identifies a project only inside its ecosystem."""
+    from core.entities.identity import package_trust
+
+    assert package_trust("redis", "PyPI")["slug"] == "redis-py"
+    assert package_trust("redis", "npm")["slug"] == "node-redis"
+    assert package_trust("Django", "PyPI")["slug"] == "django"
+    # PEP 503 folding for PyPI names.
+    assert package_trust("django", "pypi")["slug"] == "django"
+
+
+def test_alias_of_a_package_curated_project_is_not_identity():
+    """Redis declares no packages, so a Maven `redis` that only shares the
+    alias is unresolved (qualified by ecosystem), never the server."""
+    from core.entities.identity import package_trust
+
+    trust = package_trust("redis", "Maven")
+    assert trust["via"] == "self"
+    assert trust["slug"] == "maven:redis"
+
+
+def test_package_without_ecosystem_keeps_name_resolution():
+    from core.entities.identity import package_trust
+
+    for ecosystem in (None, "", "generic"):
+        assert package_trust("redis", ecosystem)["slug"] == "redis"
+
+
+def test_redis_py_end_of_life_is_not_the_servers():
+    """End to end: Redis server 6.2 EOL says nothing about redis-py 6.2.0."""
+    import json
+    from datetime import date
+
+    from analyzers.change_analyst import analyze
+    from analyzers.lifecycle_events import finding_to_event
+    from core.risk.check import check_dependency
+
+    raw = json.load(open("data/fixtures/redis/raw_bundle.json", encoding="utf-8"))
+    (finding,) = [f for f in analyze(raw, today=date(2026, 9, 26)) if f["event_type"] == "EOL"]
+    event = finding_to_event(finding, "redis", today=date(2026, 9, 26))
+    client = {"kind": "package", "package": "redis", "ecosystem": "PyPI", "version": "6.2.0"}
+    unknown_eco = {"kind": "package", "package": "redis", "ecosystem": "Maven", "version": "6.2.0"}
+    assert check_dependency(client, [event]).relationship == "UNKNOWN"
+    assert check_dependency(unknown_eco, [event]).relationship == "RELATED"
+
+
+#: Ecosystem names as the readers emit them (manifest, lockfile, SBOM).
+_ECOSYSTEMS = {"PyPI", "npm", "Maven", "Go", "crates.io"}
+
+
+def test_every_catalog_entry_curates_its_packages():
+    """Package curation (2026-10-30): every entry states which packages ARE
+    the project, possibly none. A new entry without the list would let a
+    same-named package of another ecosystem resolve to it by name (F1)."""
+    from core.entities.catalog import load_catalog, package_name_key
+
+    claimed = {}
+    for entry in load_catalog():
+        assert "packages" in entry, entry["slug"]
+        for package in entry["packages"]:
+            assert package["ecosystem"] in _ECOSYSTEMS, (entry["slug"], package)
+            name = str(package["name"])
+            assert name == name.strip() and "@" not in name.lstrip("@"), (entry["slug"], name)
+            if package["ecosystem"] == "Maven":
+                assert name.count("/") == 1 and ":" not in name, (entry["slug"], name)
+            key = package_name_key(package["ecosystem"], name)
+            assert claimed.setdefault(key, entry["slug"]) == entry["slug"], key
+
+
+def test_registry_name_collisions_resolve_per_ecosystem():
+    from core.entities.identity import package_trust
+
+    resolved = {
+        ("npm", "@angular/core"): "angular",
+        ("PyPI", "torch"): "pytorch",
+        ("Maven", "org.apache.kafka:kafka-clients"): "kafka",
+        ("Maven", "com.itextpdf:sign"): "itext",
+        ("PyPI", "apache-airflow"): "airflow",
+        ("crates.io", "serde"): "serde",
+    }
+    for (ecosystem, name), slug in resolved.items():
+        assert package_trust(name, ecosystem)["slug"] == slug, (ecosystem, name)
+    # Same names, different projects: unresolved, never the server or framework.
+    for ecosystem, name in [
+        ("npm", "angular"),  # AngularJS 1.x
+        ("PyPI", "kubernetes"),  # the Python client
+        ("PyPI", "kafka"),  # an old kafka-python name
+        ("npm", "mongodb"),  # the Node.js driver
+        ("PyPI", "pytorch"),  # a placeholder
+        ("PyPI", "elasticsearch"),  # the Python client
+    ]:
+        assert package_trust(name, ecosystem)["via"] == "self", (ecosystem, name)
+
+
+
+def test_normalize_ref_keeps_a_leading_npm_scope():
+    from core.entities.resolve import normalize_ref
+
+    assert normalize_ref("@types/node") == "@types/node"
+    assert normalize_ref("@Colors/Colors") == "@colors/colors"
+    assert normalize_ref("@babel/core@7.0.0") == "@babel/core"  # a version suffix is still cut
+    assert normalize_ref("redis@sha256:abc") == "redis"  # digests are unchanged
+    assert normalize_ref("ghcr.io/org/app:1.2@sha256:abc") == "ghcr.io/org/app"
+
+
+def test_scoped_npm_packages_have_distinct_identities():
+    """Every uncatalogued scoped package used to share the empty identity."""
+    from core.entities.identity import package_trust
+
+    slugs = {p: package_trust(p, "npm")["slug"] for p in ("@types/node", "@babel/core")}
+    assert slugs == {"@types/node": "@types/node", "@babel/core": "@babel/core"}
+    # A scoped fork is not the unscoped package it forked.
+    assert package_trust("@colors/colors", "npm")["slug"] != package_trust("colors", "npm")["slug"]
+    # A curated scoped package still resolves through the catalog.
+    assert package_trust("@angular/core", "npm")["via"] == "catalog"
+
+
+def test_derived_catalog_maps_are_memoised_per_catalog_object():
+    """Identity resolution rebuilt these maps on every dependency check."""
+    from core.entities.catalog import (
+        catalog_alias_map,
+        load_catalog,
+        package_curated_slugs,
+        package_map,
+    )
+
+    catalog = load_catalog()
+    for build in (package_map, package_curated_slugs, catalog_alias_map):
+        assert build(catalog) is build(catalog)
+    assert package_map() is package_map(catalog)  # the default is the same object
+
+
+def test_derived_catalog_maps_follow_a_different_or_grown_catalog():
+    from core.entities.catalog import load_catalog, package_map
+
+    base = list(load_catalog())
+    extra = {"slug": "zz-new", "packages": [{"ecosystem": "npm", "name": "zz-new-pkg"}]}
+    other = [*base, extra]
+    assert ("npm", "zz-new-pkg") not in package_map(base)
+    assert package_map(other)[("npm", "zz-new-pkg")] == "zz-new"
+    base.append(extra)  # grown in place: the length guard rebuilds
+    assert package_map(base)[("npm", "zz-new-pkg")] == "zz-new"
+
+
+def test_derived_catalog_maps_are_read_only():
+    import pytest
+
+    from core.entities.catalog import catalog_alias_map, load_catalog, package_map
+
+    with pytest.raises(TypeError):
+        package_map()[("npm", "x")] = "y"
+    with pytest.raises(TypeError):
+        catalog_alias_map(load_catalog())["x"] = "y"

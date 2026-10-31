@@ -1,0 +1,69 @@
+name: retrospective
+# The retrospective study's run (evaluation/retrospective/DESIGN.md §7): the
+# implementation at the freeze tag, the frozen case file and fixtures from
+# this commit, with baseline V's pinned comparators required. Uploads the
+# results file; the run never changes the case file (its SHA-256 is checked).
+# `implementation` selects another commit for a run reported separately as
+# "after fixes" (DESIGN §7); pull requests always run the freeze tag.
+on:
+  pull_request:
+    paths: ['evaluation/retrospective/**', '.github/workflows/retrospective.yml']
+  workflow_dispatch:
+    inputs:
+      implementation:
+        description: Commit or tag to evaluate (default the freeze tag)
+        default: retro-freeze-2026-10-30
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # `shell: bash` adds pipefail, so a failed run is not hidden by `tee`.
+    defaults: {run: {shell: bash}}
+    steps:
+      # The implementation: the freeze tag unless a dispatch names another.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
+      # The study data: this commit's evaluation/retrospective only.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {path: study}
+      - env: {IMPLEMENTATION: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
+        run: |
+          if [ "$IMPLEMENTATION" = retro-freeze-2026-10-30 ]; then
+            test "$(git rev-parse HEAD)" = 3639a0fb59e393b4f49dfee2dfffdc1c85e993c6
+          fi
+          rm -rf evaluation/retrospective
+          cp -r study/evaluation/retrospective evaluation/retrospective
+          rm -rf study
+          cd evaluation/retrospective/cases && sha256sum -c retro-2026-11.json.sha256
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with: {python-version: '3.11'}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: '24.22.0'}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version-file: evaluation/comparators/go/go.mod, cache: false}
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with: {distribution: temurin, java-version: '25'}
+      - run: python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .
+      - run: npm ci
+        working-directory: evaluation/comparators/npm
+        env: {npm_config_ignore_scripts: 'true'}
+      - run: go build -mod=readonly -trimpath -o bridge .
+        working-directory: evaluation/comparators/go
+      - run: python evaluation/comparators/maven/fetch.py
+      - run: python evaluation/run.py --require-comparators --cases evaluation/retrospective/cases/retro-2026-11.json 2>&1 | tee "$RUNNER_TEMP/run.log"
+      # Discovery (DESIGN §8): live collectors with the job's read-only token.
+      - run: python evaluation/retrospective/discovery.py --out "$RUNNER_TEMP/discovery.json" 2>&1 | tee "$RUNNER_TEMP/discovery.log"
+        env: {GITHUB_TOKEN: '${{ github.token }}'}
+      - run: cp evaluation/results/openpulse-retro-2026-11.json "$RUNNER_TEMP/" && git rev-parse HEAD > "$RUNNER_TEMP/implementation-commit.txt"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: retrospective-results
+          path: |
+            ${{ runner.temp }}/openpulse-retro-2026-11.json
+            ${{ runner.temp }}/run.log
+            ${{ runner.temp }}/implementation-commit.txt
+            ${{ runner.temp }}/discovery.json
+            ${{ runner.temp }}/discovery.log
+          if-no-files-found: warn

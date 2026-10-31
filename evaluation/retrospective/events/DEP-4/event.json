@@ -1,0 +1,40 @@
+{
+ "id": "retro-dep-4",
+ "project_slug": "node-sass",
+ "event_type": "PROJECT_ARCHIVED",
+ "title": "Node Sass end of life",
+ "summary": "Node Sass was declared end-of-life: the npm package deprecated and the repository archived on 2024-07-24.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "npm",
+   "ref": "npm:node-sass"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "sass-lang/node-sass-is-end-of-life",
+    "url": "https://sass-lang.com/blog/node-sass-is-end-of-life/",
+    "authority": "official",
+    "fetched_at": "2024-08-12T01:12:39Z",
+    "acquisition_method": "wayback:20240812011239 http://web.archive.org/web/20240812011239/https://sass-lang.com/blog/node-sass-is-end-of-life/",
+    "family": "sass"
+   },
+   "excerpt": "The npm package has been marked as deprecated, and the GitHub repository has been archived.",
+   "relation": "supports",
+   "announcement_date": "2024-07-24",
+   "effective_date": "2024-07-24"
+  }
+ ],
+ "created_at": "2024-08-12T01:12:39Z",
+ "scope": {
+  "kind": "package",
+  "packages": [
+   "pkg:npm/node-sass"
+  ],
+  "exhaustive": true,
+  "basis": "definitional"
+ }
+}

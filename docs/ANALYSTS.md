@@ -40,7 +40,7 @@ Every lifecycle and distribution finding is machine-scoped and dated:
 `lifecycle_state` (`EFFECTIVE`/`UPCOMING`), `effective_at`,
 `observed_at`, and — for registry findings — `significance`
 (low/medium/high) assessed from the observation itself, never from
-assumed customer usage (`analyzers/change_analyst.py`).
+assumed user deployments (`analyzers/change_analyst.py`).
 
 Registry findings label `detection_method`: `registry_observation`
 for direct probe/diff facts, `namespace_heuristic` for the
@@ -117,7 +117,7 @@ framing in `core/risk/impact.py:_public_change`.
 
 ## Assessment vocabulary and eligibility (`core/risk/impact.py`)
 
-An analyst `impact` is a proposal made without customer context.
+An analyst `impact` is a proposal made without dependency context.
 `evaluate_impact` decides what a finding *is eligible for* in a
 report — assessment (what kind of claim) and eligibility (where it
 may appear) are decided together; a proposal never travels straight
@@ -127,7 +127,7 @@ to placement:
   Example: a security finding without established dependency impact,
   or an unclassified change (`_public_security`, `_public_change`).
 - `PROJECT_CHANGE` — a scoped ecosystem change: what changed, with
-  versions/artifacts/dates. Never customer impact. Example: an EOL
+  versions/artifacts/dates. Never impact on a user's environment. Example: an EOL
   effective for scoped versions, an archived upstream, a registry
   disappearance (`_public_change`).
 - `AFFECTS_DEPENDENCY` — a linked inventory entry matches. Only

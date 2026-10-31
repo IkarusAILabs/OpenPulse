@@ -12,6 +12,7 @@ Precedence:
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from functools import lru_cache
 
 EXPLICIT_ALIASES = {
@@ -36,23 +37,37 @@ BITNAMI_NAMESPACES = (
 )
 
 
+#: Hosts that serve Docker Hub under another name. A reference spelled
+#: with one of them is the same image as its docker.io spelling, so it
+#: must canonicalise to docker.io: otherwise a docker.io namespace scope
+#: declared complete clears it (TR-2026-01 D9).
+_DOCKER_HUB_HOSTS = re.compile(r"^((?:[a-z][a-z0-9+.-]*://)?)(?:index|registry-1)\.docker\.io/")
+
+
 def normalize_ref(ref: str) -> str:
-    """Lowercase, strip `@digest`, then `:tag` from the LAST path segment.
+    """Lowercase, fold Docker Hub host aliases, strip `@digest`, then
+    `:tag` from the LAST path segment.
 
     A colon in an earlier segment is a registry port or URL scheme, never
     a tag: `localhost:5000/team/redis:7` is `localhost:5000/team/redis`,
     not `localhost` (which would give every image on that registry one
     identity). Single-segment refs keep the old behavior - `name:tag`
     and maven `group:artifact` both cut at the first colon.
+
+    A digest's `@` always follows a name character (`redis@sha256:...`).
+    An `@` that starts a segment is part of the name: npm scopes
+    (`@types/node`) resolved to the empty string before, so every scoped
+    package shared one empty identity.
     """
     r = ref.strip().lower()
-    r = re.sub(r"@.*$", "", r)  # strip @digest
+    r = _DOCKER_HUB_HOSTS.sub(r"\1docker.io/", r)
+    r = re.sub(r"(?<=[^/])@.*$", "", r)  # strip @digest, never a leading @scope
     head, sep, last = r.rpartition("/")
     return head + sep + re.sub(r":.*$", "", last)  # strip :tag
 
 
 @lru_cache(maxsize=1)
-def _catalog_map() -> dict[str, str]:
+def _catalog_map() -> Mapping[str, str]:
     try:
         from core.entities.catalog import catalog_alias_map, load_catalog
 

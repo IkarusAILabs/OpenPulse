@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timedelta
 from typing import Any
 
 from core import attestation
@@ -42,6 +43,7 @@ from core.attestation import EvidenceContract
 from core.evidence.provenance import hash_content
 from core.resources import schema_path
 from core.schema.models import OSSEvent
+from core.verdict_meaning import scope_completeness, verdict_meaning
 
 #: Semver of the v1 contract shape. Bump per the versioning policy in
 #: docs/EVIDENCE_CONTRACT.md (patch: wording; minor: additive fields;
@@ -51,15 +53,22 @@ from core.schema.models import OSSEvent
 #: (status + reasons), so a consumer can tell a fully inspected dependency
 #: from one whose repository was only partly read - never a clean bill of
 #: health by omission.
-CONTRACT_VERSION = "1.1.0"
+#:
+#: 1.2.0: additive ``verdict_meaning`` and ``evaluation_context`` blocks
+#: and ``scope.completeness`` (TR-2026-01 sections 5.1-5.2): what a
+#: verdict does and does not assert, the completeness basis behind it,
+#: and whether a freshness bound was applied. The content hash is
+#: computed exactly as in 1.1; a canonical (RFC 8785) hash changes hash
+#: semantics and is therefore a 2.0.0 change under the versioning policy.
+CONTRACT_VERSION = "1.2.0"
 
-#: The v1.1 JSON Schema, shipped with the repo. Published BESIDE the
-#: untouched 1.0 schema (``v1/schema.json``): 1.0 documents keep
-#: validating against 1.0, and a 1.1 document requires the new
-#: ``inspection_coverage`` block. Loaded lazily so that importing this
-#: module never touches the filesystem.
+#: The current JSON Schema, shipped with the repo, published BESIDE the
+#: untouched older minors (``v1/`` is 1.0, ``v1.1/`` is 1.1): older
+#: documents keep validating against their own schema. Loaded lazily so
+#: that importing this module never touches the filesystem.
 _SCHEMA_ROOT = schema_path("evidence-contract")  # checkout or installed wheel
-SCHEMA_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
+SCHEMA_PATH = _SCHEMA_ROOT / "v1.2" / "schema.json"
+SCHEMA_V1_1_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
@@ -78,8 +87,13 @@ def contract_version() -> str:
 
 
 def load_schema() -> dict[str, Any]:
-    """The v1.1 JSON Schema (current builder output), parsed."""
+    """The v1.2 JSON Schema (current builder output), parsed."""
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def load_v1_1_schema() -> dict[str, Any]:
+    """The untouched v1.1 schema, for consumers pinned to 1.1 documents."""
+    return json.loads(SCHEMA_V1_1_PATH.read_text(encoding="utf-8"))
 
 
 def load_v1_0_schema() -> dict[str, Any]:
@@ -97,8 +111,11 @@ def build_v1_contract(
     verdict: Any,
     finding: dict[str, Any] | None = None,
     inspection_coverage: dict[str, Any] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
 ) -> dict[str, Any]:
-    """(event, verdict[, finding]) -> one schema-valid v1.1 document.
+    """(event, verdict[, finding]) -> one schema-valid v1.2 document.
 
     Pure: no I/O, no side effects. The convergence is the #60 builder
     (``attestation.build_contract``); this layer renames blocks to the
@@ -110,6 +127,10 @@ def build_v1_contract(
     inspection summary (status + reasons) that is worse than or absent
     from the dependency itself; attest uses it so a partially scanned
     repository is never reported as a clean per-dependency result.
+
+    ``as_of`` and ``max_evidence_age`` record the freshness bound the
+    verdict was computed under; pass the same values given to
+    ``check_dependency``. They describe the verdict, they do not change it.
     """
     base = attestation.build_contract(event, verdict, finding)
     doc = _rename_blocks(base)
@@ -117,6 +138,15 @@ def build_v1_contract(
     doc["inspection_coverage"] = (
         inspection_coverage if inspection_coverage is not None else _coverage_block(verdict)
     )
+    doc["scope"]["completeness"] = scope_completeness(event.scope)
+    doc["verdict_meaning"] = verdict_meaning(str(doc["assessment"]["relationship"]))
+    bound = as_of is not None and max_evidence_age is not None
+    doc["evaluation_context"] = {
+        "as_of": as_of.isoformat().replace("+00:00", "Z") if as_of is not None else None,
+        "max_evidence_age_days": max_evidence_age.days if max_evidence_age is not None else None,
+        "freshness_bound_applied": bound,
+        "unresolved_identity": "undetermined",
+    }
     _set_content_hash(doc)
     return doc
 
@@ -168,11 +198,16 @@ _V1_BODY_FIELDS = (
     "inspection_coverage",
 )
 
+#: 1.2 hashes its additive blocks too, with the same computation.
+_V1_2_BODY_FIELDS = (*_V1_BODY_FIELDS, "verdict_meaning", "evaluation_context")
+
 
 def _hash_body(doc: dict[str, Any]) -> str:
     """Digest over the v1 body with content_hash and the generation
-    timestamp pinned: same logical content -> same hash, always."""
-    body: dict[str, Any] = {name: doc[name] for name in _V1_BODY_FIELDS}
+    timestamp pinned: same logical content -> same hash, always.
+    The covered fields follow the document's own contract_version."""
+    fields = _V1_2_BODY_FIELDS if doc.get("contract_version") == "1.2.0" else _V1_BODY_FIELDS
+    body: dict[str, Any] = {name: doc[name] for name in fields}
     body["provenance"] = dict(body["provenance"])
     body["provenance"]["content_hash"] = attestation._HASH_PLACEHOLDER
     body["provenance"]["generation_timestamp"] = attestation._TIMESTAMP_PLACEHOLDER

@@ -82,7 +82,12 @@ def analyze_endoflife(
                     "effective_at": (None if e.get("eol") is True else str(eol)),
                     "observed_at": str(today),
                     "lifecycle_state": STATE_EFFECTIVE,
-                    "scope": {"kind": "version", "versions": [str(cycle)]},
+                    "scope": {
+                        "kind": "version",
+                        "versions": [str(cycle)],
+                        "exhaustive": True,
+                        "basis": "definitional",
+                    },
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
@@ -103,7 +108,12 @@ def analyze_endoflife(
                     "effective_at": (None if e.get("eol") is True else str(eol)),
                     "observed_at": str(today),
                     "lifecycle_state": STATE_UPCOMING,
-                    "scope": {"kind": "version", "versions": [str(cycle)]},
+                    "scope": {
+                        "kind": "version",
+                        "versions": [str(cycle)],
+                        "exhaustive": True,
+                        "basis": "definitional",
+                    },
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
@@ -124,7 +134,12 @@ def analyze_endoflife(
                     "effective_at": (None if e.get("support") is True else str(support)),
                     "observed_at": str(today),
                     "lifecycle_state": STATE_EFFECTIVE,
-                    "scope": {"kind": "version", "versions": [str(cycle)]},
+                    "scope": {
+                        "kind": "version",
+                        "versions": [str(cycle)],
+                        "exhaustive": True,
+                        "basis": "definitional",
+                    },
                     "affected_versions": [str(cycle)],
                     "affected_artifacts": [],
                     "supporting": [e],
@@ -263,7 +278,12 @@ def analyze_registries(
                     "significance": "medium",
                     "detection_method": DETECTION_REGISTRY_OBSERVATION,
                     "evidence_strength": EVIDENCE_MODERATE,
-                    "scope": {"kind": "artifact", "artifacts": [ref]},
+                    "scope": {
+                        "kind": "artifact",
+                        "artifacts": [ref],
+                        "exhaustive": True,
+                        "basis": "definitional",
+                    },
                     "affected_versions": ["*"],
                     "affected_artifacts": [{"kind": "docker-image", "ref": f"{ref}:<version>"}],
                     "supporting": [e],
@@ -285,7 +305,12 @@ def analyze_registries(
                     "significance": "high",
                     "detection_method": DETECTION_REGISTRY_OBSERVATION,
                     "evidence_strength": EVIDENCE_MODERATE,
-                    "scope": {"kind": "artifact", "artifacts": [ref]},
+                    "scope": {
+                        "kind": "artifact",
+                        "artifacts": [ref],
+                        "exhaustive": True,
+                        "basis": "definitional",
+                    },
                     "affected_versions": ["*"],
                     "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
                     "supporting": [e],
@@ -328,7 +353,15 @@ def analyze_github_meta(
                     "significance": "high",
                     "scope": {"kind": "project", "versions": []},
                     "affected_versions": ["*"],
-                    "affected_artifacts": [],
+                    # The archived repository is the observed thing: every
+                    # reference to its path (a go.mod require, a remote)
+                    # now names a read-only source. Scheme-free, the form
+                    # manifests record, as for ownership drift below.
+                    "affected_artifacts": [
+                        {"kind": "source-repository", "ref": f"github.com/{e.get('repo')}"}
+                    ]
+                    if e.get("repo")
+                    else [],
                     "supporting": [e],
                 }
             )
@@ -470,7 +503,12 @@ def analyze_diffs(changes: list[dict[str, Any]], today: date | None = None) -> l
                 "first_detected_at": c.get("first_detected_at"),
                 "effective_at": observed,
                 "lifecycle_state": STATE_EFFECTIVE,
-                "scope": {"kind": "artifact", "artifacts": [ref]},
+                "scope": {
+                    "kind": "artifact",
+                    "artifacts": [ref],
+                    "exhaustive": True,
+                    "basis": "definitional",
+                },
                 "affected_versions": ["*"],
                 "affected_artifacts": [{"kind": "docker-image", "ref": ref}],
                 "references": [f"https://hub.docker.com/r/{ns}/{repo}/tags"],
@@ -546,7 +584,12 @@ def analyze_support_change(
                 "lifecycle_state": (
                     "EFFECTIVE" if effective_date and effective_date <= today else "UPCOMING"
                 ),
-                "scope": {"kind": "version", "versions": [str(version)]},
+                "scope": {
+                    "kind": "version",
+                    "versions": [str(version)],
+                    "exhaustive": True,
+                    "basis": "definitional",
+                },
                 "affected_versions": [str(version)],
                 "affected_artifacts": [],
                 "supporting": [e],

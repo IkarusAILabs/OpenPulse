@@ -202,7 +202,13 @@ def test_g_not_affected_is_consistent():
 
     event = _event(
         confidence="CORROBORATED",
-        scope={"kind": "artifact", "artifacts": ["docker.io/demo/app:1.0"]},
+        # A clearance needs a declared-complete scope (completeness is opt-in).
+        scope={
+            "kind": "artifact",
+            "artifacts": ["docker.io/demo/app:1.0"],
+            "exhaustive": True,
+            "basis": "definitional",
+        },
     )
     result = check_dependency({"kind": "image", "ref": "docker.io/demo/other:9.9"}, [event])
     assert result.relationship == "NOT_AFFECTED"
@@ -226,7 +232,9 @@ def test_g_not_affected_is_consistent():
 def test_h_unknown_is_not_not_affected():
     from core.risk.check import check_dependency
 
-    result = check_dependency({"kind": "image", "ref": "docker.io/stranger/app:1.0"}, [_event()])
+    # A curated ref of another project: an unmapped one would be
+    # unresolved (RELATED), not unknown (TR-2026-01 D10).
+    result = check_dependency({"kind": "image", "ref": "docker.io/library/mysql:8"}, [_event()])
     assert result.relationship == "UNKNOWN"
     assert result.relationship != "NOT_AFFECTED"
     assert result.affected is False
@@ -259,7 +267,11 @@ def test_j_project_match_never_customer_impact():
         {"kind": "package", "package": "demo", "ecosystem": "PyPI", "version": "1.0"},
         [event],
     )
-    assert result.relationship == "AFFECTS_PROJECT"
+    # FLIPPED (F4, 2026-10-30): `demo` is not in the catalog, so a package
+    # merely named like the event's project is unresolved (RELATED), not the
+    # project. Either way it is no customer impact, which is the point here;
+    # the curated project tie is pinned by test_check.test_project_tie_is_not_impact.
+    assert result.relationship == "RELATED"
     out = evaluate_impact(
         {"analyst": "change"},
         dependency_context={

@@ -3,9 +3,9 @@ requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openpulse"
-version = "0.6.3"
-description = "OpenPulse - OSS Dependency Intelligence with evidence"
+name = "ikarus-openpulse"
+version = "0.8.0"
+description = "OpenPulse - research software for evidence-based dependency decisions (Ikarus AI Labs)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"

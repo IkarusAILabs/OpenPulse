@@ -1,4 +1,4 @@
-"""OpenPulse Intelligence Schema v0.5.0 — pydantic models (source of truth)."""
+"""OpenPulse Intelligence Schema v0.7.0 — pydantic models (source of truth)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from .enums import Confidence, EventType, Impact
 
-SCHEMA_VERSION = "0.5.0"
+SCHEMA_VERSION = "0.7.0"
 
 
 class Source(BaseModel):
@@ -88,15 +88,50 @@ class Scope(BaseModel):
 
     Absent scope means project-wide (legacy behavior). Populated scope
     narrows matching: version lists, explicit artifacts/packages, or
-    registries. A dependency outside a populated scope is NOT_AFFECTED,
-    not UNKNOWN.
+    registries. A dependency outside a populated scope is NOT_AFFECTED
+    only when the producer declares the scope complete
+    (``exhaustive=True``); otherwise -- including when unspecified -- it
+    is RELATED (the list names known members only).
     """
 
     kind: Literal["project", "package", "artifact", "version", "registry"] = "project"
     versions: list[str] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
-    packages: list[str] = Field(default_factory=list)
+    packages: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Package-scope values. A purl without a version (pkg:pypi/redis) names "
+            "exactly one package of one ecosystem; a bare name (redis) carries no "
+            "ecosystem and is read through the dependency's curated identity. A bare "
+            "value equal to the event's project covers every package curated as it "
+            "(TR-2026-01 F2, F3)."
+        ),
+    )
     registries: list[str] = Field(default_factory=list)
+    exhaustive: bool = Field(
+        default=False,
+        description=(
+            "Producer declaration that the listed elements are every member of "
+            "the scope (declared completeness; nothing verifies it). Default "
+            "False: unspecified completeness is partial, so exclusion is never "
+            "a clearance."
+        ),
+    )
+    basis: Literal["definitional", "announced", "corroborated", "verified"] | None = Field(
+        default=None,
+        description=(
+            "Why the scope is complete: 'definitional' (the scope is the event "
+            "itself, e.g. one release line's EOL), 'announced' (a named source "
+            "states the extent), 'corroborated' (an independent source family "
+            "states the same extent), 'verified' (established by a verifier). "
+            "A declaration without a basis is not admissible: exhaustive=True "
+            "with no basis never clears (TR-2026-01 N3)."
+        ),
+    )
+
+    def admits_negative(self) -> bool:
+        """Declared complete *and* the declaration's basis is recorded."""
+        return self.exhaustive and self.basis is not None
 
 
 class OSSEvent(BaseModel):
@@ -114,7 +149,19 @@ class OSSEvent(BaseModel):
     claims: list[Claim] = Field(default_factory=list)
     attribution: Attribution | None = None
     scope: Scope | None = None
+    withdrawn: bool = Field(
+        default=False,
+        description="Retracted by its source: asserts nothing and is not evaluated",
+    )
+    superseded_by: str | None = Field(
+        default=None,
+        description="Id of the event that corrects or replaces this one; not evaluated",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def requires_action(self) -> bool:
         return self.impact in (Impact.ACTION, Impact.CRITICAL)
+
+    def is_current_record(self) -> bool:
+        """Neither withdrawn nor superseded (TR-2026-01 N4)."""
+        return not self.withdrawn and self.superseded_by is None

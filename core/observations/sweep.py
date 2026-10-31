@@ -59,7 +59,11 @@ def sweep_targets(catalog: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
             continue
         for image in entry.get("docker_images") or []:
             registry, namespace, name = split_image_ref(str(image))
-            if "/" in str(image) and namespace not in ("docker.io", "") and name:
+            # Catalog convention: `<host>/<name>` with nothing after it
+            # names a namespace (catalogue), not an image to probe.
+            segments = str(image).split("://")[-1].split("/")
+            bare = len(segments) == 2 and ("." in segments[0] or ":" in segments[0])
+            if "/" in str(image) and not bare and namespace and name:
                 targets.append((str(entry.get("slug", "")), namespace, name))
     return targets
 

@@ -316,9 +316,9 @@ def _winning_cause(verdict: Any) -> dict[str, Any] | None:
     causes = list(getattr(verdict, "verdicts", None) or [])
     if not causes:
         return None
-    from core.risk.check import _RANK
+    from core.risk.check import winning_cause
 
-    return max(causes, key=lambda c: _RANK.get(str(c.get("relationship", "")), 0))
+    return winning_cause(causes)
 
 
 def _evidence_references(event: OSSEvent) -> list[EvidenceReference]:

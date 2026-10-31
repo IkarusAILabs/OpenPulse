@@ -73,7 +73,7 @@ around lifecycle data (recency, caps, references), not new discovery.
 
 OSS Sources → Raw Signals → Evidence Collection → Entity Resolution →
 Signal Correlation → OSS Event → Impact Analysis → OpenPulse
-Intelligence → Public/Customer Outputs. Current modules already sit
+Intelligence → Public/Dependency-specific Outputs. Current modules already sit
 on these layers; the missing layer is **Signal Correlation**
 (aggregation/dedup), added now for lifecycle stories first.
 
@@ -82,7 +82,7 @@ on these layers; the missing layer is **Signal Correlation**
 Phase 0 strategic reset (this document) → Phase 1 story aggregation
 + source tiers (this slice) → Phase 2 non-lifecycle discovery
 (distribution first) → Phase 3 golden scenarios (Bitnami + iText +
-minio + 7 more) → Phase 4 public intelligence → Phase 5 customer
+minio + 7 more) → Phase 4 public intelligence → Phase 5 user
 impact → Phase 6 early-warning network. Non-goals unchanged; SafeAI
 stays separate (conceptual KYA/KYD integration only).
 

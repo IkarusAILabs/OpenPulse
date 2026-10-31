@@ -17,12 +17,13 @@
   ],
   "scope": {
     "kind": "artifact",
+    "exhaustive": true,
+    "basis": "announced",
     "artifacts": [
-      "docker.io/bitnami/redis:<version>",
-      "docker.io/bitnami/postgresql:<version>",
-      "docker.io/bitnami/kafka:<version>",
-      "oci://registry-1.docker.io/bitnamicharts/redis",
-      "docker.io/bitnamilegacy/redis:<version>"
+      "docker.io/bitnami/*:<version>",
+      "docker.io/bitnami/*",
+      "docker.io/bitnamilegacy/*:*",
+      "oci://registry-1.docker.io/bitnamicharts/*:*"
     ]
   },
   "evidences": [

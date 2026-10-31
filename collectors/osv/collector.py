@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from collectors import http
 from collectors.base import BaseCollector
 from collectors.errors import as_error
 
@@ -56,6 +55,9 @@ def parse_vulns(package: str, ecosystem: str, payload: dict[str, Any]) -> list[d
                 # Authoritative publication date: feeds announced_at in
                 # correlation (official provenance, never inferred).
                 "published": v.get("published"),
+                # A withdrawn advisory is retracted by its publisher: kept
+                # as context, never as an impact claim (security analyst).
+                "withdrawn": v.get("withdrawn"),
                 "severity": v.get("severity"),
                 "affected": affected,
                 "references": [x.get("url") for x in v.get("references", []) if x.get("url")],
@@ -86,7 +88,7 @@ class OSVCollector(BaseCollector):
             ]
         package, ecosystem = mapping
         try:
-            r = httpx.post(
+            r = http.post(
                 API,
                 json={"package": {"name": package, "ecosystem": ecosystem}},
                 timeout=self.timeout,

@@ -1,0 +1,40 @@
+{
+ "id": "retro-lic-1",
+ "project_slug": "elasticsearch",
+ "event_type": "LICENSE_CHANGE",
+ "title": "Elasticsearch and Kibana relicensed from Apache-2.0 from 7.11",
+ "summary": "Starting with 7.11, Elasticsearch and Kibana source moved from Apache-2.0 to a dual SSPL / Elastic License; clients, Beats and Logstash stay Apache-2.0.",
+ "confidence": "CONFIRMED",
+ "impact": "REVIEW",
+ "affected_artifacts": [
+  {
+   "kind": "docker-image",
+   "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.11.0"
+  }
+ ],
+ "evidences": [
+  {
+   "source": {
+    "name": "elastic/licensing-change",
+    "url": "https://www.elastic.co/blog/licensing-change",
+    "authority": "official",
+    "fetched_at": "2021-01-15T23:08:39Z",
+    "acquisition_method": "wayback:20210115230839 http://web.archive.org/web/20210115230839/https://www.elastic.co/blog/licensing-change",
+    "family": "elastic"
+   },
+   "excerpt": "Starting with the upcoming Elastic 7.11 release, we will be moving the Apache 2.0-licensed code to dual license.",
+   "relation": "supports",
+   "announcement_date": "2021-01-14",
+   "effective_date": "2021-02-10"
+  }
+ ],
+ "created_at": "2021-01-15T23:08:39Z",
+ "scope": {
+  "kind": "version",
+  "versions": [
+   "7.11"
+  ],
+  "exhaustive": false,
+  "basis": null
+ }
+}

@@ -9,7 +9,7 @@ argued for — same rule as the M2 discovery ledger.
 Two temporal roles are never conflated: an **announcement lead**
 (announcement → effective, what the source offered) and a
 **detection lead** (OpenPulse first detection → effective, what this
-system actually delivered to a customer). Cases carry one or both,
+system actually delivered to a user). Cases carry one or both,
 each labelled. No averages: a mean over heterogeneous changes would
 be a marketing number, not a measurement.
 
@@ -28,7 +28,7 @@ be a marketing number, not a measurement.
   919+ in `docker.io/bitnamilegacy`) dates 2026-10-02, after the
   change was already in force. Recorded as such; no forward lead is
   claimed for it.
-- Customer impact: any deployment pinning `docker.io/bitnami/<image>:<version>`
+- User impact: any deployment pinning `docker.io/bitnami/<image>:<version>`
   stopped receiving updates the day the split took effect; pipelines
   and Helm values referencing `X.Y.Z-debian-12-rX` tags must move to a
   maintained source. This is the canonical "public intelligence was
@@ -52,7 +52,7 @@ be a marketing number, not a measurement.
   UPCOMING finding fires from the live cycle data
   (`EOL_WARN_DAYS = 180`; 37 days remain).
 - Detection lead: **37 days** (2026-10-06 → 2026-11-12).
-- Customer impact: a deployment pinned to `postgres:14` /
+- User impact: a deployment pinned to `postgres:14` /
   `postgresql 14.x` receives its last fixes on 2026-11-12, then
   nothing — a database, not a library: plan the major upgrade (15–18)
   now, within the window the warning leaves.
@@ -79,7 +79,7 @@ be a marketing number, not a measurement.
 - First trustworthy detection: **2026-10-06** — same producer path
   as Case 2; 56 days remain at detection.
 - Detection lead: **56 days** (2026-10-06 → 2026-12-01).
-- Customer impact: deployments on `redis:8.0` / Redis 8.0.x stop
+- User impact: deployments on `redis:8.0` / Redis 8.0.x stop
   receiving security fixes on 2026-12-01. Standard releases get 6
   months of fixes after the next minor; 8.0's window closes with the
   EOL date, and the 8.0.6 patch stream (last release 2026-02-22)
@@ -94,7 +94,7 @@ be a marketing number, not a measurement.
 ## Why these three
 
 The Bitnami case is the canonical distribution change with real
-customer impact and an official announcement trail. PostgreSQL 14
+user impact and an official announcement trail. PostgreSQL 14
 and Redis 8.0 are the two other shapes a lead-time claim must
 survive: upcoming EOLs that the producer pipeline detects TODAY,
 from live official cycle data, with the first-detection date

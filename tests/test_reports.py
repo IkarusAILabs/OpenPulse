@@ -467,6 +467,24 @@ def test_public_report_never_claims_customer_impact():
         ],
     )
     assert "Assessment: ACTION_REQUIRED" not in md
-    assert "does not establish that a specific customer environment is affected" in md
+    assert "does not establish that a specific user's environment is affected" in md
     assert "Assessment: PROJECT_CHANGE" in md
     assert "Scope:" in md
+
+
+def test_executive_summary_pluralises_unknown_dates():
+    """The summary printed "0 finding carriess unknown dates"."""
+    from reports.generate import _executive_summary
+
+    def uncertain(unknown_dates):
+        lines = _executive_summary(
+            month="2026-11", projects=1, material=1, attention=0, upcoming=0,
+            discoveries=0, background=0, silent=0,
+            confidence_counts={"CONFIRMED": 0, "CORROBORATED": 0, "EMERGING": 1, "UNVERIFIED": 0},
+            held_back=2, unknown_dates=unknown_dates,
+        )
+        return next(line for line in lines if "What remains uncertain" in line)
+
+    assert "0 findings carry unknown dates" in uncertain(0)
+    assert "1 finding carries unknown dates" in uncertain(1)
+    assert "carriess" not in uncertain(3)

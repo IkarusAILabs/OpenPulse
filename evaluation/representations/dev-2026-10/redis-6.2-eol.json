@@ -1,0 +1,25 @@
+{
+ "event": "redis-6.2-eol",
+ "encoder": "dataset author (OpenPulse developer; not independent, development set only)",
+ "encoded_on": "2026-10-30",
+ "sources": [
+  "https://endoflife.date/redis"
+ ],
+ "osv": [],
+ "openvex": {
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/IkarusAILabs/OpenPulse/evaluation/representations/dev-2026-10/redis-6.2-eol",
+  "author": "dataset author (OpenPulse developer; not independent, development set only)",
+  "timestamp": "2026-09-26T00:00:00Z",
+  "version": 1,
+  "statements": []
+ },
+ "loss": [
+  {
+   "code": "L6",
+   "what": "The Redis server's 6.2 release line: the server is not a package in any OSV ecosystem, and the source names no images or tags that distribute it.",
+   "source": "https://endoflife.date/redis"
+  }
+ ],
+ "notes": "Release cycle 6.2, end of life 2024-01-01, latest 6.2.14."
+}
