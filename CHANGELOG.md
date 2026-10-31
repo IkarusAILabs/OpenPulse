@@ -6,6 +6,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **One large dependency file no longer uses up a repository's whole inspection budget (#103, #148).** The per-file cap was 50 MB, equal to the 50 MB total budget, so a single 50 MB lockfile left every other manifest in the repository uninspected. The per-file cap is now the smallest of three limits: the parser cap, GitHub's 100 MB blobs-API limit, and half the budget, which is 25 MB today. A larger file is skipped on its own, with a PARTIAL reason, and the rest are still read.
 - **A catalog alias collision now fails loudly instead of resolving to the first entry (#144, #151).** If two entries in `data/canonical_projects.yaml` claim the same alias or Docker image, `catalog_alias_map` raises `CatalogCollisionError`, naming the alias and both slugs.
   - The resolver no longer turns a broken catalog into an empty one. Before, one bad entry silently made every reference resolve to itself. Now `{}` is used only when the catalog file is missing.
   - Every CLI command, including `openpulse mcp`, checks the catalog at start-up and exits with a one-line message instead of a traceback.
