@@ -42,7 +42,7 @@ Code and text changes are in commit `787beb8` and the paper revision that follow
 
 Writing the adversarial tests showed that the F1 summary in the paper was too strong. A package dependency with **no** stated ecosystem still resolves through the catalogue's curated bare-name alias, as SPEC §4.4 allows ("a stated ecosystem of `generic` counts as not stated"). So `django` with no ecosystem is the Django project, and can be cleared. With an ecosystem stated, only a curated (ecosystem, name) pair establishes identity.
 
-This is the package–source ambiguity of §3.1.1, and it is now a pinned, documented trusted input; the paper's F1 row has been corrected. We have not changed the behaviour here. Withholding negatives from bare-name resolutions would change verdicts and the conformance oracle's inputs, so it belongs in its own change.
+This is the package–source ambiguity of §3.1.1, and it is now a pinned, documented trusted input; the paper's F1 row has been corrected. The behaviour is unchanged, by the author's decision (below).
 
 ## Not addressed, and why
 
@@ -58,4 +58,4 @@ This is the package–source ambiguity of §3.1.1, and it is now a pinned, docum
 
 1. **S3 stays secondary (decided 2026-10-31).** The review asks for the strong comparisons to be "central to the paper's conclusions". This revision makes them central in the interpretation (§10, "What each comparison can show"). They are not added as primary hypotheses. H1 and H2 remain the only primary tests, so the success criterion and the power argument are unchanged.
 2. **Review burden stays a guardrail (decided 2026-10-31).** It is reported (W1–W3, with the actionable share and unique review items) and guarded by G4 (C's median W1 no worse than B's). It is not a primary outcome. A primary burden outcome would need a threshold for "acceptable" burden that no data yet support.
-3. **Open: should negatives be withheld from bare-name identity resolutions?** See the finding above. If so, it belongs in its own change.
+3. **Bare-name identity stays as specified (decided 2026-10-31).** A package with no stated ecosystem keeps resolving through the catalogue's curated bare-name alias (SPEC §4.4), and can be cleared. The alias is a trusted input like any curated mapping. `tests/test_adversarial_inputs.py` pins the behaviour, the paper states it (F1 row, Table "Attacker capabilities"), and D2 checks such mappings on held-out pairs.
