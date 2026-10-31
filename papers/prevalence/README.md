@@ -17,6 +17,7 @@ Target venue: *Empirical Software Engineering* (research article).
 | `RATING_GUIDE.md` | The human rating tasks of the validation (§6), written before any rating |
 | `collect.py` | Collector: frame, sample and measures. Standard library only |
 | `analysis.py` | The pre-specified analysis; writes `RESULTS.md` for a run |
+| `test_collect.py` | Tests for the repository-URL rule. Outside the repository's `tests/`, so CI doesn't run them: `python -m pytest papers/prevalence/test_collect.py` |
 | `paper/main.tex` | Manuscript draft. Every result is a red `[RESULT: …]` placeholder until the frozen run exists |
 | `data/pilot-v1/`, `data/pilot-v2/` | Instrument pilots (top 100 per ecosystem). **Not results**: they were used only to fix the measures (see below) |
 

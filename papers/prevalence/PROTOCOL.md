@@ -63,7 +63,7 @@ frame, the ranking and the dependent counts.
 
 | Measure | Source (primary) | Definition |
 |---|---|---|
-| Repository URL | The registry's own metadata, as published | npm: `repository` of the latest version's manifest (string or `.url`). PyPI: the first github.com URL among `project_urls` values under the keys Source, Sources, Source Code, Repository, Code, GitHub, Homepage (in that order, case-insensitive); else the first `project_urls` value, in published order, that names a github.com repository; else `home_page`. Go: the module path when it starts with `github.com/`; for `gopkg.in/` the mapping gopkg.in documents (`gopkg.in/user/pkg.vN` → `github.com/user/pkg`, `gopkg.in/pkg.vN` → `github.com/go-pkg/pkg`); otherwise the repository in the module's `go-import` meta tag (`https://<module>?go-get=1`), which is what the `go` command follows. The first two path segments after `github.com/` name the repository; `.git` and trailing slashes are removed. |
+| Repository URL | The registry's own metadata, as published | npm: `repository` of the latest version's manifest (string or `.url`). PyPI: the first github.com URL among `project_urls` values under the keys Source, Sources, Source Code, Repository, Code, GitHub, Homepage (in that order, case-insensitive); else the first `project_urls` value, in published order, that names a github.com repository; else `home_page`. Go: the module path when it starts with `github.com/`; for `gopkg.in/` the mapping gopkg.in documents (`gopkg.in/user/pkg.vN` → `github.com/user/pkg`, `gopkg.in/pkg.vN` → `github.com/go-pkg/pkg`); otherwise the repository in the module's `go-import` meta tag (`https://<module>?go-get=1`), which is what the `go` command follows. A reference counts only if its host is exactly `github.com` (or `www.github.com`), in any of the forms registries publish: `https://`, `git+https://`, `git://`, `git@github.com:owner/repo`, a bare `github.com/owner/repo`, and for npm its documented shorthands `github:owner/repo` and `owner/repo`. The first two path segments name the repository; `.git` and trailing slashes are removed. |
 | Repository state | GitHub REST API, `GET /repos/{owner}/{repo}` for that repository | **unchanged**: 200, and the returned `full_name` equals the requested one (case-insensitive); **relocated**: 200 after a redirect, and `full_name` differs; **unreachable**: 404 or 451; plus the `archived` flag on any 200 |
 | Registry deprecation | npm: `deprecated` on the latest version's manifest; PyPI: `Development Status :: 7 - Inactive` classifier, or the latest release yanked; Go: the `go.mod` of the latest version carries a `// Deprecated:` comment (retraction is not measured: the Go proxy's `@latest` never returns a retracted version) | Present / absent, for the latest version |
 | Advisory signal | OSV `querybatch` by ecosystem and name | Any OSV record whose summary or details matches the pre-registered terms `unmaintained`, `deprecated`, `archived`, `abandoned`, `no longer maintained`, `end of life`, `end-of-life` (case-insensitive) |
@@ -155,6 +155,11 @@ The pilot changed this draft in three places, before it was frozen:
    (a package is *relocated* exactly when its published URL redirects).
    It now uses repositories with a recorded earlier name as the
    denominator.
+
+A fourth change came from code review (CodeQL), not from pilot data: the
+first parser accepted any URL that merely contained `github.com`, such as
+`mygithub.com/…`. It now requires that exact host. Re-applied to the
+pilot v2 references, it changed no package's repository.
 
 No pilot result is reported, and these changes were made for coverage
 and validity of the measures, not in response to any prevalence figure.

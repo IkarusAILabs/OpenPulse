@@ -45,7 +45,12 @@ ADVISORY_TERMS = re.compile(
 #: PROTOCOL.md §4, repository URL: PyPI project_urls keys, in order.
 PYPI_URL_KEYS = ("source", "sources", "source code", "repository", "code", "github", "homepage")
 GO_IMPORT = re.compile(r'<meta\s+name="go-import"\s+content="([^"]+)"', re.IGNORECASE)
-GITHUB_PATH = re.compile(r"github\.com[/:]+([^/\s#?]+)/([^/\s#?]+)", re.IGNORECASE)
+GITHUB_HOSTS = {"github.com", "www.github.com"}
+#: scp-like git address: git@github.com:owner/repo.git
+SCP_LIKE = re.compile(r"^[\w.-]+@([\w.-]+):(?!//)(.+)$")
+#: npm's GitHub shorthand: "github:owner/repo" or "owner/repo". GitHub
+#: account names have no dots, so "github.com/x" doesn't match.
+NPM_SHORTHAND = re.compile(r"^(?:github:)?([A-Za-z0-9-]+)/([\w.-]+)$")
 USER_AGENT = "ikarus-prevalence-study/0.1 (+https://ikaruslabs.net/)"
 
 
@@ -203,15 +208,41 @@ def cmd_sample(args, _http):
 # --- measures (PROTOCOL.md §4) ---------------------------------------------
 
 
-def github_repo_from_url(url):
-    """owner/repo from a github.com URL, or None (PROTOCOL.md §4)."""
+def github_repo_from_url(url, npm_shorthand=False):
+    """owner/repo for a reference to a github.com repository, else None.
+
+    PROTOCOL.md §4. The host must be exactly github.com, so a URL that
+    merely contains the string (``mygithub.com``, ``example.org/github.com/``)
+    is not mistaken for one. Accepts the forms registries publish:
+    ``https://``, ``git+https://``, ``git://``, ``git@github.com:owner/repo``,
+    a bare ``github.com/owner/repo`` (a Go module path) and, with
+    *npm_shorthand*, npm's ``github:owner/repo`` and ``owner/repo``.
+    """
     if not isinstance(url, str):
         return None
-    match = GITHUB_PATH.search(url)
-    if not match:
+    url = url.strip()
+    if npm_shorthand:
+        short = NPM_SHORTHAND.match(url)
+        if short:
+            return _owner_repo(short.group(1), short.group(2))
+    scp = SCP_LIKE.match(url)
+    if scp:
+        host, path = scp.group(1), scp.group(2)
+    else:
+        if url.startswith("git+"):
+            url = url[len("git+") :]
+        if "://" not in url:
+            url = "https://" + url
+        parts = urllib.parse.urlsplit(url)
+        host, path = parts.hostname or "", parts.path
+    if host.lower() not in GITHUB_HOSTS:
         return None
-    owner, repo = match.group(1), match.group(2)
-    repo = re.sub(r"\.git$", "", repo).rstrip("/")
+    segments = [s for s in path.split("/") if s]
+    return _owner_repo(segments[0], segments[1]) if len(segments) >= 2 else None
+
+
+def _owner_repo(owner, repo):
+    repo = re.sub(r"\.git$", "", repo)
     return f"{owner}/{repo}" if owner and repo else None
 
 
@@ -288,7 +319,7 @@ def registry_metadata(http, eco, name):
 
 def go_repository_url(http, module):
     """Source repository of a Go module (PROTOCOL.md §4, repository URL)."""
-    if module.startswith("github.com/"):
+    if module.split("/", 1)[0] == "github.com":
         return module
     gopkg = re.match(r"gopkg\.in/(?:([^/]+)/)?([^/.]+)\.v\d+", module)
     if gopkg:
@@ -391,7 +422,9 @@ def cmd_measure(args, http):
             signals = osv_signals(http, eco, [r["name"] for r in rows], vuln_cache) if rows else {}
             for i, row in enumerate(rows, 1):
                 rec = {**row, **registry_metadata(http, eco, row["name"])}
-                full_name = github_repo_from_url(rec.get("registry_repository_url"))
+                full_name = github_repo_from_url(
+                    rec.get("registry_repository_url"), npm_shorthand=eco == "npm"
+                )
                 rec["repository"] = full_name
                 if full_name:
                     rec.update(github_state(http, full_name))
