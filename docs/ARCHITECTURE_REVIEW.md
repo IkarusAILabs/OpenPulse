@@ -49,7 +49,7 @@ offline-testability were implemented.
 | P1 CLI input | CONFIRMED | P1 | Bare `open()`/`json.load`, raw tracebacks (`cli/main.py:21`) | 1 MiB size guard, clean JSON/schema error messages + exit codes, bounded counts | next |
 | P1 History | NOT PRESENT | P1 | No store exists | `.openpulse/observations/*.json` local-first store (no server/DB) | next |
 | AI governance (§18) | NOT APPLICABLE | P3 | — | Prerequisites (identity + observations) already underway; no layer built | later |
-| OSS/SaaS boundary (§19) | SOUND | — | `openpulse-saas/` excluded; README states it | Unchanged | — |
+| OSS boundary (§19) | SOUND | — | No hosted-service code in this repo | Unchanged | — |
 
 ## C. Target architecture
 
@@ -151,7 +151,7 @@ Deferred: impact split, knowledge graph, SQLite, CPE catalog.
   `derived_intelligence_ratio` (alias kept); independence stays a
   separate evidence metric.
 - Golden semantics suite (`tests/test_golden_semantics.py`) pins the
-  A–F scenarios; public reports carry the public/customer boundary
+  A–F scenarios; public reports carry the public/dependency-specific boundary
   note. No new collectors, no SDKs, no graph — semantics only.
 
 ## Addendum — Security Re-Implementation (schema 0.3.0)

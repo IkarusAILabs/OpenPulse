@@ -159,7 +159,7 @@ findings through impact eligibility (`core/risk/impact.py`):
 
 - `PROJECT_SIGNAL` — something exists (unscoped, unconfirmed).
 - `PROJECT_CHANGE` — scoped ecosystem change (what changed, with
-  versions/artifacts/dates). Never customer impact.
+  versions/artifacts/dates). Never impact on a user's environment.
 - `AFFECTS_DEPENDENCY` — a linked inventory entry matches.
 - `ACTION_REQUIRED` — affected + effective + strong confidence. Only
   here does EOL (or any change) become action for *your* software.
@@ -391,7 +391,7 @@ Conflicting evidence → visible + blocking for strong actions.
 - SOURCE SIGNAL ≠ CHANGE ≠ AFFECTED DEPENDENCY ≠ ACTIONABLE
   INTELLIGENCE. A lifecycle date is a signal; a scoped, dated change
   is intelligence; impact requires a dependency.
-- Public intelligence (what changed in OSS) ≠ customer intelligence
+- Public intelligence (what changed in OSS) ≠ dependency-specific intelligence
   (does it affect my software). Public reports never assert the second.
 - MATCH STRENGTH ≠ EVIDENCE STRENGTH — precise identity answers
   "what matches", never "how trustworthy is the claim".
@@ -421,7 +421,7 @@ check; short timeouts and no-redirects bound the blast radius.
 ## Alert digest — the first M6 early-warning surface (`core/digest.py`)
 
 `openpulse digest` joins three things that already exist — the
-dependency inputs the customer just checked, the events the check
+dependency inputs the user just checked, the events the check
 ran against, and the durable first-detection ledger `openpulse
 check` records into — and renders one ranked briefing: what is
 changing in MY software, and by when. It computes nothing new and
@@ -430,9 +430,9 @@ so there is no second source of truth to drift.
 
 Rules the digest inherits rather than reinvents:
 
-- **Customer evidence is required.** An entry exists only for a
+- **Dependency evidence is required.** An entry exists only for a
   dependency the caller declared with an impact-asserting verdict.
-  Public intelligence never implies customer impact.
+  Public intelligence never implies user impact.
 - **Deadlines come from event evidence only.** `days_until_effective`
   is the evidence-declared effective date minus today; an affected
   dependency whose event declares no effective date has no deadline

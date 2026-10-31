@@ -203,7 +203,7 @@ def test_upcoming_warning_window_uses_first_detection():
 def test_public_customer_boundary_rendered():
     md = build_report("2026-09", [_item("db", [_eol()])])
     boundary = md.split("## For Your Environment")[1].split("## Appendix")[0]
-    assert "does not establish that a specific customer environment is affected" in boundary
+    assert "does not establish that a specific user's environment is affected" in boundary
     assert "public intelligence → dependency context" in boundary
     assert "affected dependency" in boundary
     assert "actionable warning" in boundary

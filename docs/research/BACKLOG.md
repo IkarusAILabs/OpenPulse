@@ -29,12 +29,12 @@ Purpose: the differentiation — changes lifecycle DBs never record and SCA noti
 
 ## P2 — Dependency Impact Intelligence
 
-Purpose: turn public intelligence into customer answers without building generic SCA.
+Purpose: turn public intelligence into dependency-specific answers without building generic SCA.
 
 - [DONE] YAML watchlist path (`openpulse check`) and CycloneDX SBOM input (`core/sbom_reader.py`) converging on `check_dependency` verdicts.
 - [DONE] SPDX input alongside CycloneDX, same convergence rule (`read_spdx`, `check --spdx`). Purpose: M5 input breadth without a second engine.
 - [DONE] Lockfile readers (package-lock, poetry.lock, Cargo.lock — pinned-version truth only; `core/lockfile_reader.py`, skip-and-record discipline, `--lockfile` composable with watchlist/SBOM). Purpose: exact-version applicability, the highest-precision M5 input.
-- [DONE] Package manifest readers (requirements.txt, pyproject.toml, pom.xml, go.mod, Cargo.toml - pinned-version truth only; `core/manifest_reader.py`, skip-and-record discipline, `--manifest` composable with watchlist/SBOM/lockfile). Purpose: the most direct customer dependency input - what developers actually commit; exact-version applicability through the existing identity engine.
+- [DONE] Package manifest readers (requirements.txt, pyproject.toml, pom.xml, go.mod, Cargo.toml - pinned-version truth only; `core/manifest_reader.py`, skip-and-record discipline, `--manifest` composable with watchlist/SBOM/lockfile). Purpose: the most direct user dependency input - what developers actually commit; exact-version applicability through the existing identity engine.
 - [DONE] Container image inventory input (`core/image_inventory.py`, `check --images`); registry-port refs keep distinct identities since #113. Purpose: closes the loop with distribution intelligence (M2→M5).
 - [DONE 2026-10-19] GitHub-repository ingestion (`core/github_reader.py`, `--github-repo`): commit- and blob-SHA-pinned, bounded, COMPLETE/PARTIAL/FAILED coverage in verdicts and contract v1.1. Purpose: dependency files at a ref without treating absence as proof.
 - [DONE 2026-10-21] Namespaced pom.xml (#112): real-world POMs no longer parse to zero deps; DOCTYPE refused, depth/element caps.
