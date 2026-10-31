@@ -1,0 +1,158 @@
+% Working draft for Empirical Software Engineering (Springer).
+% Before submission, move to the journal's LaTeX template (sn-jnl.cls,
+% "Springer Nature LaTeX template"); the section structure already
+% follows EMSE's usual research-article shape.
+% Every number in Sections 4-5 comes from analysis.py on the frozen run;
+% \result{} marks a value that does not exist yet. Do not fill one by hand.
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\newcommand{\result}[1]{\textcolor{red}{[RESULT: #1]}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Moved, Archived, Gone: How Often Widely Used Packages Lose Their
+Upstream, and Whether Dependency Tools Can Tell}
+
+\author{Mehmet Kış\\
+Ikarus AI Labs, Cambridge, United Kingdom\\
+\href{mailto:mehmet@ikaruslabs.net}{\texttt{mehmet@ikaruslabs.net}}}
+
+\date{Draft, \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent\textbf{Context.} Dependency tools decide whether a dependency
+is safe mostly from vulnerability advisories and lifecycle catalogues.
+Changes to the dependency's upstream, such as an archived, relocated or
+deleted source repository, need not appear in either.
+\textbf{Objective.} We measure how often the most depended-upon packages
+of npm, PyPI and Go have such a change, how many dependents they have,
+and whether the change is visible through a machine-readable signal a
+dependency tool could act on.
+\textbf{Method.} A pre-specified cross-sectional study of
+\result{N} packages, the top 1,000 and a random 1,000 from ranks
+1,001--20,000 per ecosystem, measuring each package's published source
+repository through the GitHub API and its registry, advisory and
+lifecycle records through their primary sources.
+\textbf{Results.} \result{RQ1--RQ4 headline figures}.
+\textbf{Conclusion.} \result{one sentence, written after the results}.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+% Motivation: advisories (OSV, GHSA) and lifecycle data (endoflife.date)
+% cover vulnerabilities and announced support windows. Repository-level
+% changes - archival, transfer, deletion - change who can fix the code and
+% where it lives, without necessarily producing either kind of record.
+% Examples from TR-2026-01 (etcd relocation, Bitnami withdrawal) are
+% anecdotes; this paper measures the phenomenon.
+
+\paragraph{Research questions.}
+\begin{enumerate}[leftmargin=*,label=RQ\arabic*.]
+  \item \emph{Prevalence.} Among the most depended-upon packages of npm,
+    PyPI and Go, what share have a source repository that is archived,
+    relocated, or no longer reachable?
+  \item \emph{Exposure.} How many dependent packages and repositories do
+    those packages have?
+  \item \emph{Signal coverage.} For packages whose source repository is
+    archived or unreachable, what share carry a registry deprecation
+    flag, an OSV advisory, or an endoflife.date entry?
+  \item \emph{Stale references.} For relocated repositories, what share of
+    registry metadata still names the old location?
+\end{enumerate}
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=*]
+  \item A measurement of upstream source changes across three
+    ecosystems, separated into strata so that it is not read as
+    ecosystem-wide.
+  \item A measurement of how much of it is visible to tools that read
+    registries, advisories and lifecycle data.
+  \item A replication package: the frozen sample, every raw response,
+    the collector and the analysis.
+\end{enumerate}
+
+\section{Background and Related Work}
+\label{sec:related}
+% Abandonment and deprecation: Valiev et al. 2018; Avelino et al. 2019;
+% Cogo et al. 2022 (npm deprecation); Miller et al. 2023.
+% Advisory and lifecycle data: OSV schema, GHSA, endoflife.date.
+% Supply-chain metadata: SBOM accuracy, package identity (purl),
+% repository provenance (Sigstore, SLSA source provenance).
+% OpenPulse / TR-2026-01: the motivating instrument; this study does not
+% evaluate it.
+
+\section{Study Design}
+\label{sec:design}
+% Summarise papers/prevalence/PROTOCOL.md: frame, strata and seed,
+% exclusions, measures table, validation, analysis. State the freeze tag
+% and the SHA-256 of the protocol, and the disclosure in its section 8
+% (summary counts viewed before writing it).
+
+\section{Results}
+\label{sec:results}
+\subsection{RQ1: Prevalence}
+\result{per ecosystem and stratum: archived, relocated, unreachable, with Wilson 95\% intervals; excluded counts}
+\subsection{RQ2: Exposure}
+\result{dependent counts; median and total, with the overlap caveat}
+\subsection{RQ3: Signal coverage}
+\result{2x3 table: state by registry / advisory / lifecycle, and any signal}
+\subsection{RQ4: Stale references}
+\result{share of relocated repositories whose registry metadata names the old location}
+\subsection{Validation}
+\result{frame agreement; rater agreement (kappa) and which raters were independent; archived-repository classification}
+
+\section{Discussion}
+\label{sec:discussion}
+% Implications for dependency tools and SBOM producers; for registries
+% (publishing repository state); for agents choosing dependencies.
+
+\section{Threats to Validity}
+\label{sec:threats}
+\paragraph{Construct validity.} Archived is not abandoned; unreachable
+includes private repositories; lexical signal matching (estimated in the
+validation sample).
+\paragraph{Internal validity.} The study is descriptive and draws no
+causal conclusion. Ecosyste.ms decides only the frame and the ranking;
+the frame-versus-source agreement is reported.
+\paragraph{External validity.} Three ecosystems, GitHub-hosted sources
+only, a ranked frame; the \emph{Tail} stratum limits but does not remove
+the bias towards popular packages.
+\paragraph{Conclusion validity.} Proportions with intervals and no
+hypothesis tests; overlapping dependent counts are never summed into a
+count of affected projects.
+
+\section{Conclusion}
+\label{sec:conclusion}
+\result{written after the results}
+
+\section*{Data Availability}
+The protocol, the rating guide, the collector, the frozen sample, every
+raw response and the analysis code are in
+\url{https://github.com/IkarusAILabs/OpenPulse/tree/main/papers/prevalence},
+archived on Zenodo at \result{DOI}.
+
+\section*{AI Assistance}
+% State the tools and versions, what they were used for (code, drafting),
+% and that the author made every design decision. Ratings by a language
+% model, if any were used, are labelled and are not independent ratings.
+
+\section*{Conflict of Interest}
+% The author develops OpenPulse, which acts on upstream changes of the
+% kind measured here. The study uses no OpenPulse code or data.
+
+\end{document}

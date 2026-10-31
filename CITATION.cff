@@ -11,7 +11,7 @@ abstract: >-
 type: software
 authors:
   - given-names: Mehmet
-    family-names: KI
+    family-names: Kış
     affiliation: "Ikarus AI Labs, Cambridge, United Kingdom"
 version: 0.8.0
 date-released: 2026-10-31
@@ -28,7 +28,7 @@ preferred-citation:
   title: "Evidence Before Impact: Upstream Change Intelligence for Dependency Decisions"
   authors:
     - given-names: Mehmet
-      family-names: KI
+      family-names: Kış
       affiliation: "Ikarus AI Labs, Cambridge, United Kingdom"
   institution:
     name: "Ikarus AI Labs"

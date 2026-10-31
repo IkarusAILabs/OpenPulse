@@ -1,0 +1,3 @@
+# Raw HTTP logs are hundreds of MB at full scale; they are archived on
+# Zenodo with the frozen run, not kept in git (README.md, "Data").
+raw.jsonl.gz

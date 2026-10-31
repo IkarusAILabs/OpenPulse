@@ -1,0 +1,26 @@
+{
+  "upload_type": "software",
+  "title": "OpenPulse: upstream change evidence for dependency decisions",
+  "description": "<p>Research instrument for evidence-based dependency decisions: it collects, qualifies and applies upstream change evidence (relocation, archival, distribution withdrawal, licence change, end of life, compromised versions) to declared dependency inventories, and withholds a negative verdict unless the change's scope is complete and every element is decisively excluded. Developed by Ikarus AI Labs as part of its research programme on evidence-based assurance for AI-mediated software change. The decision model and an audit of release v0.8.0 are described in Technical Report TR-2026-01.</p>",
+  "creators": [
+    {
+      "name": "Kış, Mehmet",
+      "affiliation": "Ikarus AI Labs, Cambridge, United Kingdom"
+    }
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "software supply chain",
+    "dependency management",
+    "upstream change",
+    "evidence-based assurance",
+    "AI-mediated software change"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/IkarusAILabs/OpenPulse/blob/v0.8.0/papers/tr-2026-01/OpenPulse-TR-2026-01.pdf",
+      "relation": "isDocumentedBy",
+      "resource_type": "publication-report"
+    }
+  ]
+}
