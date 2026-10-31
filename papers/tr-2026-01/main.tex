@@ -1,6 +1,7 @@
 % Ikarus AI Labs Technical Report TR-2026-01 (draft under review)
-% TODO(authors, not rendered): before submission, disclose the provenance of
-% external feedback and any AI assistance in writing the report, as the venue requires.
+% AI assistance is disclosed in the section "AI Assistance and Authorship".
+% TODO(author, not rendered): before submitting to a venue, check its AI-use
+% policy and state the provenance of the external reviews as it requires.
 % Build: latexmk -pdf main.tex   (or: pdflatex, bibtex, pdflatex, pdflatex)
 \documentclass[11pt,a4paper]{article}
 
@@ -108,7 +109,8 @@ completeness declarations and curated identity mappings; it does not
 extend to the advisory path or to agent behaviour. We specify a prospective evaluation that
 would provide one. Its analysis code is implemented, including a
 baseline that reads the same events re-encoded as OSV and OpenVEX.
-Its registration awaits archiving.
+It needs independent annotators, so it is offered as an open protocol
+for others to register and run.
 \end{abstract}
 
 \section{Introduction}
@@ -685,7 +687,8 @@ Identity, freshness and consistency in one decision &
 Implementation, audit and evaluation &
   Differential and mutation testing; prospective evaluation &
   An oracle written from the specification, a defect re-injection
-  suite, a registration draft with its analysis code implemented, and
+  suite, an open registration protocol with its analysis code
+  implemented, and
   an exploratory retrospective study
   (Sections~\ref{sec:audit}, \ref{sec:evalplan} and~\ref{sec:retro}) &
   22 of 22 historical-defect and rule-disabling mutants caught. Retrospective: no false clear
@@ -2529,10 +2532,16 @@ code (\code{evaluation/REGISTRATION.md} and
 label exists; we call its values \emph{pre-specified}. It becomes a
 registered protocol only when it is archived (OSF Registries or Zenodo) with its registry
 identifier, freeze commit, event window and annotators filled in,
-before any held-out label exists. That has not happened yet. All of
-the analysis is implemented at \evalcommit{}: the baselines, the
-tests and guardrails, and the burden and reliability measures below.
-What remains before archiving is the registry record itself. Before the
+before any held-out label exists. That has not happened, and the
+author will not do it alone. The protocol's independence requirement
+needs two annotators, an adjudicator and an encoder outside the
+author, and this report has a single author working with AI
+assistance (see ``AI Assistance and Authorship''). All of the analysis
+is implemented at \evalcommit{}: the baselines, the tests and
+guardrails, and the burden and reliability measures below. So the
+protocol is offered as an open protocol: a team that runs it fills the
+registry record in its own name and archives it before labelling.
+Before the
 evaluation, the evaluated subset must enforce the full
 negative-admission policy, or abstain wherever it cannot. At
 \pincommit{} that holds with the gaps stated in
@@ -2543,8 +2552,8 @@ is reported per inventory and per monitoring cycle (W1 below), not
 only per pair.
 Expanding this protocol further has diminishing
 returns. Conformance has been run (Section~\ref{sec:audit}). The next
-step is the primary applicability comparison, after the registration
-is archived.
+step is the primary applicability comparison, run by a team
+independent of the author under an archived registration.
 
 \paragraph{Specification conformance.} This step has been run on a
 generated matrix (Section~\ref{sec:audit}, Table~\ref{tab:conformance}).
@@ -3397,9 +3406,10 @@ exercised. Each is fixed and reported, and the re-measured figures
 are diagnostic, not estimates on unseen events. The defensible thesis
 is therefore narrow. It is a testable assurance model that makes the
 conditions for a negative explicit, an audit of one implementation
-against it, and a pre-specified study of its safety--coverage
-trade-off against a strong conservative baseline and a careful consumer
-of existing formats. The assurance holds under trusted completeness
+against it, and a pre-specified, not yet run study of its
+safety--coverage trade-off against a strong conservative baseline and
+a careful consumer of existing formats, offered for independent teams
+to run. The assurance holds under trusted completeness
 declarations and curated identity mappings, for event-scope decisions
 only. Whether the evidence changes dependency decisions, for
 developers or for agents, is the question that study and a separate
@@ -3418,6 +3428,31 @@ curation, contributing real inventories that contain distributions and
 embedded components, running the agent experiment, and integrating the
 evidence contract into dependency-decision workflows and assurance
 tooling. See \url{https://ikaruslabs.net/}.
+
+\section*{AI Assistance and Authorship}
+This report has a single author, who is responsible for all of its
+content. AI coding and writing assistants, including Anthropic's
+Claude through Claude Code, were used throughout:
+\begin{itemize}[leftmargin=*,nosep]
+  \item for the implementation, the tests, the evaluation harness and
+    its analysis code;
+  \item for drafting and revising the text, including the responses to
+    external reviews.
+\end{itemize}
+Commits made with that assistance name it in the repository history.
+The author directed the work, made every design and methodological
+decision, and reviewed what the assistants produced. None of the
+report's data are independent of the author:
+\begin{itemize}[leftmargin=*,nosep]
+  \item the development set and the retrospective study were labelled
+    by the author;
+  \item the outside labelling round was itself AI-assisted, so it is
+    reported only as a consistency check (Section~\ref{sec:retro});
+  \item the development-set encodings for baseline (vi) are the
+    author's.
+\end{itemize}
+This is why the report makes no confirmatory claim, and why its
+prospective protocol requires annotators independent of the author.
 
 \bibliographystyle{plain}
 \bibliography{references}

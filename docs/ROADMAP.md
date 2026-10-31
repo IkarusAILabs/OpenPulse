@@ -26,10 +26,10 @@ An external recommendation on TR-2026-01 (assessment: `papers/tr-2026-01/RECOMME
 STATUS: ACTIVE
 
 - [ACTIVE] **R-A1:** State the contribution as a testable model: when a negative applicability verdict is justified (scope typing, completeness with a basis, exact vs envelope, identity, freshness). Claim the model and its evaluation. Do not claim completeness reasoning or three-valued logic as new.
-- [ACTIVE 2026-10-30, waiting on the author to archive] **R-A2:** The registration is drafted in `evaluation/REGISTRATION.md`, and the registered analysis is implemented in `evaluation/registration.py`, with frozen constants and tests.
+- [DONE 2026-10-31 as an open protocol] **R-A2:** The registration is complete in `evaluation/REGISTRATION.md`, and the registered analysis is implemented in `evaluation/registration.py`, with frozen constants and tests. It also implements S3, G4, W1–W3 and D1–D2, and sets the stopping rule and the inclusion criteria. The single author will not archive or run it alone, because it needs independent annotators. It is offered to independent teams, who register it in their own name (REGISTRATION, "Who runs it").
   - **Primary:** C vs B. H1 is safety: event-level false-clear share, δ 0.05, ≥ 60 events. H2 is a resolution gain of ≥ 0.10.
-  - **Secondary**, Holm-corrected: C vs V equivalence within ±0.05; A vs C false clears.
-  - **Guardrails:** silent misses ≤ 0.02; unresolved ≤ B + 0.05; per-class flag above 0.60.
+  - **Secondary**, Holm-corrected: C vs V equivalence within ±0.05; A vs C false clears; C vs R resolution (S3).
+  - **Guardrails:** silent misses ≤ 0.02; unresolved ≤ B + 0.05; per-class flag above 0.60; C's median W1 ≤ B's (G4).
   - **The change from the draft:** making V secondary is disclosed.
   - **Remaining, for the author:** complete the fields marked "to fill at archiving" (registry, date, freeze tag, window start, annotators, stopping number, per-class inclusion criteria), then archive on OSF Registries or Zenodo before any held-out label exists.
 - [NEXT] **R-A3:** Widen related work on vulnerability applicability and VEX/CSAF consumption, SBOM accuracy, package identity (purl, cross-ecosystem naming), dependency management and AI package recommendation. Each comparison must answer one question: what can a consumer do with the model that it could not do reliably before?
@@ -77,7 +77,7 @@ STATUS: ACTIVE
 - [LATER, only if R-C needs it] Ecosystem expansion beyond the current three change classes on two platforms.
 
 ### R-C — Empirical evaluation
-STATUS: NEXT (blocked on archiving the R-A2 registration, and on annotators)
+STATUS: NEXT for the held-out study, which waits on an independent team to register and run the R-A2 open protocol. R-C0, the exploratory retrospective study, is done.
 
 - [ACTIVE 2026-10-30, design awaiting approval] **R-C0:** Retrospective study on real historical changes. It answers the recommendation's Priority 2. It is exploratory, reported separately, and never pooled with the registered result.
   - Rules: `evaluation/retrospective/DESIGN.md`. Screened candidates: `evaluation/retrospective/SHORTLIST.md`, with 27 of 33 included or provisional across 6 classes.

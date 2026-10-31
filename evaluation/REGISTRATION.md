@@ -1,6 +1,6 @@
 # Registration: completeness-aware applicability decisions (TR-2026-01 evaluation)
 
-**Status: drafted 2026-10-30, amended 2026-10-30 (§12), not yet archived.** This document becomes the registered protocol when the author archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
+**Status: an open protocol (drafted 2026-10-30, amended 2026-10-30 and 2026-10-31, §12), not archived.** This document becomes a registered protocol only when a team archives it, with its fields completed, on OSF Registries or Zenodo (DOI) **before any held-out label exists**. Until then it is a draft and may change. After archiving, any change is an amendment (§11).
 
 **Not archivable yet: only the archiving fields remain.** The 2026-10-30 amendments are implemented, with their constants in `registration.py` (§9):
 - policy R: its encoding rules (`evaluation/representations/ENCODING.md`) and its consumer (`evaluation/existing_representation.py`), with each event's encoding frozen by SHA-256 in the case set;
@@ -8,7 +8,16 @@
 - the review-burden measures W1–W3: the inventory run per weekly cycle, and W3's seeded sample and summary;
 - the reliability measures D1–D2, tabulated from the annotators' records.
 
-The stopping rule (§6) and the inclusion criteria per event class (§7) are set (drafted and approved by the author, 2026-10-30). What remains is the registry fields of the table below: registry and identifier, archive date, implementation freeze, event-window start, and annotators.
+The stopping rule (§6) and the inclusion criteria per event class (§7) are set (drafted and approved by the author, 2026-10-30).
+
+**Who runs it (2026-10-31).** TR-2026-01 has a single author, and its code, analysis and text were written with AI assistance (the report's "AI Assistance and Authorship" statement). The study's independence requirement (§8) needs at least three people outside the author: two annotators, an adjudicator, and an encoder for policy R. So the author will not archive or run this protocol alone. Its fields are left empty on purpose, and are never filled with people who do not exist.
+
+The protocol is offered to independent teams. A team that runs it does the following:
+- fills the fields of the table below in its own name: registry and identifier, archive date, implementation freeze, event-window start, annotators and encoder;
+- archives the protocol before any held-out label exists;
+- reports deviations as amendments (§11).
+
+The analysis code, encoding rules, stopping rule and inclusion criteria are ready for that.
 
 | Field | Value |
 |---|---|
