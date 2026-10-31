@@ -26,7 +26,8 @@ An external recommendation on TR-2026-01 (assessment: `papers/tr-2026-01/RECOMME
 STATUS: ACTIVE
 
 - [ACTIVE] **R-A1:** State the contribution as a testable model: when a negative applicability verdict is justified (scope typing, completeness with a basis, exact vs envelope, identity, freshness). Claim the model and its evaluation. Do not claim completeness reasoning or three-valued logic as new.
-- [ACTIVE 2026-10-30, waiting on the author to archive] **R-A2:** The registration is drafted in `evaluation/REGISTRATION.md`, and the registered analysis is implemented in `evaluation/registration.py`, with frozen constants and tests.
+- [DONE 2026-10-31 as an open protocol] **R-A2:** The registration is complete in `evaluation/REGISTRATION.md`, and the registered analysis is implemented in `evaluation/registration.py`, with frozen constants and tests. It also implements S3, G4, W1–W3 and D1–D2, and sets the stopping rule and the inclusion criteria. The single author will not archive or run it alone, because it needs independent annotators. It is offered to independent teams, who register it in their own name (REGISTRATION, "Who runs it").
+  - **Secondary tests:** S3 is added to the two listed below. All three are Holm-corrected.
   - **Primary:** C vs B. H1 is safety: event-level false-clear share, δ 0.05, ≥ 60 events. H2 is a resolution gain of ≥ 0.10.
   - **Secondary**, Holm-corrected: C vs V equivalence within ±0.05; A vs C false clears.
   - **Guardrails:** silent misses ≤ 0.02; unresolved ≤ B + 0.05; per-class flag above 0.60.
@@ -77,7 +78,7 @@ STATUS: ACTIVE
 - [LATER, only if R-C needs it] Ecosystem expansion beyond the current three change classes on two platforms.
 
 ### R-C — Empirical evaluation
-STATUS: NEXT (blocked on archiving the R-A2 registration, and on annotators)
+STATUS: NEXT for the held-out study, which waits on an independent team to register and run the R-A2 open protocol. R-C0, the exploratory retrospective study, is done.
 
 - [ACTIVE 2026-10-30, design awaiting approval] **R-C0:** Retrospective study on real historical changes. It answers the recommendation's Priority 2. It is exploratory, reported separately, and never pooled with the registered result.
   - Rules: `evaluation/retrospective/DESIGN.md`. Screened candidates: `evaluation/retrospective/SHORTLIST.md`, with 27 of 33 included or provisional across 6 classes.

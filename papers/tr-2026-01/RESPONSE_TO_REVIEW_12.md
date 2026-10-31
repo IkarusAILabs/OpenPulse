@@ -48,7 +48,7 @@ This is the package–source ambiguity of §3.1.1, and it is now a pinned, docum
 
 | Point | Why not here |
 |---|---|
-| Priority 1: independent held-out evaluation | It needs the registration archived, a frozen implementation, independent annotators and a prospective window. The protocol, analysis code, stopping rule and inclusion criteria are ready. What remains is the registry record (REGISTRATION, "Not archivable yet"). |
+| Priority 1: independent held-out evaluation | It needs independent annotators, an adjudicator and an encoder outside the author. The report has a single author working with AI assistance, so the author will not run it alone. The protocol, analysis code, stopping rule and inclusion criteria are complete, and are offered as an open protocol: a team that runs it registers it in its own name before labelling (REGISTRATION, "Who runs it"). The paper now says so, and discloses the AI assistance ("AI Assistance and Authorship"). |
 | Priority 2: independently validating completeness declarations | We delimit the claim instead (3.1.2), and D1 estimates the error rate per basis. |
 | Priority 2: an independently implemented oracle | It needs an engineer outside the team. The independent kit (`conformance/independent/`) is ready for one. |
 | Priority 3: running the advisory benchmark | The design is written. Building it needs snapshots, cases and its own registration. |

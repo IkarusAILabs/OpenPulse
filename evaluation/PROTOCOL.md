@@ -1,6 +1,6 @@
 # Comparative decision-policy evaluation — protocol
 
-Status: **harness implemented, development set run; registration drafted ([`REGISTRATION.md`](REGISTRATION.md), not yet archived); held-out evaluation not started.** The registration is the authority for the primary and secondary hypotheses, thresholds and stopping rule. This document defines the policies, labels and metrics it uses. This protocol implements the core of TR-2026-01 §10 (Applicability) and the comparative experiment recommended in the external review of 2026-10-30 (Priority 1). It is fixed here before any held-out case is labelled. A change to sections 2–4 after held-out labelling starts is a protocol amendment and is reported as one.
+Status: **harness implemented, development set run; registration complete as an open protocol ([`REGISTRATION.md`](REGISTRATION.md), not archived: it needs independent annotators, and the single author will not run it alone); held-out evaluation not started.** The registration is the authority for the primary and secondary hypotheses, thresholds and stopping rule. This document defines the policies, labels and metrics it uses. This protocol implements the core of TR-2026-01 §10 (Applicability) and the comparative experiment recommended in the external review of 2026-10-30 (Priority 1). It is fixed here before any held-out case is labelled. A change to sections 2–4 after held-out labelling starts is a protocol amendment and is reported as one.
 
 Run it:
 
