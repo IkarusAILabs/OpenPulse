@@ -317,6 +317,12 @@ None of the primary hypotheses, margins, sample-size rules or thresholds of §3 
 
 The CLI's verdict commands now apply the same freshness bound as the agent tools. The evaluated C (`evaluation/policies.py`) already set it, so no policy changed.
 
+The author also decided two points the review raised, both leaving this registration unchanged:
+- S3 (C vs R) remains a Holm-corrected secondary test, not a primary hypothesis;
+- review burden remains guardrail G4 plus the reported W1–W3, not a primary outcome.
+
+H1 and H2 remain the only primary tests.
+
 **Set 2026-10-30, before archiving: the stopping rule (§6) and the inclusion criteria (§7).** Drafted with Claude Code and approved by the author. They fill fields the draft left to archiving, and use no held-out data. The criteria adapt the retrospective study's (`evaluation/retrospective/DESIGN.md` §3), written before that study ran. The number 80 was chosen for decidability (some events have no in-scope pair) and budget, not from any result.
 
 ## 13. Known limitations of the design
