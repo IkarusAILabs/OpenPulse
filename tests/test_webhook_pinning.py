@@ -2,7 +2,7 @@
 
 Offline: `socket.getaddrinfo` is replaced by a scripted resolver and
 `socket.create_connection` by a fake that records where the client tried
-to connect and serves a canned HTTP response over a local socketpair.
+to connect and serves a canned HTTP response over a loopback TCP pair.
 A hostname handed to the fake is resolved through the scripted resolver,
 just as the real `create_connection` would, so an unpinned client is
 caught taking the second (rebound) answer.
@@ -20,6 +20,23 @@ import pytest
 PUBLIC = "93.184.216.34"
 PUBLIC_2 = "93.184.216.35"
 URL_PATH = "/hook/T000/B000/secret-token"
+
+
+def _tcp_pair() -> tuple[socket.socket, socket.socket]:
+    """A connected loopback TCP pair.
+
+    Not `socket.socketpair()`: on Linux that is AF_UNIX, and httpcore sets
+    TCP_NODELAY on every socket it dials, which an AF_UNIX socket rejects
+    (EOPNOTSUPP). Windows emulates socketpair over TCP, so only Linux failed.
+    `socket.create_connection` is patched here, so connect directly.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(listener.getsockname())
+        server, _ = listener.accept()
+    return client, server
 
 
 class _Net:
@@ -49,7 +66,7 @@ class _Net:
         self.reached.append(ip)
         if ip in self.refuse:
             raise ConnectionRefusedError("refused")
-        client, server = socket.socketpair()
+        client, server = _tcp_pair()
         threading.Thread(target=self._serve, args=(server,), daemon=True).start()
         return client
 
