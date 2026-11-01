@@ -18,6 +18,8 @@ pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPul
 openpulse mcp --help
 ```
 
+To also verify PyPI provenance (attestations) in `dependency_status`, install the `provenance` extra as well (Python 3.11+): `ikarus-openpulse[mcp,provenance]`. It adds about 24 packages (sigstore and its dependencies), hash-locked in `requirements-provenance.lock`. Without it, the `provenance` field says NOT_PERFORMED and how to enable it.
+
 OpenPulse is distributed as **`ikarus-openpulse`**. Don't `pip install openpulse`: that name on PyPI is an unrelated project (OpenQASM's pulse AST), and it has no `mcp` command. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as above.
 
 The MCP SDK is an **optional extra** and needs **Python 3.11 or newer** (MCP SDK 2.x requires it); the rest of OpenPulse still supports 3.10. Installing without `[mcp]` stays as small as before. The extra's dependencies are pinned and audited separately in [`requirements-mcp.lock`](../requirements-mcp.lock).
@@ -154,6 +156,7 @@ How to read an answer:
 | `sources` | Which sources answered, failed (`error`), had no data (`no-data`) or were off (`disabled`) |
 | `registry_existence` | `dependency_status` only (track T, T-M1). Whether the PyPI or npm package and version exist in their registry, as records with a closed status: `VERIFIED_RELATIONSHIP` (found), `VERIFIED_FAILURE` (the registry answered 404: an identity fact, not evidence of malice), `NOT_PERFORMED` (unsupported ecosystem, offline, budget spent, registry unreachable, or a name outside the ecosystem's grammar). Each record has a fixed `statement`, the registry URL and `checked_at`. Never part of the verdict |
 | `digest_integrity` | `check_dependency_file` on a `package-lock.json` or `poetry.lock` (track T, T-B4). Each locked digest is compared with what PyPI or npm publishes for that version. Counts per status: `VERIFIED_RELATIONSHIP` (every locked digest is published), `VERIFIED_FAILURE` (one isn't: the locked artifact is not the one the registry serves; each listed under `failures`), `MISSING_EVIDENCE` (the lockfile pins no usable digest), `NOT_PERFORMED` (the registry didn't answer, offline, budget spent, or capped past the per-file limit). Never part of a verdict |
+| `provenance` | `dependency_status` for a PyPI package with a version (track T, T-B1). PEP 740 attestations from PyPI's Integrity API are verified for up to 4 files of the release (wheels first) with `pypi-attestations`, and the publisher is cross-checked against the catalog's repository for curated packages. `VERIFIED_RELATIONSHIP` (verified; says where and how the files were built, **not** that they are benign), `VERIFIED_FAILURE` (an attestation doesn't verify, or the publisher names another repository), `MISSING_EVIDENCE` (no provenance published: most packages publish none, so not evidence of a problem), `NOT_PERFORMED` (the `[provenance]` extra isn't installed, offline, budget spent or PyPI unreachable). Never part of a verdict |
 | `not_established` | What this answer does not cover. An unreachable source makes its part UNKNOWN, never "fine" |
 
 ## Where the answers come from

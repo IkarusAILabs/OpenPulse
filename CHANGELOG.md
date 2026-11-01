@@ -6,6 +6,13 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **PyPI provenance in `dependency_status` (track T, T-B1, v0.12.0 item U3).** For a PyPI package with a version, the new `provenance` field verifies the release's PEP 740 attestations from PyPI's Integrity API, for up to 4 files (wheels first), each against the file's sha256. Verification uses `pypi-attestations` (Sigstore), never cryptography of our own.
+  - **Repository cross-check:** for curated packages, the attestation's publisher is compared with the catalog's GitHub repository; a different repository is `VERIFIED_FAILURE` (starjacking).
+  - **Other outcomes:** an attestation that doesn't verify is `VERIFIED_FAILURE`. No published provenance is `MISSING_EVIDENCE`, never a failure, because most packages publish none. `VERIFIED_RELATIONSHIP` says where and how the files were built, never that they are benign (Ultralytics' first malicious releases carried valid provenance).
+  - **Untrusted text:** publisher fields and file names are validated before they appear or reach a URL.
+  - **New optional extra `[provenance]`** (owner-approved, Phase 0 decision 5), Python 3.11+: `pypi-attestations` and its ~24 dependencies, hash-locked in the new `requirements-provenance.lock`, which `scripts/compile_locks.py` generates, constrained to the core, mcp and audit-tool pins. Without the extra, the field is `NOT_PERFORMED` with how to enable it. A new CI `provenance` job installs it from the lock, checks drift, audits it and runs its tests.
+  - **Lock checker fixes:** `scripts/check_lock.py` now reads the provenance lock and parses `>=` floors that carry an environment marker.
+  - **Unchanged:** verdicts.
 - **Digest integrity for lockfiles (track T, T-B4, v0.12.0 item U2).** `check_dependency_file` (MCP) compares each digest a `package-lock.json` (`integrity`) or `poetry.lock` (`files[].hash`) pins with what npm (`dist.integrity`, or `dist.shasum` for old sha1 locks) or PyPI (`urls[].digests.sha256`) publishes for that version. A locked digest the registry doesn't publish is `VERIFIED_FAILURE`, listed under `digest_integrity.failures`: the locked artifact is not the one the registry serves (substituted, re-uploaded or tampered).
   - **Other outcomes:** no usable locked digest is `MISSING_EVIDENCE`, and no usable registry answer is `NOT_PERFORMED`, never a failure.
   - **Safety:** lockfile digests are validated before use, and names before any URL. Each check spends one lookup from the session budget, under the 40-per-file cap.

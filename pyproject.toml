@@ -43,6 +43,9 @@ openpulse_schemas = ["evidence-contract/*/schema.json"]
 dev = ["pytest>=9.1.1", "ruff>=0.17.1"]
 # MCP server for AI coding agents (`openpulse mcp`); pins in requirements-mcp.lock.
 mcp = ["mcp>=2.3.0"]
+# PyPI provenance verification (track T, T-B1); pins in requirements-provenance.lock.
+# Python 3.11+, like mcp: sigstore's README and its metadata disagree on 3.10.
+provenance = ["pypi-attestations>=0.0.30; python_version >= '3.11'"]
 
 [project.scripts]
 openpulse = "cli.main:cli"

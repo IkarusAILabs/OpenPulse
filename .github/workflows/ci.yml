@@ -191,6 +191,38 @@ jobs:
       - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-mcp.lock
       - run: python -m pytest -q tests/test_mcp_server.py tests/test_agent_tools.py
       - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
+  provenance:
+    # Threat: the optional provenance extra (`[provenance]`, track T T-B1)
+    # pulls ~24 packages the core never installs (sigstore, cryptography,
+    # tuf, ...). They have their own reviewed lock (requirements-provenance.lock):
+    # install exactly that set, prove it is consistent with the core lock,
+    # audit it, and run the provenance tests the `test` job skips for lack of
+    # the library - against a recorded real attestation, offline.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - run: python -m pip install --require-hashes -r requirements.lock -r requirements-provenance.lock && python -m pip install --no-deps -e .
+      - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-provenance.lock
+      - run: python -m pytest -q tests/test_provenance.py tests/test_agent_tools.py tests/test_lock_files.py
+      - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
   comparators:
     # Baseline V's pinned ecosystem comparators (evaluation/comparators/README.md):
     # the real node-semver, Go x/mod/semver and Maven ComparableVersion, run
