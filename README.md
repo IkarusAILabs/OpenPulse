@@ -254,8 +254,9 @@ everything else. We do not compete on EOL record counts.
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
 - **Change engine**: corruption-detecting digest-aware registry observations
   (hash-chained local history, frozen sealed records, per-repo locks;
-  the chain is unkeyed, so it does not yet resist an adversary with
-  write access to `.openpulse/` - keyed integrity is planned for v0.9.0),
+  with a history key the history is MACed, rollback and downgrade are
+  refused, and `openpulse anchor` / `verify` catch deletions against a
+  checkpoint kept outside the store - unreleased, v0.9.0),
   observation diffs (`openpulse observe`), catalog sweep with
   first-detection tracking (`openpulse sweep`, `report --with-sweep`).
 - **Entity resolution**: canonical catalog with PURL builders,
@@ -286,7 +287,7 @@ v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made, and v
 - **v0.7.1 hardening.**
   - Every collector response is size-capped while it streams, so a gzip bomb or an oversized reply can't exhaust a run.
   - Every install in CI and in the GitHub Action is hash-checked against a complete lock, so a tampered or re-uploaded package fails the install.
-- **Still true.** The local history stays *corruption-detecting*, not yet tamper-proof. Keyed integrity is planned for v0.9.0 ([`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)).
+- **Still true in the latest release.** The local history is *corruption-detecting*, not tamper-evident. On `main` (unreleased v0.9.0) it becomes tamper-evident when you set a history key and keep `openpulse anchor` checkpoints outside the store; without a key it stays corruption-detecting ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
 
 ## Quickstart
 

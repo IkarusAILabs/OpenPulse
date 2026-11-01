@@ -11,6 +11,18 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **History anchors: `openpulse anchor` and `openpulse verify` (v0.9.0 item B5, finding H2).** They catch deletions that take their own evidence with them, which the store cannot see from inside: a repository's whole history folder (tip included), a ledger entry, the rotation log.
+  - **`openpulse anchor [--out FILE]`** writes a checkpoint with:
+    - each observation history's tip, record count and re-baseline count;
+    - one leaf per ledger entry (`first_seen`, `adopted_at`), plus an RFC 6962 Merkle root over the leaves;
+    - a hash of each rotation-log entry.
+
+    With a history key it is MACed (`key_id`, `mac`). It refuses to write inside `.openpulse/`: keep it in git or as a CI artifact.
+  - **`openpulse verify --anchor FILE`** exits 1 on any violation: an anchored tip no longer in its chain (ROLLBACK), a wiped history (WIPED), a deleted or backdated ledger entry (LEDGER_DELETED, LEDGER_REWRITTEN), a dropped rotation or re-baseline log entry, or an anchor whose MAC fails.
+    - Growth after the anchor is fine.
+    - A re-baseline after the anchor is a notice only when its log entry verifies under the key.
+    - `--require-signed` also refuses an anchor the supplied key did not sign. `--json` prints the result.
+  - **Docs:** `docs/SCHEDULED_CHECKS.md` adds anchoring to the scheduled CI recipe. README, METHODOLOGY and SECURITY now say that local history is tamper-evident with a history key plus anchors kept out of the store, and corruption-detecting without a key.
 - **Rollback and downgrade detection for observation history (v0.9.0 item B4, finding H2).**
   - **New refusals:** ROLLBACK_SUSPECTED, for a chained history whose tip pointer is missing (before, it was adopted). DOWNGRADE, for an unchained record after chained ones, or an unkeyed record after keyed ones. They join ROLLBACK and BROKEN, and the refusal message says how to re-baseline.
   - **Explicit re-baseline:** `openpulse observe --rebaseline --reason "..."` (one line, up to 500 characters). A rollback whose remaining chain verifies is accepted at its current tip. A broken or downgraded history, or a tip with no data, is moved to `quarantine-<time>/`, never deleted, and the chain restarts at genesis.

@@ -89,6 +89,27 @@ the ledger again: detections are new, never backdated. Anyone who can
 edit the cache but lacks the key can delete entries, but cannot forge
 one: an edited entry fails its MAC and publishes no lead time.
 
+**Anchoring the ledger:** the cache is writable by anything that runs
+in the repository's workflows, so keep a checkpoint where it is not.
+After `check`, write an anchor and keep it as an artifact or commit it
+to a dedicated branch; at the start of the next run, verify the restored
+ledger against the previous anchor:
+
+```yaml
+      - run: openpulse verify --anchor anchors/latest.json --require-signed
+        env:
+          OPENPULSE_HISTORY_KEY: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+      # ...digest and check as above...
+      - run: openpulse anchor --out anchors/latest.json
+        env:
+          OPENPULSE_HISTORY_KEY: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+```
+
+`verify` exits 1 when anything the anchor saw is gone or changed (a
+deleted or backdated ledger entry, a dropped rotation-log entry), and
+`--require-signed` refuses an anchor the key did not sign. On the very
+first run there is no anchor yet: skip `verify` until one exists.
+
 **Rotating the key:** make a new key, set it as
 `OPENPULSE_HISTORY_KEY`, and move the old one to
 `OPENPULSE_HISTORY_KEYS_PREVIOUS` (also a secret). The next run
