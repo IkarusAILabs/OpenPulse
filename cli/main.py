@@ -1853,6 +1853,14 @@ def digest(
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
+@click.option(
+    "--fail-on",
+    "fail_on",
+    type=click.Choice(["overdue", "critical", "high", "medium", "low"]),
+    default=None,
+    help="CI gate: exit 1 when a deadline at or above this severity is in the window "
+    "(critical includes overdue), or when repository inspection coverage is FAILED",
+)
 @_history_key_option
 def warnings(
     watchlist,
@@ -1866,6 +1874,7 @@ def warnings(
     window_days,
     output,
     ledger_root,
+    fail_on=None,
     github_repo="",
     github_token="",
     github_token_file=None,
@@ -1923,8 +1932,32 @@ def warnings(
         import json as _json
 
         _echo(_json.dumps(built, indent=2))
-        return
-    _echo(render_warnings_md(built))
+    else:
+        _echo(render_warnings_md(built))
+    if fail_on:
+        _warnings_gate(built, fail_on, inspections)
+
+
+def _warnings_gate(built, fail_on, inspections) -> None:
+    """`warnings --fail-on`: exit 1 on a deadline at or above the severity (W2).
+
+    Printed to stderr, so `--output json` stays parseable. As every other
+    gate, it never passes on a repository it could not read.
+    """
+    from core.warnings import gate_breaches
+
+    breaches = gate_breaches(built, fail_on)
+    if breaches:
+        severities = sorted({w["severity"] for w in breaches})
+        _echo(
+            f"fail-on {fail_on}: {len(breaches)} deadline(s) at or above "
+            f"{fail_on.upper()} ({', '.join(severities)})",
+            err=True,
+        )
+        raise SystemExit(1)
+    if inspections and _coverage_summary(inspections)[0] == "FAILED":
+        _echo("repository inspection coverage FAILED: gate failed", err=True)
+        raise SystemExit(1)
 
 
 @cli.command()

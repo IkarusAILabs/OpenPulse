@@ -10,6 +10,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **`warnings --fail-on {overdue,critical,high,medium,low}` (#78, v0.11.0 item W2).** A CI job can fail on deadlines. The command exits 1 when a warning at or above the severity is in the window; the order is OVERDUE > CRITICAL > HIGH > MEDIUM > LOW, so `critical` includes OVERDUE. As with every gate, it also exits 1 on FAILED repository coverage. The reason goes to stderr, so `--output json` stays parseable. Without the flag, `warnings` only reports, as before.
 - **Persistent alert delivery state (#78, v0.11.0 item W1, C1).** `core/delivery.py` gives each alert a stable ID and records its delivery.
   - **Retry:** a failed post is retried once in the run, then left `pending`. Later runs retry it after a backoff (5 minutes, doubling, at most 6 hours).
   - **Dead letter:** after 5 failed runs the alert becomes `dead_letter`. It is kept with its last (redacted) error and never posted again, and the run says so.

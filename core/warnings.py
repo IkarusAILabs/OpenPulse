@@ -106,6 +106,21 @@ def recommended_action(severity: str, impact: str) -> str:
     return _SEVERITY_ACTION.get(str(severity), _SEVERITY_ACTION[SEVERITY_LOW])
 
 
+def gate_breaches(built: dict[str, Any], threshold: str) -> list[dict[str, Any]]:
+    """Warnings at or above ``threshold`` (v0.11.0 W2, #78).
+
+    Severity order is OVERDUE > CRITICAL > HIGH > MEDIUM > LOW, so
+    ``critical`` also catches OVERDUE: a deadline that has already passed
+    is never milder than one a week away.
+    """
+    limit = SEVERITY_ORDER.index(threshold.upper())
+    return [
+        w
+        for w in built.get("warnings") or []
+        if w.get("severity") in SEVERITY_ORDER and SEVERITY_ORDER.index(w["severity"]) <= limit
+    ]
+
+
 def _rank(warning: dict[str, Any]) -> tuple[Any, ...]:
     """Urgency: soonest effective, then least-warned (shortest known
     lead time), unknown lead time last, then ref/event id so the
