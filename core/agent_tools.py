@@ -358,15 +358,34 @@ def lifecycle_events(slug: str, raw: Bundle, today: date | None = None) -> list[
     ]
 
 
+#: Repository metadata is upstream text (T-F3 fix E): each field must have
+#: its shape or it is null. The URL is derived from the validated name.
+_SPDX_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+-]{0,63}", re.ASCII)
+_TIMESTAMP = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", re.ASCII
+)
+
+
+def _repo_name(value: Any) -> str | None:
+    from core.github_reader import _valid_repo_parts
+
+    owner, _, name = str(value or "").partition("/")
+    return f"{owner}/{name}" if "/" not in name and _valid_repo_parts(owner, name) else None
+
+
 def _repository(raw: Bundle) -> dict[str, Any] | None:
     for meta in raw.get("github_meta", []):
         if isinstance(meta, dict) and meta.get("kind") == "repo_meta":
+            repo = _repo_name(meta.get("full_name")) or _repo_name(meta.get("repo"))
+            license_id = str(meta.get("license") or "")
+            pushed = str(meta.get("pushed_at") or "")
+            archived = meta.get("archived")
             return {
-                "repo": meta.get("full_name") or meta.get("repo"),
-                "archived": meta.get("archived"),
-                "last_push": meta.get("pushed_at"),
-                "license": meta.get("license"),
-                "url": meta.get("url"),
+                "repo": repo,
+                "archived": archived if isinstance(archived, bool) else None,
+                "last_push": pushed if _TIMESTAMP.fullmatch(pushed) else None,
+                "license": license_id if _SPDX_ID.fullmatch(license_id) else None,
+                "url": f"https://github.com/{repo}" if repo else None,
                 "note": "context only: repository health is not part of the verdict",
             }
     return None

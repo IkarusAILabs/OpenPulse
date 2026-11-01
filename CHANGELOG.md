@@ -6,6 +6,8 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Security
 
+- **Repository metadata is validated field by field (track T, T-F3 fix E, v0.12.0 item U1).** The MCP answer's `repository` block passed GitHub's `full_name`, `url`, `license` and `pushed_at` through as given. Each now must have its shape (the GitHub owner/name grammar, an SPDX-style id, an ISO timestamp) or it is `null`. The URL is built from the validated name, never taken from the API. The GitHub repository grammar also used `re.match` with `$`, which accepted a trailing newline (`"owner
+"`). It now uses `fullmatch`.
 - **Agent inputs must be identifiers, and are never echoed (track T, T-F3 fix A, v0.12.0 item U1).** The MCP tools took package names, versions, ecosystems and image refs as free text and repeated them in `dependency`, `verdict.reason` and `causes[].reason`. So an agent, or text injected into it, could make OpenPulse return arbitrary instructions inside fields the agent trusts.
   - **What's accepted:** these values must now match a general identifier shape (letters, digits and `@ / . _ : + ~ -` for names; similar sets for versions, ecosystems and image refs). Every ecosystem's real names fit, including legacy npm names with capitals.
   - **Tool arguments:** a failing argument is refused with a reason that doesn't repeat it.
