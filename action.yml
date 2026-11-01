@@ -208,6 +208,11 @@ runs:
       shell: bash
       env:
         IN_FAIL_ON: ${{ inputs.fail-on }}
+        IN_COVERAGE: ${{ steps.run.outputs.inspection-coverage }}
       run: |
-        echo "::error title=OpenPulse::fail-on $IN_FAIL_ON threshold breached (see the job summary)"
+        if [ "$IN_COVERAGE" = "FAILED" ]; then
+          echo "::error title=OpenPulse::repository inspection coverage FAILED - a gate never passes on a repository it could not read"
+        else
+          echo "::error title=OpenPulse::fail-on $IN_FAIL_ON threshold breached (see the job summary)"
+        fi
         exit 1

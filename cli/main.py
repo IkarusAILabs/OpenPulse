@@ -1282,14 +1282,15 @@ def _load_check_inputs(
     "--fail-on-partial",
     is_flag=True,
     help="Exit 1 when repository inspection coverage is PARTIAL or FAILED "
-    "(report-only by default; FAILED always fails under --strict)",
+    "(report-only by default; FAILED always fails under --strict or --fail-on)",
 )
 @click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
     show_default=False,
-    help="CI exit threshold: affected, review, action, or critical",
+    help="CI exit threshold: affected, review, action, or critical. "
+    "Also exits 1 when repository inspection coverage is FAILED",
 )
 @click.option(
     "--ledger",
@@ -1361,8 +1362,11 @@ def check(
         raw_bundle_dir,
     )
     run_coverage = _echo_run_coverage(inspections)
-    coverage_failed = run_coverage == "FAILED"
-    coverage_blocked = fail_on_partial and run_coverage in ("PARTIAL", "FAILED")
+    # Any gate (--strict, --fail-on, --fail-on-partial) fails on a
+    # repository it could not read; PARTIAL fails only --fail-on-partial.
+    coverage_blocked = (fail_on_partial and run_coverage in ("PARTIAL", "FAILED")) or (
+        (strict or bool(fail_on)) and run_coverage == "FAILED"
+    )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
@@ -1455,7 +1459,8 @@ def check(
         threshold = fail_on or ("action" if strict else "")
         if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
-        if coverage_blocked or (strict and coverage_failed):
+        if coverage_blocked:
+            _echo(f"repository inspection coverage {run_coverage}: gate failed")
             raise SystemExit(1)
         return
     for dep, result in zip(deps, results):
@@ -1494,7 +1499,8 @@ def check(
         raise SystemExit(1)
     if strict and strict_affected(results):
         raise SystemExit(1)
-    if coverage_blocked or (strict and coverage_failed):
+    if coverage_blocked:
+        _echo(f"repository inspection coverage {run_coverage}: gate failed")
         raise SystemExit(1)
 
 
@@ -1893,7 +1899,7 @@ def warnings(
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
     help="Exit 1 after writing every output when the same threshold `check --fail-on` "
-    "uses is breached",
+    "uses is breached, or when repository inspection coverage is FAILED",
 )
 def attest(
     watchlist,
@@ -2152,6 +2158,10 @@ def attest(
         ]
         if fail_on_threshold(combined, fail_on):
             _echo(f"fail-on {fail_on}: threshold breached", err=True)
+            raise SystemExit(1)
+        # A gate never passes on a repository it could not read.
+        if coverage_override and coverage_override["status"] == "FAILED":
+            _echo("repository inspection coverage FAILED: gate failed", err=True)
             raise SystemExit(1)
 
 

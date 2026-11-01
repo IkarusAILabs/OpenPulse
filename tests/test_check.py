@@ -274,6 +274,92 @@ def test_failed_repo_scan_is_reportable_without_strict(monkeypatch):
     assert "repository inspection coverage: FAILED" in out.output
 
 
+@pytest.mark.parametrize("threshold", ["affected", "review", "action", "critical"])
+@pytest.mark.parametrize("digest", [False, True], ids=["list", "digest"])
+def test_failed_repo_scan_fails_check_under_fail_on(monkeypatch, threshold, digest):
+    """#101: a --fail-on gate never passes on a repository it could not read."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, "FAILED")
+    args = [
+        "check",
+        "--watchlist",
+        "data/fixtures/watchlist_sample.yaml",
+        "--github-repo",
+        "owner/repo",
+        "--fail-on",
+        threshold,
+        "--ledger",
+        "",
+    ]
+    out = CliRunner().invoke(cli, [*args, "--digest"] if digest else args)
+    assert out.exit_code == 1, out.output
+    assert "repository inspection coverage FAILED: gate failed" in out.output
+
+
+def test_partial_repo_scan_does_not_fail_fail_on(monkeypatch):
+    """PARTIAL stays report-only under --fail-on; only --fail-on-partial fails it."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, "PARTIAL")
+    out = CliRunner().invoke(
+        cli,
+        [
+            "check",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--github-repo",
+            "owner/repo",
+            "--fail-on",
+            "critical",
+            "--ledger",
+            "",
+        ],
+    )
+    assert out.exit_code == 0, out.output
+    assert "gate failed" not in out.output
+
+
+@pytest.mark.parametrize(("coverage", "gate", "code"), [
+    ("FAILED", ["--fail-on", "critical"], 1),
+    ("FAILED", [], 0),
+    ("PARTIAL", ["--fail-on", "critical"], 0),
+])
+def test_attest_fail_on_gates_failed_coverage(monkeypatch, tmp_path, coverage, gate, code):
+    """The GitHub Action gates through attest: FAILED coverage fails it, after every output."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _patch_inspection(monkeypatch, coverage)
+    contracts, sarif = tmp_path / "c.jsonl", tmp_path / "r.sarif"
+    out = CliRunner().invoke(
+        cli,
+        [
+            "attest",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--github-repo",
+            "owner/repo",
+            "--event",
+            "data/fixtures/django-eol/event.json",
+            "--replay",
+            "--output",
+            str(contracts),
+            "--sarif",
+            str(sarif),
+            *gate,
+        ],
+    )
+    assert out.exit_code == code, out.output
+    assert contracts.exists() and sarif.exists()
+    assert ("gate failed" in out.output) == (code == 1)
+
+
 def test_partial_repo_scan_fails_only_with_fail_on_partial(monkeypatch):
     from click.testing import CliRunner
 
