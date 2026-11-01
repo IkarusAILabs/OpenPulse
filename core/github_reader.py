@@ -19,6 +19,7 @@ from typing import Any
 import httpx
 
 from collectors.errors import as_error, redact
+from core.bounded_io import read_bytes
 from core.image_inventory import read_image_inventory
 from core.lockfile_reader import read_lockfile
 from core.manifest_reader import read_manifest
@@ -201,6 +202,41 @@ def _valid_repo_parts(owner: str, name: str) -> bool:
 MAX_GITHUB_TOKEN_FILE_BYTES = 4096
 
 
+#: A GitHub token is visible ASCII: no spaces, controls or non-ASCII.
+_TOKEN_SHAPE = re.compile(r"[\x21-\x7e]+")
+
+
+def _token_from_file(token_file: str) -> str:
+    """The one non-empty line of a token file, validated (#138).
+
+    Messages never contain the token: a malformed file may still hold
+    most of a real one.
+    """
+    raw = read_bytes(token_file, MAX_GITHUB_TOKEN_FILE_BYTES, "GitHub token file")
+    try:
+        # utf-8-sig: Windows editors (Notepad) write a BOM, which strip()
+        # keeps and which would make the Authorization header unencodable.
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("GitHub token file is not UTF-8 text") from exc
+    # Secret-manager templates may lead with a blank line; take the
+    # non-empty one, and refuse to guess between two.
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("GitHub token file does not contain a token")
+    if len(lines) > 1:
+        raise ValueError(
+            f"GitHub token file has more than one non-empty line ({len(lines)}); "
+            "keep only the token"
+        )
+    if not _TOKEN_SHAPE.fullmatch(lines[0]):
+        raise ValueError(
+            "GitHub token file does not hold a valid token: it contains spaces, "
+            "control characters or non-ASCII characters"
+        )
+    return lines[0]
+
+
 def get_github_token(cli_token: str | None = None, token_file: str | None = None) -> str | None:
     """Get a GitHub token without requiring it to appear in argv.
 
@@ -209,19 +245,7 @@ def get_github_token(cli_token: str | None = None, token_file: str | None = None
     if cli_token:
         return cli_token
     if token_file:
-        with open(token_file, "rb") as handle:
-            raw = handle.read(MAX_GITHUB_TOKEN_FILE_BYTES + 1)
-        if len(raw) > MAX_GITHUB_TOKEN_FILE_BYTES:
-            raise ValueError(f"GitHub token file exceeds {MAX_GITHUB_TOKEN_FILE_BYTES} bytes")
-        try:
-            # utf-8-sig: Windows editors (Notepad) write a BOM, which strip()
-            # keeps and which would make the Authorization header unencodable.
-            token = raw.decode("utf-8-sig").splitlines()[0].strip() if raw else ""
-        except UnicodeDecodeError as exc:
-            raise ValueError("GitHub token file is not UTF-8 text") from exc
-        if not token:
-            raise ValueError("GitHub token file does not contain a token")
-        return token
+        return _token_from_file(token_file)
     return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
