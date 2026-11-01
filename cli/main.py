@@ -1044,7 +1044,7 @@ def _github_auth_options(func):
         "--github-token-file",
         type=click.Path(exists=True, dir_okay=False),
         default=None,
-        help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
+        help="Read a GitHub token from PATH: one non-empty line, visible ASCII (maximum 4 KiB)",
     )(func)
     func = click.option(
         "--github-token",

@@ -16,14 +16,18 @@ internal-network probe. Policy enforcement:
   169.254.169.254 cloud-metadata address), RFC1918/ULA private
   ranges, CGNAT, multicast, reserved and known metadata hosts are
   rejected — if *any* resolved address is blocked, delivery is refused;
+- IPv4-mapped (::ffff:a.b.c.d), 6to4 (2002::/16) and NAT64
+  (64:ff9b::/96, 64:ff9b:1::/48) addresses are unwrapped and the
+  embedded IPv4 is checked too;
+- DNS is resolved exactly once: the connection goes to a validated IP
+  (`_PinnedBackend`), while TLS SNI, certificate verification and the
+  Host header stay on the original hostname. A resolver that answers
+  differently on a second lookup (DNS rebinding) is never asked again;
+- environment proxies are not used (a proxy would resolve the host
+  itself and undo the pinning);
 - redirects are never followed (a 3xx is a delivery failure);
 - short timeout, bounded response body (streamed);
 - failures never log the body, the full URL, or secrets.
-
-Known limitation (documented, not silent): DNS is resolved before
-connecting, so a hostile resolver could race the check (DNS
-rebinding). Short timeouts and no-redirects bound the blast radius;
-fully hostile DNS is outside the local-CLI threat model.
 """
 
 from __future__ import annotations
@@ -35,6 +39,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
 
+import httpcore
 import httpx
 
 from collectors.errors import redact, safe_message
@@ -46,6 +51,10 @@ _METADATA_IPS = {
     "192.0.0.192",  # Oracle Cloud (also link-local-adjacent)
     "fd00:ec2::254",  # AWS IPv6 metadata (EC2)
 }
+
+
+_NAT64_WELL_KNOWN = ipaddress.ip_network("64:ff9b::/96")
+_NAT64_LOCAL_USE = ipaddress.ip_network("64:ff9b:1::/48")
 
 
 @dataclass(frozen=True)
@@ -84,7 +93,36 @@ def _scrub_url(text: str, url: str) -> str:
     return redact(text)
 
 
+def _embedded_ipv4(ip: ipaddress._BaseAddress) -> list[tuple[str, ipaddress.IPv4Address]]:
+    """IPv4 addresses an IPv6 address carries, with the wrapping's name."""
+    if ip.version != 6:
+        return []
+    found: list[tuple[str, ipaddress.IPv4Address]] = []
+    if ip.ipv4_mapped is not None:
+        found.append(("an IPv4-mapped", ip.ipv4_mapped))
+    if ip.sixtofour is not None:
+        found.append(("a 6to4", ip.sixtofour))
+    value = int(ip)
+    if ip in _NAT64_WELL_KNOWN:
+        found.append(("a NAT64", ipaddress.IPv4Address(value & 0xFFFFFFFF)))
+    elif ip in _NAT64_LOCAL_USE:
+        # RFC 6052 /48 layout (bits 48-63 and 72-87), and the /96 layout
+        # an operator may use inside the local-use prefix: check both. An
+        # all-zero field means that layout is not in use.
+        split = ((value >> 64) & 0xFFFF) << 16 | (value >> 40) & 0xFFFF
+        for candidate in (split, value & 0xFFFFFFFF):
+            if candidate:
+                found.append(("a NAT64", ipaddress.IPv4Address(candidate)))
+    return found
+
+
 def _blocked_ip(ip: ipaddress._BaseAddress) -> str | None:
+    for form, inner in _embedded_ipv4(ip):
+        blocked = _blocked_ip(inner)
+        if blocked:
+            return f"{blocked} {inner}, embedded in {form}"
+    if ip.version == 6 and ip in _NAT64_LOCAL_USE:
+        return "local-use NAT64 (64:ff9b:1::/48)"
     if ip.exploded in _METADATA_IPS or str(ip) in _METADATA_IPS:
         return "cloud metadata endpoint"
     if ip.is_loopback:
@@ -106,34 +144,36 @@ def _blocked_ip(ip: ipaddress._BaseAddress) -> str | None:
 
 
 def default_resolver(host: str) -> list[str]:
-    """Hostname -> IP strings (sync). Raises socket.gaierror on failure."""
+    """Hostname -> IP strings (sync), in getaddrinfo's preference order.
+
+    Raises socket.gaierror on failure.
+    """
     infos = socket.getaddrinfo(host, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
-    return sorted({info[4][0] for info in infos})
+    return list(dict.fromkeys(info[4][0] for info in infos))
 
 
-def validate_webhook_url(
+def _checked_addresses(
     url: str,
-    policy: WebhookPolicy | None = None,
-    resolver: Callable[[str], list[str]] | None = None,
-) -> tuple[bool, str | None]:
-    """(allowed, reason). `reason` is a safe, loggable string."""
-    policy = policy or WebhookPolicy()
+    policy: WebhookPolicy,
+    resolver: Callable[[str], list[str]] | None,
+) -> tuple[list[str], str | None]:
+    """(validated IPs, reason). Resolves at most once; IPs empty on refusal."""
     if not isinstance(url, str) or not url:
-        return False, "webhook URL is empty"
+        return [], "webhook URL is empty"
     try:
         parts = urlsplit(url)
     except ValueError:
-        return False, "webhook URL does not parse"
+        return [], "webhook URL does not parse"
     scheme = parts.scheme.lower()
     if scheme == "http" and not policy.allow_http:
-        return False, "http webhooks need explicit opt-in; use https"
+        return [], "http webhooks need explicit opt-in; use https"
     if scheme not in ("https", "http"):
-        return False, "webhook URL must be http(s)"
+        return [], "webhook URL must be http(s)"
     if parts.username or parts.password:
-        return False, "credentials in webhook URL are never sent"
+        return [], "credentials in webhook URL are never sent"
     host = parts.hostname or ""
     if not host:
-        return False, "webhook URL has no host"
+        return [], "webhook URL has no host"
     resolve = resolver or default_resolver
     try:
         literal = ipaddress.ip_address(host)
@@ -142,22 +182,96 @@ def validate_webhook_url(
     if literal is not None:
         blocked = _blocked_ip(literal)
         if blocked:
-            return False, f"webhook host resolves to blocked {blocked} address"
-        return True, None
+            return [], f"webhook host resolves to blocked {blocked} address"
+        return [str(literal)], None
     try:
-        addresses = resolve(host)
+        addresses = list(resolve(host))
     except Exception:
-        return False, f"cannot resolve webhook host {host}"
+        return [], f"cannot resolve webhook host {host}"
     if not addresses:
-        return False, f"webhook host {host} resolves to nothing"
+        return [], f"webhook host {host} resolves to nothing"
+    validated: list[str] = []
     for addr in addresses:
         try:
-            blocked = _blocked_ip(ipaddress.ip_address(addr))
+            ip = ipaddress.ip_address(addr)
         except ValueError:
-            return False, f"webhook host {host} resolves to an unparseable address"
+            return [], f"webhook host {host} resolves to an unparseable address"
+        blocked = _blocked_ip(ip)
         if blocked:
-            return False, f"webhook host {host} resolves to blocked {blocked} address"
-    return True, None
+            return [], f"webhook host {host} resolves to blocked {blocked} address"
+        validated.append(str(ip))
+    return validated, None
+
+
+def validate_webhook_url(
+    url: str,
+    policy: WebhookPolicy | None = None,
+    resolver: Callable[[str], list[str]] | None = None,
+) -> tuple[bool, str | None]:
+    """(allowed, reason). `reason` is a safe, loggable string."""
+    addresses, reason = _checked_addresses(url, policy or WebhookPolicy(), resolver)
+    return bool(addresses), reason
+
+
+class _PinnedBackend(httpcore.NetworkBackend):
+    """Connects `host` only, and only to its already-validated IPs.
+
+    httpcore still passes the original hostname to `start_tls`, so SNI
+    and certificate verification stay on the name; the Host header comes
+    from the URL. No second DNS lookup happens anywhere.
+    """
+
+    def __init__(
+        self,
+        host: str,
+        addresses: list[str],
+        inner: httpcore.NetworkBackend | None = None,
+    ) -> None:
+        self._host = host.lower()
+        self._addresses = list(addresses)
+        self._inner = inner or httpcore.SyncBackend()
+
+    def connect_tcp(
+        self,
+        host: str,
+        port: int,
+        timeout: float | None = None,
+        local_address: str | None = None,
+        socket_options: Any = None,
+    ) -> httpcore.NetworkStream:
+        if host.lower() != self._host:
+            raise httpcore.ConnectError("webhook connection to an unpinned host refused")
+        error: Exception = httpcore.ConnectError("webhook host has no validated address")
+        for address in self._addresses:
+            try:
+                return self._inner.connect_tcp(
+                    address,
+                    port,
+                    timeout=timeout,
+                    local_address=local_address,
+                    socket_options=socket_options,
+                )
+            except (httpcore.ConnectError, httpcore.ConnectTimeout) as exc:
+                error = exc
+        raise error
+
+    def connect_unix_socket(self, *args: Any, **kwargs: Any) -> httpcore.NetworkStream:
+        raise httpcore.ConnectError("webhook delivery never uses unix sockets")
+
+    def sleep(self, seconds: float) -> None:
+        self._inner.sleep(seconds)
+
+
+class _PinnedTransport(httpx.HTTPTransport):
+    """httpx transport whose connection pool dials only the pinned IPs."""
+
+    def __init__(self, host: str, addresses: list[str]) -> None:
+        super().__init__()
+        self._pool = httpcore.ConnectionPool(
+            ssl_context=httpx.create_ssl_context(),
+            max_connections=1,
+            network_backend=_PinnedBackend(host, addresses),
+        )
 
 
 def post_digest(
@@ -170,22 +284,25 @@ def post_digest(
 ) -> dict[str, Any]:
     """POST the digest; return {ok, status_code, error} (never raises).
 
-    `transport`/`resolver` are injection points for offline tests.
+    `transport`/`resolver` are injection points for offline tests. Without
+    an injected transport, the connection is pinned to the addresses the
+    single resolution validated.
     """
     policy = policy or WebhookPolicy()
-    allowed, reason = validate_webhook_url(webhook_url, policy, resolver)
-    if not allowed:
+    addresses, reason = _checked_addresses(webhook_url, policy, resolver)
+    if not addresses:
         return {"ok": False, "status_code": None, "error": reason}
     try:
-        limits = httpx.Limits(max_connections=1)
+        if transport is None:
+            raw_host = httpx.URL(webhook_url).raw_host.decode("ascii")
+            transport = _PinnedTransport(raw_host, addresses)
         client_kwargs: dict[str, Any] = {
             "timeout": httpx.Timeout(min(timeout, policy.timeout_seconds)),
-            "limits": limits,
             "follow_redirects": False,
             "headers": {"user-agent": policy.user_agent},
+            "transport": transport,
+            "trust_env": False,
         }
-        if transport is not None:
-            client_kwargs["transport"] = transport
         with httpx.Client(**client_kwargs) as client:
             with client.stream(
                 "POST", webhook_url, json={"text": markdown}
