@@ -357,6 +357,7 @@ openpulse check --manifest data/fixtures/manifests/requirements.txt --event data
 # 7. Check a whole GitHub repository (public; for private repositories,
 #    prefer GITHUB_TOKEN or a token file so the credential is not exposed in argv)
 openpulse check --github-repo owner/repo --event data/fixtures/bitnami/event.json
+chmod 600 ~/.config/openpulse/github-token   # OpenPulse warns when other users can read it
 openpulse check --github-repo owner/private-repo --github-token-file ~/.config/openpulse/github-token --event data/fixtures/bitnami/event.json
 
 # 8. Upcoming deadlines for your dependencies (90-day window; `check --ledger` records first detection)

@@ -16,6 +16,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **A warning when the GitHub token file is readable by other users (#139, v0.10.0 item V5).** On POSIX, if the file's mode grants group or other access (`mode & 0o077`), `check`, `digest`, `warnings`, `attest` and `discover` print `warning: GitHub token file <path> is readable by other users; run chmod 600 <path>` to stderr. The run continues; the warning prints the path, never the token. The README example now runs `chmod 600`.
 - **Attested releases (#111, v0.10.0 item V1).** A `v*` tag runs `.github/workflows/release.yml`.
   - **Build:** `scripts/build_release.py` builds the sdist and wheel from the tagged tree. It uses setuptools' own PEP 517 hooks with the hash-locked setuptools from `.github/ci-tools.lock`, without build isolation, so no build tool is fetched at build time.
   - **Refused builds:** a tag that differs from the package version, and a locked setuptools below `[build-system].requires`.
