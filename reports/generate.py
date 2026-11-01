@@ -45,10 +45,32 @@ DISCLAIMER = (
 _ELIGIBLE = ("ACTION", "REVIEW", "WATCH")
 
 
+def source_errors(raw: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """Sources that did not answer for one project, one record per source.
+
+    Only the source name, the error category and the HTTP status are kept
+    (never the error text). A source that failed found nothing, which is
+    not the same as finding nothing: the report must say so.
+    """
+    out = []
+    for source in sorted(raw):
+        errors = [e for e in raw.get(source) or [] if isinstance(e, dict) and e.get("error")]
+        if errors:
+            first = errors[0]
+            out.append(
+                {
+                    "source": source,
+                    "category": str(first.get("category") or "unknown"),
+                    "status_code": first.get("status_code"),
+                }
+            )
+    return out
+
+
 def collect_project(
     slug: str, raw: dict[str, list[dict[str, Any]]], version: str | None = None
 ) -> dict[str, Any]:
-    """One raw bundle -> report item (pulse + findings)."""
+    """One raw bundle -> report item (pulse + findings + sources that failed)."""
     context = project_context(slug)
     if version:
         context["version"] = version
@@ -60,7 +82,21 @@ def collect_project(
     pulse = compute_pulse(
         slug, findings=findings, activity=activity, popularity_note=_popularity_note(stars)
     )
-    return {"project": slug, "pulse": pulse, "findings": findings}
+    return {
+        "project": slug,
+        "pulse": pulse,
+        "findings": findings,
+        "source_errors": source_errors(raw),
+    }
+
+
+def failed_sources(items: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """source -> sorted projects for which that source did not answer."""
+    out: dict[str, list[str]] = {}
+    for item in items:
+        for error in item.get("source_errors") or []:
+            out.setdefault(error["source"], []).append(str(item.get("project")))
+    return {source: sorted(projects) for source, projects in sorted(out.items())}
 
 
 def _popularity_note(stars: Any) -> str:
@@ -450,6 +486,7 @@ def build_report(
     background = sum(1 for _, f in pairs if is_background(f))
     unknown_dates = sum(1 for _, f in main_pairs if (f.get("_freshness") == UNKNOWN_DATE))
     silent = sorted(i["project"] for i in scoped if not i["findings"])
+    failed = failed_sources(items)
     month_title = _month_title(month)
 
     lines = [
@@ -475,6 +512,7 @@ def build_report(
         background=background,
         silent=len(silent),
         held_back=held_back,
+        failed=failed,
         unknown_dates=unknown_dates,
     )
     lines.append("")
@@ -655,6 +693,18 @@ def build_report(
     lines.append("")
     lines.append("### D. Data gaps and limitations")
     lines.append("")
+    if failed:
+        lines.append(
+            "**Sources that did not answer.** For these projects the named source "
+            "returned an error (rate limit, timeout, outage), so the absence of its "
+            "findings is unknown, not a clean result:"
+        )
+        lines.append("")
+        lines += [
+            f"- {source} ({len(projects)}): {', '.join(projects)}"
+            for source, projects in failed.items()
+        ]
+        lines.append("")
     if silent:
         lines.append(f"No signals observed for: {', '.join(silent)}.")
         lines.append("")
@@ -664,7 +714,7 @@ def build_report(
             "(see `openpulse analyze` for the full stream)."
         )
         lines.append("")
-    if not silent and not held_back:
+    if not silent and not held_back and not failed:
         lines.append("No data gaps this month: every monitored project produced narrated findings.")
         lines.append("")
     if notes:
@@ -714,6 +764,8 @@ def build_report_metadata(
         "coverage": {
             "projects_monitored": len(items),
             "sweep_included": bool(sweep_included),
+            # source -> projects for which it returned an error: unknown, not absent.
+            "source_errors": {s: len(p) for s, p in failed_sources(items).items()},
         },
         "counts": {
             "narrated_findings": len(pairs),
@@ -765,6 +817,7 @@ def _executive_summary(
     silent: int,
     held_back: int,
     unknown_dates: int,
+    failed: dict[str, list[str]] | None = None,
 ) -> list[str]:
     """One-screen value statement + key numbers. Never raw counts alone:
     every number arrives inside a sentence about what it means."""
@@ -811,6 +864,12 @@ def _executive_summary(
         f"{_n(unknown_dates, 'finding carries', 'findings carry')} unknown dates, "
         f"{_n(held_back, 'record was', 'records were')} held back for weak evidence",
     ]
+    if failed:
+        lines.append(
+            "- Sources that did not answer: "
+            + "; ".join(f"{source} for {_n(len(p), 'project')}" for source, p in failed.items())
+            + " — their findings for those projects are unknown, not absent"
+        )
     return lines
 
 
