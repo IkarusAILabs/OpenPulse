@@ -33,6 +33,7 @@ internal-network probe. Policy enforcement:
 from __future__ import annotations
 
 import ipaddress
+import json
 import socket
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -281,12 +282,14 @@ def post_digest(
     policy: WebhookPolicy | None = None,
     transport: httpx.BaseTransport | None = None,
     resolver: Callable[[str], list[str]] | None = None,
+    signing_secret: bytes | None = None,
 ) -> dict[str, Any]:
     """POST the digest; return {ok, status_code, error} (never raises).
 
     `transport`/`resolver` are injection points for offline tests. Without
     an injected transport, the connection is pinned to the addresses the
-    single resolution validated.
+    single resolution validated. With `signing_secret`, the request carries
+    the `core.webhook_signing` headers over the exact bytes sent (W3).
     """
     policy = policy or WebhookPolicy()
     addresses, reason = _checked_addresses(webhook_url, policy, resolver)
@@ -303,9 +306,19 @@ def post_digest(
             "transport": transport,
             "trust_env": False,
         }
+        # Serialized once, as httpx's json= would, so the signature covers
+        # exactly the bytes sent and unsigned posts are unchanged.
+        body = json.dumps(
+            {"text": markdown}, ensure_ascii=False, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        headers = {"content-type": "application/json"}
+        if signing_secret:
+            from core.webhook_signing import sign
+
+            headers.update(sign(signing_secret, body))
         with httpx.Client(**client_kwargs) as client:
             with client.stream(
-                "POST", webhook_url, json={"text": markdown}
+                "POST", webhook_url, content=body, headers=headers
             ) as response:
                 if 300 <= response.status_code < 400:
                     return {

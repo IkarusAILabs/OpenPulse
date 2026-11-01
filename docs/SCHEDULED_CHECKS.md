@@ -169,6 +169,25 @@ every run starts empty and posts everything again:
 `--delivery-state ''` restores the old behaviour: the whole digest on
 every run.
 
+**Signed posts (v0.11.0).** Set `OPENPULSE_WEBHOOK_SECRET` (an Actions
+secret; `openssl rand -hex 32` makes one, at least 32 characters) or
+pass `--webhook-secret-file`. Every post then carries
+`X-OpenPulse-Timestamp` and `X-OpenPulse-Signature: v1=<hex>`. A
+receiver that holds the same secret checks them over the **raw** request
+body:
+
+```python
+from core.webhook_signing import verify_webhook_signature  # stdlib only; copy the file
+
+ok = verify_webhook_signature(
+    secret, raw_body,
+    headers.get("X-OpenPulse-Timestamp"), headers.get("X-OpenPulse-Signature"),
+)  # False for a wrong signature, or a timestamp more than 300 s off (a replay)
+```
+
+Slack and Teams incoming webhooks ignore the headers, so signing is
+harmless there; it matters for a receiver you run yourself.
+
 ## Watchlist format
 
 See `data/fixtures/watchlist_sample.yaml`. Optional per-dependency

@@ -1048,7 +1048,23 @@ def _coverage_note(inspections) -> str | None:
     )
 
 
-def _deliver_alerts(webhook, allow_http, root, results, events, inspections) -> None:
+def _load_webhook_secret(secret_file: str | None) -> bytes | None:
+    """Webhook signing secret (W3), or None. Errors never contain the secret."""
+    from core.webhook_signing import WebhookSecretError, load_webhook_secret
+
+    try:
+        return load_webhook_secret(secret_file)
+    except OSError as exc:
+        raise click.ClickException(
+            f"cannot read webhook secret file: {exc.strerror or exc}"
+        ) from exc
+    except (WebhookSecretError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+def _deliver_alerts(
+    webhook, allow_http, root, results, events, inspections, signing_secret=None
+) -> None:
     """Post only alerts not yet delivered, with retry and dead letter (W1, #78).
 
     Never fails the check: delivery problems are reported, and the
@@ -1064,7 +1080,12 @@ def _deliver_alerts(webhook, allow_http, root, results, events, inspections) -> 
         status, reasons = _coverage_summary(inspections)
         coverage = {"status": status, "reasons": reasons}
     alerts = collect_alerts(results, events, coverage)
-    post = partial(post_digest, webhook, policy=WebhookPolicy(allow_http=allow_http))
+    post = partial(
+        post_digest,
+        webhook,
+        policy=WebhookPolicy(allow_http=allow_http),
+        signing_secret=signing_secret,
+    )
     try:
         report = deliver(
             root,
@@ -1425,6 +1446,13 @@ def _load_check_inputs(
     help="Webhook delivery state: post each alert once, retry failures, dead-letter "
     "after repeated failures ('' posts the whole digest every run)",
 )
+@click.option(
+    "--webhook-secret-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Sign webhook posts with the secret on the first line of PATH "
+    "(or set OPENPULSE_WEBHOOK_SECRET); receivers verify X-OpenPulse-Signature",
+)
 @_history_key_option
 def check(
     watchlist,
@@ -1442,6 +1470,7 @@ def check(
     webhook,
     webhook_allow_http,
     delivery_root,
+    webhook_secret_file,
     fail_on_partial,
     github_repo="",
     github_token="",
@@ -1456,6 +1485,7 @@ def check(
     from core.risk.check import check_dependency
 
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
+    signing_secret = _load_webhook_secret(webhook_secret_file) if webhook else None
     deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
@@ -1556,12 +1586,16 @@ def check(
                 results,
                 loaded_events,
                 inspections,
+                signing_secret,
             )
         elif webhook:
             from core.notify import WebhookPolicy, post_digest
 
             delivery = post_digest(
-                webhook, text, policy=WebhookPolicy(allow_http=webhook_allow_http)
+                webhook,
+                text,
+                policy=WebhookPolicy(allow_http=webhook_allow_http),
+                signing_secret=signing_secret,
             )
             if delivery["ok"]:
                 _echo(f"posted digest (http {delivery['status_code']})")
