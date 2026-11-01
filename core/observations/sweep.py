@@ -348,21 +348,29 @@ def _rebaseline(
     return []
 
 
-def _adopted_at(
+def _keyed_since(
     ordered: list[dict[str, Any]],
     current: Any,
     history_key: Any,
     previous_keys: tuple[Any, ...] = (),
-) -> datetime | None:
-    """When a keyed history was adopted (B3c), or None when unkeyed or keyed from genesis."""
+) -> tuple[bool, datetime | None]:
+    """(history keyed?, adoption time) for the history including ``current``.
+
+    A first detection is published only from VALID_KEYED history (B3c),
+    never earlier than its adoption; ``adoption time`` is None when the
+    history was keyed from genesis.
+    """
     if history_key is None:
-        return None
+        return False, None
     records = [*ordered, current.model_dump(mode="json")]
-    adopted = verify_keyed_history(records, keyring(history_key, previous_keys))["adopted_at"]
+    verdict = verify_keyed_history(records, keyring(history_key, previous_keys))
+    if verdict["status"] != "VALID_KEYED":
+        return False, None
+    adopted = verdict["adopted_at"]
     if adopted is None:
-        return None
+        return True, None
     moment = datetime.fromisoformat(str(adopted).replace("Z", "+00:00"))
-    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+    return True, moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 def _keyed_refusal(
@@ -533,9 +541,14 @@ def _observe_locked(
     else:
         models.append(current)
         changes = diff_observations(previous, current)
-        adopted = _adopted_at(ordered, current, history_key, previous_keys)
+        keyed, adopted = _keyed_since(ordered, current, history_key, previous_keys)
         stamped = []
         for change in changes:
+            if not keyed:
+                # Unkeyed history proves no detection date: publish none, so
+                # no lead time rests on it (B3c). The stored records keep theirs.
+                stamped.append(change.model_copy(update={"first_detected_at": None}))
+                continue
             first = first_detected_at_for((change.type, change.tag), [*models])
             first = first or current.observed_at
             if adopted is not None and first < adopted:
