@@ -1,6 +1,6 @@
 # B3 keyed integrity: key-management design (proposal)
 
-Status: **PROPOSED, awaiting owner approval.** No B3 code is written until this is approved (`docs/NEXT_PHASES.md`, Phase 2, decision 5). B4, B5 and C1 depend on it.
+Status: **APPROVED by the owner on 2026-11-01**, all four questions as recommended below (`docs/NEXT_PHASES.md`, Phase 2, decision 5). B4, B5 and C1 depend on it. Implementation is split into slices: B3a (key, MACs, keyed states), B3b (rotation), B3c (keyed adoption and lead-time clamp), B3d (Action input).
 
 Finding: H2 (`docs/ARCHITECTURE_REVIEW.md`). The observation chain and the detection ledger use unkeyed SHA-256. Anyone who can write `.openpulse/` can edit a record, recompute every hash and produce a history that verifies as VALID. Lead time, the headline metric, rests on that history. Today it is *corruption-detecting*, not *tamper-evident*.
 
