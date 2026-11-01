@@ -1,4 +1,4 @@
-# Evidence Contract v1
+# Evidence Contract
 
 The evidence contract is OpenPulse's answer to a machine consumer's
 question: *"what did OpenPulse establish about my dependency, and on
@@ -7,8 +7,9 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema (current, 1.2): [`schemas/evidence-contract/v1.2/schema.json`](../schemas/evidence-contract/v1.2/schema.json)
-  (JSON Schema draft 2020-12); 1.1 and 1.0 stay published beside it
+- Schema (current, 2.0): [`schemas/evidence-contract/v2/schema.json`](../schemas/evidence-contract/v2/schema.json)
+  (JSON Schema draft 2020-12); 1.2, 1.1 and 1.0 stay published beside it
+- Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
 - CLI: `openpulse attest`
@@ -38,6 +39,27 @@ Top-level blocks:
 | `signature` / `signing_key_id` / `trust_root` | planned, **always `null` in v1** | out of scope per issue #53 |
 
 ## Integrity: `provenance.content_hash`
+
+### 2.0.0: RFC 8785 (JCS)
+
+`provenance.content_hash_method` is `jcs-sha256`, and `content_hash` is
+
+    "sha256:" + hex(SHA-256(JCS(body)))
+
+where `body` is the document with these removed:
+
+- the planned signature fields `signature`, `signing_key_id` and `trust_root`;
+- `provenance.content_hash` and `provenance.generation_timestamp`.
+
+JCS is RFC 8785: members sorted by the UTF-16 code units of their names, numbers written as ECMAScript does, strings escaped as `JSON.stringify` does, no whitespace. Every other field is covered, including any field a later 2.x minor adds. A consumer recomputes the hash with any JCS library, without OpenPulse's serializer:
+
+- Python: `core.evidence_contract.verify_content_hash(doc)` (any contract version; the JCS encoder is `core/jcs.py`, stdlib only).
+- Node: `node conformance/evidence-contract/verify.mjs contracts.jsonl` (exit 1 when a document fails).
+
+The same logical document still hashes identically at any build time, and any content edit changes the hash. A document whose `content_hash_method` is not `jcs-sha256` does not verify as 2.x.
+
+### 1.x
+
 
 `sha256:<hex>` over canonical JSON (sorted keys, compact separators)
 of every top-level field except the planned (always-null) signature
@@ -139,6 +161,17 @@ Minor, additive. A bare relationship label invites over-reading. An agent may ta
 The content hash is computed exactly as in 1.1, over 1.1's fields plus the two new top-level blocks. `verify_v1_content_hash` picks the field set from the document's own `contract_version`, so 1.1 documents keep verifying. The 1.1 schema stays byte-for-byte at `schemas/evidence-contract/v1.1/schema.json`.
 
 **Canonical (RFC 8785, JCS) hashing is a 2.0.0 change.** It changes how `content_hash` is computed, which the versioning policy above classes as breaking. It was planned as "v1.2" in `docs/NEXT_PHASES.md` (B7) and is renumbered there.
+
+### 2.0.0 - canonical content hash (v0.9.0, B7)
+
+Major, because the hash computation changed. The shape is 1.2's plus one field:
+
+- **`provenance.content_hash_method`:** the constant `jcs-sha256`, required.
+- **`provenance.content_hash`:** SHA-256 over the JCS form of the document, as described under *Integrity* above. 1.x hashed a Python-specific serialization over a fixed field list with placeholders; 2.0 hashes RFC 8785 bytes of everything except the hash, the build time and the signature fields.
+
+Every value is the 1.2 builder's: `build_contract` builds the 1.2 document and restamps it. `openpulse attest` emits 2.0.0. `build_v1_contract` still emits 1.2.0 unchanged (the frozen evaluation uses it), and 1.2, 1.1 and 1.0 documents keep validating against their own schemas and verifying with `verify_v1_content_hash`. `validate_contract` and `verify_content_hash` dispatch on the document's own `contract_version`.
+
+**Upgrading a consumer:** validate against `schemas/evidence-contract/v2/schema.json` (a 2.0 document fails the 1.2 schema's `contract_version` const), and recompute the hash with JCS as above. The signature fields stay `null`.
 
 ## CLI
 

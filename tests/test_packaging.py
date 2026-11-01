@@ -32,6 +32,7 @@ def test_runtime_data_is_declared_as_package_data():
         ("openpulse_data", "fixtures/django-eol/event.json"),
         ("openpulse_schemas", "evidence-contract/v1.1/schema.json"),
         ("openpulse_schemas", "evidence-contract/v1.2/schema.json"),
+        ("openpulse_schemas", "evidence-contract/v2/schema.json"),
     ):
         root = Path(_SETUPTOOLS["package-dir"][pkg])
         assert any(path == root / glob for g in data_globs[pkg] for path in root.glob(g)), glob

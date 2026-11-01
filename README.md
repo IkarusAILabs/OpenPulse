@@ -274,6 +274,7 @@ v0.8.0 is the release that the technical report [TR-2026-01](papers/tr-2026-01/O
 
 - **Verdict change: please read before upgrading.** An audit of the verdict engine against a written specification found sixteen defects, thirteen of which could clear an affected dependency or show it as cleared. Fifteen are fixed; one (D16, untrusted identity mappings) is open. A NOT_AFFECTED now needs a scope declared complete *with a recorded basis*, a resolved identity, and evidence fetched within 90 days. Otherwise the answer is RELATED, never a clearance. Uncatalogued packages and images are therefore RELATED more often than before.
 - **Bounded evidence age.** `check`, `attest`, `digest`, `warnings` and the MCP tools apply a 90-day bound by default. Pipelines that replay old fixtures should pass `--replay`.
+- **Evidence contract 2.0.0 (unreleased, v0.9.0).** `openpulse attest` emits 2.0.0: the 1.2 shape, with `content_hash` over RFC 8785 (JCS) canonical JSON so any consumer can recompute it ([`conformance/evidence-contract/verify.mjs`](conformance/evidence-contract/verify.mjs)).
 - **Evidence contract 1.2.0.** Every verdict states what it does and does not assert (`verdict_meaning`), along with its scope's completeness and evaluation frame.
 
 ## What's new in v0.7
@@ -327,7 +328,7 @@ openpulse check --images data/fixtures/images/inventory_sample.txt --event data/
    # unpinned/workspace entries are skipped with reasons, never range-guessed)
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
 
-    # emit one evidence-contract v1 JSON document per dependency x event pair (JSONL)
+    # emit one evidence-contract (2.0) JSON document per dependency x event pair (JSONL)
 openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
 
     # same contracts as SARIF 2.1.0 (GitHub Code Scanning) + a Markdown summary;
@@ -438,7 +439,7 @@ tests/              # 740+ offline tests (no network in CI)
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
 | `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
 | `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
-| `docs/EVIDENCE_CONTRACT.md` | Evidence contract v1 / v1.1 / v1.2 — machine-readable dependency verdicts |
+| `docs/EVIDENCE_CONTRACT.md` | Evidence contract 2.0 (and 1.0 / 1.1 / 1.2) — machine-readable dependency verdicts |
 | `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.10: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
 | `CHANGELOG.md` | What changed in each release |
 | `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
