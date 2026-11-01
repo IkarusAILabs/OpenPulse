@@ -123,10 +123,38 @@ openpulse check --watchlist watchlists/prod.yaml --event events/current.json \
   --digest --webhook "$SLACK_WEBHOOK_URL" --strict
 ```
 
-Posts the grouped digest to any JSON-text webhook (Slack incoming
-webhook contract: `{"text": "..."}`). Delivery failures warn but never
-mask the check result — `--strict` still reflects affected state only.
-Store the URL as an Actions secret, never in the repo.
+Posts to any JSON-text webhook (Slack incoming webhook contract:
+`{"text": "..."}`). Delivery failures warn but never mask the check
+result — `--strict` still reflects affected state only. Store the URL as
+an Actions secret, never in the repo.
+
+**Each alert is posted once (v0.11.0).** An alert is one affected cause
+of a verdict, or a repository that was not fully read. OpenPulse records
+what it delivered in `.openpulse/deliveries/alerts.json`
+(`--delivery-state` or `OPENPULSE_DELIVERY_STATE` to move it):
+
+- A run posts only alerts not delivered before, and nothing when there
+  are none. The terminal output still shows the full digest.
+- A revised event or a raised impact is a new alert.
+- A failed post is retried once in the run, then on later runs with a
+  backoff (5 minutes, doubling, at most 6 hours). After 5 failed runs
+  the alert is dead-lettered: kept in `alerts.json` with its last error
+  and never posted again.
+- The webhook URL is never stored.
+
+In GitHub Actions, carry the state in the cache like the ledger, or
+every run starts empty and posts everything again:
+
+```yaml
+      - uses: actions/cache@v4   # pin to a reviewed commit SHA
+        with:
+          path: .openpulse/deliveries
+          key: openpulse-deliveries-${{ github.run_id }}
+          restore-keys: openpulse-deliveries-
+```
+
+`--delivery-state ''` restores the old behaviour: the whole digest on
+every run.
 
 ## Watchlist format
 

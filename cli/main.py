@@ -1048,6 +1048,55 @@ def _coverage_note(inspections) -> str | None:
     )
 
 
+def _deliver_alerts(webhook, allow_http, root, results, events, inspections) -> None:
+    """Post only alerts not yet delivered, with retry and dead letter (W1, #78).
+
+    Never fails the check: delivery problems are reported, and the
+    verdict and exit code stay the check's own.
+    """
+    from functools import partial
+
+    from core.delivery import collect_alerts, deliver, render_alerts
+    from core.notify import WebhookPolicy, post_digest
+
+    coverage = None
+    if inspections:
+        status, reasons = _coverage_summary(inspections)
+        coverage = {"status": status, "reasons": reasons}
+    alerts = collect_alerts(results, events, coverage)
+    post = partial(post_digest, webhook, policy=WebhookPolicy(allow_http=allow_http))
+    try:
+        report = deliver(
+            root,
+            alerts,
+            post,
+            partial(render_alerts, coverage_note=_coverage_note(inspections)),
+        )
+    except TimeoutError:
+        _echo("delivery state busy - another run is delivering; nothing posted this run")
+        return
+    if report["sent"] and report["delivered"]:
+        _echo(f"posted {report['sent']} new alert(s) (http {report['status_code']})")
+    elif report["sent"]:
+        # Delivery failure must not mask the check result itself.
+        _echo(f"webhook delivery failed: {report['error']}")
+        pending = report["sent"] - report["dead_lettered"]
+        if pending:
+            _echo(f"{pending} alert(s) pending: retried on a later run")
+    else:
+        _echo("no new alerts: nothing posted")
+    if report["already_delivered"] or report["waiting"]:
+        _echo(
+            f"{report['already_delivered']} alert(s) already delivered, "
+            f"{report['waiting']} waiting for retry backoff"
+        )
+    if report["dead_lettered"]:
+        _echo(
+            f"dead-lettered {report['dead_lettered']} alert(s) after repeated failures: "
+            f"see {root}/alerts.json"
+        )
+
+
 def _echo_run_coverage(inspections) -> str:
     """Print the run-level repository coverage (if any) and return it."""
     status, reasons = _coverage_summary(inspections)
@@ -1366,6 +1415,16 @@ def _load_check_inputs(
     is_flag=True,
     help="Opt in to plain-http webhooks (https is required by default)",
 )
+@click.option(
+    "--delivery-state",
+    "delivery_root",
+    default=".openpulse/deliveries",
+    envvar="OPENPULSE_DELIVERY_STATE",
+    show_default=True,
+    show_envvar=True,
+    help="Webhook delivery state: post each alert once, retry failures, dead-letter "
+    "after repeated failures ('' posts the whole digest every run)",
+)
 @_history_key_option
 def check(
     watchlist,
@@ -1382,6 +1441,7 @@ def check(
     digest,
     webhook,
     webhook_allow_http,
+    delivery_root,
     fail_on_partial,
     github_repo="",
     github_token="",
@@ -1488,7 +1548,16 @@ def check(
 
         text = render_check_digest(results, coverage_note=_coverage_note(inspections))
         _echo(text)
-        if webhook:
+        if webhook and delivery_root:
+            _deliver_alerts(
+                webhook,
+                webhook_allow_http,
+                delivery_root,
+                results,
+                loaded_events,
+                inspections,
+            )
+        elif webhook:
             from core.notify import WebhookPolicy, post_digest
 
             delivery = post_digest(

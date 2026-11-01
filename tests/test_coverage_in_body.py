@@ -60,7 +60,7 @@ def test_no_line_when_complete_or_without_a_repository(monkeypatch, command):
 
 
 @pytest.mark.parametrize("coverage", ["FAILED", "PARTIAL"])
-def test_webhook_payload_carries_the_line(monkeypatch, coverage):
+def test_webhook_payload_carries_the_line(monkeypatch, tmp_path, coverage):
     import core.notify as notify
 
     sent = {}
@@ -70,7 +70,16 @@ def test_webhook_payload_carries_the_line(monkeypatch, coverage):
         lambda url, text, **kw: sent.update(text=text) or {"ok": True, "status_code": 200},
     )
     _patch_inspection(monkeypatch, coverage)
-    result = _run("check", *INPUTS, *REPO, *EVENT, "--webhook", "https://hooks.example/x")
+    result = _run(
+        "check",
+        *INPUTS,
+        *REPO,
+        *EVENT,
+        "--webhook",
+        "https://hooks.example/x",
+        "--delivery-state",
+        str(tmp_path),
+    )
     assert result.exit_code == 0, result.output
     assert f"{LINE} {coverage}" in sent["text"]
     title, rest = sent["text"].split("\n", 1)
@@ -86,6 +95,8 @@ def test_webhook_payload_is_unchanged_without_a_repository(monkeypatch):
         "post_digest",
         lambda url, text, **kw: sent.update(text=text) or {"ok": True, "status_code": 200},
     )
-    result = _run("check", *INPUTS, *EVENT, "--webhook", "https://hooks.example/x")
+    result = _run(
+        "check", *INPUTS, *EVENT, "--webhook", "https://hooks.example/x", "--delivery-state", ""
+    )
     assert result.exit_code == 0, result.output
     assert LINE not in sent["text"]
