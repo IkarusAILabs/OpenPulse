@@ -172,7 +172,7 @@ Goal: scheduled alerts an operator can leave running. An alert is delivered once
 | W2 | `warnings --fail-on {overdue,critical,high,medium,low}`: exit 1 when a deadline at or above the severity is in the window | #78 | S | — |
 | W3 | Signed webhook payloads: HMAC-SHA256 over timestamp and body with a secret from the environment or a file, sent as headers a receiver can verify; replay window documented | #78 | S | W1 |
 | W4 | MCP hardening (= C5): per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | C5 | S | — |
-| W5 | ACTIVE (PR open; awaits owner approval, `docs/research/TRACK_T_PHASE0.md`) — Track T Phase 0, docs only: re-verified threat-model references, registry API and attestation feasibility with dates, reference-list sources and licences, design notes for T-F1 and T-F3 | ROADMAP track T | M | — |
+| W5 | DONE (#256; approved by the owner 2026-11-01, `docs/research/TRACK_T_PHASE0.md`) — Track T Phase 0, docs only: re-verified threat-model references, registry API and attestation feasibility with dates, reference-list sources and licences, design notes for T-F1 and T-F3 | ROADMAP track T | M | — |
 
 **Exit:**
 - A scheduled `check --webhook` run never sends the same alert twice, retries a failed delivery on the next run, and dead-letters it after the attempt limit.

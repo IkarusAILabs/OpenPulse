@@ -42,3 +42,6 @@ def _isolated_delivery_state(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENPULSE_CACHE_DIR", str(tmp_path / "lookup-cache"))
     # A developer's own signing secret must not sign the suite's webhooks (W3).
     monkeypatch.delenv("OPENPULSE_WEBHOOK_SECRET", raising=False)
+    # Tests stay offline: the registry existence check (T-M1) gets no
+    # response unless a test injects a stub registry.
+    monkeypatch.setattr("core.registry_existence.default_head", lambda _url: 0)

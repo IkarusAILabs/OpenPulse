@@ -10,6 +10,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Does this package exist? (track T, T-M1).** `dependency_status` (MCP) now reports whether a PyPI or npm package and version exist in their registry (`registry_existence`). The common hallucination shapes are covered: an invented package, and a real package with an invented version.
+  - **Statuses:** records use the closed T-F1 vocabulary. A 404 is `VERIFIED_FAILURE`, an identity fact and never evidence of malice. Anything else (a 5xx, 429, redirect, timeout, offline, a spent budget, an unsupported ecosystem) is `NOT_PERFORMED`, never "absent".
+  - **Untrusted text (T-F3):** names and versions are validated against the ecosystem's grammar before they go into a URL, and refused otherwise. Requests are HEAD only, so no upstream text is read. Statements are fixed templates.
+  - **Limits:** each check spends one lookup from the session budget (W4). It is cached per session, and `NOT_PERFORMED` is never cached.
+  - **Unchanged:** the verdict, the contract and the frozen evaluation. No new dependency.
 - **MCP: stated lookup limits and a cross-session cache (v0.11.0 item W4, C5).**
   - **Budget:** one server session makes at most 200 live lookups; cached answers are free. Every tool answer carries a `lookups` block (budget, used, remaining, per-source timeout, cache TTL).
   - **Past the budget:** no lookup is made. The answer lists it under `not_established` with the reason, and `project_lifecycle` returns a tool error that says so.

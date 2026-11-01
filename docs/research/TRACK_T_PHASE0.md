@@ -1,6 +1,6 @@
 # Track T, Phase 0: threat model and feasibility (v0.11.0 item W5)
 
-Status: **DRAFT for owner approval** (2026-11-01). Phase 0 of track T, AI Dependency Trust Assurance (`docs/ROADMAP.md`, section "Track T"). Docs only: nothing here changes code, a verdict, a contract or the frozen evaluation.
+Status: **APPROVED by the owner on 2026-11-01**, including every decision in section 8. Phase 1 has started with T-M1. Phase 0 of track T, AI Dependency Trust Assurance (`docs/ROADMAP.md`, section "Track T"). Docs only: nothing here changes code, a verdict, a contract or the frozen evaluation.
 
 Phase 0's exit, from the roadmap: *the owner approves the design note and the ecosystem table.* This document is both. It covers:
 
