@@ -10,6 +10,11 @@ Where the key comes from, in order:
 1. ``--history-key-file PATH``: first non-empty line, at most 4 KiB.
 2. ``OPENPULSE_HISTORY_KEY``.
 
+Retired keys (rotation, B3b) are verify-only: they come from
+``--history-previous-keys-file PATH`` (one key per line, ``#`` comments)
+or ``OPENPULSE_HISTORY_KEYS_PREVIOUS`` (separated by commas or
+whitespace). New records are always MACed with the current key.
+
 A key is at least 32 random bytes, written as base64 (``openpulse
 history-key generate`` makes one). A key file inside a history store or
 any ``.openpulse`` directory is refused: a key stored next to the data
@@ -32,6 +37,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ENV_VAR = "OPENPULSE_HISTORY_KEY"
+PREVIOUS_ENV_VAR = "OPENPULSE_HISTORY_KEYS_PREVIOUS"
+MAX_PREVIOUS_KEYS = 16
 MIN_KEY_BYTES = 32
 MAX_KEY_FILE_BYTES = 4096
 MAC_PREFIX = "hmac-sha256:"
@@ -39,6 +46,10 @@ MAC_PREFIX = "hmac-sha256:"
 #: Domain separators: a MAC for one record kind never verifies as another.
 OBSERVATION_DOMAIN = "openpulse-history-v1"
 LEDGER_DOMAIN = "openpulse-ledger-v1"
+#: A retired key's MAC over the record that hands its chain to a new key.
+HANDOVER_DOMAIN = "openpulse-handover-v1"
+#: Both keys' MACs over a ledger rotation entry.
+ROTATION_DOMAIN = "openpulse-rotation-v1"
 
 
 class HistoryKeyError(ValueError):
@@ -122,18 +133,51 @@ def load_history_key(
 ) -> HistoryKey | None:
     """The configured key, or None when none is configured."""
     if key_file:
-        check_key_location(key_file, store_roots)
-        with open(key_file, "rb") as handle:
-            raw = handle.read(MAX_KEY_FILE_BYTES + 1)
-        if len(raw) > MAX_KEY_FILE_BYTES:
-            raise HistoryKeyError(f"history key file exceeds {MAX_KEY_FILE_BYTES} bytes")
-        try:
-            lines = [line.strip() for line in raw.decode("utf-8-sig").splitlines()]
-        except UnicodeDecodeError as exc:
-            raise HistoryKeyError("history key file is not UTF-8 text") from exc
-        first = next((line for line in lines if line), "")
-        if not first:
+        lines = _read_key_file(key_file, store_roots)
+        if not lines:
             raise HistoryKeyError("history key file does not contain a key")
-        return parse_key(first)
+        return parse_key(lines[0])
     value = os.environ.get(ENV_VAR, "").strip()
     return parse_key(value) if value else None
+
+
+def _read_key_file(path: str, store_roots: tuple[str, ...]) -> list[str]:
+    """Non-empty, non-comment lines of a bounded UTF-8 key file."""
+    check_key_location(path, store_roots)
+    with open(path, "rb") as handle:
+        raw = handle.read(MAX_KEY_FILE_BYTES + 1)
+    if len(raw) > MAX_KEY_FILE_BYTES:
+        raise HistoryKeyError(f"history key file exceeds {MAX_KEY_FILE_BYTES} bytes")
+    try:
+        lines = [line.strip() for line in raw.decode("utf-8-sig").splitlines()]
+    except UnicodeDecodeError as exc:
+        raise HistoryKeyError("history key file is not UTF-8 text") from exc
+    return [line for line in lines if line and not line.startswith("#")]
+
+
+def load_previous_keys(
+    keys_file: str | None = None,
+    store_roots: tuple[str, ...] = (),
+    current: HistoryKey | None = None,
+) -> tuple[HistoryKey, ...]:
+    """Retired, verify-only keys (rotation). The current key is never among them."""
+    if keys_file:
+        texts = _read_key_file(keys_file, store_roots)
+    else:
+        texts = os.environ.get(PREVIOUS_ENV_VAR, "").replace(",", " ").split()
+    if len(texts) > MAX_PREVIOUS_KEYS:
+        raise HistoryKeyError(f"at most {MAX_PREVIOUS_KEYS} previous history keys are accepted")
+    keys: dict[str, HistoryKey] = {}
+    for text in texts:
+        key = parse_key(text)
+        if current is None or key.key_id != current.key_id:
+            keys.setdefault(key.key_id, key)
+    return tuple(keys.values())
+
+
+def keyring(current: HistoryKey | None, previous: tuple[HistoryKey, ...] = ()) -> dict:
+    """key_id -> HistoryKey for verification: the current key and retired ones."""
+    ring = {key.key_id: key for key in previous}
+    if current is not None:
+        ring[current.key_id] = current
+    return ring

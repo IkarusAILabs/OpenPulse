@@ -56,6 +56,7 @@ from pathlib import Path
 from typing import Any
 
 from core.filelock import exclusive_lock
+from core.history_key import keyring
 
 #: Same staleness policy as the observation store: a crashed lock
 #: holder must not block automation forever.
@@ -272,12 +273,84 @@ def _keyed(entry: dict[str, Any], history_key: Any) -> dict[str, Any]:
     return {**entry, "key_id": history_key.key_id, "history_mac": mac}
 
 
-def entry_integrity(entry: Any, keys: dict[str, Any] | None = None) -> str:
+#: Ledger-wide rotation log (B3b): when each retired key was handed over.
+ROTATIONS_FILE = "rotations.json"
+
+
+def _rotation_parts(entry: dict[str, Any]) -> tuple[str, str, str]:
+    return str(entry.get("from") or ""), str(entry.get("to") or ""), str(entry.get("at") or "")
+
+
+def load_rotations(root: str | Path, keys: dict[str, Any] | None = None) -> dict[str, datetime]:
+    """retired key_id -> earliest verified handover time.
+
+    A rotation entry counts when either key it names MACs it under a
+    supplied key. A missing or unreadable log means no rotations: deleting
+    it is a rollback, which B4 is for.
+    """
+    from core.history_key import ROTATION_DOMAIN
+
+    keys = keys or {}
+    data = _try_load(Path(root) / ROTATIONS_FILE) or {}
+    out: dict[str, datetime] = {}
+    for entry in data.get("rotations") or []:
+        if not isinstance(entry, dict):
+            continue
+        retired, current, _ = parts = _rotation_parts(entry)
+        moment = _parse_moment(entry.get("at"))
+        if moment is None:
+            continue
+        verified = any(
+            key_id in keys and keys[key_id].verify(entry.get(field), ROTATION_DOMAIN, *parts)
+            for key_id, field in ((current, "mac_to"), (retired, "mac_from"))
+        )
+        if verified and (retired not in out or moment < out[retired]):
+            out[retired] = moment
+    return out
+
+
+def record_rotation(root: str | Path, retired: Any, current: Any) -> None:
+    """Log the handover from ``retired`` to ``current``, MACed by both (once)."""
+    from core.history_key import ROTATION_DOMAIN
+
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    with exclusive_lock(root / ".rotations-lock", _LOCK_WAIT_SECONDS, "ledger"):
+        path = root / ROTATIONS_FILE
+        rotations = list((_try_load(path) or {}).get("rotations") or [])
+        if any(
+            isinstance(r, dict)
+            and r.get("from") == retired.key_id
+            and r.get("to") == current.key_id
+            for r in rotations
+        ):
+            return
+        parts = (retired.key_id, current.key_id, now_iso())
+        rotations.append(
+            {
+                "from": parts[0],
+                "to": parts[1],
+                "at": parts[2],
+                "mac_from": retired.mac(ROTATION_DOMAIN, *parts),
+                "mac_to": current.mac(ROTATION_DOMAIN, *parts),
+            }
+        )
+        _write_atomic(path, {"rotations": rotations})
+
+
+def entry_integrity(
+    entry: Any,
+    keys: dict[str, Any] | None = None,
+    rotations: dict[str, datetime] | None = None,
+) -> str:
     """VALID_KEYED / VALID_UNKEYED / BROKEN / UNKNOWN for one ledger entry.
 
     The content hash covers identity and both sighting dates; the MAC
     covers the content hash. ``keys`` maps key_id -> HistoryKey. A keyed
     entry whose key is not supplied is UNKNOWN, never VALID_KEYED.
+    ``rotations`` (``load_rotations``): an entry under a retired key that
+    was seen after that key's handover is BROKEN, so a leaked retired key
+    cannot add sightings after its rotation.
     """
     from core.history_key import LEDGER_DOMAIN
 
@@ -293,6 +366,10 @@ def entry_integrity(entry: Any, keys: dict[str, Any] | None = None) -> str:
         return UNKNOWN
     if not key.verify(mac, LEDGER_DOMAIN, str(entry.get("content_hash") or "")):
         return BROKEN
+    handed_over = (rotations or {}).get(str(key_id))
+    last = _parse_moment(entry.get("last_seen"))
+    if handed_over is not None and (last is None or last > handed_over):
+        return BROKEN
     return VALID_KEYED
 
 
@@ -304,6 +381,7 @@ def record_detection(
     detected_at: str | None = None,
     root: str | Path = ".openpulse/detections",
     history_key: Any = None,
+    previous_keys: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     """Record one detection; return the ledger entry after merge.
 
@@ -318,6 +396,10 @@ def record_detection(
     without its key: the call returns it unchanged with
     ``key_refused: True``. An entry written before any key stays
     unkeyed; it is not re-MACed as if it had been keyed all along.
+
+    ``previous_keys`` are retired, verify-only keys (B3b). An entry under
+    one of them is verified with it, the handover is logged in
+    ``rotations.json``, and the entry is rewritten under ``history_key``.
     """
     scope = list(scope or [])
     stamp = detected_at or now_iso()
@@ -332,12 +414,16 @@ def record_detection(
             # Degrade to unknown - write fresh, exactly like absence.
             existing = None
         if existing is not None and existing.get("history_mac"):
-            if history_key is None or existing.get("key_id") != history_key.key_id:
-                # Rewriting it unkeyed (or under another key) would end
+            ring = keyring(history_key, previous_keys)
+            entry_key = str(existing.get("key_id"))
+            if history_key is None or entry_key not in ring:
+                # Rewriting it unkeyed (or under an unknown key) would end
                 # its keyed run; leave it as it is.
                 return {**existing, "recorded_now": False, "key_refused": True}
-            if entry_integrity(existing, {history_key.key_id: history_key}) == BROKEN:
+            if entry_integrity(existing, ring, load_rotations(root, ring)) == BROKEN:
                 existing = None  # MAC forged: degrade to unknown, as above
+            elif entry_key != history_key.key_id:
+                record_rotation(root, ring[entry_key], history_key)
         keep_key = history_key is not None and (
             existing is None or bool(existing.get("history_mac"))
         )

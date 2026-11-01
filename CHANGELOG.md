@@ -6,6 +6,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **History key rotation (v0.9.0 item B3b, finding H2).** A key can now be retired without losing its history, and a leaked retired key cannot extend it.
+  - Retired keys are verify-only: `OPENPULSE_HISTORY_KEYS_PREVIOUS` (comma- or space-separated) or `--history-previous-keys-file` (one per line, `#` comments) on `observe`, `sweep`, `report` and `check`. They need a current key. New records are always MACed with the current key.
+  - **Observations:** when a history's newest keyed run is under a retired key, the next record is a handover: it carries `previous_key_id` and `handover_mac`, a MAC under the retired key. `verify_keyed_history` now walks keyed runs. A record under the retired key after its handover, a key change without a handover, or a handover that does not follow its key's run is BROKEN. A history keyed with a key that is neither current nor supplied as retired is still refused (`KEY_MISMATCH`).
+  - **Ledger:** an entry under a retired key is verified with it and rewritten under the current key, and the handover is logged once in `rotations.json` at the ledger root, MACed by both keys. `entry_integrity(entry, keys, rotations)` treats an entry under a retired key with a sighting after its rotation as BROKEN. Forged log entries are ignored. Deleting the log is a rollback, which B4 addresses.
+  - Without a key, nothing changes. No golden, fixture or verdict changes.
 - **Keyed history integrity, first slice (v0.9.0 item B3a, finding H2).** Local history used unkeyed SHA-256, so anyone who could write `.openpulse/` could edit a record, recompute its hashes and still verify as VALID.
   - A history key (`OPENPULSE_HISTORY_KEY`, or `--history-key-file` on `observe`, `sweep`, `report` and `check`) adds an HMAC-SHA256 to every new observation record (`key_id`, `history_mac`, over the chain hash and `first_detected_at`) and every new detection-ledger entry (over its content hash). `openpulse history-key generate` prints a fresh 32-byte key; nothing is written.
   - New states: VALID_KEYED, VALID_UNKEYED, BROKEN, UNKNOWN (`verify_keyed_history`, `ledger.entry_integrity`). `observe` prints the history's state.

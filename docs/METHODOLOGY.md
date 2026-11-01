@@ -325,7 +325,15 @@ whose key was not supplied). An edit whose hashes were recomputed
 without the key is BROKEN under the key. A keyed history is never
 appended to without its key, and records written before the key stay
 unkeyed rather than being MACed after the fact. The key never lives in
-`.openpulse/`. Rotation, keyed adoption of older history, missing-tip
+`.openpulse/`. Rotation keeps retired keys verify-only
+(`OPENPULSE_HISTORY_KEYS_PREVIOUS`, `--history-previous-keys-file`): the
+first observation written under a new key is a handover record, MACed
+by the retired key too, and a ledger rotation log (`rotations.json`,
+MACed by both keys) records when each key was retired. After a
+handover, a record under the retired key, a key change without a
+handover, or a ledger sighting under the retired key dated after its
+rotation is BROKEN, so a leaked retired key cannot extend history.
+Keyed adoption of older history, missing-tip
 rollback detection and external anchoring are still planned for v0.9.0
 (`docs/NEXT_PHASES.md`, `docs/KEYED_INTEGRITY.md`); until all of them
 ship, the history is not claimed to be tamper-evident.

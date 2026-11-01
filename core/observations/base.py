@@ -24,6 +24,7 @@ from core.evidence.provenance import PARSER_VERSION, hash_content
 from core.observations.chain import (
     GENESIS_PREVIOUS,
     chain_hash,
+    handover_mac_parts,
     history_mac_parts,
     link_hash_for,
 )
@@ -52,6 +53,12 @@ class ObservationBase(BaseModel):
     history_mac: str | None = Field(
         default=None,
         description="HMAC-SHA256 over chain_hash and first_detected_at under key_id (B3)",
+    )
+    previous_key_id: str | None = Field(
+        default=None, description="Retired key this handover record succeeds (B3b), if any"
+    )
+    handover_mac: str | None = Field(
+        default=None, description="MAC under previous_key_id handing the chain to key_id (B3b)"
     )
 
     def integrity_body(self) -> dict[str, Any]:
@@ -97,18 +104,27 @@ class ObservationBase(BaseModel):
         digest = chain_hash(chained.model_dump(mode="json"), str(prev_link))
         return chained.model_copy(update={"chain_hash": digest})
 
-    def keyed(self, key: Any) -> ObservationBase:
+    def keyed(self, key: Any, retired: Any = None) -> ObservationBase:
         """Return a copy MACed with ``key`` (a ``core.history_key.HistoryKey``).
 
-        Requires a chained record: the MAC covers the chain hash.
+        Requires a chained record: the MAC covers the chain hash. With
+        ``retired`` (the key of the chain's current keyed run), the copy is
+        a handover record: the retired key also MACs it, naming ``key``.
         """
-        from core.history_key import OBSERVATION_DOMAIN
+        from core.history_key import HANDOVER_DOMAIN, OBSERVATION_DOMAIN
 
         if not self.chain_hash:
             raise ValueError("keyed() requires a chained observation (link first)")
-        parts = history_mac_parts(self.model_dump(mode="json"))
-        mac = key.mac(OBSERVATION_DOMAIN, *parts)
-        return self.model_copy(update={"key_id": key.key_id, "history_mac": mac})
+        dumped = self.model_dump(mode="json")
+        update = {
+            "key_id": key.key_id,
+            "history_mac": key.mac(OBSERVATION_DOMAIN, *history_mac_parts(dumped)),
+        }
+        if retired is not None:
+            parts = handover_mac_parts({**dumped, "key_id": key.key_id})
+            update["previous_key_id"] = retired.key_id
+            update["handover_mac"] = retired.mac(HANDOVER_DOMAIN, *parts)
+        return self.model_copy(update=update)
 
     def verify_record(self) -> str:
         """VALID/BROKEN/UNKNOWN: content recompute, then chain-link self-check.
