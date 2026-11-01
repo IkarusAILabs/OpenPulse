@@ -198,7 +198,7 @@ def deliver(
     *,
     now: Callable[[], datetime] = _now,
     sleep: Callable[[float], None] | None = None,
-    wait_seconds: float = _LOCK_WAIT_SECONDS,
+    wait_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Post the alerts not yet delivered; record the outcome. Never raises on delivery.
 
@@ -213,7 +213,7 @@ def deliver(
 
     root = Path(root)
     pause = sleep if sleep is not None else time.sleep
-    with _locked(root, wait_seconds):
+    with _locked(root, _LOCK_WAIT_SECONDS if wait_seconds is None else wait_seconds):
         state = load_state(root)
         path = root / STATE_FILE
         if state.pop("corrupt", False) and path.exists():
