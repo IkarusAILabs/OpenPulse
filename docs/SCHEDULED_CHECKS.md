@@ -47,6 +47,19 @@ jobs:
 `RELATED`/`UNKNOWN` never fail a gate. Keep the watchlist and the
 event files committed next to this recipe so every run is reproducible.
 
+To fail on **deadlines** instead (v0.11.0), gate on `warnings`:
+
+```yaml
+      - run: openpulse warnings --watchlist watchlists/prod.yaml --event events/current.json --fail-on critical
+```
+
+`--fail-on SEVERITY` exits 1 when a warning at or above that severity
+is in the window. The order is OVERDUE > CRITICAL (7 days or less) >
+HIGH (30) > MEDIUM (90) > LOW, so `critical` also fails on a deadline
+that has already passed. The reason goes to stderr, so `--output json`
+stays parseable. As with every gate, FAILED repository coverage fails
+it too. Without `--fail-on`, `warnings` only reports.
+
 ### Keyed history across runs (lead times in CI)
 
 A fresh runner starts with an empty `.openpulse/`, so the recipe above
