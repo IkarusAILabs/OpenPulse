@@ -106,12 +106,12 @@ def test_adoption_pins_the_adopted_records(tmp_path):
     assert not ok or verify_keyed_history(ordered, TEST_KEYS)["status"] == "BROKEN"
 
 
-def test_unkeyed_run_keeps_the_earlier_first_detection(tmp_path):
-    """latest moved at minute 1 and again at minute 2, all unkeyed: no clamp."""
+def test_unkeyed_run_publishes_no_first_detection(tmp_path):
+    """latest moved at minute 1 and again at minute 2, all unkeyed: no date proved."""
     _observe(tmp_path, 0, "a")
     _observe(tmp_path, 1, "b")
-    unkeyed = _observe(tmp_path, 2, "c")  # what an unkeyed run reports
-    assert unkeyed["changes"][0]["first_detected_at"].startswith("2026-11-01T12:01")
+    unkeyed = _observe(tmp_path, 2, "c")
+    assert unkeyed["changes"][0]["first_detected_at"] is None
 
 
 def test_change_first_detection_is_clamped_at_adoption(tmp_path):
