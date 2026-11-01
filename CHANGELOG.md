@@ -6,11 +6,17 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- **`openpulse attest` emits evidence contract 2.0.0 (v0.9.0 item B7).** A consumer that validates against the 1.2 schema must switch to `schemas/evidence-contract/v2/schema.json`, because a 2.0 document fails the 1.2 `contract_version` const. A consumer that checks `provenance.content_hash` must recompute it with RFC 8785 (JCS), as `docs/EVIDENCE_CONTRACT.md` describes. Every other value is unchanged. SARIF, DefectDojo and Dependency-Track exports read contract fields and need no change.
 - **A chained observation history with no tip pointer is now refused (v0.9.0 item B4).** It was adopted silently, so a truncated history with its `tip.json` deleted went unnoticed. `observe` and `sweep` now report it as ROLLBACK_SUSPECTED and write nothing. A history saved by an OpenPulse old enough to write no tip is refused the same way. Accept it once, after checking it, with `openpulse observe --namespace <ns> --repo <repo> --rebaseline --reason "..."`.
 - **Lead times now come only from keyed history (v0.9.0 item B3c).** `digest`, `warnings`, `report` and `check` publish a first detection and a lead time only from detection-ledger entries that verify under a history key. **Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), no lead time is published**, and the digest, warnings and report say so in a note. Verdicts, deadlines and severities are unchanged. Make a key with `openpulse history-key generate`; the next keyed `check --ledger` run adopts existing entries, and their lead times count from that adoption. The GitHub Action gains its `history-key` input in B3d.
 
 ### Added
 
+- **Evidence contract 2.0.0: an RFC 8785 (JCS) content hash (v0.9.0 item B7, finding L8).**
+  - **The hash:** `content_hash` is SHA-256 over the JCS form of the document, without the hash itself, the build time and the signature fields. Any consumer with a JCS library recomputes it without OpenPulse's serializer. The new required `provenance.content_hash_method` is `jcs-sha256`.
+  - **Code:** `core/jcs.py` is an RFC 8785 encoder (stdlib only). It rejects what JCS cannot represent: NaN, infinities, integers beyond 2**53, lone surrogates and non-string keys. `build_contract`, `v2_content_hash`, `verify_content_hash` and `validate_contract` are new; the last two dispatch on `contract_version`.
+  - **Verifier:** `conformance/evidence-contract/verify.mjs` is a standalone Node verifier with no dependencies.
+  - **Unchanged:** the 1.0, 1.1 and 1.2 schemas, and the 1.x builder `build_v1_contract`, which the frozen evaluation uses.
 - **History anchors: `openpulse anchor` and `openpulse verify` (v0.9.0 item B5, finding H2).** They catch deletions that take their own evidence with them, which the store cannot see from inside: a repository's whole history folder (tip included), a ledger entry, the rotation log.
   - **`openpulse anchor [--out FILE]`** writes a checkpoint with:
     - each observation history's tip, record count and re-baseline count;

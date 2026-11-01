@@ -62,6 +62,20 @@ from core.verdict_meaning import scope_completeness, verdict_meaning
 #: semantics and is therefore a 2.0.0 change under the versioning policy.
 CONTRACT_VERSION = "1.2.0"
 
+#: 2.0.0 (v0.9.0, B7): the same shape as 1.2 plus
+#: ``provenance.content_hash_method``; ``content_hash`` is SHA-256 over the
+#: RFC 8785 (JCS) form of the whole document, so any consumer with a JCS
+#: library recomputes it. Breaking under the versioning policy because the
+#: hash computation changes. ``openpulse attest`` emits 2.0.0; the 1.x
+#: builder stays as it was (the frozen evaluation uses it).
+CONTRACT_V2_VERSION = "2.0.0"
+CONTENT_HASH_METHOD = "jcs-sha256"
+
+#: Fields outside the v2 content hash: the hash itself, the build time,
+#: and the signature family a later signature will cover.
+_V2_UNHASHED_TOP = ("signature", "signing_key_id", "trust_root")
+_V2_UNHASHED_PROVENANCE = ("content_hash", "generation_timestamp")
+
 #: The current JSON Schema, shipped with the repo, published BESIDE the
 #: untouched older minors (``v1/`` is 1.0, ``v1.1/`` is 1.1): older
 #: documents keep validating against their own schema. Loaded lazily so
@@ -70,6 +84,7 @@ _SCHEMA_ROOT = schema_path("evidence-contract")  # checkout or installed wheel
 SCHEMA_PATH = _SCHEMA_ROOT / "v1.2" / "schema.json"
 SCHEMA_V1_1_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
+SCHEMA_V2_PATH = _SCHEMA_ROOT / "v2" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -89,6 +104,11 @@ def contract_version() -> str:
 def load_schema() -> dict[str, Any]:
     """The v1.2 JSON Schema (current builder output), parsed."""
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_schema() -> dict[str, Any]:
+    """The 2.0 schema (``openpulse attest`` output)."""
+    return json.loads(SCHEMA_V2_PATH.read_text(encoding="utf-8"))
 
 
 def load_v1_1_schema() -> dict[str, Any]:
@@ -225,6 +245,90 @@ def verify_v1_content_hash(doc: dict[str, Any]) -> bool:
         return _hash_body(doc) == doc["provenance"]["content_hash"]
     except (KeyError, TypeError):
         return False
+
+
+# ---------------------------------------------------------------------------
+# Contract 2.0.0 (B7): JCS content hash
+# ---------------------------------------------------------------------------
+
+
+def build_contract(
+    event: OSSEvent,
+    verdict: Any,
+    finding: dict[str, Any] | None = None,
+    inspection_coverage: dict[str, Any] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
+) -> dict[str, Any]:
+    """(event, verdict[, finding]) -> one schema-valid 2.0.0 document.
+
+    The 1.2 document (``build_v1_contract``, same arguments), restamped
+    2.0.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    Every value is the 1.2 builder's; only the version and hash differ.
+    """
+    doc = build_v1_contract(
+        event,
+        verdict,
+        finding,
+        inspection_coverage,
+        as_of=as_of,
+        max_evidence_age=max_evidence_age,
+    )
+    doc["contract_version"] = CONTRACT_V2_VERSION
+    doc["provenance"]["contract_version"] = CONTRACT_V2_VERSION
+    doc["provenance"]["content_hash_method"] = CONTENT_HASH_METHOD
+    doc["provenance"]["content_hash"] = v2_content_hash(doc)
+    return doc
+
+
+def v2_content_hash(doc: dict[str, Any]) -> str:
+    """SHA-256 over the JCS form of the document minus the unhashed fields.
+
+    Recompute it anywhere: drop ``signature``, ``signing_key_id`` and
+    ``trust_root``, drop ``provenance.content_hash`` and
+    ``provenance.generation_timestamp``, canonicalize with RFC 8785, hash.
+    """
+    import hashlib
+
+    from core.jcs import canonicalize
+
+    body = {k: v for k, v in doc.items() if k not in _V2_UNHASHED_TOP}
+    body["provenance"] = {
+        k: v for k, v in dict(doc["provenance"]).items() if k not in _V2_UNHASHED_PROVENANCE
+    }
+    return "sha256:" + hashlib.sha256(canonicalize(body)).hexdigest()
+
+
+def verify_content_hash(doc: dict[str, Any]) -> bool:
+    """True when ``provenance.content_hash`` recomputes, for any contract version.
+
+    2.x uses the JCS hash (``content_hash_method`` must say so); 1.x the
+    original computation (``verify_v1_content_hash``).
+    """
+    try:
+        if str(doc.get("contract_version", "")).startswith("2."):
+            if doc["provenance"].get("content_hash_method") != CONTENT_HASH_METHOD:
+                return False
+            return v2_content_hash(doc) == doc["provenance"]["content_hash"]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+    return verify_v1_content_hash(doc)
+
+
+def validate_contract(doc: Any) -> list[str]:
+    """Validate against the schema of the document's own contract_version."""
+    loaders = {
+        CONTRACT_V2_VERSION: load_v2_schema,
+        "1.2.0": load_schema,
+        "1.1.0": load_v1_1_schema,
+        "1.0.0": load_v1_0_schema,
+    }
+    version = doc.get("contract_version") if isinstance(doc, dict) else None
+    loader = loaders.get(str(version))
+    if loader is None:
+        return [f"$.contract_version: unsupported contract_version {version!r}"]
+    return validate_v1_contract(doc, loader())
 
 
 # ---------------------------------------------------------------------------

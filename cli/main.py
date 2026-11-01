@@ -1928,7 +1928,7 @@ def attest(
     import json as _json
     from pathlib import Path as _Path
 
-    from core.evidence_contract import build_v1_contract, validate_v1_contract
+    from core.evidence_contract import build_contract, validate_contract
     from core.risk.check import check_dependency, load_watchlist_doc
 
     has_input = watchlist or sbom or spdx or images or lockfile or manifest or github_repo
@@ -2086,14 +2086,14 @@ def attest(
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
             )
-            doc = build_v1_contract(
+            doc = build_contract(
                 event,
                 verdict,
                 inspection_coverage=coverage_override,
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
             )
-            problems = validate_v1_contract(doc)
+            problems = validate_contract(doc)
             if problems:
                 # A document OpenPulse itself cannot validate must
                 # never reach a consumer: fail loudly, emit nothing.

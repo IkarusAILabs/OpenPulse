@@ -4,7 +4,7 @@ Runs `openpulse attest` on your dependency files in CI. It reports which upstrea
 
 - **Job summary**: a Markdown table in `$GITHUB_STEP_SUMMARY` (verdict, impact, evidence links, contract hash).
 - **SARIF 2.1.0**: a log you can upload to GitHub Code Scanning.
-- **Evidence contracts**: one schema-valid v1.2 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
+- **Evidence contracts**: one schema-valid 2.0 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
 
 The action needs no install step and no secrets. It runs on Linux, macOS and Windows runners.
 

@@ -94,7 +94,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
 | B5 | ACTIVE (PR open) — `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
 | B6 | Clock trust (detail below) — DONE (Unreleased, v0.9.0) | L7 | S | — |
-| B7 | Evidence contract v2.0 (JCS hash; detail below) | L8 | M | — |
+| B7 | Evidence contract v2.0 (JCS hash; detail below) — ACTIVE (approved 2026-11-01; PR open) | L8 | M | — |
 
 **B1 detail:**
 - Add `official_domains` per project in `canonical_projects.yaml`, starting with the projects that have curated official events today (`bitnami`, `bitnami-spark`, `django`, `itext`). More only with owner sign-off.

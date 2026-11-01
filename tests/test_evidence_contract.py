@@ -18,7 +18,9 @@ from core.evidence_contract import (
     load_schema,
     load_v1_0_schema,
     load_v1_1_schema,
+    validate_contract,
     validate_v1_contract,
+    verify_content_hash,
     verify_v1_content_hash,
 )
 from core.risk.check import check_dependency
@@ -389,8 +391,8 @@ def test_attest_cli_watchlist_stdout(tmp_path):
     docs = [json.loads(ln) for ln in lines]
     assert len(docs) == 3
     for doc in docs:
-        assert validate_v1_contract(doc) == []
-        assert verify_v1_content_hash(doc)
+        assert validate_contract(doc) == []
+        assert verify_content_hash(doc)
     by_dep = {d["identity"]["dependency"]: d for d in docs}
     assert by_dep["docker.io/bitnami/redis:7.2"]["assessment"]["relationship"] == "AFFECTS_ARTIFACT"
 
@@ -418,7 +420,7 @@ def test_attest_cli_output_file(tmp_path):
     docs = [json.loads(ln) for ln in raw.splitlines() if ln.strip()]
     assert len(docs) == 3
     for doc in docs:
-        assert validate_v1_contract(doc) == []
+        assert validate_contract(doc) == []
 
 
 def test_attest_cli_composes_sbom(tmp_path):
@@ -442,7 +444,7 @@ def test_attest_cli_composes_sbom(tmp_path):
     # the fixture maps three components (bitnami/redis, django 5.0, itext-core)
     assert len(docs) == 3
     for doc in docs:
-        assert validate_v1_contract(doc) == []
+        assert validate_contract(doc) == []
     labels = {doc["identity"]["dependency"] for doc in docs}
     assert "bitnami/redis:7.2" in labels
 
@@ -483,8 +485,8 @@ def test_attest_records_failed_repository_scan_on_every_contract(monkeypatch):
             "status": "FAILED",
             "reasons": ["revision unavailable"],
         }
-        assert validate_v1_contract(doc) == []
-        assert verify_v1_content_hash(doc)
+        assert validate_contract(doc) == []
+        assert verify_content_hash(doc)
 
 
 def test_attest_cli_rejects_missing_sources(tmp_path):
@@ -526,7 +528,7 @@ def test_attest_cli_lockfile_and_images(tmp_path):
     lines = [ln for ln in out.output.splitlines() if ln.startswith("{")]
     assert lines, "lockfile attest produced nothing"
     for ln in lines:
-        assert validate_v1_contract(json.loads(ln)) == []
+        assert validate_contract(json.loads(ln)) == []
 
 
 # ---------------------------------------------------------------------------
