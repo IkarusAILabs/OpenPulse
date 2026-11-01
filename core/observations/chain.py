@@ -35,6 +35,13 @@ VALID = "VALID"
 BROKEN = "BROKEN"
 UNKNOWN = "UNKNOWN"
 
+#: Keyed states (B3, ``verify_keyed_history``). VALID_KEYED: hashes verify
+#: and every record's MAC verifies under a supplied key. VALID_UNKEYED:
+#: hashes verify, but some record has no MAC (or no key was supplied to
+#: check it). Only VALID_KEYED history proves it was not rewritten.
+VALID_KEYED = "VALID_KEYED"
+VALID_UNKEYED = "VALID_UNKEYED"
+
 #: Fields covered by the chain hash, in canonical form.
 _CHAIN_FIELDS = (
     "observation_id",
@@ -174,3 +181,59 @@ def order_history(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], 
     if len(ordered) != len(records):
         return list(records), False
     return ordered, True
+
+
+def history_mac_parts(record: dict[str, Any]) -> tuple[str, str]:
+    """What a record's history MAC covers: its chain hash and first detection.
+
+    The chain hash already covers the chained fields and the link to the
+    predecessor, so MACing it protects the whole chain.
+    ``first_detected_at`` is outside the chain hash, so it is added here.
+    """
+    first = record.get("first_detected_at")
+    return str(record.get("chain_hash") or ""), "" if first is None else str(first)
+
+
+def verify_keyed_history(
+    records: list[dict[str, Any]], keys: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """VALID_KEYED / VALID_UNKEYED / BROKEN / UNKNOWN over chain-ordered records.
+
+    ``keys`` maps key_id -> ``core.history_key.HistoryKey``. A MAC that
+    fails, or a MAC with no key_id, is BROKEN. A key_id with no supplied
+    key is UNKNOWN: it cannot be checked, so it is never VALID_KEYED.
+    """
+    from core.history_key import OBSERVATION_DOMAIN
+
+    keys = keys or {}
+    chain = verify_observation_chain(records)
+    bad: list[int] = []
+    unkeyed: list[int] = []
+    unknown_keys: list[int] = []
+    for i, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        mac, key_id = record.get("history_mac"), record.get("key_id")
+        if not mac:
+            unkeyed.append(i)
+        elif not key_id:
+            bad.append(i)
+        elif key_id not in keys:
+            unknown_keys.append(i)
+        elif not keys[key_id].verify(mac, OBSERVATION_DOMAIN, *history_mac_parts(record)):
+            bad.append(i)
+    if chain["status"] == BROKEN or bad:
+        status = BROKEN
+    elif chain["status"] == UNKNOWN or unknown_keys:
+        status = UNKNOWN
+    elif unkeyed:
+        status = VALID_UNKEYED
+    else:
+        status = VALID_KEYED
+    return {
+        "status": status,
+        "bad_macs": bad,
+        "unkeyed": unkeyed,
+        "unknown_keys": unknown_keys,
+        "breaks": chain["breaks"],
+    }

@@ -312,10 +312,23 @@ filenames. Threat model: the chain defeats silent corruption,
 partial edits, and fork anomalies, and detects rollback only while
 `tip.json` survives - a deleted tip is adopted, so truncation or a
 full wipe re-baselines silently. It does not resist an adversary who
-recomputes the whole suffix (the hashes are unkeyed; there are no
-secrets in a local-first store). Keyed integrity, missing-tip
-rollback detection and external anchoring are planned for v0.9.0
-(`docs/NEXT_PHASES.md`).
+recomputes the whole suffix, unless a history key is set.
+
+With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
+made by `openpulse history-key generate`), every new observation
+record and detection-ledger entry also carries an HMAC-SHA256 under
+that key. The observation MAC covers the chain hash and
+`first_detected_at`; the ledger MAC covers the entry's content hash.
+Histories then verify VALID_KEYED (every MAC verifies), VALID_UNKEYED
+(hashes verify, but some record has no MAC), BROKEN or UNKNOWN (a MAC
+whose key was not supplied). An edit whose hashes were recomputed
+without the key is BROKEN under the key. A keyed history is never
+appended to without its key, and records written before the key stay
+unkeyed rather than being MACed after the fact. The key never lives in
+`.openpulse/`. Rotation, keyed adoption of older history, missing-tip
+rollback detection and external anchoring are still planned for v0.9.0
+(`docs/NEXT_PHASES.md`, `docs/KEYED_INTEGRITY.md`); until all of them
+ship, the history is not claimed to be tamper-evident.
 
 Every registry-derived finding retains first-class observation
 evidence (`observation_evidence`: observation ids, hashes, chain
