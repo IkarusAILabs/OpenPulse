@@ -14,6 +14,9 @@ from core.digest import (
 from core.risk.check import check_dependency, check_watchlist
 from core.schema.models import OSSEvent
 
+# Seeds ledger history at past dates (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
+
 
 @pytest.fixture(scope="module")
 def django_eol():

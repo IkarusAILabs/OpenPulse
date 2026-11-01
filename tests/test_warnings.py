@@ -3,6 +3,7 @@
 import json
 from datetime import date
 
+import pytest
 from click.testing import CliRunner
 
 from core.detections import ledger
@@ -19,6 +20,9 @@ from core.warnings import (
     recommended_action,
     render_warnings_md,
 )
+
+# Seeds ledger history at past dates (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
 
 
 def _future_django_eol(

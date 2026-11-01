@@ -13,6 +13,9 @@ from core.risk.check import (
 )
 from core.schema.models import OSSEvent
 
+# Seeds ledger history at past dates (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
+
 LEDGER_ROOT = ".openpulse-test/detections"
 
 
@@ -81,21 +84,24 @@ def test_two_consecutive_runs_prove_stability(root):
     )
 
 
-def test_earlier_stamp_wins_both_directions(root):
-    """Clock skew: a later stamp never overwrites; an earlier one does."""
+def test_first_seen_is_fixed_at_creation(root):
+    """Clock trust (L7): neither a later nor an earlier stamp moves first_seen.
+
+    An earlier stamp predates the entry, so the ledger never witnessed it.
+    """
     ledger.record_detection(
         "redis", "security", "CVE-1", [], detected_at="2026-09-15T00:00:00+00:00", root=root
     )
     entry = ledger.record_detection(
         "redis", "security", "CVE-1", [], detected_at="2026-08-01T00:00:00+00:00", root=root
     )
-    assert entry["first_seen"] == "2026-08-01T00:00:00+00:00"
+    assert entry["first_seen"] == "2026-09-15T00:00:00+00:00"
     entry = ledger.record_detection(
-        "redis", "security", "CVE-1", [], detected_at="2026-09-01T00:00:00+00:00", root=root
+        "redis", "security", "CVE-1", [], detected_at="2026-10-01T00:00:00+00:00", root=root
     )
-    assert entry["first_seen"] == "2026-08-01T00:00:00+00:00"
+    assert entry["first_seen"] == "2026-09-15T00:00:00+00:00"
     # last_seen tracks the LATEST sighting (max), independent of first_seen.
-    assert entry["last_seen"] == "2026-09-15T00:00:00+00:00"
+    assert entry["last_seen"] == "2026-10-01T00:00:00+00:00"
 
 
 def test_scope_order_and_case_do_not_split_history(root):
@@ -121,40 +127,28 @@ def test_scope_order_and_case_do_not_split_history(root):
 
 
 def test_concurrent_runs_cannot_corrupt_the_ledger(root):
-    """Lock/atomicity: same bar as observation history."""
+    """Lock/atomicity: same bar as observation history.
 
-    def write(i):
-        ledger.record_detection(
-            "django",
-            "lifecycle",
-            "EOL",
-            ["4.2"],
-            detected_at=f"2026-09-01T00:00:{i:02d}+00:00",
-            root=root,
-        )
+    The threads use the real clock: the seeding fixture patches the
+    module clock per call, which is not thread-safe.
+    """
 
-    threads = [threading.Thread(target=write, args=(i,)) for i in range(8)]
+    def write():
+        ledger.record_detection("django", "lifecycle", "EOL", ["4.2"], root=root)
+
+    threads = [threading.Thread(target=write) for _ in range(8)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    firsts = {
-        ledger.record_detection(
-            "django",
-            "lifecycle",
-            "EOL",
-            ["4.2"],
-            detected_at="2026-10-01T00:00:00+00:00",
-            root=root,
-        )["first_seen"]
-    }
-    # Every thread's write landed; earliest survived; exactly one entry file.
-    assert firsts == {"2026-09-01T00:00:00+00:00"}
     files = list((root / "django").glob("*.json"))
     assert len(files) == 1
-    assert json.loads(files[0].read_text(encoding="utf-8"))["first_seen"] == (
-        "2026-09-01T00:00:00+00:00"
-    )
+    stored = json.loads(files[0].read_text(encoding="utf-8"))
+    assert ledger.verify_entry(stored)
+    # Every later write keeps the first sighting.
+    again = ledger.record_detection("django", "lifecycle", "EOL", ["4.2"], root=root)
+    assert again["recorded_now"] is False
+    assert again["first_seen"] == stored["first_seen"]
 
 
 def test_lock_contention_is_an_error_not_corruption(root):
