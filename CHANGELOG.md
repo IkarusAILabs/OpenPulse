@@ -6,6 +6,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- **`--github-token-file` accepts exactly one non-empty line, holding a visible-ASCII token (#138, v0.10.0 item V5).** A leading blank line is now skipped instead of rejected. A file with two non-empty lines, which used the first and ignored the rest, is now refused, because it's ambiguous which line is the token. A token with a space, a control character or a non-ASCII character is refused with a clear message, instead of failing later inside the HTTP client. No message contains the token. The read goes through the shared bounded reader (`core.bounded_io`), so its size error now reads "is N bytes (limit 4096)".
 - **`--fail-on` now fails on FAILED repository coverage (#101, v0.10.0 item V2).** `check --fail-on`, `attest --fail-on` and the GitHub Action's `fail-on` exited 0 when a `--github-repo` scan FAILED, so a CI gate could pass on a repository OpenPulse could not read. They now exit 1 (after writing every output, for `attest`), as `--strict` already did, and say why. PARTIAL coverage is unchanged: it fails only `--fail-on-partial`. Without a gating flag, FAILED coverage stays report-only.
 
 ### Added

@@ -190,7 +190,7 @@ class TestGetGitHubToken:
 
     def test_token_file_takes_priority_over_environment(self, monkeypatch, tmp_path):
         token_file = tmp_path / "github-token"
-        token_file.write_text("file_token\nignored second line\n", encoding="utf-8")
+        token_file.write_text("file_token\n", encoding="utf-8")
         monkeypatch.setenv("GITHUB_TOKEN", "env_token")
 
         assert get_github_token(token_file=str(token_file)) == "file_token"
@@ -220,8 +220,48 @@ class TestGetGitHubToken:
         token_file = tmp_path / "github-token"
         token_file.write_bytes(b"x" * 4097)
 
-        with pytest.raises(ValueError, match="exceeds 4096 bytes"):
+        with pytest.raises(ValueError, match="limit 4096"):
             get_github_token(token_file=str(token_file))
+
+    def test_token_file_skips_leading_blank_lines(self, tmp_path):
+        """#138: secret-manager templates may write a blank first line."""
+        token_file = tmp_path / "github-token"
+        token_file.write_text("\nghp_abc\n", encoding="utf-8")
+        assert get_github_token(token_file=str(token_file)) == "ghp_abc"
+
+    def test_token_file_with_two_tokens_is_refused(self, tmp_path):
+        token_file = tmp_path / "github-token"
+        token_file.write_text("ghp_a\nghp_b\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="more than one") as exc:
+            get_github_token(token_file=str(token_file))
+        assert "ghp_a" not in str(exc.value) and "ghp_b" not in str(exc.value)
+
+    @pytest.mark.parametrize(
+        "content",
+        ["ghp_secret part\n", "ghp_sécret\n", "ghp_tab\tsecret\n", "", "\n  \n"],
+        ids=["inner-space", "non-ascii", "control", "empty", "blank-lines"],
+    )
+    def test_malformed_token_files_never_echo_the_token(self, tmp_path, content):
+        token_file = tmp_path / "github-token"
+        token_file.write_text(content, encoding="utf-8")
+        with pytest.raises(ValueError) as exc:
+            get_github_token(token_file=str(token_file))
+        assert "secret" not in str(exc.value)
+        assert "GitHub token file" in str(exc.value)
+
+    def test_token_file_read_is_bounded_by_the_shared_helper(self, tmp_path, monkeypatch):
+        """#138: one bounded-read policy, core.bounded_io, not a second copy."""
+        from core import github_reader
+
+        seen = []
+
+        def fake_read_bytes(path, limit, label):
+            seen.append((limit, label))
+            return b"ghp_ok\n"
+
+        monkeypatch.setattr(github_reader, "read_bytes", fake_read_bytes)
+        assert get_github_token(token_file=str(tmp_path / "t")) == "ghp_ok"
+        assert seen == [(github_reader.MAX_GITHUB_TOKEN_FILE_BYTES, "GitHub token file")]
 
     def test_gh_token_fallback(self, monkeypatch):
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
