@@ -1028,6 +1028,26 @@ def _coverage_summary(inspections) -> tuple[str, list[str]]:
     return status, reasons
 
 
+def _coverage_note(inspections) -> str | None:
+    """One line for the rendered body when a repository was not fully read (#102).
+
+    The terminal preamble alone is not enough: the body is what reaches a
+    webhook, and "nothing upcoming" over an unread repository is unknown
+    dressed as clear. None when every inspection is COMPLETE or no
+    repository was inspected, so those outputs are unchanged.
+    """
+    if not inspections:
+        return None
+    status, reasons = _coverage_summary(inspections)
+    if status == "COMPLETE":
+        return None
+    why = "; ".join(reasons) or "no reason recorded"
+    return (
+        f"⚠️ Repository inspection coverage: {status} — {why}. "
+        "Results are not a clean bill of health."
+    )
+
+
 def _echo_run_coverage(inspections) -> str:
     """Print the run-level repository coverage (if any) and return it."""
     status, reasons = _coverage_summary(inspections)
@@ -1466,7 +1486,7 @@ def check(
     if digest or webhook:
         from analyzers.report_analyst import render_check_digest
 
-        text = render_check_digest(results)
+        text = render_check_digest(results, coverage_note=_coverage_note(inspections))
         _echo(text)
         if webhook:
             from core.notify import WebhookPolicy, post_digest
@@ -1638,7 +1658,7 @@ def digest(
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
-    deps, loaded_events, bundles, _inspections = _load_check_inputs(
+    deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1673,6 +1693,8 @@ def digest(
         window_days=window_days,
         history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
     )
+    if note := _coverage_note(inspections):
+        built["coverage_note"] = note
     if output == "json":
         import json as _json
 
@@ -1791,7 +1813,7 @@ def warnings(
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
-    deps, loaded_events, bundles, _inspections = _load_check_inputs(
+    deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1826,6 +1848,8 @@ def warnings(
         window_days=window_days,
         history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
     )
+    if note := _coverage_note(inspections):
+        built["coverage_note"] = note
     if output == "json":
         import json as _json
 

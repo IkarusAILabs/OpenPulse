@@ -390,11 +390,17 @@ def _verdict_field(verdict: Any, name: str, default: Any = None) -> Any:
     return getattr(verdict, name, default)
 
 
-def render_check_digest(verdicts: list[Any], title: str = "OpenPulse watchlist digest") -> str:
+def render_check_digest(
+    verdicts: list[Any],
+    title: str = "OpenPulse watchlist digest",
+    coverage_note: str | None = None,
+) -> str:
     """DependencyVerdicts -> AFFECTED / NOT_AFFECTED / RELATED / UNKNOWN sections.
 
     One line per dependency (label + relationship + reason). Reads
     verdicts defensively so offline dict fixtures work in tests.
+    ``coverage_note`` (a repository not fully read, #102) goes under the
+    title, so it reaches a webhook with the body.
     """
     sections: dict[str, tuple[str, list]] = {
         "AFFECTED": ("🚨", []),
@@ -421,7 +427,10 @@ def render_check_digest(verdicts: list[Any], title: str = "OpenPulse watchlist d
             f" — {_verdict_field(verdict, 'reason', '')}{first_note}"
         )
     affected = len(sections["AFFECTED"][1])
-    lines = [f"# {title}", "", f"{affected}/{len(verdicts)} dependencies affected", ""]
+    lines = [f"# {title}", ""]
+    if coverage_note:
+        lines += [f"> {coverage_note}", ""]
+    lines += [f"{affected}/{len(verdicts)} dependencies affected", ""]
     for name, (icon, items) in sections.items():
         if items:
             lines.append(f"## {icon} {name} ({len(items)})")

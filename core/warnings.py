@@ -213,6 +213,8 @@ def render_warnings_md(built: dict[str, Any]) -> str:
     ]
     if built.get("lead_time_note"):
         lines += [f"> {built['lead_time_note']}", ""]
+    if built.get("coverage_note"):
+        lines += [f"> {built['coverage_note']}", ""]
     if not rows:
         lines.append(f"No warning deadlines within the {window}-day window.")
         lines.append("")
