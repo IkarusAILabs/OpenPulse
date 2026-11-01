@@ -34,6 +34,7 @@ from datetime import date, datetime, timedelta, timezone
 from datetime import time as dt_time
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from collectors.errors import strip_unsafe
 from core.resources import data_path
@@ -377,15 +378,34 @@ def _checked_lifecycle_events(
     return kept, len(events) - len(kept)
 
 
+#: Repository metadata is upstream text (T-F3 fix E): each field must have
+#: its shape or it is null. The URL is derived from the validated name.
+_SPDX_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+-]{0,63}", re.ASCII)
+_TIMESTAMP = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", re.ASCII
+)
+
+
+def _repo_name(value: Any) -> str | None:
+    from core.github_reader import _valid_repo_parts
+
+    owner, _, name = str(value or "").partition("/")
+    return f"{owner}/{name}" if "/" not in name and _valid_repo_parts(owner, name) else None
+
+
 def _repository(raw: Bundle) -> dict[str, Any] | None:
     for meta in raw.get("github_meta", []):
         if isinstance(meta, dict) and meta.get("kind") == "repo_meta":
+            repo = _repo_name(meta.get("full_name")) or _repo_name(meta.get("repo"))
+            license_id = str(meta.get("license") or "")
+            pushed = str(meta.get("pushed_at") or "")
+            archived = meta.get("archived")
             return {
-                "repo": meta.get("full_name") or meta.get("repo"),
-                "archived": meta.get("archived"),
-                "last_push": meta.get("pushed_at"),
-                "license": meta.get("license"),
-                "url": meta.get("url"),
+                "repo": repo,
+                "archived": archived if isinstance(archived, bool) else None,
+                "last_push": pushed if _TIMESTAMP.fullmatch(pushed) else None,
+                "license": license_id if _SPDX_ID.fullmatch(license_id) else None,
+                "url": f"https://github.com/{repo}" if repo else None,
                 "note": "context only: repository health is not part of the verdict",
             }
     return None
@@ -403,6 +423,11 @@ def _short(reason: str, keep: int = 3) -> str:
     return "; ".join(parts[:keep]) + f"; ... (+{len(parts) - keep} more)"
 
 
+#: OSV advisory ids are "<DB>-<ENTRYID>" (OSV schema): GHSA-xxxx-xxxx-xxxx,
+#: PYSEC-2024-1, RUSTSEC-2024-0001, MAL-2025-123, CVE-2024-3094, RHSA-2024:1234.
+_OSV_ID = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9][A-Za-z0-9._:]*)+", re.ASCII)
+
+
 def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, Any]:
     """OSV advisory causes, version-specific ones first and listed by id.
 
@@ -413,11 +438,16 @@ def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, An
     exact = sorted({str(c.get("event_id")) for c in security if c.get("relationship") ==
                     "AFFECTS_VERSION"})
     package_level = {str(c.get("event_id")) for c in security} - set(exact)
+    # Advisory ids are upstream strings (T-F3 fix D): only an id with the OSV
+    # "<DB>-<ENTRYID>" shape is listed or put in a URL; others are counted.
+    listed = [i for i in exact if _OSV_ID.fullmatch(i)]
     return {
         "affecting_this_version": [
-            {"id": i, "url": f"https://osv.dev/vulnerability/{i}"} for i in exact[:limit]
+            {"id": i, "url": "https://osv.dev/vulnerability/" + quote(i, safe=":")}
+            for i in listed[:limit]
         ],
         "affecting_this_version_count": len(exact),
+        "ids_withheld": len(exact) - len(listed),
         "package_level_unconfirmed_count": len(package_level),
         "source": "osv.dev",
     }
