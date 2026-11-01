@@ -17,6 +17,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **File entries:** `check_dependency_file` skips a failing entry like an unpinned one ("entry N: package is not an identifier - skipped, value not shown"). The agent writes the files it asks about.
   - **Unchanged:** every dependency in the bundled fixtures passes the shape.
 
+### Fixed
+
+- **The monthly report names sources that did not answer, instead of reading them as "nothing found".** The November 2026 run lost vitess's NVD advisories to NVD's rate limit, and the report showed vitess as having no security changes. Each project's failed sources (name, error category and HTTP status, never the error text) are now listed in the executive summary and in "Data gaps and limitations", as "unknown, not absent", and counted in the metadata sidecar under `coverage.source_errors`. A report without failures is unchanged.
+
 ## 0.11.0 "Early Warning Operations" — 2026-11-01
 
 Scheduled alerts an operator can leave running, and a first track T check for AI coding agents.
