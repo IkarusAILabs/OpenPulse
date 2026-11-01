@@ -85,7 +85,10 @@ def test_derive_authority_downgrades_with_a_reason():
     forged = {"name": "x", "authority": "official", "url": "https://evil-redis.io/"}
     authority, reason = derive_authority(forged, "redis", DOMAINS)
     assert authority == "secondary"
-    assert reason and "evil-redis.io" in reason and "'redis'" in reason
+    assert reason == (
+        "source 'x' claims authority=official, but https://evil-redis.io/ is not "
+        "an https location on the official_domains allowlist for 'redis'"
+    )
     # Only official is derived; other claims pass through untouched.
     assert derive_authority({"authority": "primary", "url": "http://x"}, "redis", DOMAINS) == (
         "primary",
