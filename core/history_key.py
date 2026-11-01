@@ -50,6 +50,8 @@ LEDGER_DOMAIN = "openpulse-ledger-v1"
 HANDOVER_DOMAIN = "openpulse-handover-v1"
 #: Both keys' MACs over a ledger rotation entry.
 ROTATION_DOMAIN = "openpulse-rotation-v1"
+#: The current key's MAC over a re-baseline log entry (B4).
+REBASELINE_DOMAIN = "openpulse-rebaseline-v1"
 
 
 class HistoryKeyError(ValueError):

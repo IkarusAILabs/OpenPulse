@@ -473,14 +473,37 @@ def demo_bitnami():
 @click.option("--namespace", required=True, help="Registry namespace (e.g. bitnami)")
 @click.option("--repo", "repository", required=True, help="Repository (e.g. redis)")
 @click.option("--store", default=".openpulse/observations", help="History root directory")
+@click.option(
+    "--rebaseline",
+    is_flag=True,
+    help=(
+        "Accept a refused history (ROLLBACK, ROLLBACK_SUSPECTED, DOWNGRADE, BROKEN): "
+        "a rollback is accepted at its current tip, anything else is quarantined "
+        "and restarted. Needs --reason"
+    ),
+)
+@click.option("--reason", default="", help="Why the re-baseline is justified (logged)")
 @_history_key_option
 def observe(
-    namespace, repository, store, history_key_file=None, history_previous_keys_file=None
+    namespace,
+    repository,
+    store,
+    rebaseline=False,
+    reason="",
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """Probe a Docker Hub repo, persist the observation, diff against history."""
     from collectors.registries.docker import RegistryCollector
-    from core.observations.sweep import observe_repository
+    from core.observations.sweep import observe_repository, validate_rebaseline_reason
 
+    if reason and not rebaseline:
+        raise click.ClickException("--reason is only used with --rebaseline")
+    if rebaseline:
+        try:
+            reason = validate_rebaseline_reason(reason)
+        except ValueError as exc:
+            raise click.ClickException(f"--rebaseline needs --reason: {exc}") from exc
     history_key, previous_keys = _load_history_key(
         history_key_file, history_previous_keys_file, store
     )
@@ -496,6 +519,7 @@ def observe(
         store_root=store,
         history_key=history_key,
         previous_keys=previous_keys,
+        rebaseline_reason=reason if rebaseline else None,
     )
     if result["error"] is not None:
         _echo(
@@ -505,6 +529,9 @@ def observe(
         raise SystemExit(1)
     _echo(f"saved: {result['saved_path']}")
     _echo(f"history integrity: {result.get('history_integrity')}")
+    if result["history_status"] == "REBASELINED" and rebaseline:
+        _echo("re-baselined: reason logged in rebaselines.json; no change claims this run.")
+        return
     if result["history_status"] == "GENESIS":
         _echo("baseline recorded — no previous observation, no change claims.")
         return
