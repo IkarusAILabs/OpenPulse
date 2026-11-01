@@ -15,7 +15,7 @@ research-team commitments, not a commercial service level.
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| latest 0.10.x release | ✅ |
+| latest 0.11.x release | ✅ |
 | older releases | ❌ (upgrade to the latest release) |
 
 ## Reporting a vulnerability

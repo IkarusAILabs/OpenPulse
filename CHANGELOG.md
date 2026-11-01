@@ -2,7 +2,14 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.11.0 "Early Warning Operations" — 2026-11-01
+
+Scheduled alerts an operator can leave running, and a first track T check for AI coding agents.
+- **Webhooks:** a scheduled webhook posts each alert once. Failed posts are retried and dead-lettered, not lost, and with a secret every post is signed.
+- **CI:** jobs can gate on upcoming deadlines (`warnings --fail-on`).
+- **MCP:** answers state their lookup limits, and `dependency_status` says whether a PyPI or npm package and version exist.
+
+**This release changes webhook output:** a scheduled `check --webhook` posts only new alerts, so cache `.openpulse/deliveries` in CI. Verdicts, contracts and the frozen evaluation are unchanged. Read the upgrade notes before upgrading scheduled jobs.
 
 ### Upgrade notes
 

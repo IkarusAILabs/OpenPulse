@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-01 (v0.11 released):** v0.11.0 "Early Warning Operations" is released (Phase 5, W1–W5), together with track T's first milestone T-M1 (#257).
 - **Update 2026-11-01 (v0.11 plan):** v0.11.0 "Early Warning Operations" is Phase 5 below: persistent alert delivery (C1), a severity gate on `warnings`, signed webhooks, MCP hardening (C5), and track T Phase 0 (design only).
 - **Update 2026-11-01 (later):** v0.10.0 "Verified Releases & Safe Gates" is released (Phase 3). The owner decided that product development continues alongside track R rather than waiting for the paper submission (`docs/ROADMAP.md`), so Phase 5 (M6 operations) is no longer paused.
 - **Update 2026-11-01:** v0.9.0 "Anchored Trust" is released (Phase 2, all exit criteria met). v0.10.0 is rescoped from M6 operations, which `docs/ROADMAP.md` pauses until after R-D, to "Verified Releases & Safe Gates" (Phase 3 below), approved by the owner on 2026-11-01. The bullets below are the 2026-10-28 snapshot.
@@ -162,16 +163,16 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 
 **Not in v0.10.0:** C1 persistent delivery state (#78) and C5 MCP hardening (M6, paused); C4 `bench` (superseded by the R-B1 harness); D6 namespace move (its own release); more lockfile readers (#153, contributors any time); track T code (waits for its Phase 0).
 
-## Phase 5 — v0.11.0 "Early Warning Operations" (layers 7 and 8; planned 2026-11-01)
+## Phase 5 — v0.11.0 "Early Warning Operations" (layers 7 and 8) — DONE, released 2026-11-01
 
 Goal: scheduled alerts an operator can leave running. An alert is delivered once, a failed delivery is retried and never lost silently, a receiver can check that a payload came from OpenPulse, and a CI job can gate on deadlines. M6 is un-paused (`docs/ROADMAP.md`, amendment 2026-11-01). Nothing here changes a verdict or the frozen evaluation.
 
 | # | Item | From | Size | Depends on |
 |---|---|---|---|---|
-| W1 | Persistent alert delivery state for `check --webhook` (= C1, detail below) | #78, C1 | M | B3 (done) |
-| W2 | `warnings --fail-on {overdue,critical,high,medium,low}`: exit 1 when a deadline at or above the severity is in the window | #78 | S | — |
-| W3 | Signed webhook payloads: HMAC-SHA256 over timestamp and body with a secret from the environment or a file, sent as headers a receiver can verify; replay window documented | #78 | S | W1 |
-| W4 | MCP hardening (= C5): per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | C5 | S | — |
+| W1 | DONE (#252) — Persistent alert delivery state for `check --webhook` (= C1, detail below) | #78, C1 | M | B3 (done) |
+| W2 | DONE (#253) — `warnings --fail-on {overdue,critical,high,medium,low}`: exit 1 when a deadline at or above the severity is in the window | #78 | S | — |
+| W3 | DONE (#254) — Signed webhook payloads: HMAC-SHA256 over timestamp and body with a secret from the environment or a file, sent as headers a receiver can verify; replay window documented | #78 | S | W1 |
+| W4 | DONE (#255) — MCP hardening (= C5): per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | C5 | S | — |
 | W5 | DONE (#256; approved by the owner 2026-11-01, `docs/research/TRACK_T_PHASE0.md`) — Track T Phase 0, docs only: re-verified threat-model references, registry API and attestation feasibility with dates, reference-list sources and licences, design notes for T-F1 and T-F3 | ROADMAP track T | M | — |
 
 **Exit:**
