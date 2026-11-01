@@ -88,7 +88,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 
 | # | Item | Finding | Size | Depends on |
 |---|---|---|---|---|
-| B1 | Derived source authority (detail below) | M1 | M | — |
+| B1 | Derived source authority (detail below) — ACTIVE (PR open; `Literal` step deferred) | M1 | M | — |
 | B2 | Derived independence: source family from the registrable domain when `family` is absent | M2 | S | B1 (shared domain helper) |
 | B3 | Keyed integrity (detail below) | H2, L1 | L | **owner-approved key-management design** |
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |

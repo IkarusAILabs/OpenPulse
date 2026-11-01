@@ -11,21 +11,28 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.evidence.authority import derive_authority
 from core.evidence.independence import independent_count
 from core.evidence.policy import gate
 from core.schema.enums import Confidence
 from core.schema.models import OSSEvent
 
 
-def assess_confidence(evidences: list[dict[str, Any]]) -> Confidence:
+def assess_confidence(
+    evidences: list[dict[str, Any]], project_slug: str | None = None
+) -> Confidence:
     """Official source -> CONFIRMED; 2+ independent -> CORROBORATED; else EMERGING/UNVERIFIED.
 
     Independence (not name count): derived_from chains fold into the
     group they derive from, so a republished copy never corroborates.
+    Official is derived from ``project_slug``'s allowlist (B1); with no
+    project, no source is official.
     """
     if not evidences:
         return Confidence.UNVERIFIED
-    authorities = [e.get("source", {}).get("authority") for e in evidences]
+    authorities = [
+        derive_authority(e.get("source", {}), str(project_slug or ""))[0] for e in evidences
+    ]
     if "official" in authorities:
         return Confidence.CONFIRMED
     if independent_count(evidences) >= 2:
@@ -55,7 +62,7 @@ def assemble_event(
         event_type=event_type,  # type: ignore[arg-type]
         title=title,
         summary=summary,
-        confidence=assess_confidence(evidences),
+        confidence=assess_confidence(evidences, project_slug),
         impact=impact,  # type: ignore[arg-type]
         affected_versions=affected_versions or [],
         affected_artifacts=affected_artifacts or [],  # type: ignore[arg-type]
