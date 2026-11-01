@@ -6,6 +6,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **Two pages on one site no longer count as two independent sources (v0.9.0 item B2, finding M2).** Independence fell back to the source name, so renamed copies, or different declared families on one site, could reach CORROBORATED.
+  - Each source's URL now gives it a family: its registrable domain (`blog.redis.io` and `redis.io` are both `redis.io`), or the host plus owner on shared hosts (`github.com/bitnami`).
+  - Sources are grouped when their URL families, declared families or names match, or one is `derived_from` the other. A declared family can merge sources but never split one site.
+  - No public-suffix dependency: the registrable domain is the last two labels, or three under a short list of two-level suffixes (`co.uk`, `github.io`, …). An unlisted suffix only makes a family wider, which withholds corroboration and never grants it.
+  - The gate's CORROBORATED rule and `assess_confidence` use the new count. No fixture, golden or dependency verdict changes.
 - **A source's `official` authority is derived, not taken on trust (v0.9.0 item B1, finding M1).** Before, any source that said `authority: official` could carry an event to CONFIRMED.
   - A source now counts as official only when its URL is https and names a location on the event project's allowlist, in the new `data/official_domains.yaml`. An entry is a host, which also covers its subdomains, or a host with a path, such as `github.com/django`. Shared hosts are only listed with a path.
   - Lookalike hosts (`evil-redis.io`, `redis.io.evil.com`), `http://`, userinfo, other ports and non-ASCII hosts never match. A project with no entry has no official sources.

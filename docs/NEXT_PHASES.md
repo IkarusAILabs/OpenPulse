@@ -89,7 +89,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 | # | Item | Finding | Size | Depends on |
 |---|---|---|---|---|
 | B1 | Derived source authority (detail below) — ACTIVE (PR open; `Literal` step deferred) | M1 | M | — |
-| B2 | Derived independence: source family from the registrable domain when `family` is absent | M2 | S | B1 (shared domain helper) |
+| B2 | Derived independence: source family from the registrable domain when `family` is absent — ACTIVE (PR open, stacked on B1) | M2 | S | B1 (shared domain helper) |
 | B3 | Keyed integrity (detail below) | H2, L1 | L | **owner-approved key-management design** |
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
 | B5 | `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
