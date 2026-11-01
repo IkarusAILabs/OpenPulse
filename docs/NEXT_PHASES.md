@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-01 (v0.11 plan):** v0.11.0 "Early Warning Operations" is Phase 5 below: persistent alert delivery (C1), a severity gate on `warnings`, signed webhooks, MCP hardening (C5), and track T Phase 0 (design only).
 - **Update 2026-11-01 (later):** v0.10.0 "Verified Releases & Safe Gates" is released (Phase 3). The owner decided that product development continues alongside track R rather than waiting for the paper submission (`docs/ROADMAP.md`), so Phase 5 (M6 operations) is no longer paused.
 - **Update 2026-11-01:** v0.9.0 "Anchored Trust" is released (Phase 2, all exit criteria met). v0.10.0 is rescoped from M6 operations, which `docs/ROADMAP.md` pauses until after R-D, to "Verified Releases & Safe Gates" (Phase 3 below), approved by the owner on 2026-11-01. The bullets below are the 2026-10-28 snapshot.
 - **Released:** v0.7.0 "Channels" (2026-10-28): wheel data packaging (#132), the release-line verdict fix (#133, **changes verdicts**), `openpulse mcp`, DefectDojo export and Dependency-Track upload (#134–#137), `python -I -m cli` (#146, #150), the CycloneDX serial fix (#147), shared GitHub auth options (#149) and the install name `ikarus-openpulse` (#154). The Action is not on the Marketplace yet (R4).
@@ -46,7 +47,7 @@ Phase 0 (release + distribution)  ──►  v0.7.0 release
         ├──► Phase 4 (release supply chain)
         │        D1 any time;  D2 is V1;  D6 needs D2 + the name
         │
-        └──► Phase 5 (M6 operations; PAUSED until after R-D, was v0.10.0)
+        └──► Phase 5 (Early Warning Operations, v0.11.0; M6 un-paused 2026-11-01)
                  C1 after B3 (done);  C2 moved to V4;  C4 superseded by the R-B1 harness
 ```
 
@@ -161,15 +162,36 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 
 **Not in v0.10.0:** C1 persistent delivery state (#78) and C5 MCP hardening (M6, paused); C4 `bench` (superseded by the R-B1 harness); D6 namespace move (its own release); more lockfile readers (#153, contributors any time); track T code (waits for its Phase 0).
 
-## Phase 5 — M6 operations (layers 7 and 8; NEXT — un-paused 2026-11-01, was v0.10.0)
+## Phase 5 — v0.11.0 "Early Warning Operations" (layers 7 and 8; planned 2026-11-01)
+
+Goal: scheduled alerts an operator can leave running. An alert is delivered once, a failed delivery is retried and never lost silently, a receiver can check that a payload came from OpenPulse, and a CI job can gate on deadlines. M6 is un-paused (`docs/ROADMAP.md`, amendment 2026-11-01). Nothing here changes a verdict or the frozen evaluation.
+
+| # | Item | From | Size | Depends on |
+|---|---|---|---|---|
+| W1 | Persistent alert delivery state for `check --webhook` (= C1, detail below) | #78, C1 | M | B3 (done) |
+| W2 | `warnings --fail-on {overdue,critical,high,medium,low}`: exit 1 when a deadline at or above the severity is in the window | #78 | S | — |
+| W3 | Signed webhook payloads: HMAC-SHA256 over timestamp and body with a secret from the environment or a file, sent as headers a receiver can verify; replay window documented | #78 | S | W1 |
+| W4 | MCP hardening (= C5): per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | C5 | S | — |
+| W5 | Track T Phase 0, docs only: re-verified threat-model references, registry API and attestation feasibility with dates, reference-list sources and licences, design notes for T-F1 and T-F3 | ROADMAP track T | M | — |
+
+**Exit:**
+- A scheduled `check --webhook` run never sends the same alert twice, retries a failed delivery on the next run, and dead-letters it after the attempt limit.
+- `warnings --fail-on critical` fails a CI job on a CRITICAL or OVERDUE deadline and passes otherwise.
+- A receiver can verify a payload's signature and reject a replay outside the window.
+- An MCP agent is told when its lookup budget is spent instead of getting a silent partial answer.
+- Track T Phase 0's exit criteria in `docs/ROADMAP.md` are met.
+
+**Not in v0.11.0:** C4 `bench` (superseded by the R-B1 harness); PagerDuty/Teams-specific payload formats and hosted dashboards (M6 hosted surfaces, later); more readers (#153, contributors any time); track T code (follows its Phase 0).
+
+Earlier item list (kept for the IDs used above):
 
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|
-| C1 | Persistent delivery state (detail below) | #78 | M | B3 (alerts cite keyed-valid detections) |
+| C1 | Persistent delivery state (detail below) — v0.11.0 W1 | #78 | M | B3 (alerts cite keyed-valid detections) |
 | C2 | DNS-pinned webhook transport (detail below) — moved to v0.10.0 as V4, DONE (#242) | M5 | M | — |
 | C3 | GitHub Action | — | — | DONE (v0.6.2/v0.6.3). Remaining: its gate counts only keyed-valid evidence once B3 ships |
-| C4 | `openpulse bench`: per-scenario expected vs actual verdicts, identity/applicability precision and recall, as a reproducibility JSON uploaded by CI (numbers are not marketed) | M4 | M | — |
-| C5 | MCP hardening: per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | — | S | — |
+| C4 | SUPERSEDED by the R-B1 evaluation harness — `openpulse bench`: per-scenario expected vs actual verdicts, identity/applicability precision and recall, as a reproducibility JSON uploaded by CI (numbers are not marketed) | M4 | M | — |
+| C5 | v0.11.0 W4 — MCP hardening: per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | — | S | — |
 
 **C1 detail:**
 - Deterministic alert identity: `sha256(event_id, dependency identity, assessment, contract hash)`.

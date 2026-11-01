@@ -585,6 +585,7 @@ This study can share infrastructure with E4, the dependency-decision experiment 
 - DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
 - DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.9.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 - DONE 2026-11-01: v0.9.0 "Anchored Trust" - derived authority (#224) and independence (#227), clock trust (#223), keyed history with rotation and adoption (#229-#232, #235), rollback and downgrade detection (#233), anchors (#234), evidence contract 2.0.0 (#236).
+- NEXT 2026-11-01: v0.11.0 "Early Warning Operations" (M6 un-paused): persistent alert delivery with dedup, retry and dead-letter (#78), a `warnings` severity gate, signed webhooks, MCP hardening, and track T Phase 0 - see `docs/NEXT_PHASES.md` Phase 5.
 - DONE 2026-11-01: v0.10.0 "Verified Releases & Safe Gates" (#240-#249): attested tag-triggered releases (#111), gates that fail on FAILED coverage (#101), `NOT_APPLICABLE` coverage (#109, #102), DNS-pinned webhooks (M5) and hardening issues - see `docs/NEXT_PHASES.md` Phase 3. Product work continues alongside track R (amendment 2026-11-01).
 
 ## Next 8–16 weeks (re-baselined 2026-10-30; supersedes the 2026-10-21 list)
