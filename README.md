@@ -56,7 +56,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.11.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.11.1
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -69,7 +69,7 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.11.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.11.1"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -270,6 +270,12 @@ everything else. We do not compete on EOL record counts.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
 
 ## What's new in v0.11
+
+**v0.11.1 (patch):**
+- Whole-catalog reports get every project's NVD answer: requests are paced, retried, and use `NVD_API_KEY` if set.
+- A source that fails is named in the report as "unknown, not absent".
+- The MCP tools refuse and never echo non-identifier input.
+
 
 v0.11.0 "Early Warning Operations" makes scheduled alerts dependable and adds the first track T check for AI coding agents. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
 

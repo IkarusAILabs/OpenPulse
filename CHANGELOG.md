@@ -2,7 +2,13 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.11.1 — 2026-11-01
+
+A patch release:
+- **Complete monthly reports.** Whole-catalog reports no longer lose NVD advisories to NVD's rate limit. Requests are paced, retried, and can use `NVD_API_KEY`. A source that still fails is named in the report as "unknown, not absent" instead of reading as "nothing found". The November 2026 report run, and the 2026-10-30 early edition before it, each silently lost a different set of projects' advisories.
+- **Five untrusted-text hardening fixes for the MCP tools** (track T, T-F3).
+
+No contract or verdict changes.
 
 ### Security
 
