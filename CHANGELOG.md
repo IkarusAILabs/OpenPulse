@@ -7,6 +7,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 ### Upgrade notes
 
 - **`--fail-on` now fails on FAILED repository coverage (#101, v0.10.0 item V2).** `check --fail-on`, `attest --fail-on` and the GitHub Action's `fail-on` exited 0 when a `--github-repo` scan FAILED, so a CI gate could pass on a repository OpenPulse could not read. They now exit 1 (after writing every output, for `attest`), as `--strict` already did, and say why. PARTIAL coverage is unchanged: it fails only `--fail-on-partial`. Without a gating flag, FAILED coverage stays report-only.
+- **Webhook delivery ignores `HTTP(S)_PROXY` (finding M5, v0.10.0 item V4, #242).** A proxy resolves the webhook host itself, which would undo the DNS pinning below, so `--webhook` delivery now connects directly. A host that can only reach the webhook through a proxy can no longer deliver.
+
+### Security
+
+- **DNS-pinned webhook transport (finding M5, v0.10.0 item V4, #242).** The webhook SSRF check resolved the host, then httpx connected by hostname and resolved it again, so a resolver that answered with a public address first and `127.0.0.1` or `169.254.169.254` second (DNS rebinding) steered delivery past the check. The host is now resolved once, every returned address is checked, and the connection goes to a validated IP while TLS SNI, certificate verification and the `Host` header stay on the original hostname (a custom httpcore network backend under httpx's transport; no new dependency). IPv4-mapped (`::ffff:a.b.c.d`), 6to4 (`2002::/16`) and NAT64 (`64:ff9b::/96`, `64:ff9b:1::/48`) addresses are unwrapped first, and a refusal names the embedded IPv4 and its wrapping. The rest of the policy is unchanged: https only unless `--webhook-allow-http`, no redirects, capped response bodies, and no URL path in output.
 
 ### Added
 
