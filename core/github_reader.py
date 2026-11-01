@@ -192,9 +192,11 @@ _GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 
 
 def _valid_repo_parts(owner: str, name: str) -> bool:
+    # fullmatch: with re.match, "$" also matches before a trailing newline,
+    # so "owner\n" passed (T-F3 fix E).
     return (
-        bool(_GITHUB_OWNER_RE.match(owner))
-        and bool(_GITHUB_REPO_RE.match(name))
+        bool(_GITHUB_OWNER_RE.fullmatch(owner))
+        and bool(_GITHUB_REPO_RE.fullmatch(name))
         and name not in (".", "..")
     )
 
