@@ -251,7 +251,7 @@ def test_digest_diff_still_fires_on_real_changes():
 
 def test_rebaselined_across_parser_bump_with_partial_digests(tmp_path):
     from core.observations.registry import RegistryObservation
-    from core.observations.store import save_observation
+    from core.observations.store import save_observation, write_tip
     from core.observations.sweep import observe_repository
 
     legacy = (
@@ -264,7 +264,8 @@ def test_rebaselined_across_parser_bump_with_partial_digests(tmp_path):
         .seal()
         .link(None)
     )
-    save_observation(legacy.model_dump(mode="json"), root=tmp_path)
+    saved = save_observation(legacy.model_dump(mode="json"), root=tmp_path)
+    write_tip(saved.parent, legacy.chain_hash)  # as the earlier run did (B4)
     probe = {
         "collector": "registries",
         "registry": "docker.io",

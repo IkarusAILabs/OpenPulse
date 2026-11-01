@@ -309,9 +309,18 @@ are frozen; concurrent writers serialize on a per-repository OS advisory lock
 (`core/filelock.py`, released by the OS if the holder dies)
 with atomic writes, and history is ordered by chain links, never
 filenames. Threat model: the chain defeats silent corruption,
-partial edits, and fork anomalies, and detects rollback only while
-`tip.json` survives - a deleted tip is adopted, so truncation or a
-full wipe re-baselines silently. It does not resist an adversary who
+partial edits, and fork anomalies. Rollback and downgrade are refused,
+never adopted silently: a tip pointer that disagrees with the data
+(ROLLBACK), a chained history whose tip is missing
+(ROLLBACK_SUSPECTED), and an unchained record after chained ones or an
+unkeyed record after keyed ones (DOWNGRADE) all stop diffing and
+appending. Only `openpulse observe --rebaseline --reason "..."` accepts
+such a history: a rollback is accepted at its current tip, anything
+else is moved to a `quarantine-*` folder and restarted, the reason is
+logged in `rebaselines.json` (MACed under the history key), and no
+change claims cross the re-baseline. A full wipe of the repository's
+folder, tip included, still looks like a first run; detecting that
+needs an anchor outside the store (B5). It does not resist an adversary who
 recomputes the whole suffix, unless a history key is set.
 
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
@@ -344,8 +353,7 @@ a lead time counts from the later of the first detection and the
 adoption: a lower bound, never an overstatement. Lead times in
 `digest`, `warnings`, `report` and `check` come only from VALID_KEYED
 ledger entries; without a history key they are not published, and the
-output says so. Missing-tip
-rollback detection and external anchoring are still planned for v0.9.0
+output says so. External anchoring is still planned for v0.9.0
 (`docs/NEXT_PHASES.md`, `docs/KEYED_INTEGRITY.md`); until all of them
 ship, the history is not claimed to be tamper-evident.
 

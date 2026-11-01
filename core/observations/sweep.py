@@ -40,7 +40,10 @@ from core.observations.registry import (
     verify_registry_history,
 )
 from core.observations.store import (
+    QUARANTINE_PREFIX,
+    append_rebaseline,
     load_all,
+    quarantine_history,
     read_tip,
     repo_dir,
     repo_lock,
@@ -127,6 +130,7 @@ def observe_repository(
     observed_at: datetime | None = None,
     history_key: Any = None,
     previous_keys: tuple[Any, ...] = (),
+    rebaseline_reason: str | None = None,
 ) -> dict[str, Any]:
     """One locked load-verify-observe-save-diff cycle. Never raises.
 
@@ -145,12 +149,31 @@ def observe_repository(
     ``previous_keys`` are retired, verify-only keys (B3b). When the
     history's newest keyed run is under one of them, the new record is
     a handover to ``history_key``, MACed by both keys.
+
+    Rollback and downgrade (B4): ROLLBACK (the tip pointer and the data
+    disagree), ROLLBACK_SUSPECTED (a chained history with no tip),
+    DOWNGRADE (an unchained record after chained ones, or an unkeyed one
+    after keyed ones) and BROKEN all refuse. ``rebaseline_reason``
+    accepts the history explicitly (``validate_rebaseline_reason``):
+    a rolled-back history is accepted at its current tip, a broken or
+    downgraded one is moved to a ``quarantine-*`` folder and restarted,
+    and the reason is logged in ``rebaselines.json`` (MACed under
+    ``history_key``). The new record is a baseline: no change claims
+    cross a re-baseline (``history_status`` REBASELINED).
     """
     now = observed_at or datetime.now(timezone.utc)
     try:
         with repo_lock(store_root, registry, namespace, repository):
             result = _observe_locked(
-                registry, namespace, repository, probe, store_root, now, history_key, previous_keys
+                registry,
+                namespace,
+                repository,
+                probe,
+                store_root,
+                now,
+                history_key,
+                previous_keys,
+                rebaseline_reason,
             )
             if result["error"] is None:
                 result["history_integrity"] = _history_integrity(
@@ -189,6 +212,140 @@ def _history_integrity(
     if not chain_ok or verify_registry_history(ordered)["status"] == BROKEN:
         return BROKEN
     return str(verify_keyed_history(ordered, keyring(history_key, previous_keys))["status"])
+
+
+#: History states that refuse to diff or append without a re-baseline (B4).
+REFUSED_HISTORY = frozenset({BROKEN, "ROLLBACK", "ROLLBACK_SUSPECTED", "DOWNGRADE"})
+
+#: Longest re-baseline reason accepted (one line of plain text).
+MAX_REBASELINE_REASON = 500
+
+
+def validate_rebaseline_reason(reason: str) -> str:
+    """The reason, stripped; ValueError when empty, multi-line or too long."""
+    text = str(reason or "").strip()
+    if not text:
+        raise ValueError("a re-baseline needs a reason")
+    if len(text) > MAX_REBASELINE_REASON:
+        raise ValueError(f"re-baseline reason exceeds {MAX_REBASELINE_REASON} characters")
+    if any(not ch.isprintable() for ch in text):
+        raise ValueError("re-baseline reason must be one line of printable text")
+    return text
+
+
+def _assess_history(
+    history: list[dict[str, Any]], directory: Any, namespace: str, repository: str
+) -> tuple[list[dict[str, Any]], str, str]:
+    """(chain-ordered records, status, refusal detail) for one stored history."""
+    where = f"observation history for {namespace}/{repository}"
+    tip = read_tip(directory)
+    tip_hash = tip.get("tip") if tip else None
+    if not history:
+        if tip_hash:
+            # Data files are gone but the tip pointer survived: a wipe
+            # or rollback, not a first run.
+            return [], "ROLLBACK", f"{where} is missing but a tip pointer survives"
+        return [], "GENESIS", ""
+    if _legacy_after_chained(history):
+        # Checked before ordering: order_history files unchained records
+        # as a legacy prefix, whatever their time.
+        return history, "DOWNGRADE", f"{where} has an unchained record after chained ones"
+    # Chain order, never filename order: colliding timestamps must
+    # not reorder linked history (concurrent writers).
+    ordered, chain_ok = order_history(history)
+    if not chain_ok:
+        return history, BROKEN, f"{where} is forked or gapped"
+    status = str(verify_registry_history(ordered)["status"])
+    if status == BROKEN:
+        return ordered, BROKEN, f"{where} failed integrity verification"
+    actual_tip = link_hash_for(ordered[-1])
+    if tip_hash and tip_hash != actual_tip:
+        return ordered, "ROLLBACK", (
+            f"{where} does not reach the recorded tip (newest file missing or rolled back)"
+        )
+    if not tip_hash and any(r.get("chain_hash") for r in ordered):
+        return ordered, "ROLLBACK_SUSPECTED", (
+            f"{where} is chained but its tip pointer is missing (truncated or wiped)"
+        )
+    keyed = [i for i, r in enumerate(ordered) if r.get("history_mac")]
+    if keyed and any(not r.get("history_mac") for r in ordered[keyed[0] :]):
+        return ordered, "DOWNGRADE", f"{where} has an unkeyed record after keyed ones"
+    return ordered, status, ""
+
+
+def _legacy_after_chained(history: list[dict[str, Any]]) -> bool:
+    """True when an unchained record follows a chained one in time order."""
+    timed = sorted(history, key=lambda r: str(r.get("observed_at") or ""))
+    seen_chained = False
+    for record in timed:
+        if record.get("chain_hash"):
+            seen_chained = True
+        elif seen_chained:
+            return True
+    return False
+
+
+def _integrity_refusal(status: str, detail: str, namespace: str, repository: str) -> dict:
+    hint = (
+        "; refusing to diff or append. After checking why, accept it with "
+        f"`openpulse observe --namespace {namespace} --repo {repository} "
+        '--rebaseline --reason "..."`'
+    )
+    return {
+        "observation": None,
+        "history_status": status,
+        "changes": [],
+        "saved_path": None,
+        "error": {
+            "collector": "registries",
+            "error": True,
+            "category": "integrity",
+            "retryable": False,
+            "status_code": None,
+            "safe_message": detail + hint,
+            "namespace": namespace,
+            "repo": repository,
+            "integrity": BROKEN,
+        },
+    }
+
+
+def _rebaseline(
+    directory: Any,
+    ordered: list[dict[str, Any]],
+    status: str,
+    reason: str,
+    now: datetime,
+    history_key: Any,
+) -> list[dict[str, Any]]:
+    """Accept a refused history explicitly; return the records to continue from.
+
+    A rollback whose remaining chain verifies is accepted at its current
+    tip. A broken or downgraded history, or a tip with no data, is moved
+    aside and the chain restarts at genesis. The reason is logged first:
+    an unrecorded re-baseline never happens.
+    """
+    stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
+    accept = status in ("ROLLBACK", "ROLLBACK_SUSPECTED") and bool(ordered)
+    entry: dict[str, Any] = {
+        "at": now.isoformat(),
+        "reason": validate_rebaseline_reason(reason),
+        "previous_status": status,
+        "accepted_tip": link_hash_for(ordered[-1]) if accept else None,
+        "quarantine": None if accept else f"{QUARANTINE_PREFIX}{stamp}",
+    }
+    if history_key is not None:
+        from core.history_key import REBASELINE_DOMAIN
+
+        parts = [str(entry[k] or "") for k in sorted(entry)]
+        entry["key_id"] = history_key.key_id
+        entry["mac"] = history_key.mac(REBASELINE_DOMAIN, *parts)
+    append_rebaseline(directory, entry)
+    if accept:
+        write_tip(directory, str(entry["accepted_tip"]))
+        return ordered
+    quarantine_history(directory, stamp)
+    return []
 
 
 def _adopted_at(
@@ -281,6 +438,7 @@ def _observe_locked(
     now: datetime,
     history_key: Any = None,
     previous_keys: tuple[Any, ...] = (),
+    rebaseline_reason: str | None = None,
 ) -> dict[str, Any]:
     if not isinstance(probe, dict):
         return {
@@ -301,98 +459,13 @@ def _observe_locked(
         }
     history = load_all(registry, namespace, repository, root=store_root)
     directory = repo_dir(store_root, registry, namespace, repository)
-    if not history:
-        stale_tip = read_tip(directory)
-        if stale_tip and stale_tip.get("tip"):
-            # Data files are gone but the tip pointer survived: a wipe
-            # or rollback, not a first run. Refuse a silent re-baseline.
-            return {
-                "observation": None,
-                "history_status": "ROLLBACK",
-                "changes": [],
-                "saved_path": None,
-                "error": {
-                    "collector": "registries",
-                    "error": True,
-                    "category": "integrity",
-                    "retryable": False,
-                    "status_code": None,
-                    "safe_message": (
-                        f"observation history for {namespace}/{repository} is "
-                        "missing but a tip pointer survives; refusing a "
-                        "silent re-baseline"
-                    ),
-                    "namespace": namespace,
-                    "repo": repository,
-                    "integrity": BROKEN,
-                },
-            }
-        status = "GENESIS"
-        ordered: list[dict[str, Any]] = []
-    else:
-        # Chain order, never filename order: colliding timestamps must
-        # not reorder linked history (concurrent writers).
-        ordered, chain_ok = order_history(history)
-        if not chain_ok:
-            return {
-                "observation": None,
-                "history_status": "BROKEN",
-                "changes": [],
-                "saved_path": None,
-                "error": {
-                    "collector": "registries",
-                    "error": True,
-                    "category": "integrity",
-                    "retryable": False,
-                    "status_code": None,
-                    "safe_message": (
-                        f"observation history for {namespace}/{repository} is "
-                        "forked or gapped; refusing to diff or append"
-                    ),
-                    "namespace": namespace,
-                    "repo": repository,
-                    "integrity": BROKEN,
-                },
-            }
-        status = str(verify_registry_history(ordered)["status"])
-    if status != BROKEN and ordered:
-        # Rollback tripwire: the tip pointer must agree with the
-        # chain tip. A wiped newest file without a tip update refuses
-        # here; a missing tip is adopted (pre-upgrade histories).
-        tip = read_tip(directory)
-        tip_hash = tip.get("tip") if tip else None
-        actual_tip = link_hash_for(ordered[-1])
-        if tip_hash and tip_hash != actual_tip:
-            status = "ROLLBACK"
-    if status in (BROKEN, "ROLLBACK"):
-        if status == "ROLLBACK":
-            detail = (
-                f"observation history for {namespace}/{repository} does not "
-                "reach the recorded tip (newest file missing or rolled back); "
-                "refusing to diff or append"
-            )
-        else:
-            detail = (
-                f"observation history for {namespace}/{repository} failed "
-                "integrity verification; refusing to diff or append"
-            )
-        return {
-            "observation": None,
-            "history_status": status,
-            "changes": [],
-            "saved_path": None,
-            "error": {
-                "collector": "registries",
-                "error": True,
-                "category": "integrity",
-                "retryable": False,
-                "status_code": None,
-                "safe_message": detail,
-                "namespace": namespace,
-                "repo": repository,
-                "integrity": BROKEN,
-            },
-        }
+    ordered, status, detail = _assess_history(history, directory, namespace, repository)
+    rebaselined = False
+    if status in REFUSED_HISTORY:
+        if not rebaseline_reason:
+            return _integrity_refusal(status, detail, namespace, repository)
+        ordered = _rebaseline(directory, ordered, status, rebaseline_reason, now, history_key)
+        rebaselined = True
     refusal, retired = _keyed_refusal(ordered, history_key, namespace, repository, previous_keys)
     if refusal is not None:
         return refusal
@@ -422,7 +495,10 @@ def _observe_locked(
             "saved_path": None,
             "error": as_error("registries", exc, namespace=namespace, repo=repository),
         }
-    if previous is None:
+    if rebaselined:
+        baseline_status = "REBASELINED"
+        rebased = True
+    elif previous is None:
         baseline_status = "GENESIS"
         rebased = False
     elif previous.parser_version != current.parser_version:

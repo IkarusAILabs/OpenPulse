@@ -291,8 +291,9 @@ def load_rotations(root: str | Path, keys: dict[str, Any] | None = None) -> dict
     """retired key_id -> earliest verified handover time.
 
     A rotation entry counts when either key it names MACs it under a
-    supplied key. A missing or unreadable log means no rotations: deleting
-    it is a rollback, which B4 is for.
+    supplied key. A missing or unreadable log means no rotations. Its
+    deletion cannot be detected locally (whatever deletes it can delete
+    any local marker too); B5's external anchors are what detect it.
     """
     from core.history_key import ROTATION_DOMAIN
 
