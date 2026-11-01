@@ -22,11 +22,13 @@ jobs:
     defaults: {run: {shell: bash}}
     steps:
       # The implementation: the freeze tag unless a dispatch names another.
+      # Threat: the job token left in .git/config for every later step;
+      # neither checkout is pushed from (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
+        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}", persist-credentials: false}
       # The study data: this commit's evaluation/retrospective only.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {path: study}
+        with: {path: study, persist-credentials: false}
       - env: {IMPLEMENTATION: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
         run: |
           if [ "$IMPLEMENTATION" = retro-freeze-2026-10-30 ]; then
