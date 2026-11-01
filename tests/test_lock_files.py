@@ -12,6 +12,7 @@ LOCKS = {
     "core": REPO / "requirements.lock",
     "runtime": REPO / "requirements-runtime.lock",
     "mcp": REPO / "requirements-mcp.lock",
+    "provenance": REPO / "requirements-provenance.lock",
     "ci-tools": REPO / ".github" / "ci-tools.lock",
     "audit-tools": REPO / ".github" / "audit-tools.lock",
 }
@@ -53,7 +54,7 @@ def test_runtime_lock_is_the_core_subset_at_the_same_versions():
 def test_extra_and_tool_locks_never_move_a_project_pin():
     core = {k: v[0] for k, v in _entries(LOCKS["core"]).items()}
     tools = {k: v[0] for k, v in _entries(LOCKS["ci-tools"]).items()}
-    for name in ("mcp", "audit-tools"):
+    for name in ("mcp", "audit-tools", "provenance"):
         for pkg, (version, _hashes) in _entries(LOCKS[name]).items():
             if pkg in core:
                 assert version == core[pkg], f"{name} moves {pkg}"
@@ -97,3 +98,13 @@ def test_exact_mode_flags_installed_but_unlocked(monkeypatch, tmp_path):
     assert "six==1.17.0 is installed but not locked" in problems
     assert not any("pip==" in p for p in problems)  # bootstrap tooling is allowed
     assert not any("alpha" in p for p in problems)
+
+
+def test_the_provenance_extra_agrees_with_every_lock_it_installs_beside():
+    """[provenance] installs beside core, mcp and the audit tools (T-B1)."""
+    provenance = {k: v[0] for k, v in _entries(LOCKS["provenance"]).items()}
+    assert "pypi-attestations" in provenance and "sigstore" in provenance
+    for other in ("mcp", "audit-tools"):
+        for pkg, (version, _hashes) in _entries(LOCKS[other]).items():
+            if pkg in provenance:
+                assert provenance[pkg] == version, f"provenance and {other} disagree on {pkg}"

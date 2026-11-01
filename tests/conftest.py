@@ -46,5 +46,6 @@ def _isolated_delivery_state(monkeypatch, tmp_path):
     # response unless a test injects a stub registry.
     monkeypatch.setattr("core.registry_existence.default_head", lambda _url: 0)
     monkeypatch.setattr("core.digest_integrity.default_fetch", lambda _url: (0, None))
+    monkeypatch.setattr("core.provenance.default_fetch_provenance", lambda _url: (0, None))
     # NVD pacing and retry waits (collectors/nvd) are instant in tests.
     monkeypatch.setattr("collectors.nvd.collector._sleep", lambda _seconds: None)

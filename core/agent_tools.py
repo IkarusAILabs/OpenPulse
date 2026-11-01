@@ -225,6 +225,8 @@ class Lookups:
         clock: Callable[[], float] = time.time,
         head: Callable[[str], int] | None = None,
         fetch_json: Callable[[str], tuple[int, Any]] | None = None,
+        fetch_provenance: Callable[[str], tuple[int, Any]] | None = None,
+        verify: Callable[[Any, str, str], list[dict[str, Any]]] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -237,6 +239,9 @@ class Lookups:
         self.disk_hits: dict[str, int] = {}
         self._head = head
         self._fetch_json = fetch_json
+        self._fetch_provenance = fetch_provenance
+        self._verify = verify
+        self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
 
@@ -315,6 +320,31 @@ class Lookups:
         record = digest_integrity.check(ecosystem, name, version, locked, fetch=self._fetch_json)
         if record["status"] != "NOT_PERFORMED":
             self._digests[key] = (now, record)
+        return record
+
+    def provenance(self, name: str, version: str, expected: str | None) -> dict[str, Any]:
+        """PyPI provenance record (T-B1), cached per session; NOT_PERFORMED never cached."""
+        from core import provenance
+
+        key = (name, version, expected or "")
+        hit = self._provenance.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = provenance.check(
+            "PyPI",
+            name,
+            version,
+            expected_repository=expected,
+            fetch_json=self._fetch_json,
+            fetch_provenance=self._fetch_provenance,
+            verify=self._verify,
+        )
+        if record["status"] != "NOT_PERFORMED":
+            self._provenance[key] = (now, record)
         return record
 
     def _disk_path(self, slug: str) -> Path | None:
@@ -565,6 +595,43 @@ def _trust(dep: dict[str, Any]) -> dict[str, Any]:
     return resolution_trust(str(dep["ref"]))
 
 
+def _expected_repository(dep: dict[str, Any]) -> str | None:
+    """The catalog's GitHub repository for a curated (VERIFIED) package, else None.
+
+    A provenance publisher is cross-checked against it (T-B1); a guessed
+    project match is never used, so it can never produce a "differs" failure.
+    """
+    from core.entities.catalog import load_catalog
+
+    trust = _trust(dep)
+    if trust.get("identity_status") != "VERIFIED":
+        return None
+    for entry in load_catalog():
+        if entry.get("slug") == trust.get("slug") and entry.get("github"):
+            return str(entry["github"])
+    return None
+
+
+def _provenance(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
+    """T-B1: PyPI provenance for a package and version. Never a verdict input."""
+    from core import provenance, registry_existence
+
+    if (
+        dep["kind"] != "package"
+        or registry_existence.ecosystem_of(dep.get("ecosystem")) != "PyPI"
+        or not dep.get("version")
+    ):
+        return provenance.not_performed("unsupported")
+    if lookups is None:
+        return provenance.not_performed("offline")
+    try:
+        return lookups.provenance(
+            str(dep["package"]), str(dep["version"]), _expected_repository(dep)
+        )
+    except BudgetExhausted:
+        return provenance.not_performed("budget")
+
+
 def _registry_existence(dep: dict[str, Any], lookups: Lookups | None) -> list[dict[str, Any]]:
     """T-M1: does the package (and version) exist in its registry? Never a verdict input."""
     from core import registry_existence
@@ -695,6 +762,7 @@ def _assess(
     if existence:
         # Track T (T-M1): additive, separately labelled, never read by the verdict.
         answer["registry_existence"] = _registry_existence(dep, lookups)
+        answer["provenance"] = _provenance(dep, lookups)
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer
