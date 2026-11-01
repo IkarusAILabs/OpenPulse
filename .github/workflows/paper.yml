@@ -13,7 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
         with:
           root_file: main.tex
@@ -64,7 +67,10 @@ jobs:
   prevalence:
     runs-on: ubuntu-latest
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - name: Regenerate results.tex from the frozen run
         working-directory: papers/prevalence
         run: |

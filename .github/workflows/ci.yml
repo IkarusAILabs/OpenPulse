@@ -17,7 +17,10 @@ jobs:
         # the whole job to bash and keep the steps OS-agnostic.
         shell: bash
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: '3.11'}
       # `python -m pip`: on Windows pip refuses to replace itself through the
@@ -71,7 +74,10 @@ jobs:
       actions: read
       contents: read
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with: {languages: python}
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
@@ -161,7 +167,10 @@ jobs:
     # the Maven jar by SHA-256 (fetch.py), toolchains by version.
     runs-on: ubuntu-latest
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with: {python-version: '3.11'}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
