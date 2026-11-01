@@ -88,7 +88,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 
 | # | Item | Finding | Size | Depends on |
 |---|---|---|---|---|
-| B1 | Derived source authority (detail below) | M1 | M | — |
+| B1 | Derived source authority (detail below) — ACTIVE (PR open; `Literal` step deferred) | M1 | M | — |
 | B2 | Derived independence: source family from the registrable domain when `family` is absent | M2 | S | B1 (shared domain helper) |
 | B3 | Keyed integrity (detail below) | H2, L1 | L | **owner-approved key-management design** |
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
@@ -190,7 +190,7 @@ These compete for reviewer time, not for the same files:
 | 3 | Publish the Action to the Marketplace | R4 |
 | 4 | Keep or retire v0.6.0 item "C" / F5 — **decided: retired** | R6 |
 | 5 | B3 key management: storage, rotation, pre-key histories | B3–B5, C1 |
-| 6 | Which projects get `official_domains` first | B1 scope |
+| 6 | Which projects get `official_domains` first — **proposed:** the six with curated official fixtures (bitnami, bitnami-spark, django, itext, react, terraform), in `data/official_domains.yaml`; awaiting owner review | B1 scope |
 
 ## Risks
 

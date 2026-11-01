@@ -6,6 +6,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **A source's `official` authority is derived, not taken on trust (v0.9.0 item B1, finding M1).** Before, any source that said `authority: official` could carry an event to CONFIRMED.
+  - A source now counts as official only when its URL is https and names a location on the event project's allowlist, in the new `data/official_domains.yaml`. An entry is a host, which also covers its subdomains, or a host with a path, such as `github.com/django`. Shared hosts are only listed with a path.
+  - Lookalike hosts (`evil-redis.io`, `redis.io.evil.com`), `http://`, userinfo, other ports and non-ASCII hosts never match. A project with no entry has no official sources.
+  - A source that fails is read as `secondary`. The gate's CONFIRMED rule and its ACTION/CRITICAL provenance rule read the derived value, and a gate failure names each downgraded source. `assess_confidence` (now taking the project slug) and the lifecycle bridge derive CONFIRMED the same way.
+  - The first allowlist covers the six projects with curated official fixtures: bitnami, bitnami-spark, django, itext, react and terraform. All their fixtures still pass the gate. The synthetic `pypi-package-removal` fixture (`leftpad`) no longer passes `validate --strict`, because its only official source is a GitHub user page.
+  - No dependency verdict changes: `check` reads an event file's stated confidence and does not run the gate.
 - **Detection-ledger stamps are bound to the wall clock (clock trust, finding L7, v0.9.0 item B6).** A lead time is only as trustworthy as the first-detection date behind it.
   - `record_detection` refuses a stamp more than five minutes from UTC wall-clock time, or one that is not an ISO-8601 time, with `ClockSkewError`, and writes nothing. Before, a caller could pass any `detected_at`, including a backdated one or garbage.
   - An entry's `first_seen` is fixed when the entry is created. A re-detection stamped earlier than that is a sighting the ledger never witnessed, so it no longer moves `first_seen` earlier.

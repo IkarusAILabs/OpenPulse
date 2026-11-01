@@ -254,7 +254,8 @@ def test_matrix_official_source_is_confirmed():
     from analyzers.evidence_analyst import assess_confidence
 
     assert assess_confidence([{
-        "source": {"name": "vendor", "authority": "official"}}]) == "CONFIRMED"
+        "source": {"name": "vendor", "authority": "official",
+                   "url": "https://itextpdf.com/how-buy"}}], "itext") == "CONFIRMED"
 
 
 def test_matrix_independent_secondaries_corroborate():

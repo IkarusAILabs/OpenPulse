@@ -9,7 +9,8 @@ implementation.
 
 Bridge rules (conservative, documented):
 - Confidence comes from the finding's supporting sources: an
-  ``official`` authority yields CONFIRMED, else EMERGING for a single
+  ``official`` authority on the project's allowlist
+  (``core.evidence.authority``) yields CONFIRMED, else EMERGING for a single
   secondary source. Lifecycle findings never self-declare
   CORROBORATED (single-source by construction here).
 - Impact maps through the eligibility layer (``core.risk.impact``):
@@ -26,6 +27,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any
 
+from core.evidence.authority import derive_authority
 from core.schema.enums import Confidence
 from core.schema.models import OSSEvent
 
@@ -81,10 +83,10 @@ def _evidences(
     return evidences
 
 
-def _confidence(finding: dict[str, Any]) -> str:
+def _confidence(finding: dict[str, Any], project_slug: str) -> str:
     for entry in _source_entries(finding):
         source = entry.get("source") if isinstance(entry.get("source"), dict) else None
-        if source and source.get("authority") == "official":
+        if source and derive_authority(source, project_slug)[0] == "official":
             return Confidence.CONFIRMED.value
     return Confidence.EMERGING.value
 
@@ -156,7 +158,7 @@ def finding_to_event(
         event_type=str(finding.get("event_type") or "OTHER_CRITICAL"),
         title=str(finding.get("title") or "lifecycle finding"),
         summary=str(finding.get("summary") or ""),
-        confidence=_confidence(finding),
+        confidence=_confidence(finding, slug),
         impact=impact,
         affected_versions=[str(v) for v in finding.get("affected_versions", [])],
         affected_artifacts=[
