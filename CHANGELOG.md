@@ -19,6 +19,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **NVD requests stay inside NVD's rate limit, are retried, and can use an API key (`NVD_API_KEY`).** A whole-catalog `openpulse report` makes one NVD request per project, unpaced and keyless. NVD allows 5 requests per 30 s without a key and answers the excess with 403, so each run silently lost a different set of projects' advisories: vitess in November 2026, timescaledb in the early edition.
+  - **Pacing:** requests are now paced process-wide, 6.5 s apart without a key and 0.7 s with one.
+  - **Retry:** a 403, 429 or 503 is retried up to 3 times, honouring `Retry-After` or waiting out NVD's 30 s window.
+  - **Key:** read from `NVD_API_KEY` when none is passed, and never logged.
+  - **Cost:** a keyless whole-catalog report takes about 12 minutes longer; a key (free from NVD) removes most of that.
 - **The monthly report names sources that did not answer, instead of reading them as "nothing found".** The November 2026 run lost vitess's NVD advisories to NVD's rate limit, and the report showed vitess as having no security changes. Each project's failed sources (name, error category and HTTP status, never the error text) are now listed in the executive summary and in "Data gaps and limitations", as "unknown, not absent", and counted in the metadata sidecar under `coverage.source_errors`. A report without failures is unchanged.
 
 ## 0.11.0 "Early Warning Operations" — 2026-11-01
