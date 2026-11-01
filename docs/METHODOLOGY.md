@@ -12,7 +12,12 @@ npm, PyPI, Docker/OCI (initial).
 Sources are not equal. Tiers, strongest first:
 
 - **official** — the vendor/project itself (announcement, changelog,
-  advisory, repo). Alone sufficient for CONFIRMED.
+  advisory, repo). Alone sufficient for CONFIRMED. Derived, never taken
+  on trust: a source counts as official only when its URL is https and
+  names a location on the project's allowlist in
+  `data/official_domains.yaml` (a host and its subdomains, or a host
+  with a path, such as `github.com/django`). Any other source claiming
+  official is read as secondary, and the gate names the reason.
 - **primary** — lifecycle databases (endoflife.date), registries
   serving protocol truth (tag lists, digests). Strong but narrow:
   endoflife.date proves dates, never distribution intent.
