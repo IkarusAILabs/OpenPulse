@@ -56,7 +56,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.9.0
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -69,7 +69,7 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.8.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.9.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -252,11 +252,12 @@ everything else. We do not compete on EOL record counts.
 
 - **7 collectors**: GitHub releases, OSV, NVD, MITRE CVE, CISA KEV, endoflife.date, Docker Hub registries. All degrade gracefully (errors become data, never crashes).
 - **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
-- **Change engine**: corruption-detecting digest-aware registry observations
-  (hash-chained local history, frozen sealed records, per-repo locks;
-  with a history key the history is MACed, rollback and downgrade are
-  refused, and `openpulse anchor` / `verify` catch deletions against a
-  checkpoint kept outside the store - unreleased, v0.9.0),
+- **Change engine**: digest-aware registry observations with a
+  tamper-evident (keyed) local history: hash-chained records, frozen
+  sealed records and per-repo locks; with a history key the history is
+  MACed, rollback and downgrade are refused, and `openpulse anchor` /
+  `verify` catch deletions against a checkpoint kept outside the store
+  (without a key the history is corruption-detecting only),
   observation diffs (`openpulse observe`), catalog sweep with
   first-detection tracking (`openpulse sweep`, `report --with-sweep`).
 - **Entity resolution**: canonical catalog with PURL builders,
@@ -265,8 +266,18 @@ everything else. We do not compete on EOL record counts.
   EMERGING).
 - **AI coding agents (MCP)**: `openpulse mcp` gives Claude Code, Cursor, Copilot and other MCP clients three read-only tools (`dependency_status`, `check_dependency_file`, `project_lifecycle`) backed by live endoflife.date, OSV and GitHub lookups and the same verdict engine as `check` ([docs/MCP.md](docs/MCP.md)).
 - **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract v1.2 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
+- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract 2.0 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+
+## What's new in v0.9
+
+v0.9.0 "Anchored Trust" makes the local history tamper-evident and stops trusting what a source says about itself. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+- **Output change: please read before upgrading.** Lead times and sweep first-detection dates are published only from history that verifies under a history key. Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), none are published and the output says so. Create a key with `openpulse history-key generate` and keep it outside `.openpulse/` ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
+- **Tamper-evident history.** A history key MACs every observation and ledger entry, and keys rotate with handover records. Rollback and downgrade are refused until `openpulse observe --rebaseline --reason "..."` accepts them. `openpulse anchor` and `openpulse verify` catch deletions against a checkpoint kept outside the store.
+- **Derived authority and independence.** A source is `official` only when its https host is on the project's allowlist (`data/official_domains.yaml`). Sources whose URLs share a registrable domain count as one, so a renamed copy cannot corroborate itself.
+- **Clock trust.** Detection-ledger stamps outside five minutes of the wall clock, or earlier than the entry, are refused.
+- **Evidence contract 2.0.0.** `openpulse attest` emits 2.0.0: the 1.2 shape, with `content_hash` over RFC 8785 (JCS) canonical JSON so any consumer can recompute it ([`conformance/evidence-contract/verify.mjs`](conformance/evidence-contract/verify.mjs)). Validate against `schemas/evidence-contract/v2/schema.json`.
 
 ## What's new in v0.8
 
@@ -274,7 +285,6 @@ v0.8.0 is the release that the technical report [TR-2026-01](papers/tr-2026-01/O
 
 - **Verdict change: please read before upgrading.** An audit of the verdict engine against a written specification found sixteen defects, thirteen of which could clear an affected dependency or show it as cleared. Fifteen are fixed; one (D16, untrusted identity mappings) is open. A NOT_AFFECTED now needs a scope declared complete *with a recorded basis*, a resolved identity, and evidence fetched within 90 days. Otherwise the answer is RELATED, never a clearance. Uncatalogued packages and images are therefore RELATED more often than before.
 - **Bounded evidence age.** `check`, `attest`, `digest`, `warnings` and the MCP tools apply a 90-day bound by default. Pipelines that replay old fixtures should pass `--replay`.
-- **Evidence contract 2.0.0 (unreleased, v0.9.0).** `openpulse attest` emits 2.0.0: the 1.2 shape, with `content_hash` over RFC 8785 (JCS) canonical JSON so any consumer can recompute it ([`conformance/evidence-contract/verify.mjs`](conformance/evidence-contract/verify.mjs)).
 - **Evidence contract 1.2.0.** Every verdict states what it does and does not assert (`verdict_meaning`), along with its scope's completeness and evaluation frame.
 
 ## What's new in v0.7
@@ -288,7 +298,7 @@ v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made, and v
 - **v0.7.1 hardening.**
   - Every collector response is size-capped while it streams, so a gzip bomb or an oversized reply can't exhaust a run.
   - Every install in CI and in the GitHub Action is hash-checked against a complete lock, so a tampered or re-uploaded package fails the install.
-- **Still true in the latest release.** The local history is *corruption-detecting*, not tamper-evident. On `main` (unreleased v0.9.0) it becomes tamper-evident when you set a history key and keep `openpulse anchor` checkpoints outside the store; without a key it stays corruption-detecting ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
+- **Since v0.9.0.** The local history is tamper-evident when you set a history key and keep `openpulse anchor` checkpoints outside the store; without a key it stays corruption-detecting ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
 
 ## Quickstart
 

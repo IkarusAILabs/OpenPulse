@@ -298,7 +298,8 @@ never identities. First sighting is a baseline; changes derive only
 from observation diffs. History lives in git-ignored local JSON —
 portable, no server.
 
-Observations are corruption-detecting: every persisted record carries a
+Observations are corruption-detecting without a history key and
+tamper-evident (keyed) with one (below): every persisted record carries a
 chain hash `H[n] = SHA256(canonical_fields(n) + H[n-1])` over
 observation id, source, entity, timestamps, content hash, parser
 version, and predecessor link; the first record links to an explicit
