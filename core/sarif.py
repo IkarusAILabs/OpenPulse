@@ -207,8 +207,9 @@ def build_sarif(
     """(contract, artifact uri) pairs -> one SARIF 2.1.0 log (single run).
 
     ``coverage`` is the run-level repository inspection block
-    (``{"status", "reasons"}``); anything but COMPLETE is surfaced as a
+    (``{"status", "reasons"}``); PARTIAL and FAILED are surfaced as a
     warning notification so a partial scan can never read as clean.
+    NOT_APPLICABLE (no repository in the run) has nothing to warn about.
     """
     pairs = list(entries)
     results, omitted = _results(pairs)
@@ -218,7 +219,7 @@ def build_sarif(
         result["ruleIndex"] = index[result["ruleId"]]
     status = str((coverage or {}).get("status") or "COMPLETE")
     notifications = []
-    if status != "COMPLETE":
+    if status not in ("COMPLETE", "NOT_APPLICABLE"):
         reasons = "; ".join(str(r) for r in (coverage or {}).get("reasons") or []) or "no reason"
         notifications.append(
             {

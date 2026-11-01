@@ -7,8 +7,8 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema (current, 2.0): [`schemas/evidence-contract/v2/schema.json`](../schemas/evidence-contract/v2/schema.json)
-  (JSON Schema draft 2020-12); 1.2, 1.1 and 1.0 stay published beside it
+- Schema (current, 2.1): [`schemas/evidence-contract/v2.1/schema.json`](../schemas/evidence-contract/v2.1/schema.json)
+  (JSON Schema draft 2020-12); 2.0, 1.2, 1.1 and 1.0 stay published beside it
 - Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
@@ -137,7 +137,7 @@ Minor, additive: a new required top-level `inspection_coverage` block
 carries the repository-inspection outcome that produced the verdict -
 `{"status": COMPLETE|PARTIAL|FAILED, "reasons": [...]}`. Non-repository
 inputs (`--watchlist`, `--sbom`, `--lockfile`, `--manifest`, `--images`)
-are always `COMPLETE`. A `PARTIAL` or `FAILED` status means OpenPulse
+are always `COMPLETE` in 1.1 through 2.0 (2.1 says `NOT_APPLICABLE`, below). A `PARTIAL` or `FAILED` status means OpenPulse
 did not read every discovered dependency file, so the absence of an
 AFFECTED verdict is not a clean bill of health. The producer version
 continues to be `provenance.openpulse_version`.
@@ -172,6 +172,18 @@ Major, because the hash computation changed. The shape is 1.2's plus one field:
 Every value is the 1.2 builder's: `build_contract` builds the 1.2 document and restamps it. `openpulse attest` emits 2.0.0. `build_v1_contract` still emits 1.2.0 unchanged (the frozen evaluation uses it), and 1.2, 1.1 and 1.0 documents keep validating against their own schemas and verifying with `verify_v1_content_hash`. `validate_contract` and `verify_content_hash` dispatch on the document's own `contract_version`.
 
 **Upgrading a consumer:** validate against `schemas/evidence-contract/v2/schema.json` (a 2.0 document fails the 1.2 schema's `contract_version` const), and recompute the hash with JCS as above. The signature fields stay `null`.
+
+### 2.1.0 - NOT_APPLICABLE coverage (v0.10.0, V3, #109)
+
+Minor, additive. Up to 2.0, a run that inspected no repository (`--watchlist`, `--sbom`, `--spdx`, `--lockfile`, `--manifest`, `--images` only) stamped every contract `inspection_coverage.status: COMPLETE`, so a consumer could not tell "fully scanned" from "no scan happened". 2.1 adds one enum value:
+
+- **`NOT_APPLICABLE`:** the run inspected no repository. `reasons` is empty. It is not a clean bill of health and not a failure: there is no repository coverage to report.
+- **Unchanged:** a run with `--github-repo` stamps every contract with the run's `COMPLETE`, `PARTIAL` or `FAILED` status, as before (including contracts for dependencies from other inputs in the same run, so a partly read repository never makes them look clean).
+- **Gates:** `NOT_APPLICABLE` counts as `COMPLETE`. `--fail-on` decides on verdicts alone, and SARIF and the GitHub Action raise no coverage warning.
+
+Shape and hash are 2.0's: the content hash is the same JCS rule, and `content_hash_method` stays `jcs-sha256`. `openpulse attest` emits 2.1.0. The 2.0 schema stays byte-for-byte, so a 2.0 validator rejects `NOT_APPLICABLE`.
+
+**Upgrading a consumer:** validate against `schemas/evidence-contract/v2.1/schema.json`, and treat `NOT_APPLICABLE` as "no repository in this run". A consumer that switches on the status must accept the fourth value.
 
 ## CLI
 

@@ -4,7 +4,7 @@ Runs `openpulse attest` on your dependency files in CI. It reports which upstrea
 
 - **Job summary**: a Markdown table in `$GITHUB_STEP_SUMMARY` (verdict, impact, evidence links, contract hash).
 - **SARIF 2.1.0**: a log you can upload to GitHub Code Scanning.
-- **Evidence contracts**: one schema-valid 2.0 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
+- **Evidence contracts**: one schema-valid 2.1 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
 
 The action needs no install step and no secrets. It runs on Linux, macOS and Windows runners.
 
@@ -22,7 +22,7 @@ The action needs no install step and no secrets. It runs on Linux, macOS and Win
 
 Every result carries the evidence URLs and the `provenance.content_hash` of the contract it renders. You can recompute the hash from the contract's content.
 
-**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is not `COMPLETE`, you get a warning annotation and the SARIF carries a tool notification. Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.
+**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is `PARTIAL` or `FAILED`, you get a warning annotation and the SARIF carries a tool notification. Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.
 
 ## Inputs
 
@@ -42,7 +42,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `upload-sarif` | `false` | Upload the SARIF to Code Scanning (needs `security-events: write`) |
 | `python-version` | `3.11` | Python version that runs OpenPulse, in an isolated venv |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`) and `threshold-breached` (`true`/`false`).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) and `threshold-breached` (`true`/`false`).
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
