@@ -105,3 +105,11 @@ def test_offline_lifecycle_explains_why():
     server = build_server(REPO, live=False)
     with pytest.raises(Exception, match="needs live lookups"):
         _call(server, "project_lifecycle", {"project": "django"})
+
+
+def test_a_spent_lookup_budget_reaches_the_agent_as_a_reason():
+    from core.agent_tools import Lookups
+
+    server = build_server(REPO, live=True, lookups=Lookups(fetch=lambda _s: {}, budget=0))
+    with pytest.raises(Exception, match="budget spent"):
+        _call(server, "project_lifecycle", {"project": "django"})

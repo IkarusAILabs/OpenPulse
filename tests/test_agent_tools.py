@@ -302,3 +302,131 @@ def test_file_check_carries_evaluation_context():
     assert replay["evaluation_context"]["freshness_bound_applied"] is False
     assert "NO FRESHNESS BOUND" in replay["note"]
     assert all("evaluation_context" in r for r in replay["results"])
+
+
+# ---------------------------------------------------------------------------
+# W4 (v0.11.0, C5): lookup budget, stated limits, cross-session cache
+# ---------------------------------------------------------------------------
+
+
+def _budget_lookups(budget, calls=None, **kwargs):
+    lookups = _lookups(calls)
+    return Lookups(fetch=lookups._fetch, budget=budget, **kwargs)
+
+
+def test_every_answer_carries_the_lookup_status():
+    lookups = _budget_lookups(5)
+    out = dependency_status(image="docker.io/postgres:13", lookups=lookups, today=TODAY)
+    assert out["lookups"] == {
+        "budget": 5,
+        "used": 1,
+        "remaining": 4,
+        "timeout_seconds_per_source": agent_tools.LOOKUP_TIMEOUT_SECONDS,
+        "cache_ttl_seconds": 3600,
+    }
+    again = dependency_status(image="docker.io/postgres:14", lookups=lookups, today=TODAY)
+    assert again["lookups"]["used"] == 1  # a cache hit spends nothing
+
+
+def test_a_spent_budget_is_stated_never_silent():
+    calls = []
+    lookups = _budget_lookups(1, calls)
+    dependency_status(image="docker.io/postgres:13", lookups=lookups, today=TODAY)
+    out = dependency_status(
+        package="django", version="4.2", ecosystem="PyPI", lookups=lookups, today=TODAY
+    )
+    assert calls == ["postgresql"]  # no fetch past the budget
+    assert {"source": "live lookups", "status": "budget-exhausted"}.items() <= next(
+        s for s in out["sources"] if s["source"] == "live lookups"
+    ).items()
+    assert any("budget spent" in u for u in out["not_established"])
+    assert out["lookups"]["remaining"] == 0
+    # The curated django event still answers: the budget limits lookups, not the engine.
+    assert out["verdict"]["affected"] is True
+
+
+def test_the_per_file_cap_names_the_projects_it_skipped(monkeypatch):
+    monkeypatch.setattr(agent_tools, "MAX_LIVE_PROJECTS", 1)
+    out = check_dependency_file(
+        "data/fixtures/lockfiles/poetry.lock", lookups=_lookups([]), today=TODAY
+    )
+    assert out["live_projects_looked_up"] == 1
+    assert out["live_lookups_capped"]
+    assert out["lookups"]["used"] == 1
+
+
+def test_project_lifecycle_refuses_past_the_budget():
+    lookups = _budget_lookups(0)
+    with pytest.raises(agent_tools.BudgetExhausted, match="budget spent"):
+        project_lifecycle("postgres", lookups=lookups, today=TODAY)
+
+
+class _Clock:
+    def __init__(self, now=1_800_000_000.0):
+        self.now = now
+
+    def __call__(self):
+        return self.now
+
+
+def test_project_lifecycle_is_cached_across_sessions(tmp_path):
+    clock, calls = _Clock(), []
+    first = project_lifecycle(
+        "postgres", lookups=_budget_lookups(5, calls, cache_dir=tmp_path, clock=clock), today=TODAY
+    )
+    assert calls == ["postgresql"] and first["cached_age_seconds"] is None
+    clock.now += 600
+    second = project_lifecycle(
+        "postgres", lookups=_budget_lookups(5, calls, cache_dir=tmp_path, clock=clock), today=TODAY
+    )
+    assert calls == ["postgresql"]  # a new session, no new fetch
+    assert second["cached_age_seconds"] == 600
+    assert second["cycles"] == first["cycles"]
+    assert second["lookups"]["used"] == 0
+
+
+def test_the_cache_expires_with_the_session_ttl(tmp_path):
+    clock, calls = _Clock(), []
+    for _ in range(2):
+        project_lifecycle(
+            "postgres",
+            lookups=_budget_lookups(5, calls, cache_dir=tmp_path, clock=clock),
+            today=TODAY,
+        )
+        clock.now += 3600
+    assert calls == ["postgresql", "postgresql"]
+
+
+def test_a_failed_lookup_is_never_cached(tmp_path):
+    def down(_slug):
+        return {
+            "endoflife": [{"error": True, "safe_message": "timeout"}],
+            "osv": [],
+            "github_meta": [],
+        }
+
+    project_lifecycle("postgres", lookups=Lookups(fetch=down, cache_dir=tmp_path), today=TODAY)
+    assert list(tmp_path.glob("*.json")) == []
+
+
+def test_a_corrupt_or_foreign_cache_entry_is_ignored(tmp_path):
+    calls = []
+    (tmp_path / "postgresql.json").write_text("{not json", encoding="utf-8")
+    project_lifecycle(
+        "postgres", lookups=_budget_lookups(5, calls, cache_dir=tmp_path), today=TODAY
+    )
+    assert calls == ["postgresql"]
+    entry = json.loads((tmp_path / "postgresql.json").read_text(encoding="utf-8"))
+    entry["slug"] = "something-else"
+    (tmp_path / "postgresql.json").write_text(json.dumps(entry), encoding="utf-8")
+    project_lifecycle(
+        "postgres", lookups=_budget_lookups(5, calls, cache_dir=tmp_path), today=TODAY
+    )
+    assert calls == ["postgresql", "postgresql"]
+
+
+def test_the_cache_dir_follows_the_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv(agent_tools.CACHE_DIR_ENV, str(tmp_path))
+    assert agent_tools.default_cache_dir() == tmp_path
+    monkeypatch.setenv(agent_tools.CACHE_DIR_ENV, "")
+    assert agent_tools.default_cache_dir() is None  # '' disables the cache

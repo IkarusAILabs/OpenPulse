@@ -17,6 +17,10 @@ Principles carried over unchanged:
   is reported as such, never as "no problems".
 - Read-only and bounded: lookups are cached per process, file inputs go
   through the bounded readers, and dependency counts are capped.
+- Limits are stated, never silent (v0.11.0 W4): every answer carries a
+  ``lookups`` block (session budget, used, remaining, per-source
+  timeout); a lookup the budget or a per-file cap refused is listed in
+  ``not_established`` with the reason.
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ import time
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
 from datetime import time as dt_time
+from pathlib import Path
 from typing import Any
 
 from core.resources import data_path
@@ -44,6 +49,15 @@ _BRIDGED_EVENT_TYPES = ("EOL", "EOS")
 MAX_FILE_DEPENDENCIES = 300
 MAX_LIVE_PROJECTS = 40
 _CACHE_TTL_SECONDS = 3600.0
+#: Live fetches one server session may make (cache hits are free). Past
+#: it, lookups are refused and every answer says so (W4).
+MAX_SESSION_LOOKUPS = 200
+#: Per-source HTTP timeout of the live collectors, in seconds.
+LOOKUP_TIMEOUT_SECONDS = 10.0
+#: Cross-session cache for project_lifecycle (W4): same TTL as in session.
+CACHE_DIR_ENV = "OPENPULSE_CACHE_DIR"
+_CACHE_MAX_BYTES = 2_000_000
+_BUDGET_REASON = "session lookup budget spent ({budget} live lookups); ask again in a new session"
 
 NOTE = (
     "OpenPulse evidence, not a decision: verdicts state what the cited sources "
@@ -151,7 +165,7 @@ def curated_events() -> list[Any]:
     return events
 
 
-def live_fetcher(timeout: float = 10.0) -> Fetcher:
+def live_fetcher(timeout: float = LOOKUP_TIMEOUT_SECONDS) -> Fetcher:
     """Real collectors for one project slug; every source degrades to an
     error/skipped record, never an exception (collector contract)."""
     from collectors.endoflife.collector import EndoflifeCollector
@@ -175,25 +189,122 @@ def live_fetcher(timeout: float = 10.0) -> Fetcher:
     return fetch
 
 
+class BudgetExhausted(Exception):
+    """The session's live-lookup budget is spent (W4)."""
+
+
+def default_cache_dir() -> Path | None:
+    """``OPENPULSE_CACHE_DIR``, else the user cache directory; '' disables."""
+    configured = os.environ.get(CACHE_DIR_ENV)
+    if configured is not None:
+        return Path(configured) if configured.strip() else None
+    base = os.environ.get("XDG_CACHE_HOME") or os.environ.get("LOCALAPPDATA")
+    root = Path(base) if base else Path.home() / ".cache"
+    return root / "openpulse" / "lookups"
+
+
 class Lookups:
     """Per-process cache of live bundles (an agent asks about the same
-    projects repeatedly; the public APIs should not be hammered)."""
+    projects repeatedly; the public APIs should not be hammered).
 
-    def __init__(self, fetch: Fetcher | None = None, ttl: float = _CACHE_TTL_SECONDS):
+    ``budget`` caps live fetches per session (cache hits are free);
+    ``cache_dir`` backs :func:`project_lifecycle` across sessions with the
+    same TTL. Only bundles without a source error are written there, so a
+    failure is never replayed from disk.
+    """
+
+    def __init__(
+        self,
+        fetch: Fetcher | None = None,
+        ttl: float = _CACHE_TTL_SECONDS,
+        budget: int = MAX_SESSION_LOOKUPS,
+        cache_dir: Path | str | None = None,
+        clock: Callable[[], float] = time.time,
+    ):
         self._fetch = fetch
         self._ttl = ttl
         self._cache: dict[str, tuple[float, Bundle]] = {}
+        self.budget = budget
+        self.used = 0
+        self._cache_dir = Path(cache_dir) if cache_dir else None
+        self._clock = clock
+        #: slug -> age in seconds when the last answer came from the disk cache.
+        self.disk_hits: dict[str, int] = {}
 
-    def bundle(self, slug: str) -> Bundle:
+    @property
+    def remaining(self) -> int:
+        return max(self.budget - self.used, 0)
+
+    def status(self) -> dict[str, Any]:
+        """The ``lookups`` block every answer carries."""
+        return {
+            "budget": self.budget,
+            "used": self.used,
+            "remaining": self.remaining,
+            "timeout_seconds_per_source": LOOKUP_TIMEOUT_SECONDS,
+            "cache_ttl_seconds": int(self._ttl),
+        }
+
+    def bundle(self, slug: str, persistent: bool = False) -> Bundle:
+        """Live bundle for ``slug``; raises BudgetExhausted instead of fetching past the budget."""
         hit = self._cache.get(slug)
         now = time.monotonic()
         if hit is not None and now - hit[0] < self._ttl:
             return hit[1]
+        if persistent and (cached := self._read_disk(slug)) is not None:
+            self._cache[slug] = (now, cached)
+            return cached
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
         if self._fetch is None:
             self._fetch = live_fetcher()
+        self.used += 1
         raw = self._fetch(slug)
         self._cache[slug] = (now, raw)
+        if persistent:
+            self._write_disk(slug, raw)
         return raw
+
+    def _disk_path(self, slug: str) -> Path | None:
+        if self._cache_dir is None:
+            return None
+        safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in slug)[:120]
+        return self._cache_dir / f"{safe}.json"
+
+    def _read_disk(self, slug: str) -> Bundle | None:
+        path = self._disk_path(slug)
+        if path is None:
+            return None
+        try:
+            from core.bounded_io import read_bytes
+
+            entry = json.loads(read_bytes(str(path), _CACHE_MAX_BYTES, "lookup cache"))
+            age = self._clock() - float(entry["fetched_at"])
+            raw = entry["bundle"]
+        except (OSError, ValueError, KeyError, TypeError):
+            return None  # missing or unreadable: fetch again, never trust it
+        if not 0 <= age < self._ttl or entry.get("slug") != slug or not isinstance(raw, dict):
+            return None
+        self.disk_hits[slug] = int(age)
+        return raw
+
+    def _write_disk(self, slug: str, raw: Bundle) -> None:
+        path = self._disk_path(slug)
+        if path is None or any(
+            isinstance(e, dict) and e.get("error") for entries in raw.values() for e in entries
+        ):
+            return
+        import tempfile
+
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {"slug": slug, "fetched_at": self._clock(), "bundle": raw}
+            fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=".json")
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, default=str)
+            os.replace(tmp, path)
+        except (OSError, TypeError, ValueError):
+            return  # a cache that cannot be written is only a slower answer
 
 
 def _source_status(name: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
@@ -307,10 +418,17 @@ def _assess(
     bundles: dict[str, Bundle] = {}
     repository = None
     all_events = list(events)
+    raw = None
     if lookups is None:
         sources.append({"source": "live lookups", "status": "disabled"})
     else:
-        raw = lookups.bundle(slug)
+        try:
+            raw = lookups.bundle(slug)
+        except BudgetExhausted as exc:
+            sources.append(
+                {"source": "live lookups", "status": "budget-exhausted", "detail": str(exc)}
+            )
+    if raw is not None:
         sources += [
             _source_status("endoflife.date", raw.get("endoflife", [])),
             _source_status("osv.dev", raw.get("osv", [])),
@@ -351,7 +469,11 @@ def _assess(
         if c.get("cause") != "security_vulnerability"
     ]
     advisories = _advisories([c for c in relevant if c.get("cause") == "security_vulnerability"])
-    unknowns = [s["source"] for s in sources if s["status"] in ("error", "no-data", "disabled")]
+    unknowns = [
+        s["source"] if s["status"] != "budget-exhausted" else f"live lookups ({s['detail']})"
+        for s in sources
+        if s["status"] in ("error", "no-data", "disabled", "budget-exhausted")
+    ]
     if dep["kind"] == "package" and not dep.get("version"):
         unknowns.append("version (without it only project-level applicability is possible)")
     if not evaluation.bounded:
@@ -376,6 +498,7 @@ def _assess(
         "sources": sources,
         "not_established": unknowns,
         "evaluation_context": evaluation.context,
+        "lookups": lookups.status() if lookups is not None else None,
         "note": evaluation.note,
     }
 
@@ -437,12 +560,20 @@ def check_dependency_file(
     events = curated_events()
     results = []
     looked_up: set[str] = set()
+    capped: list[str] = []
     for dep in deps:
         slug = str(_trust(dep)["slug"])
         use_live = live and (slug in looked_up or len(looked_up) < MAX_LIVE_PROJECTS)
         if use_live:
             looked_up.add(slug)
-        results.append(_assess(dep, lookups if use_live else None, events, today, evaluation))
+        elif live and slug not in capped:
+            capped.append(slug)
+        result = _assess(dep, lookups if use_live else None, events, today, evaluation)
+        if live and not use_live:
+            result["not_established"] = [
+                u for u in result["not_established"] if u != "live lookups"
+            ] + [f"live lookups (per-file cap of {MAX_LIVE_PROJECTS} projects reached)"]
+        results.append(result)
     flagged = [r for r in results if r["verdict"]["affected"] or r["causes"]]
     return {
         "file": path,
@@ -450,6 +581,8 @@ def check_dependency_file(
         "dependencies_checked": len(results),
         "truncated": truncated,
         "live_projects_looked_up": len(looked_up),
+        "live_lookups_capped": capped,
+        "lookups": lookups.status() if live and lookups is not None else None,
         "skipped": skipped,
         "affected": [r["dependency"] for r in results if r["verdict"]["affected"]],
         "results": flagged,
@@ -496,7 +629,8 @@ def project_lifecycle(
 
     today = today or date.today()
     slug = resolve_project(project)
-    raw = (lookups or Lookups()).bundle(slug)
+    lookups = lookups or Lookups(cache_dir=default_cache_dir())
+    raw = lookups.bundle(slug, persistent=True)  # BudgetExhausted reaches the agent
     entries = raw.get("endoflife", [])
     cycles = []
     for e in entries:
@@ -518,6 +652,8 @@ def project_lifecycle(
         "cycles": cycles,
         "supported_cycles": [c["cycle"] for c in cycles if c["status"] == "supported"],
         "repository": _repository(raw),
+        "cached_age_seconds": lookups.disk_hits.get(slug),
+        "lookups": lookups.status(),
         "note": NOTE,
     }
 

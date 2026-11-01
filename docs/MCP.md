@@ -163,7 +163,11 @@ The tools use the same pipeline as `openpulse check`. There is one verdict engin
 - **Advisories**: [OSV](https://osv.dev) for the project's catalogued package.
 - **Repository health**: GitHub repository metadata (archived flag, last push, license). This is shown as context only and never changes the verdict. Set `GITHUB_TOKEN` for higher rate limits.
 
-Live lookups are cached per server session, one fetch per project. A file check looks up at most 40 projects and 300 dependencies.
+Limits are stated in the answer, never applied silently (v0.11.0):
+
+- **Lookup budget.** One server session makes at most 200 live lookups (one per project; cached answers are free). Every answer carries a `lookups` block: `budget`, `used`, `remaining`, `timeout_seconds_per_source` (10) and `cache_ttl_seconds` (3600). Past the budget, no lookup is made. The answer lists `live lookups (session lookup budget spent …)` under `not_established`, and `project_lifecycle` returns a tool error that says so. Curated events still answer.
+- **Per-file cap.** A file check looks up at most 40 projects and 300 dependencies. Projects past the cap are listed in `live_lookups_capped`, and their answers say so under `not_established`.
+- **Cache.** Lookups are cached for an hour within a session. `project_lifecycle` also caches across sessions on disk, in `OPENPULSE_CACHE_DIR` (default: the user cache directory, `openpulse/lookups`; set it to an empty value to disable), with the same one-hour TTL. A lookup with a source error is never cached. An answer served from the disk cache gives its age in `cached_age_seconds`.
 
 ## Security model
 
