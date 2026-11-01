@@ -71,6 +71,14 @@ CONTRACT_VERSION = "1.2.0"
 CONTRACT_V2_VERSION = "2.0.0"
 CONTENT_HASH_METHOD = "jcs-sha256"
 
+#: 2.1.0 (v0.10.0, V3, #109): additive. ``inspection_coverage.status`` may
+#: be NOT_APPLICABLE: the run inspected no repository, so a watchlist,
+#: SBOM, lockfile, manifest or image verdict no longer claims COMPLETE
+#: coverage of a scan that never happened. Hash and shape are 2.0's.
+#: ``openpulse attest`` emits 2.1.0.
+CONTRACT_V2_1_VERSION = "2.1.0"
+COVERAGE_NOT_APPLICABLE = "NOT_APPLICABLE"
+
 #: Fields outside the v2 content hash: the hash itself, the build time,
 #: and the signature family a later signature will cover.
 _V2_UNHASHED_TOP = ("signature", "signing_key_id", "trust_root")
@@ -85,6 +93,7 @@ SCHEMA_PATH = _SCHEMA_ROOT / "v1.2" / "schema.json"
 SCHEMA_V1_1_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 SCHEMA_V2_PATH = _SCHEMA_ROOT / "v2" / "schema.json"
+SCHEMA_V2_1_PATH = _SCHEMA_ROOT / "v2.1" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -106,8 +115,13 @@ def load_schema() -> dict[str, Any]:
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
+def load_v2_1_schema() -> dict[str, Any]:
+    """The 2.1 schema (``openpulse attest`` output)."""
+    return json.loads(SCHEMA_V2_1_PATH.read_text(encoding="utf-8"))
+
+
 def load_v2_schema() -> dict[str, Any]:
-    """The 2.0 schema (``openpulse attest`` output)."""
+    """The 2.0 schema (``openpulse attest`` output in v0.9)."""
     return json.loads(SCHEMA_V2_PATH.read_text(encoding="utf-8"))
 
 
@@ -261,10 +275,12 @@ def build_contract(
     as_of: datetime | None = None,
     max_evidence_age: timedelta | None = None,
 ) -> dict[str, Any]:
-    """(event, verdict[, finding]) -> one schema-valid 2.0.0 document.
+    """(event, verdict[, finding]) -> one schema-valid 2.1.0 document.
 
     The 1.2 document (``build_v1_contract``, same arguments), restamped
-    2.0.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    2.1.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    Pass ``inspection_coverage={"status": "NOT_APPLICABLE", "reasons": []}``
+    when the run inspected no repository (2.1).
     Every value is the 1.2 builder's; only the version and hash differ.
     """
     doc = build_v1_contract(
@@ -275,8 +291,8 @@ def build_contract(
         as_of=as_of,
         max_evidence_age=max_evidence_age,
     )
-    doc["contract_version"] = CONTRACT_V2_VERSION
-    doc["provenance"]["contract_version"] = CONTRACT_V2_VERSION
+    doc["contract_version"] = CONTRACT_V2_1_VERSION
+    doc["provenance"]["contract_version"] = CONTRACT_V2_1_VERSION
     doc["provenance"]["content_hash_method"] = CONTENT_HASH_METHOD
     doc["provenance"]["content_hash"] = v2_content_hash(doc)
     return doc
@@ -319,6 +335,7 @@ def verify_content_hash(doc: dict[str, Any]) -> bool:
 def validate_contract(doc: Any) -> list[str]:
     """Validate against the schema of the document's own contract_version."""
     loaders = {
+        CONTRACT_V2_1_VERSION: load_v2_1_schema,
         CONTRACT_V2_VERSION: load_v2_schema,
         "1.2.0": load_schema,
         "1.1.0": load_v1_1_schema,

@@ -75,7 +75,7 @@ outputs:
     description: Path of the evidence-contract JSONL
     value: ${{ steps.run.outputs.contracts-file }}
   inspection-coverage:
-    description: Repository inspection coverage (COMPLETE, PARTIAL or FAILED)
+    description: Repository inspection coverage (COMPLETE, PARTIAL, FAILED, or NOT_APPLICABLE when no repository was inspected)
     value: ${{ steps.run.outputs.inspection-coverage }}
   threshold-breached:
     description: "'true' when the fail-on threshold was breached"
@@ -182,7 +182,7 @@ runs:
         cat "$summary"
 
         coverage="$("$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["runs"][0]["properties"]["inspection_coverage"])' "$IN_SARIF")"
-        if [ "$coverage" != "COMPLETE" ]; then
+        if [ "$coverage" != "COMPLETE" ] && [ "$coverage" != "NOT_APPLICABLE" ]; then
           echo "::warning title=OpenPulse coverage::repository inspection coverage $coverage - results are not a clean bill of health"
         fi
         # Outputs exist, so a non-zero exit is the fail-on gate (input and
