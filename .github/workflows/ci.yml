@@ -123,7 +123,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$PASS_BREACHED" = false
-          test "$PASS_COVERAGE" = COMPLETE
+          # No --github-repo in this run: contract 2.1 says NOT_APPLICABLE (#109).
+          test "$PASS_COVERAGE" = NOT_APPLICABLE
           test "$GATE_OUTCOME" = failure
           # OPENPULSE_BIN: the venv the action installed (exported via GITHUB_ENV).
           "$OPENPULSE_BIN/python" - "$PASS_SARIF" <<'PY'

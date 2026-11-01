@@ -148,7 +148,7 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 |---|---|---|---|---|
 | V1 | ACTIVE (PR open) — Tag-triggered release workflow (= D2): build sdist and wheel from the tag, fail when the tag differs from `openpulse --version`, regenerate the deterministic SBOM, attach all three to the GitHub release, and add build-provenance attestations (`actions/attest-build-provenance`, SHA-pinned, least-privilege per job). PyPI publishing only after decision 7 | #111 | M | — |
 | V2 | `check --fail-on` fails when repository coverage is FAILED, as `--strict` already does | #101 | S | — |
-| V3 | `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
+| V3 | ACTIVE (#109 PR open) — `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
 | V4 | DNS-pinned webhook transport (= C2; detail under Phase 5) | M5 | M | — · DONE (#242) |
 | V5 | Hardening good first issues: CI guard for `--deselect` and friends, token-file handling and permissions, `persist-credentials: false`, secret-scan skips | #104, #138, #139, #141, #142 | S each | — |
 
@@ -218,7 +218,7 @@ These compete for reviewer time, not for the same files:
 | 5 | B3 key management: storage, rotation, pre-key histories — **decided 2026-11-01:** as proposed in `docs/KEYED_INTEGRITY.md` | B3–B5, C1 |
 | 6 | Which projects get `official_domains` first | B1 scope |
 | 7 | Publish `ikarus-openpulse` to PyPI from the V1 workflow (needs the owner to register a Trusted Publisher on PyPI) — open; until then V1 attaches signed artifacts to the GitHub release only | V1's PyPI step |
-| 8 | Evidence contract 2.1.0: `NOT_APPLICABLE` coverage status — open | V3 |
+| 8 | Evidence contract 2.1.0: `NOT_APPLICABLE` coverage status — **decided 2026-11-01: approved** | V3 |
 
 ## Risks
 

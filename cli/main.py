@@ -2098,7 +2098,10 @@ def attest(
     # Repository-level coverage: a FAILED/PARTIAL scan must reach every
     # emitted contract, even when the dependency came from another input,
     # so a partially read repository is never attested as clean.
-    coverage_override = None
+    # No repository in the run (watchlist/SBOM/lockfile/manifest/images):
+    # contract 2.1 says NOT_APPLICABLE, not COMPLETE coverage of a scan
+    # that never happened (#109).
+    coverage_override = {"status": "NOT_APPLICABLE", "reasons": []}
     if inspections:
         run_status, run_reasons = _coverage_summary(inspections)
         _echo(f"repository inspection coverage: {run_status}", err=True)
