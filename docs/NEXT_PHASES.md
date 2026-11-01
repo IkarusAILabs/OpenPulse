@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-01:** v0.9.0 "Anchored Trust" is released (Phase 2, all exit criteria met). v0.10.0 is rescoped from M6 operations, which `docs/ROADMAP.md` pauses until after R-D, to "Verified Releases & Safe Gates" (Phase 3 below), approved by the owner on 2026-11-01. The bullets below are the 2026-10-28 snapshot.
 - **Released:** v0.7.0 "Channels" (2026-10-28): wheel data packaging (#132), the release-line verdict fix (#133, **changes verdicts**), `openpulse mcp`, DefectDojo export and Dependency-Track upload (#134–#137), `python -I -m cli` (#146, #150), the CycloneDX serial fix (#147), shared GitHub auth options (#149) and the install name `ikarus-openpulse` (#154). The Action is not on the Marketplace yet (R4).
 - **Next patch, v0.7.1:** collector response caps (#155, H11) and hash-locked installs everywhere (#156, H12).
 - **Phase A** (correctness and leak fixes) is done, including A6b.
@@ -37,12 +38,15 @@ Phase 0 (release + distribution)  ──►  v0.7.0 release
         │        B1 ─► B2 ─► B3* ─► B4 ─► B5        (* key-management design approved first)
         │        B6, B7 independent
         │
-        ├──► Phase 3 (M6 operations, v0.10.0)
-        │        C2 any time;  C1 after B3 (alerts cite keyed-valid detections)
-        │        C4 (bench) any time
+        ├──► Phase 3 (Verified Releases & Safe Gates, v0.10.0; rescoped 2026-11-01)
+        │        V1 (= D2) ─► tag v0.10.0 through it;  V2, V4, V5 any time
+        │        V3 after the contract 2.1.0 sign-off
         │
-        └──► Phase 4 (release supply chain)
-                 D1 any time;  D2 needs the Phase 0 name decision;  D6 needs D2 + the name
+        ├──► Phase 4 (release supply chain)
+        │        D1 any time;  D2 is V1;  D6 needs D2 + the name
+        │
+        └──► Phase 5 (M6 operations; PAUSED until after R-D, was v0.10.0)
+                 C1 after B3 (done);  C2 moved to V4;  C4 superseded by the R-B1 harness
 ```
 
 ## Phase 0 — Release and distribution (now, before any new feature)
@@ -136,12 +140,32 @@ Goal: authority, independence and history integrity are derived from verifiable 
 
 All exit criteria hold as of v0.9.0 (2026-11-01), and the wording has moved.
 
-## Phase 3 — v0.10.0 M6 operations (layers 7 and 8)
+## Phase 3 — v0.10.0 "Verified Releases & Safe Gates" (rescoped 2026-11-01)
+
+Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI gate that passes on an input OpenPulse did not fully read. Why this and not M6: `docs/ROADMAP.md` pauses M6 until after R-D, and track R needs a verifiable tagged release for its reproducibility package (R-D2). Nothing here changes the frozen evaluation.
+
+| # | Item | Finding / issue | Size | Depends on |
+|---|---|---|---|---|
+| V1 | Tag-triggered release workflow (= D2): build sdist and wheel from the tag, fail when the tag differs from `openpulse --version`, regenerate the deterministic SBOM, attach all three to the GitHub release, and add build-provenance attestations (`actions/attest-build-provenance`, SHA-pinned, least-privilege per job). PyPI publishing only after decision 7 | #111 | M | — |
+| V2 | `check --fail-on` fails when repository coverage is FAILED, as `--strict` already does | #101 | S | — |
+| V3 | `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
+| V4 | DNS-pinned webhook transport (= C2; detail under Phase 5) | M5 | M | — |
+| V5 | Hardening good first issues: CI guard for `--deselect` and friends, token-file handling and permissions, `persist-credentials: false`, secret-scan skips | #104, #138, #139, #141, #142 | S each | — |
+
+**Exit:**
+- `v0.10.0` is tagged through V1, and `gh attestation verify` passes on its wheel.
+- No `--fail-on` or `--strict` run exits 0 on FAILED repository coverage.
+- A contract never says COMPLETE for an input that had no repository scan.
+- A rebinding resolver can't steer webhook delivery to a private address.
+
+**Not in v0.10.0:** C1 persistent delivery state (#78) and C5 MCP hardening (M6, paused); C4 `bench` (superseded by the R-B1 harness); D6 namespace move (its own release); more lockfile readers (#153, contributors any time); track T code (waits for its Phase 0).
+
+## Phase 5 — M6 operations (layers 7 and 8; PAUSED until after R-D, was v0.10.0)
 
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|
 | C1 | Persistent delivery state (detail below) | #78 | M | B3 (alerts cite keyed-valid detections) |
-| C2 | DNS-pinned webhook transport (detail below) | M5 | M | — |
+| C2 | DNS-pinned webhook transport (detail below) — moved to v0.10.0 as V4 | M5 | M | — |
 | C3 | GitHub Action | — | — | DONE (v0.6.2/v0.6.3). Remaining: its gate counts only keyed-valid evidence once B3 ships |
 | C4 | `openpulse bench`: per-scenario expected vs actual verdicts, identity/applicability precision and recall, as a reproducibility JSON uploaded by CI (numbers are not marketed) | M4 | M | — |
 | C5 | MCP hardening: per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | — | S | — |
@@ -167,7 +191,7 @@ All exit criteria hold as of v0.9.0 (2026-11-01), and the wording has moved.
 
 | # | Item | Issue | Size | Depends on |
 |---|---|---|---|---|
-| D2 | Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **as `ikarus-openpulse`** (R2); sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
+| D2 | (v0.10.0 V1) Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **as `ikarus-openpulse`** (R2); sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
 | D5 (rest) | Legacy flat identity keys respect `confidence` | — | S | H9 |
 | D6 | Move the top-level packages (`core`, `cli`, `collectors`, `analyzers`, `reports`) under one namespace with a deprecation shim. **The namespace can't be `openpulse`:** the PyPI `openpulse` package imports as `openpulse`, so both installed together would collide. Use the R2 name: `ikarus_openpulse`. Keep `python -I -m cli` working through the shim for one minor release. | — | L | R2, D2 (ask first) |
 
@@ -193,6 +217,8 @@ These compete for reviewer time, not for the same files:
 | 4 | Keep or retire v0.6.0 item "C" / F5 — **decided: retired** | R6 |
 | 5 | B3 key management: storage, rotation, pre-key histories — **decided 2026-11-01:** as proposed in `docs/KEYED_INTEGRITY.md` | B3–B5, C1 |
 | 6 | Which projects get `official_domains` first | B1 scope |
+| 7 | Publish `ikarus-openpulse` to PyPI from the V1 workflow (needs the owner to register a Trusted Publisher on PyPI) — open; until then V1 attaches signed artifacts to the GitHub release only | V1's PyPI step |
+| 8 | Evidence contract 2.1.0: `NOT_APPLICABLE` coverage status — open | V3 |
 
 ## Risks
 
