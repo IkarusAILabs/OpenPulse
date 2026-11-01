@@ -214,12 +214,15 @@ def test_unkeyed_history_stays_usable_without_a_key(tmp_path):
 
 
 def test_key_on_unkeyed_history_does_not_claim_the_past(tmp_path):
-    """Keyed adoption of older records is a later slice; until then, not VALID_KEYED."""
+    """The older records are adopted (B3c), never re-MACed: adopted_at marks the cut."""
     _observe(tmp_path, ["1.0"], 0, key=None)
     result = _observe(tmp_path, ["1.0", "1.1"], 1)
     assert result["error"] is None
-    assert result["history_integrity"] == "VALID_UNKEYED"
-    assert "history_mac" not in _ordered(tmp_path)[0] or not _ordered(tmp_path)[0]["history_mac"]
+    assert result["history_integrity"] == "VALID_KEYED"
+    ordered = _ordered(tmp_path)
+    assert not ordered[0].get("history_mac")
+    adopted = verify_keyed_history(ordered, {KEY.key_id: KEY})["adopted_at"]
+    assert adopted == ordered[1]["observed_at"]
 
 
 # ---------------------------------------------------------------------------
@@ -269,12 +272,15 @@ def test_keyed_ledger_entry_is_not_rewritten_without_its_key(tmp_path):
     assert _entry_path(tmp_path).read_bytes() == before
 
 
-def test_unkeyed_ledger_entry_is_not_remaced(tmp_path):
-    _record(tmp_path, key=None)
+def test_unkeyed_ledger_entry_is_adopted_not_backdated(tmp_path):
+    """B3c: the entry is MACed now, with adopted_at; first_seen stays as context."""
+    first = _record(tmp_path, key=None)
     entry = _record(tmp_path)
-    assert "history_mac" not in entry
+    assert entry["key_id"] == KEY.key_id
+    assert entry["first_seen"] == first["first_seen"]
+    assert entry["adopted_at"] >= first["first_seen"]
     stored = json.loads(_entry_path(tmp_path).read_text(encoding="utf-8"))
-    assert ledger.entry_integrity(stored, {KEY.key_id: KEY}) == "VALID_UNKEYED"
+    assert ledger.entry_integrity(stored, {KEY.key_id: KEY}) == "VALID_KEYED"
 
 
 # ---------------------------------------------------------------------------

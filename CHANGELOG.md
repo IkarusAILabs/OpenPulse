@@ -4,8 +4,16 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Upgrade notes
+
+- **Lead times now come only from keyed history (v0.9.0 item B3c).** `digest`, `warnings`, `report` and `check` publish a first detection and a lead time only from detection-ledger entries that verify under a history key. **Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), no lead time is published**, and the digest, warnings and report say so in a note. Verdicts, deadlines and severities are unchanged. Make a key with `openpulse history-key generate`; the next keyed `check --ledger` run adopts existing entries, and their lead times count from that adoption. The GitHub Action gains its `history-key` input in B3d.
+
 ### Added
 
+- **Keyed adoption of older history (v0.9.0 item B3c, finding H2).** History written before a key existed is adopted, never re-MACed as if it had always been keyed.
+  - **Observations:** unkeyed records followed only by keyed ones now verify VALID_KEYED. The first keyed record's chain hash pins the older records, and `verify_keyed_history` reports its `observed_at` as `adopted_at`. An unkeyed record after a keyed one is still VALID_UNKEYED. A change's `first_detected_at` from a keyed sweep is never earlier than the adoption.
+  - **Ledger:** a keyed write to an unkeyed entry adopts it. It keeps `first_seen` as context, gains `adopted_at` (covered by the MAC), and later keyed writes keep that time. The new `keyed_first_seen(..., keys)` returns the later of `first_seen` and `adopted_at`, and only for a VALID_KEYED entry, with the rotation log applied.
+  - **Readers:** `build_digest`, `build_warnings`, `prepare_report` and `build_report` take `history_keys`. `digest` and `warnings` gain `--history-key-file` and `--history-previous-keys-file`. Without keys they publish no lead time and set `lead_time_note`.
 - **History key rotation (v0.9.0 item B3b, finding H2).** A key can now be retired without losing its history, and a leaked retired key cannot extend it.
   - Retired keys are verify-only: `OPENPULSE_HISTORY_KEYS_PREVIOUS` (comma- or space-separated) or `--history-previous-keys-file` (one per line, `#` comments) on `observe`, `sweep`, `report` and `check`. They need a current key. New records are always MACed with the current key.
   - **Observations:** when a history's newest keyed run is under a retired key, the next record is a handover: it carries `previous_key_id` and `handover_mac`, a MAC under the retired key. `verify_keyed_history` now walks keyed runs. A record under the retired key after its handover, a key change without a handover, or a handover that does not follow its key's run is BROKEN. A history keyed with a key that is neither current nor supplied as retired is still refused (`KEY_MISMATCH`).

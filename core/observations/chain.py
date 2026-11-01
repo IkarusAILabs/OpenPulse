@@ -216,6 +216,13 @@ def verify_keyed_history(
     handover that does not follow its retired key's run, are BROKEN: so a
     leaked retired key cannot extend history past its handover.
     ``active_key_id`` is the key of the newest keyed run.
+
+    Adoption (B3c): unkeyed records followed only by keyed ones are an
+    adopted history. The first keyed record's chain hash pins every
+    earlier record, so the history is VALID_KEYED, and ``adopted_at`` is
+    that record's ``observed_at``: nothing earlier is proved, so a lead
+    time from it counts from ``adopted_at`` at the earliest. An unkeyed
+    record after a keyed one stays VALID_UNKEYED.
     """
     from core.history_key import HANDOVER_DOMAIN, OBSERVATION_DOMAIN
 
@@ -256,11 +263,13 @@ def verify_keyed_history(
         elif not keys[key_id].verify(mac, OBSERVATION_DOMAIN, *history_mac_parts(record)):
             bad.append(i)
         active = key_id
+    keyed_at = [i for i, r in enumerate(records) if isinstance(r, dict) and r.get("history_mac")]
+    adopted = bool(keyed_at) and bool(unkeyed) and max(unkeyed) < keyed_at[0]
     if chain["status"] == BROKEN or bad:
         status = BROKEN
     elif chain["status"] == UNKNOWN or unknown_keys:
         status = UNKNOWN
-    elif unkeyed:
+    elif unkeyed and not adopted:
         status = VALID_UNKEYED
     else:
         status = VALID_KEYED
@@ -271,4 +280,5 @@ def verify_keyed_history(
         "unknown_keys": sorted(set(unknown_keys)),
         "breaks": chain["breaks"],
         "active_key_id": active,
+        "adopted_at": records[keyed_at[0]].get("observed_at") if adopted else None,
     }

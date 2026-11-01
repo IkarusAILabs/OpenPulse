@@ -191,6 +191,23 @@ def _history_integrity(
     return str(verify_keyed_history(ordered, keyring(history_key, previous_keys))["status"])
 
 
+def _adopted_at(
+    ordered: list[dict[str, Any]],
+    current: Any,
+    history_key: Any,
+    previous_keys: tuple[Any, ...] = (),
+) -> datetime | None:
+    """When a keyed history was adopted (B3c), or None when unkeyed or keyed from genesis."""
+    if history_key is None:
+        return None
+    records = [*ordered, current.model_dump(mode="json")]
+    adopted = verify_keyed_history(records, keyring(history_key, previous_keys))["adopted_at"]
+    if adopted is None:
+        return None
+    moment = datetime.fromisoformat(str(adopted).replace("Z", "+00:00"))
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
 def _keyed_refusal(
     ordered: list[dict[str, Any]],
     history_key: Any,
@@ -440,12 +457,14 @@ def _observe_locked(
     else:
         models.append(current)
         changes = diff_observations(previous, current)
+        adopted = _adopted_at(ordered, current, history_key, previous_keys)
         stamped = []
         for change in changes:
             first = first_detected_at_for((change.type, change.tag), [*models])
-            stamped.append(
-                change.model_copy(update={"first_detected_at": first or current.observed_at})
-            )
+            first = first or current.observed_at
+            if adopted is not None and first < adopted:
+                first = adopted  # keyed history proves nothing before adoption (B3c)
+            stamped.append(change.model_copy(update={"first_detected_at": first}))
         saved = save_observation(current.model_dump(mode="json"), root=store_root)
         write_tip(
             repo_dir(store_root, registry, namespace, repository),

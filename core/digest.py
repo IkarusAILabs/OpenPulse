@@ -68,21 +68,33 @@ def _event_by_id(events: list[OSSEvent]) -> dict[str, OSSEvent]:
     return {e.id: e for e in events or []}
 
 
-def _first_seen_day(fact: dict[str, Any], ledger_root: str) -> date | None:
-    """Ledger lookup for one fact, degraded to None - never an exception.
+#: Why a digest built over an unkeyed ledger carries no lead times (B3c).
+UNKEYED_LEAD_TIME_NOTE = (
+    "Lead times are not published: no history key was given, so first "
+    "detections cannot be shown to be unedited. Set OPENPULSE_HISTORY_KEY "
+    "(see `openpulse history-key generate`)."
+)
+
+
+def _first_seen_day(
+    fact: dict[str, Any], ledger_root: str, history_keys: dict[str, Any] | None
+) -> date | None:
+    """Keyed ledger lookup for one fact, degraded to None - never an exception.
 
     Reads are lock-free (atomic file reads), so a busy project lock
-    during a concurrent check run cannot break the digest; a missing
-    or tampered entry also means None: no claim. This function is
-    the ONLY place the digest touches durable state.
+    during a concurrent check run cannot break the digest; a missing,
+    tampered or unkeyed entry also means None: no claim. Only a
+    VALID_KEYED entry counts, from its adoption at the earliest (B3c).
+    This function is the ONLY place the digest touches durable state.
     """
     try:
-        seen = ledger.first_seen(
+        seen = ledger.keyed_first_seen(
             fact["project"],
             fact["finding_class"],
             fact["subject"],
             scope=fact["scope"],
             root=ledger_root,
+            keys=history_keys,
         )
     except (OSError, TimeoutError):
         return None
@@ -95,6 +107,7 @@ def build_digest(
     ledger_root: str | None = None,
     today: date | None = None,
     window_days: int = DEFAULT_WINDOW_DAYS,
+    history_keys: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Join check verdicts + events + ledger into one briefing.
 
@@ -110,6 +123,11 @@ def build_digest(
     CVE fix is available the moment it is published; there is no
     upstream deadline to count down to. They stay in the check
     output with their own severity.
+
+    Lead times come only from keyed history: ``history_keys`` (key_id ->
+    HistoryKey, current and retired) verifies each ledger entry. Without
+    them, no first detection or lead time is published, and the digest
+    carries ``lead_time_note`` saying so.
     """
     today = today or date.today()
     events_by_id = _event_by_id(events)
@@ -138,7 +156,11 @@ def build_digest(
                 # the monthly report's to narrate.
                 continue
             fact = durable_fact_from_cause(cause, events_by_id)
-            first_detected = _first_seen_day(fact, ledger_root) if fact and ledger_root else None
+            first_detected = (
+                _first_seen_day(fact, ledger_root, history_keys)
+                if fact and ledger_root and history_keys
+                else None
+            )
             lead_time = (
                 lead_time_days(first_detected, effective_day)
                 if first_detected is not None
@@ -176,7 +198,10 @@ def build_digest(
             str(e["event_id"]),
         )
     )
-    return {"generated_at": today.isoformat(), "entries": entries}
+    digest: dict[str, Any] = {"generated_at": today.isoformat(), "entries": entries}
+    if ledger_root and not history_keys:
+        digest["lead_time_note"] = UNKEYED_LEAD_TIME_NOTE
+    return digest
 
 
 def _detail(e: dict[str, Any]) -> str:
@@ -227,6 +252,8 @@ def render_digest_md(digest: dict[str, Any]) -> str:
         f"Generated {generated} from the detection ledger and your inputs.",
         "",
     ]
+    if digest.get("lead_time_note"):
+        lines += [f"> {digest['lead_time_note']}", ""]
     if not entries:
         lines.append("Nothing upcoming or newly-effective within the warning window.")
         lines.append("")

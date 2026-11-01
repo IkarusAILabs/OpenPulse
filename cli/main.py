@@ -115,6 +115,13 @@ def _load_history_key(key_file: str | None, previous_file: str | None, *store_ro
     return key, previous
 
 
+def _history_keyring(key_file: str | None, previous_file: str | None, *store_roots: str):
+    """key_id -> HistoryKey (current and retired) for reading keyed history."""
+    from core.history_key import keyring
+
+    return keyring(*_load_history_key(key_file, previous_file, *(r for r in store_roots if r)))
+
+
 def _sarif_uri(path: str) -> str:
     """SARIF artifact uri for an input file: relative to the working
     directory (the repository root in CI) when possible, POSIX slashes."""
@@ -587,6 +594,12 @@ def report(
         items.append(collect_project(slug, raw))
     import os
 
+    from core.history_key import keyring
+
+    history_key, previous_keys = _load_history_key(
+        history_key_file, history_previous_keys_file, store, ledger_root
+    )
+    history_keys = keyring(history_key, previous_keys)
     sweep_findings: list = []
     if with_sweep:
         from collectors.registries.docker import RegistryCollector
@@ -597,9 +610,6 @@ def report(
         wanted = set(slugs)
         selected = [e for e in catalog if e.get("slug") in wanted]
         _echo("running distribution sweep...")
-        history_key, previous_keys = _load_history_key(
-            history_key_file, history_previous_keys_file, store, ledger_root
-        )
         sweep_findings = sweep_catalog(
             selected,
             RegistryCollector().check_image,
@@ -618,6 +628,10 @@ def report(
         "Public intelligence describes project-level change; whether it affects "
         "YOUR dependencies needs a watchlist (`openpulse check`).",
     ]
+    if ledger_root and not history_keys:
+        from core.digest import UNKEYED_LEAD_TIME_NOTE
+
+        notes.append(UNKEYED_LEAD_TIME_NOTE)
     markdown = build_report(
         month,
         items,
@@ -626,6 +640,7 @@ def report(
         notes=notes,
         sweep_findings=sweep_findings,
         ledger_root=ledger_root or None,
+        history_keys=history_keys,
     )
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
@@ -636,6 +651,7 @@ def report(
         since=since or None,
         include_related=include_related,
         ledger_root=ledger_root or None,
+        history_keys=history_keys,
     )
     metadata = build_report_metadata(
         month,
@@ -1241,7 +1257,8 @@ def check(
     # run to today's no-ledger output, not crash the command a cron
     # schedule depends on.
     if ledger_root:
-        from core.detections.ledger import first_seen, record_detection
+        from core.detections.ledger import keyed_first_seen, record_detection
+        from core.history_key import keyring
         from core.risk.check import detections_from_verdicts
 
         history_key, previous_keys = _load_history_key(
@@ -1274,12 +1291,13 @@ def check(
                         seen
                         for fact in detections_from_verdicts([result], loaded_events)
                         if (
-                            seen := first_seen(
+                            seen := keyed_first_seen(
                                 fact["project"],
                                 fact["finding_class"],
                                 fact["subject"],
                                 scope=fact["scope"],
                                 root=ledger_root,
+                                keys=keyring(history_key, previous_keys),
                             )
                         )
                     ),
@@ -1431,6 +1449,7 @@ def check(
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
+@_history_key_option
 def digest(
     watchlist,
     sbom,
@@ -1449,6 +1468,8 @@ def digest(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
@@ -1485,7 +1506,13 @@ def digest(
         )
         for dep in deps
     ]
-    built = build_digest(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    built = build_digest(
+        results,
+        loaded_events,
+        ledger_root=ledger_root,
+        window_days=window_days,
+        history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
+    )
     if output == "json":
         import json as _json
 
@@ -1575,6 +1602,7 @@ def digest(
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
+@_history_key_option
 def warnings(
     watchlist,
     sbom,
@@ -1593,6 +1621,8 @@ def warnings(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
@@ -1629,7 +1659,13 @@ def warnings(
         )
         for dep in deps
     ]
-    built = build_warnings(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    built = build_warnings(
+        results,
+        loaded_events,
+        ledger_root=ledger_root,
+        window_days=window_days,
+        history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
+    )
     if output == "json":
         import json as _json
 
