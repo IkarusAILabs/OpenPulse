@@ -98,3 +98,10 @@ What to expect:
 - CI actions are pinned by SHA and run with least privilege. CI also runs
   CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret
   tripwire.
+- From v0.10.0, every release is built by `.github/workflows/release.yml`
+  from its tag with hash-locked tools. The workflow refuses a tag that
+  differs from the package version. The sdist, wheel, CycloneDX SBOM and
+  `SHA256SUMS` on the GitHub release carry Sigstore-signed build
+  provenance. Check a downloaded file with
+  `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+  Releases are not on PyPI yet.

@@ -8,6 +8,21 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 - **`--fail-on` now fails on FAILED repository coverage (#101, v0.10.0 item V2).** `check --fail-on`, `attest --fail-on` and the GitHub Action's `fail-on` exited 0 when a `--github-repo` scan FAILED, so a CI gate could pass on a repository OpenPulse could not read. They now exit 1 (after writing every output, for `attest`), as `--strict` already did, and say why. PARTIAL coverage is unchanged: it fails only `--fail-on-partial`. Without a gating flag, FAILED coverage stays report-only.
 
+### Added
+
+- **Attested releases (#111, v0.10.0 item V1).** A `v*` tag runs `.github/workflows/release.yml`.
+  - **Build:** `scripts/build_release.py` builds the sdist and wheel from the tagged tree. It uses setuptools' own PEP 517 hooks with the hash-locked setuptools from `.github/ci-tools.lock`, without build isolation, so no build tool is fetched at build time.
+  - **Refused builds:** a tag that differs from the package version, and a locked setuptools below `[build-system].requires`.
+  - **Checks before publishing:** the wheel is smoke-tested in a clean venv from outside the checkout, and the deterministic SBOM is regenerated twice and compared.
+  - **Provenance:** every file gets Sigstore-signed SLSA build provenance (`actions/attest-build-provenance`); verify with `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+  - **On the GitHub release:** the sdist, wheel, `sbom.cdx.json` and `SHA256SUMS`, attached without replacing files that are already there.
+  - **Permissions:** each job gets only what it needs: `id-token` only for the job that signs, `contents: write` only for the job that attaches.
+  - **Not done:** nothing is published to PyPI; that waits on owner decision 7.
+
+### Fixed
+
+- **The CI tools lock now satisfies the build floor.** Dependabot raised `[build-system].requires` to `setuptools>=84.2.1`, while `.github/ci-tools.lock` stayed at 84.1.0. The lock now pins 84.2.1, with the hashes PyPI publishes, and a test fails if the two drift apart again.
+
 ## 0.9.0 "Anchored Trust" — 2026-11-01
 
 Authority, independence and history integrity now rest on verifiable facts or a secret key, never on strings the caller supplies. With a history key, regular `openpulse anchor` checkpoints kept outside `.openpulse/` and `openpulse verify` in the schedule, local history is **tamper-evident**; without a key it stays corruption-detecting. **This release changes outputs**: without a history key no lead time or sweep first-detection date is published, `openpulse attest` emits evidence contract 2.0.0 with a new content hash, and a chained history with no tip is refused. Verdicts of the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.
