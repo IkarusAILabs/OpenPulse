@@ -51,14 +51,20 @@ def _answer(call: Callable[[], dict[str, Any]]) -> dict[str, Any]:
     """
     from mcp.server.mcpserver.exceptions import ToolError
 
+    from core.agent_tools import BudgetExhausted
+
     try:
         return call()
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, BudgetExhausted) as exc:
         raise ToolError(str(exc)) from exc
 
 
-def build_server(root: str | Path = ".", live: bool = True) -> Any:
-    """The configured MCPServer (separate from `run` so tests can drive it)."""
+def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None) -> Any:
+    """The configured MCPServer (separate from `run` so tests can drive it).
+
+    One ``Lookups`` per server session: its budget and cache span every call.
+    ``lookups`` is injectable for offline tests.
+    """
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
 
@@ -66,7 +72,8 @@ def build_server(root: str | Path = ".", live: bool = True) -> Any:
     from core.version import openpulse_version
 
     project_root = Path(root).resolve()
-    lookups = agent_tools.Lookups() if live else None
+    if lookups is None and live:
+        lookups = agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=live)
     server = MCPServer(
         name="openpulse",
