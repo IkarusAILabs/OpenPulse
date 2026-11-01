@@ -77,12 +77,18 @@ jobs:
       # silently ran with an empty catalog (every identity resolving to itself)
       # and without the evidence-contract schemas. Install the built wheel into
       # a clean venv and exercise it from outside the checkout.
+      # Threat: the smoke test itself fetching unverified packages. The build
+      # uses the hash-locked setuptools (no build isolation), and the venv
+      # gets the hash-locked runtime deps before the wheel goes in with
+      # --no-deps; pip check proves those deps satisfy the wheel.
       - run: |
-          python -m pip wheel --no-deps -w "$RUNNER_TEMP/wheel" .
+          python -m pip wheel --no-deps --no-build-isolation -w "$RUNNER_TEMP/wheel" .
           python -m venv "$RUNNER_TEMP/wheelvenv"
           WPY="$RUNNER_TEMP/wheelvenv/bin/python"
           [ -x "$WPY" ] || WPY="$RUNNER_TEMP/wheelvenv/Scripts/python.exe"
-          "$WPY" -m pip install -q "$RUNNER_TEMP"/wheel/*.whl
+          "$WPY" -m pip install -q --require-hashes -r requirements-runtime.lock
+          "$WPY" -m pip install -q --no-deps "$RUNNER_TEMP"/wheel/*.whl
+          "$WPY" -m pip check
           cd "$RUNNER_TEMP"
           "$WPY" -I -c "from core.entities.resolve import resolve_project; from core.evidence_contract import SCHEMA_PATH; from core.resources import data_path; assert resolve_project('postgres:16') == 'postgresql'; assert SCHEMA_PATH.exists(); assert data_path('fixtures', 'django-eol', 'event.json').exists()"
   codeql:

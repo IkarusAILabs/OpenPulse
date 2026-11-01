@@ -91,3 +91,29 @@ def test_pip_cache_never_replaces_hash_checking():
                 for command in run.replace("\n", "&&").split("&&"):
                     if "pip install" in command and " -r " in command:
                         assert "--require-hashes" in command, (name, command)
+
+
+def _commands():
+    for path in WORKFLOWS:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for job in doc["jobs"].values():
+            for step in job.get("steps", []):
+                for line in str(step.get("run", "")).splitlines():
+                    for command in line.split("&&"):
+                        yield path.name, command.strip()
+
+
+def test_no_workflow_installs_an_unverified_package():
+    """Every pip install checks hashes, or installs nothing but its target."""
+    installs = [(name, c) for name, c in _commands() if "pip install" in c]
+    assert installs
+    for name, command in installs:
+        assert "--require-hashes" in command or "--no-deps" in command, (name, command)
+
+
+def test_no_workflow_fetches_build_tools_for_a_wheel():
+    """`pip wheel` uses the hash-locked setuptools, never an isolated build env."""
+    builds = [(name, c) for name, c in _commands() if "pip wheel" in c]
+    assert builds
+    for name, command in builds:
+        assert "--no-build-isolation" in command and "--no-deps" in command, (name, command)
