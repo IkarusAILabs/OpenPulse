@@ -13,6 +13,21 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 - **DNS-pinned webhook transport (finding M5, v0.10.0 item V4, #242).** The webhook SSRF check resolved the host, then httpx connected by hostname and resolved it again, so a resolver that answered with a public address first and `127.0.0.1` or `169.254.169.254` second (DNS rebinding) steered delivery past the check. The host is now resolved once, every returned address is checked, and the connection goes to a validated IP while TLS SNI, certificate verification and the `Host` header stay on the original hostname (a custom httpcore network backend under httpx's transport; no new dependency). IPv4-mapped (`::ffff:a.b.c.d`), 6to4 (`2002::/16`) and NAT64 (`64:ff9b::/96`, `64:ff9b:1::/48`) addresses are unwrapped first, and a refusal names the embedded IPv4 and its wrapping. The rest of the policy is unchanged: https only unless `--webhook-allow-http`, no redirects, capped response bodies, and no URL path in output.
 
+### Added
+
+- **Attested releases (#111, v0.10.0 item V1).** A `v*` tag runs `.github/workflows/release.yml`.
+  - **Build:** `scripts/build_release.py` builds the sdist and wheel from the tagged tree. It uses setuptools' own PEP 517 hooks with the hash-locked setuptools from `.github/ci-tools.lock`, without build isolation, so no build tool is fetched at build time.
+  - **Refused builds:** a tag that differs from the package version, and a locked setuptools below `[build-system].requires`.
+  - **Checks before publishing:** the wheel is smoke-tested in a clean venv from outside the checkout, and the deterministic SBOM is regenerated twice and compared.
+  - **Provenance:** every file gets Sigstore-signed SLSA build provenance (`actions/attest-build-provenance`); verify with `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+  - **On the GitHub release:** the sdist, wheel, `sbom.cdx.json` and `SHA256SUMS`, attached without replacing files that are already there.
+  - **Permissions:** each job gets only what it needs: `id-token` only for the job that signs, `contents: write` only for the job that attaches.
+  - **Not done:** nothing is published to PyPI; that waits on owner decision 7.
+
+### Fixed
+
+- **The CI tools lock now satisfies the build floor.** Dependabot raised `[build-system].requires` to `setuptools>=84.2.1`, while `.github/ci-tools.lock` stayed at 84.1.0. The lock now pins 84.2.1, with the hashes PyPI publishes, and a test fails if the two drift apart again.
+
 ## 0.9.0 "Anchored Trust" — 2026-11-01
 
 Authority, independence and history integrity now rest on verifiable facts or a secret key, never on strings the caller supplies. With a history key, regular `openpulse anchor` checkpoints kept outside `.openpulse/` and `openpulse verify` in the schedule, local history is **tamper-evident**; without a key it stays corruption-detecting. **This release changes outputs**: without a history key no lead time or sweep first-detection date is published, `openpulse attest` emits evidence contract 2.0.0 with a new content hash, and a chained history with no tip is refused. Verdicts of the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.

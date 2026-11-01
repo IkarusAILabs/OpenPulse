@@ -38,7 +38,7 @@ RUNTIME = ROOT / "requirements-runtime.lock"
 CI_TOOLS_LOCK = ROOT / ".github" / "ci-tools.lock"
 AUDIT_TOOLS_LOCK = ROOT / ".github" / "audit-tools.lock"
 #: CI tooling versions - bump here, then rerun this script.
-CI_TOOLS = ("pip==26.2.1", "setuptools==84.1.0")
+CI_TOOLS = ("pip==26.2.1", "setuptools==84.2.1")
 AUDIT_TOOLS = ("pip-audit==2.10.1",)
 _ENTRY = re.compile(r"^([A-Za-z0-9_.\-]+)==")
 
