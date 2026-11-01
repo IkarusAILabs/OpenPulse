@@ -482,6 +482,31 @@ def _identifier(field: str, value: str) -> str:
     return value
 
 
+#: A quoted value from the file that may be shown back in a skip message:
+#: a requirement or coordinate shape (``requests>=2.31.0``, ``g:a``,
+#: ``^1.2``), no whitespace, no Markdown link, no control characters.
+_SHOWABLE_QUOTE = re.compile(r"[A-Za-z0-9@/._:+~<>=!,*^\[\]-]{1,100}", re.ASCII)
+_QUOTED = re.compile(r"`([^`]*)`")
+_MAX_SKIP_CHARS = 240
+
+
+def _safe_skip(message: str) -> str:
+    """A reader's skip message, safe to hand to an agent (T-F3).
+
+    Readers quote every value they take from the file. A quoted value that
+    is not requirement-shaped becomes `<not shown>`; the rest of the message
+    is OpenPulse's own wording. Control, bidi and zero-width characters are
+    stripped and the message is capped.
+    """
+
+    def keep(match: re.Match[str]) -> str:
+        value = match.group(1)
+        return f"`{value}`" if _SHOWABLE_QUOTE.fullmatch(value) else "`<not shown>`"
+
+    text = strip_unsafe(_QUOTED.sub(keep, str(message)))
+    return text if len(text) <= _MAX_SKIP_CHARS else text[: _MAX_SKIP_CHARS - 1] + "…"
+
+
 def _refused_entry(dep: dict[str, Any]) -> str | None:
     """The field of a file entry that fails its identifier shape, if any."""
     fields = {"ref": "image"} if dep.get("kind") == "image" else {
@@ -720,6 +745,7 @@ def check_dependency_file(
                 f"entry {number}: {field} is not an identifier - skipped, value not shown",
             ]
     deps = kept
+    skipped = [_safe_skip(message) for message in skipped]
     truncated = len(deps) > MAX_FILE_DEPENDENCIES
     deps = deps[:MAX_FILE_DEPENDENCIES]
     if live and lookups is None:

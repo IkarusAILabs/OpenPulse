@@ -8,6 +8,7 @@ from typing import Any
 import click
 
 from analyzers import change_analyst, report_analyst, security_analyst
+from collectors.errors import strip_unsafe
 from core.entities.resolve import resolve_project
 from core.schema.models import OSSEvent
 from core.version import openpulse_version
@@ -1203,7 +1204,7 @@ def _load_check_inputs(
         elif skipped:
             _echo(f"sbom: 0 mapped, {len(skipped)} skipped — nothing checkable in this SBOM")
         for line in skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if spdx:
         from core.sbom_reader import read_spdx
 
@@ -1222,7 +1223,7 @@ def _load_check_inputs(
         elif spdx_skipped:
             _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SPDX")
         for line in spdx_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if images:
         from core.image_inventory import read_image_inventory
 
@@ -1231,7 +1232,7 @@ def _load_check_inputs(
         except ValueError as e:
             raise click.ClickException(f"{images}: {e}")
         for line in img_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
         if img_deps:
             _echo(f"images: {len(img_deps)} image ref(s) from inventory")
             deps = [*deps, *img_deps]
@@ -1260,7 +1261,7 @@ def _load_check_inputs(
                 f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
             )
         for line in lock_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if manifest:
         from core.manifest_reader import read_manifest
 
@@ -1286,7 +1287,7 @@ def _load_check_inputs(
                 f"{len(man_skipped)} skipped — nothing checkable in this manifest"
             )
         for line in man_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if github_repo:
         from core.github_reader import inspect_github_repo
 
@@ -1297,7 +1298,7 @@ def _load_check_inputs(
         for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}")
         for line in inspection.skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
         for reason in inspection.coverage_reasons:
             _echo(f"! coverage: {reason}")
         _echo(f"github-repo ({github_repo}): inspection coverage {inspection.coverage}")
@@ -2217,7 +2218,7 @@ def attest(
         for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}", err=True)
         for line in inspection.skipped:
-            _echo(f"! skipped: {line}", err=True)
+            _echo(f"! skipped: {strip_unsafe(line)}", err=True)
         for reason in inspection.coverage_reasons:
             _echo(f"! coverage: {reason}", err=True)
         _echo(
