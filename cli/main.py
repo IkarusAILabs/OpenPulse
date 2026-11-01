@@ -755,7 +755,7 @@ def report(
         "Public intelligence describes project-level change; whether it affects "
         "YOUR dependencies needs a watchlist (`openpulse check`).",
     ]
-    if ledger_root and not history_keys:
+    if (ledger_root or with_sweep) and not history_keys:
         from core.digest import UNKEYED_LEAD_TIME_NOTE
 
         notes.append(UNKEYED_LEAD_TIME_NOTE)

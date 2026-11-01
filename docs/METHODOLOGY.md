@@ -352,8 +352,9 @@ next time a keyed run writes it. Nothing before adoption is proved, so
 a lead time counts from the later of the first detection and the
 adoption: a lower bound, never an overstatement. Lead times in
 `digest`, `warnings`, `report` and `check` come only from VALID_KEYED
-ledger entries; without a history key they are not published, and the
-output says so.
+ledger entries, and a sweep publishes a change's `first_detected_at`
+only from VALID_KEYED observation history; without a history key
+neither is published, and the output says so.
 
 Deletions that take their own evidence with them (a repository's whole
 history folder, a ledger entry, the rotation log) cannot be seen from
