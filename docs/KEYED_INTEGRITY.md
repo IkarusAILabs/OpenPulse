@@ -1,6 +1,6 @@
 # B3 keyed integrity: key-management design (proposal)
 
-Status: **APPROVED by the owner on 2026-11-01**, all four questions as recommended below (`docs/NEXT_PHASES.md`, Phase 2, decision 5). B4, B5 and C1 depend on it. Implementation is split into slices: B3a (key, MACs, keyed states), B3b (rotation), B3c (keyed adoption and lead-time clamp), B3d (Action input).
+Status: **APPROVED by the owner on 2026-11-01**, all four questions as recommended below (`docs/NEXT_PHASES.md`, Phase 2, decision 5). B4, B5 and C1 depend on it. Implementation is split into slices: B3a (key, MACs, keyed states), B3b (rotation), B3c (keyed adoption and lead-time clamp), B3d (CI documentation; see Decision 1).
 
 Finding: H2 (`docs/ARCHITECTURE_REVIEW.md`). The observation chain and the detection ledger use unkeyed SHA-256. Anyone who can write `.openpulse/` can edit a record, recompute every hash and produce a history that verifies as VALID. Lead time, the headline metric, rests on that history. Today it is *corruption-detecting*, not *tamper-evident*.
 
@@ -45,7 +45,7 @@ Not in B3:
 - **Sources:** `OPENPULSE_HISTORY_KEY` (environment), or `--history-key-file PATH` on the commands that write or verify history (`sweep`, `check --ledger`, `digest`, `warnings`, `verify`). This is the convention `GITHUB_TOKEN` / `--github-token-file` already uses.
 - **Key file handling:** the file is read with `bounded_io` (H5): first non-empty line, at least 32 bytes after decoding. A warning is printed when other users can read it (H6).
 - **Refusals:** a key file inside the store root, or inside the checkout's `.openpulse/`, is refused. So is a key shorter than 256 bits.
-- **CI:** a repository or organisation secret, passed to the Action as a new optional `history-key` input and exported as `OPENPULSE_HISTORY_KEY`. It is masked like the token.
+- **CI:** a repository or organisation secret, exported as `OPENPULSE_HISTORY_KEY` to the steps that run `check --ledger`, `digest`, `warnings` or `report` (`docs/SCHEDULED_CHECKS.md`). The Action was to gain a `history-key` input, but it runs `attest`, which keeps no history, so the input is not added (B3d, 2026-11-01); it is reconsidered if the Action ever records history.
 - **Generation:** `openpulse history-key generate` prints a fresh 32-byte key (`secrets.token_bytes`, base64) and its `key_id`. It writes no file.
 - **Why not the OS keyring:** it needs the `keyring` package, a new runtime dependency that needs sign-off. CI runners have no keyring, so the CI path would need the environment variable anyway.
 - **Without a key:** everything works as today. New records are written VALID_UNKEYED, and reports say lead times are unpublished because history is unkeyed. Nothing fails closed into an error, because the ledger is an enrichment, never a prerequisite.
