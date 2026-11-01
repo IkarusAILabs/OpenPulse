@@ -319,8 +319,8 @@ such a history: a rollback is accepted at its current tip, anything
 else is moved to a `quarantine-*` folder and restarted, the reason is
 logged in `rebaselines.json` (MACed under the history key), and no
 change claims cross the re-baseline. A full wipe of the repository's
-folder, tip included, still looks like a first run; detecting that
-needs an anchor outside the store (B5). It does not resist an adversary who
+folder, tip included, still looks like a first run to the store
+itself; an anchor kept outside it detects that (below). It does not resist an adversary who
 recomputes the whole suffix, unless a history key is set.
 
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
@@ -353,9 +353,23 @@ a lead time counts from the later of the first detection and the
 adoption: a lower bound, never an overstatement. Lead times in
 `digest`, `warnings`, `report` and `check` come only from VALID_KEYED
 ledger entries; without a history key they are not published, and the
-output says so. External anchoring is still planned for v0.9.0
-(`docs/NEXT_PHASES.md`, `docs/KEYED_INTEGRITY.md`); until all of them
-ship, the history is not claimed to be tamper-evident.
+output says so.
+
+Deletions that take their own evidence with them (a repository's whole
+history folder, a ledger entry, the rotation log) cannot be seen from
+inside the store. `openpulse anchor` writes a checkpoint: each
+history's tip, record and re-baseline counts, one leaf per ledger entry
+(`first_seen`, `adopted_at`) with an RFC 6962 Merkle root, and the
+rotation log, MACed under the history key. Kept outside `.openpulse/`
+(a git commit, a CI artifact), it is checked with `openpulse verify
+--anchor`: an anchored tip no longer in its chain, a wiped history, a
+deleted or backdated ledger entry, or a dropped log entry is a
+violation; growth after the anchor is not. A re-baseline after the
+anchor is a notice only when its log entry verifies under the key.
+With a history key, regular anchors stored out of reach, and `verify`
+in the schedule, local history is tamper-evident: an edit fails its
+MAC, and a rollback or deletion fails the anchor. Without a key, it is
+corruption-detecting only.
 
 Every registry-derived finding retains first-class observation
 evidence (`observation_evidence`: observation ids, hashes, chain

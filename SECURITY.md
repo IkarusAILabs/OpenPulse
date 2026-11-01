@@ -48,8 +48,8 @@ What to expect:
 - **Outbound requests.** Webhook SSRF, credential leakage in errors or
   logs, and token handling for GitHub and the registries.
 - **Local history.** The observation chain and the detection ledger.
-  Today these are corruption-detecting, not keyed; see "Known
-  limitations" below.
+  Corruption-detecting without a history key; see "Known limitations"
+  below.
 - **Evidence contract.** Documents that validate but misstate what
   OpenPulse established.
 - **The project's own supply chain.** CI workflows, the lockfile and the
@@ -66,10 +66,13 @@ What to expect:
 
 ## Known limitations (documented, not silent)
 
-- **Unkeyed local history.** The observation chain and the detection ledger
-  use unkeyed hashes. An adversary with write access to `.openpulse/` can
-  recompute them, and a deleted `tip.json` is adopted. Keyed integrity and
-  rollback detection are planned for v0.9.0 (`docs/NEXT_PHASES.md`).
+- **Local history without a key.** Without a history key, the observation
+  chain and the detection ledger use unkeyed hashes, which an adversary
+  with write access to `.openpulse/` can recompute. On `main` (unreleased
+  v0.9.0): a history key MACs the history, rollback and downgrade are
+  refused, and `openpulse anchor` / `verify` detect deletions against a
+  checkpoint kept outside the store. A holder of the key can still forge
+  history between two anchors (`docs/KEYED_INTEGRITY.md`).
 - **Webhook DNS rebinding.** The webhook SSRF check resolves DNS before
   connecting, so it is open to DNS rebinding. A DNS-pinned transport is
   planned for v0.10.0.

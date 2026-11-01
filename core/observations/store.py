@@ -185,7 +185,11 @@ def save_observation(obs: dict[str, Any], root: str | Path = ".openpulse/observa
 def list_observations(
     registry: str, namespace: str, repository: str, root: str | Path = ".openpulse/observations"
 ) -> list[Path]:
-    directory = repo_dir(root, registry, namespace, repository)
+    return observation_files(repo_dir(root, registry, namespace, repository))
+
+
+def observation_files(directory: Path) -> list[Path]:
+    """Observation files in one repository folder, in filename order."""
     if not directory.is_dir():
         return []
     return sorted(
@@ -194,6 +198,18 @@ def list_observations(
         if p.is_file()
         and not p.name.startswith(".")
         and p.name not in (_TIP_FILENAME, _REBASELINES_FILENAME)
+    )
+
+
+def repo_dirs(root: str | Path) -> list[Path]:
+    """Every repository folder under a store root ({registry}/{namespace}/{repository})."""
+    base = Path(root)
+    if not base.is_dir():
+        return []
+    return sorted(
+        d
+        for d in base.glob("*/*/*")
+        if d.is_dir() and not d.name.startswith(QUARANTINE_PREFIX)
     )
 
 

@@ -438,6 +438,106 @@ def history_key_generate():
     _echo(f"key_id: {key_id}", err=True)
 
 
+@cli.command(name="anchor")
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--out",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Write the anchor JSON here (default: stdout). Keep it outside .openpulse/",
+)
+@_history_key_option
+def anchor_command(store, ledger_root, out, history_key_file=None, history_previous_keys_file=None):
+    """Checkpoint the local history, to keep where the store's writer cannot reach (B5).
+
+    Records every observation history's tip, the detection ledger's
+    entries and Merkle root, and the rotation log. With a history key the
+    anchor is MACed. Commit it to git or upload it as a CI artifact, then
+    check the store against it with `openpulse verify --anchor`.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.anchor import build_anchor
+
+    history_key, _previous = _load_history_key(
+        history_key_file, history_previous_keys_file, store, ledger_root
+    )
+    if out and ".openpulse" in _Path(out).resolve().parts:
+        raise click.ClickException(
+            "an anchor inside .openpulse/ anchors nothing: write it elsewhere"
+        )
+    built = build_anchor(store, ledger_root, history_key=history_key)
+    text = _json.dumps(built, indent=2, sort_keys=True) + "\n"
+    if out:
+        _Path(out).write_text(text, encoding="utf-8")
+        _echo(f"wrote {out}", err=True)
+    else:
+        click.echo(text, nl=False)
+    _echo(
+        f"anchored {len(built['observations'])} histories, "
+        f"{len(built['ledger']['entries'])} ledger entries "
+        f"(merkle root {built['ledger']['merkle_root']}); "
+        f"{'MACed with ' + history_key.key_id if history_key else 'unsigned (no history key)'}",
+        err=True,
+    )
+
+
+@cli.command(name="verify")
+@click.option(
+    "--anchor", "anchor_path", required=True, type=click.Path(exists=True, dir_okay=False)
+)
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--require-signed",
+    is_flag=True,
+    help="Fail unless the anchor's MAC verifies under a supplied history key",
+)
+@click.option("--json", "as_json", is_flag=True, help="Print the result as JSON")
+@_history_key_option
+def verify_command(
+    anchor_path,
+    store,
+    ledger_root,
+    require_signed=False,
+    as_json=False,
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
+    """Check the local history against an anchor; exit 1 when anything anchored is gone (B5)."""
+    import json as _json
+
+    from core.anchor import OK, verify_anchor
+    from core.bounded_io import loads_json, read_text
+    from core.history_key import keyring
+
+    try:
+        anchor = loads_json(read_text(anchor_path, MAX_BUNDLE_BYTES, anchor_path), anchor_path)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise click.ClickException(f"{anchor_path} is not anchor JSON: {exc}") from exc
+    if not isinstance(anchor, dict):
+        raise click.ClickException(f"{anchor_path} is not anchor JSON")
+    keys = keyring(
+        *_load_history_key(history_key_file, history_previous_keys_file, store, ledger_root)
+    )
+    result = verify_anchor(anchor, store, ledger_root, keys)
+    failed = result["status"] != OK or (require_signed and result["signature"] != "VALID")
+    if as_json:
+        click.echo(_json.dumps(result, indent=2, sort_keys=True))
+    else:
+        _echo(f"anchor {anchor_path}: {result['status']} (signature {result['signature']})")
+        for v in result["violations"]:
+            _echo(f"! {v['kind']} {v['subject']}: {v['detail']}")
+        for n in result["notices"]:
+            _echo(f"- {n['kind']} {n['subject']}: {n['detail']}")
+        if require_signed and result["signature"] != "VALID":
+            _echo("! the anchor is not signed by a supplied history key (--require-signed)")
+    if failed:
+        raise SystemExit(1)
+
+
 @cli.command(name="demo-bitnami")
 def demo_bitnami():
     """Offline north-star demo: Bitnami event -> gate -> who is affected -> report."""
