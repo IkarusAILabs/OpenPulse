@@ -534,6 +534,9 @@ def test_check_cli_webhook_posts_digest(monkeypatch):
             "--digest",
             "--webhook",
             "https://hooks.example/x",
+            # '' keeps the post-the-whole-digest behaviour this test pins.
+            "--delivery-state",
+            "",
         ],
     )
     assert out.exit_code == 0, out.output

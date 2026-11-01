@@ -2,6 +2,20 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Upgrade notes
+
+- **A scheduled `check --webhook` posts each alert once (#78, v0.11.0 item W1).** It used to post the whole digest on every run. It now posts only alerts not delivered before, and nothing when there are none. An alert is one affected cause of a verdict (dependency, event, relationship, impact and the event's content), or a repository whose inspection was not COMPLETE. State is kept in `.openpulse/deliveries/alerts.json`; in GitHub Actions, carry it in the cache like the ledger (`docs/SCHEDULED_CHECKS.md`). `--delivery-state ''` restores the old behaviour. Terminal output, verdicts and exit codes are unchanged.
+
+### Added
+
+- **Persistent alert delivery state (#78, v0.11.0 item W1, C1).** `core/delivery.py` gives each alert a stable ID and records its delivery.
+  - **Retry:** a failed post is retried once in the run, then left `pending`. Later runs retry it after a backoff (5 minutes, doubling, at most 6 hours).
+  - **Dead letter:** after 5 failed runs the alert becomes `dead_letter`. It is kept with its last (redacted) error and never posted again, and the run says so.
+  - **One run at a time:** the state is written atomically under an OS lock held across load, post and save, so two runs at once can't both send. A corrupt state file is moved aside, never overwritten.
+  - **Configuration:** `--delivery-state` / `OPENPULSE_DELIVERY_STATE`.
+
 ## 0.10.0 "Verified Releases & Safe Gates" — 2026-11-01
 
 Every release is now built from its tag with hash-locked tools and carries signed build provenance, and no output or CI gate treats an input OpenPulse did not fully read as clean. **This release changes outputs and gates**:

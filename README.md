@@ -377,7 +377,8 @@ openpulse check --github-repo owner/private-repo --github-token-file ~/.config/o
 openpulse warnings --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
 openpulse digest   --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
 
-# 9. Post the check digest to Slack-style webhooks (URL via env var, never argv)
+# 9. Post new alerts to Slack-style webhooks (URL via env var, never argv);
+#    each alert is posted once, failures are retried (docs/SCHEDULED_CHECKS.md)
 OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/...   openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json --digest
 
 # 10. Discover changes in what your dependencies name (repositories moved or archived),
@@ -470,7 +471,7 @@ tests/              # 740+ offline tests (no network in CI)
 
 ## Roadmap
 
-M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook shipped; delivery state, dedup/retry and CI/PR integration next) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
+M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook and persistent delivery state with dedup/retry shipped; CI/PR integration next) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
 
 Planned, not available: **AI Dependency Trust Assurance — Know Why You Trust Your Dependencies** (ROADMAP track T). It is a separate future study that would add evidence on package identity and impersonation, artifact provenance (Sigstore, SLSA, PEP 740), and reputation integrity to the MCP tools and CI policy. None of it ships today. OpenPulse does not detect malware, verify provenance, or score reputation, and an MCP answer is advice to the agent, not a security boundary.
 

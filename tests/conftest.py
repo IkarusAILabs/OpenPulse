@@ -32,3 +32,9 @@ def ledger_clock_at_stamp(monkeypatch):
             return real(*args, detected_at=detected_at, **kwargs)
 
     monkeypatch.setattr(ledger, "record_detection", record)
+
+
+@pytest.fixture(autouse=True)
+def _isolated_delivery_state(monkeypatch, tmp_path):
+    """`check --webhook` records delivery state (W1); never in the checkout."""
+    monkeypatch.setenv("OPENPULSE_DELIVERY_STATE", str(tmp_path / "deliveries"))
