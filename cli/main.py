@@ -1,6 +1,7 @@
 """openpulse CLI — validate + pulse + analyze + demo-bitnami."""
 
 import json
+import os
 import sys
 from typing import Any
 
@@ -38,6 +39,30 @@ MAX_EVIDENCES = 100
 MAX_ARTIFACTS = 500
 
 
+#: Whether the platform has POSIX permission bits worth checking (#139).
+_POSIX_MODES = os.name != "nt"
+
+
+def _warn_if_token_file_shared(path: str | None, stat=os.stat) -> None:
+    """Warn when other accounts can read or write the token file (#139).
+
+    ssh refuses a private key in that state; OpenPulse warns instead, so
+    existing setups keep working. Only the path is printed, never the token.
+    """
+    if not path or not _POSIX_MODES:
+        return
+    try:
+        mode = stat(path).st_mode
+    except OSError:
+        return  # the read that follows reports it
+    if mode & 0o077:
+        _echo(
+            f"warning: GitHub token file {path} is readable by other users; "
+            f"run chmod 600 {path}",
+            err=True,
+        )
+
+
 def _resolve_github_token(
     github_repo: str, github_token: str, github_token_file: str | None
 ) -> str | None:
@@ -57,6 +82,8 @@ def _resolve_github_token(
         )
     if not github_repo:
         return None
+    if not github_token:
+        _warn_if_token_file_shared(github_token_file)
     try:
         return get_github_token(github_token, github_token_file)
     except OSError as exc:
@@ -2290,6 +2317,8 @@ def discover(
             "--github-token-file instead",
             err=True,
         )
+    if not github_token:
+        _warn_if_token_file_shared(github_token_file)
     try:
         token = get_github_token(github_token, github_token_file)
     except OSError as exc:
