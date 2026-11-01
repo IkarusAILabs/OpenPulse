@@ -152,6 +152,7 @@ How to read an answer:
 | `evaluation_context` | The time frame of the answer, the same block as evidence contract v1.2 plus `mode`. The tools run in `current` mode: a NOT_AFFECTED needs evidence fetched within `max_evidence_age_days` (default 90) of `as_of` (now), and an older event becomes RELATED ("stale"), never a clearance. The Python API (`core.agent_tools`) also offers `mode="replay"` for re-evaluating recorded evidence; it applies no bound, sets `freshness_bound_applied: false`, adds "evidence currency" to `not_established` and says so in `note` |
 | `advisories` | OSV advisories whose ranges include this version, listed with links. Advisories that only name the package are counted separately: their version applicability is not established |
 | `sources` | Which sources answered, failed (`error`), had no data (`no-data`) or were off (`disabled`) |
+| `registry_existence` | `dependency_status` only (track T, T-M1). Whether the PyPI or npm package and version exist in their registry, as records with a closed status: `VERIFIED_RELATIONSHIP` (found), `VERIFIED_FAILURE` (the registry answered 404: an identity fact, not evidence of malice), `NOT_PERFORMED` (unsupported ecosystem, offline, budget spent, registry unreachable, or a name outside the ecosystem's grammar). Each record has a fixed `statement`, the registry URL and `checked_at`. Never part of the verdict |
 | `not_established` | What this answer does not cover. An unreachable source makes its part UNKNOWN, never "fine" |
 
 ## Where the answers come from

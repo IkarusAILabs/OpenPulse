@@ -87,7 +87,9 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         package: str = "", version: str = "", ecosystem: str = "", image: str = ""
     ) -> dict[str, Any]:
         """Evidence for ONE dependency: end-of-life / end-of-support for its version,
-        curated upstream changes (distribution, license, support) and OSV advisories.
+        curated upstream changes (distribution, license, support) and OSV advisories,
+        plus whether a PyPI or npm package and version exist in their registry
+        (`registry_existence`: a name not found there may be hallucinated).
 
         Give either `package` (+ `ecosystem` such as PyPI, npm, Maven, Go, crates.io,
         and an exact `version`) or a container `image` ref such as `postgres:13`.

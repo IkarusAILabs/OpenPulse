@@ -220,6 +220,7 @@ class Lookups:
         budget: int = MAX_SESSION_LOOKUPS,
         cache_dir: Path | str | None = None,
         clock: Callable[[], float] = time.time,
+        head: Callable[[str], int] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -230,6 +231,8 @@ class Lookups:
         self._clock = clock
         #: slug -> age in seconds when the last answer came from the disk cache.
         self.disk_hits: dict[str, int] = {}
+        self._head = head
+        self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
 
     @property
     def remaining(self) -> int:
@@ -264,6 +267,30 @@ class Lookups:
         if persistent:
             self._write_disk(slug, raw)
         return raw
+
+    def existence(
+        self, ecosystem: str, name: str, version: str | None
+    ) -> list[dict[str, Any]]:
+        """Registry existence records (T-M1), cached per session like bundles.
+
+        One check spends one lookup from the budget, even when it needs a
+        second request to tell a missing version from a missing package.
+        A NOT_PERFORMED answer is never cached.
+        """
+        from core import registry_existence
+
+        key = (ecosystem, name, version or "")
+        hit = self._existence.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        records = registry_existence.check(ecosystem, name, version, head=self._head)
+        if all(r["status"] != registry_existence.NOT_PERFORMED for r in records):
+            self._existence[key] = (now, records)
+        return records
 
     def _disk_path(self, slug: str) -> Path | None:
         if self._cache_dir is None:
@@ -400,12 +427,28 @@ def _trust(dep: dict[str, Any]) -> dict[str, Any]:
     return resolution_trust(str(dep["ref"]))
 
 
+def _registry_existence(dep: dict[str, Any], lookups: Lookups | None) -> list[dict[str, Any]]:
+    """T-M1: does the package (and version) exist in its registry? Never a verdict input."""
+    from core import registry_existence
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return registry_existence.not_performed("unsupported")
+    if lookups is None:
+        return registry_existence.not_performed("offline", ecosystem=ecosystem)
+    try:
+        return lookups.existence(ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return registry_existence.not_performed("budget", ecosystem=ecosystem)
+
+
 def _assess(
     dep: dict[str, Any],
     lookups: Lookups | None,
     events: list[Any],
     today: date | None,
     evaluation: Evaluation,
+    existence: bool = False,
 ) -> dict[str, Any]:
     from core.risk.check import check_dependency
     from core.verdict_meaning import DIRECT_SCOPE, scope_completeness, verdict_meaning
@@ -478,7 +521,7 @@ def _assess(
         unknowns.append("version (without it only project-level applicability is possible)")
     if not evaluation.bounded:
         unknowns.append("evidence currency (replay mode: no freshness bound applied)")
-    return {
+    answer: dict[str, Any] = {
         "dependency": verdict.dependency,
         "identity": {
             "project": slug,
@@ -501,6 +544,12 @@ def _assess(
         "lookups": lookups.status() if lookups is not None else None,
         "note": evaluation.note,
     }
+    if existence:
+        # Track T (T-M1): additive, separately labelled, never read by the verdict.
+        answer["registry_existence"] = _registry_existence(dep, lookups)
+        if lookups is not None:
+            answer["lookups"] = lookups.status()
+    return answer
 
 
 def dependency_status(
@@ -517,7 +566,9 @@ def dependency_status(
     max_evidence_age_days: int | None = None,
 ) -> dict[str, Any]:
     """Evidence for one dependency: EOL/EOS, curated upstream changes
-    (distribution, license, support) and OSV advisories for its version.
+    (distribution, license, support) and OSV advisories for its version,
+    plus whether the package and version exist in their registry (PyPI
+    and npm; ``registry_existence``, track T T-M1).
 
     ``mode="current"`` (default) bounds evidence age for negatives
     (``max_evidence_age_days``, default 90, as of ``as_of``);
@@ -529,7 +580,9 @@ def dependency_status(
     dep = _dependency(package, version, ecosystem, image)
     if live and lookups is None:
         lookups = Lookups()
-    return _assess(dep, lookups if live else None, curated_events(), today, evaluation)
+    return _assess(
+        dep, lookups if live else None, curated_events(), today, evaluation, existence=True
+    )
 
 
 def check_dependency_file(

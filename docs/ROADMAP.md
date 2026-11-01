@@ -490,13 +490,13 @@ Phase 4  independent enforcement: T-E1 ─► T-E2 (needs T-F1 and measured fals
 
 | Phase | Content | Depends on | Exit |
 |---|---|---|---|
-| 0 — Threat model and feasibility (draft for approval, 2026-11-01: `docs/research/TRACK_T_PHASE0.md`) | <ul><li>Re-verify the threat model's references.</li><li>Check, with dates, which registries expose attestations and which libraries verify them.</li><li>Check rate limits.</li><li>Choose the reference-list sources and their licences.</li><li>Design notes for T-F1 and T-F3.</li><li>A separate study design and registration plan.</li></ul> | none (docs only) | The owner approves the design note and the ecosystem table |
+| 0 — Threat model and feasibility (DONE: approved 2026-11-01, `docs/research/TRACK_T_PHASE0.md`) | <ul><li>Re-verify the threat model's references.</li><li>Check, with dates, which registries expose attestations and which libraries verify them.</li><li>Check rate limits.</li><li>Choose the reference-list sources and their licences.</li><li>Design notes for T-F1 and T-F3.</li><li>A separate study design and registration plan.</li></ul> | none (docs only) | The owner approves the design note and the ecosystem table |
 | 1 — Identity and provenance foundation | T-F1, T-F3, T-A1, T-B4, T-B1, T-B2, T-A2, with offline tests on synthetic fixtures | Phase 0; the R implementation freeze tag exists | PyPI and npm answers carry existence, digest and provenance statuses; no verdict changes |
 | 2 — Reputation integrity | T-C indicators, T-A4, T-A3 | T-F1, and T-A1's registry metadata | Each indicator is documented, with a measured false-positive rate on the organic fixture set |
 | 3 — AI decision integration | T-D in the MCP tools; T-F2 contract block; M8 recording | Phase 1 (Phase 2 optional) | Agent answers carry the trust block. The contract minor is published beside 1.2. |
 | 4 — Independent enforcement | T-E1, then T-E2 | T-F1, Phase 1, and the false-positive results of the evaluation | Prohibited conditions block in CI without any model involved. Bypass tests pass. |
 
-**First milestone, kept deliberately small: T-M1, "Does this package exist?"** After Phase 0, `dependency_status` answers whether a PyPI or npm package and version exist in their registry, with the T-F1 status, the registry and the time checked. It also applies the T-F3 rule to every new field.
+**First milestone, kept deliberately small: T-M1, "Does this package exist?"** (ACTIVE 2026-11-01: `core/registry_existence.py`.) After Phase 0, `dependency_status` answers whether a PyPI or npm package and version exist in their registry, with the T-F1 status, the registry and the time checked. It also applies the T-F3 rule to every new field.
 
 T-M1 is limited in three ways:
 
