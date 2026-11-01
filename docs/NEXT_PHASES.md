@@ -149,7 +149,7 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 | V1 | Tag-triggered release workflow (= D2): build sdist and wheel from the tag, fail when the tag differs from `openpulse --version`, regenerate the deterministic SBOM, attach all three to the GitHub release, and add build-provenance attestations (`actions/attest-build-provenance`, SHA-pinned, least-privilege per job). PyPI publishing only after decision 7 | #111 | M | — |
 | V2 | `check --fail-on` fails when repository coverage is FAILED, as `--strict` already does | #101 | S | — |
 | V3 | `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
-| V4 | DNS-pinned webhook transport (= C2; detail under Phase 5) | M5 | M | — · DONE (#PRNUM) |
+| V4 | DNS-pinned webhook transport (= C2; detail under Phase 5) | M5 | M | — · DONE (#242) |
 | V5 | Hardening good first issues: CI guard for `--deselect` and friends, token-file handling and permissions, `persist-credentials: false`, secret-scan skips | #104, #138, #139, #141, #142 | S each | — |
 
 **Exit:**
@@ -165,7 +165,7 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|
 | C1 | Persistent delivery state (detail below) | #78 | M | B3 (alerts cite keyed-valid detections) |
-| C2 | DNS-pinned webhook transport (detail below) — moved to v0.10.0 as V4, DONE (#PRNUM) | M5 | M | — |
+| C2 | DNS-pinned webhook transport (detail below) — moved to v0.10.0 as V4, DONE (#242) | M5 | M | — |
 | C3 | GitHub Action | — | — | DONE (v0.6.2/v0.6.3). Remaining: its gate counts only keyed-valid evidence once B3 ships |
 | C4 | `openpulse bench`: per-scenario expected vs actual verdicts, identity/applicability precision and recall, as a reproducibility JSON uploaded by CI (numbers are not marketed) | M4 | M | — |
 | C5 | MCP hardening: per-session lookup budget and timeout surfaced to the agent; `project_lifecycle` cached across sessions with the same TTL rules | — | S | — |
