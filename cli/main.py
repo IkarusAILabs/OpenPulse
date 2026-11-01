@@ -65,6 +65,34 @@ def _resolve_github_token(
         raise click.ClickException(str(exc)) from exc
 
 
+def _history_key_option(func):
+    """--history-key-file for commands that write local history (B3)."""
+    return click.option(
+        "--history-key-file",
+        default=None,
+        type=click.Path(dir_okay=False),
+        help=(
+            "File holding the history key that MACs local history "
+            "(else OPENPULSE_HISTORY_KEY; see: openpulse history-key generate)"
+        ),
+    )(func)
+
+
+def _load_history_key(key_file: str | None, *store_roots: str):
+    """The configured history key, or None. Never echoes key material."""
+    from core.history_key import HistoryKeyError, key_file_warning, load_history_key
+
+    try:
+        key = load_history_key(key_file, tuple(r for r in store_roots if r))
+    except OSError as exc:
+        raise click.ClickException(f"cannot read history key file: {exc.strerror or exc}") from exc
+    except HistoryKeyError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if key_file and (warning := key_file_warning(key_file)):
+        _echo(warning, err=True)
+    return key
+
+
 def _sarif_uri(path: str) -> str:
     """SARIF artifact uri for an input file: relative to the working
     directory (the repository root in CI) when possible, POSIX slashes."""
@@ -362,6 +390,25 @@ def dependency_track(
         raise SystemExit(1)
 
 
+@cli.group(name="history-key")
+def history_key_group():
+    """Manage the key that MACs local history (B3, docs/KEYED_INTEGRITY.md)."""
+
+
+@history_key_group.command(name="generate")
+def history_key_generate():
+    """Print a fresh 32-byte history key and its key_id. Writes no file.
+
+    Store the key outside .openpulse/ (a file with mode 600, or a CI
+    secret) and pass it as OPENPULSE_HISTORY_KEY or --history-key-file.
+    """
+    from core.history_key import generate_key
+
+    key, key_id = generate_key()
+    _echo(key)
+    _echo(f"key_id: {key_id}", err=True)
+
+
 @cli.command(name="demo-bitnami")
 def demo_bitnami():
     """Offline north-star demo: Bitnami event -> gate -> who is affected -> report."""
@@ -397,16 +444,20 @@ def demo_bitnami():
 @click.option("--namespace", required=True, help="Registry namespace (e.g. bitnami)")
 @click.option("--repo", "repository", required=True, help="Repository (e.g. redis)")
 @click.option("--store", default=".openpulse/observations", help="History root directory")
-def observe(namespace, repository, store):
+@_history_key_option
+def observe(namespace, repository, store, history_key_file=None):
     """Probe a Docker Hub repo, persist the observation, diff against history."""
     from collectors.registries.docker import RegistryCollector
     from core.observations.sweep import observe_repository
 
+    history_key = _load_history_key(history_key_file, store)
     probe = RegistryCollector().check_image(namespace, repository)
     if probe.get("error"):
         _echo(f"error: {probe.get('safe_message')} (category={probe.get('category')})")
         raise SystemExit(1)
-    result = observe_repository("docker.io", namespace, repository, probe, store_root=store)
+    result = observe_repository(
+        "docker.io", namespace, repository, probe, store_root=store, history_key=history_key
+    )
     if result["error"] is not None:
         _echo(
             f"error: {result['error'].get('safe_message')} "
@@ -414,6 +465,7 @@ def observe(namespace, repository, store):
         )
         raise SystemExit(1)
     _echo(f"saved: {result['saved_path']}")
+    _echo(f"history integrity: {result.get('history_integrity')}")
     if result["history_status"] == "GENESIS":
         _echo("baseline recorded — no previous observation, no change claims.")
         return
@@ -458,6 +510,7 @@ def observe(namespace, repository, store):
     default="",
     help="Metadata JSON path (default: <out> with .meta.json extension)",
 )
+@_history_key_option
 def report(
     month,
     projects,
@@ -469,6 +522,7 @@ def report(
     store,
     ledger_root,
     metadata_out,
+    history_key_file=None,
 ):
     """Monthly OSS Dependency Risk Report over seed projects."""
     import json as _json
@@ -510,9 +564,10 @@ def report(
         wanted = set(slugs)
         selected = [e for e in catalog if e.get("slug") in wanted]
         _echo("running distribution sweep...")
-        sweep_findings = sweep_catalog(selected, RegistryCollector().check_image, store_root=store)[
-            "findings"
-        ]
+        history_key = _load_history_key(history_key_file, store, ledger_root)
+        sweep_findings = sweep_catalog(
+            selected, RegistryCollector().check_image, store_root=store, history_key=history_key
+        )["findings"]
         _echo(f"sweep findings: {len(sweep_findings)}")
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
@@ -1081,6 +1136,7 @@ def _load_check_inputs(
     is_flag=True,
     help="Opt in to plain-http webhooks (https is required by default)",
 )
+@_history_key_option
 def check(
     watchlist,
     sbom,
@@ -1103,6 +1159,7 @@ def check(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -1147,6 +1204,7 @@ def check(
         from core.detections.ledger import first_seen, record_detection
         from core.risk.check import detections_from_verdicts
 
+        history_key = _load_history_key(history_key_file, ledger_root)
         try:
             for fact in detections_from_verdicts(results, loaded_events):
                 record_detection(
@@ -1155,6 +1213,7 @@ def check(
                     fact["subject"],
                     scope=fact["scope"],
                     root=ledger_root,
+                    history_key=history_key,
                 )
         except TimeoutError:
             _echo("ledger busy - detections not recorded this run", err=True)
@@ -1896,24 +1955,29 @@ def attest(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
 )
 @click.option("--out", default="", help="Write findings JSON here (default: print only)")
-def sweep(store, projects, out):
+@_history_key_option
+def sweep(store, projects, out, history_key_file=None):
     """Distribution discovery: probe every catalog image, diff against history."""
     from collectors.registries.docker import RegistryCollector
     from core.entities.catalog import load_catalog
     from core.observations.sweep import sweep_catalog, sweep_targets
 
+    history_key = _load_history_key(history_key_file, store)
     catalog = load_catalog()
     slugs = [s.strip() for s in projects.split(",") if s.strip()] or None
     targets = sweep_targets(catalog)
     _echo(f"probing {len(targets)} catalog images...")
     collector = RegistryCollector()
-    result = sweep_catalog(catalog, collector.check_image, store_root=store, slugs=slugs)
+    result = sweep_catalog(
+        catalog, collector.check_image, store_root=store, slugs=slugs, history_key=history_key
+    )
     _echo(
         f"observations: {len(result['observations'])}, "
         f"changes: {len(result['changes'])}, "
         f"findings: {len(result['findings'])}, "
         f"errors: {len(result['errors'])}"
     )
+    _echo(f"history key: {history_key.key_id if history_key else 'none (history is unkeyed)'}")
     for finding in result["findings"]:
         _echo(f"- [{finding['impact']}] {finding['title']}")
     for error in result["errors"]:

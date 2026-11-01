@@ -255,6 +255,47 @@ def _check_wall_clock(stamp: str) -> None:
         )
 
 
+#: Keyed integrity states, the same vocabulary as the observation chain.
+VALID_KEYED = "VALID_KEYED"
+VALID_UNKEYED = "VALID_UNKEYED"
+BROKEN = "BROKEN"
+UNKNOWN = "UNKNOWN"
+
+
+def _keyed(entry: dict[str, Any], history_key: Any) -> dict[str, Any]:
+    """The entry with its history MAC (over the content hash), or as is."""
+    if history_key is None:
+        return entry
+    from core.history_key import LEDGER_DOMAIN
+
+    mac = history_key.mac(LEDGER_DOMAIN, str(entry["content_hash"]))
+    return {**entry, "key_id": history_key.key_id, "history_mac": mac}
+
+
+def entry_integrity(entry: Any, keys: dict[str, Any] | None = None) -> str:
+    """VALID_KEYED / VALID_UNKEYED / BROKEN / UNKNOWN for one ledger entry.
+
+    The content hash covers identity and both sighting dates; the MAC
+    covers the content hash. ``keys`` maps key_id -> HistoryKey. A keyed
+    entry whose key is not supplied is UNKNOWN, never VALID_KEYED.
+    """
+    from core.history_key import LEDGER_DOMAIN
+
+    if not isinstance(entry, dict) or not verify_entry(entry):
+        return BROKEN
+    mac, key_id = entry.get("history_mac"), entry.get("key_id")
+    if not mac:
+        return VALID_UNKEYED
+    if not key_id:
+        return BROKEN
+    key = (keys or {}).get(str(key_id))
+    if key is None:
+        return UNKNOWN
+    if not key.verify(mac, LEDGER_DOMAIN, str(entry.get("content_hash") or "")):
+        return BROKEN
+    return VALID_KEYED
+
+
 def record_detection(
     project: str,
     finding_class: str,
@@ -262,6 +303,7 @@ def record_detection(
     scope: list[str] | None = None,
     detected_at: str | None = None,
     root: str | Path = ".openpulse/detections",
+    history_key: Any = None,
 ) -> dict[str, Any]:
     """Record one detection; return the ledger entry after merge.
 
@@ -270,6 +312,12 @@ def record_detection(
     created the entry (first detection). Raises ``ClockSkewError``,
     writing nothing, when ``detected_at`` is unparseable or further
     than ``MAX_CLOCK_SKEW`` from UTC wall-clock time.
+
+    ``history_key`` (a ``core.history_key.HistoryKey``) MACs new entries
+    and keeps keyed entries keyed (B3). A keyed entry is never rewritten
+    without its key: the call returns it unchanged with
+    ``key_refused: True``. An entry written before any key stays
+    unkeyed; it is not re-MACed as if it had been keyed all along.
     """
     scope = list(scope or [])
     stamp = detected_at or now_iso()
@@ -283,6 +331,16 @@ def record_detection(
             # Tampered entry: no honest merge is possible from it.
             # Degrade to unknown - write fresh, exactly like absence.
             existing = None
+        if existing is not None and existing.get("history_mac"):
+            if history_key is None or existing.get("key_id") != history_key.key_id:
+                # Rewriting it unkeyed (or under another key) would end
+                # its keyed run; leave it as it is.
+                return {**existing, "recorded_now": False, "key_refused": True}
+            if entry_integrity(existing, {history_key.key_id: history_key}) == BROKEN:
+                existing = None  # MAC forged: degrade to unknown, as above
+        keep_key = history_key is not None and (
+            existing is None or bool(existing.get("history_mac"))
+        )
         if existing is None:
             entry = {
                 "project": str(project),
@@ -295,6 +353,7 @@ def record_detection(
                     project, finding_class, subject, scope, stamp, stamp
                 ),
             }
+            entry = _keyed(entry, history_key if keep_key else None)
             _write_atomic(path, entry)
             return {**entry, "recorded_now": True}
         incoming = _parse_moment(stamp)
@@ -320,6 +379,7 @@ def record_detection(
                 project, finding_class, subject, scope, first_seen, last_seen
             ),
         }
+        entry = _keyed(entry, history_key if keep_key else None)
         _write_atomic(path, entry)
     return {**entry, "recorded_now": False}
 

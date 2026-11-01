@@ -25,7 +25,13 @@ from typing import Any
 from analyzers.change_analyst import analyze_diffs
 from analyzers.event_correlation import aggregate_distribution, split_moves
 from collectors.errors import as_error, safe_message
-from core.observations.chain import BROKEN, GENESIS_PREVIOUS, link_hash_for, order_history
+from core.observations.chain import (
+    BROKEN,
+    GENESIS_PREVIOUS,
+    link_hash_for,
+    order_history,
+    verify_keyed_history,
+)
 from core.observations.registry import (
     RegistryObservation,
     diff_observations,
@@ -118,18 +124,33 @@ def observe_repository(
     probe: dict[str, Any],
     store_root: str = ".openpulse/observations",
     observed_at: datetime | None = None,
+    history_key: Any = None,
 ) -> dict[str, Any]:
     """One locked load-verify-observe-save-diff cycle. Never raises.
 
-    Returns {observation, history_status, changes, saved_path, error}.
+    Returns {observation, history_status, changes, saved_path, error},
+    plus ``history_integrity`` after a successful save.
     ``history_status`` is VALID | BROKEN | UNKNOWN | GENESIS (no
     history). BROKEN history yields no changes and no save — the
     corrupt predecessor stays on disk as evidence of tampering.
+
+    ``history_key`` (a ``core.history_key.HistoryKey``) MACs the new
+    record (B3). A history that already holds MACs is never appended to
+    without its key: that would end its keyed run (KEY_REQUIRED,
+    KEY_MISMATCH). ``history_integrity`` is VALID_KEYED, VALID_UNKEYED,
+    BROKEN or UNKNOWN for the whole history including the new record.
     """
     now = observed_at or datetime.now(timezone.utc)
     try:
         with repo_lock(store_root, registry, namespace, repository):
-            return _observe_locked(registry, namespace, repository, probe, store_root, now)
+            result = _observe_locked(
+                registry, namespace, repository, probe, store_root, now, history_key
+            )
+            if result["error"] is None:
+                result["history_integrity"] = _history_integrity(
+                    registry, namespace, repository, store_root, history_key
+                )
+            return result
     except TimeoutError as exc:
         return {
             "observation": None,
@@ -149,6 +170,65 @@ def observe_repository(
         }
 
 
+def _history_integrity(
+    registry: str, namespace: str, repository: str, store_root: str, history_key: Any
+) -> str:
+    """Keyed integrity of one repository's stored history (B3)."""
+    ordered, chain_ok = order_history(load_all(registry, namespace, repository, root=store_root))
+    if not chain_ok or verify_registry_history(ordered)["status"] == BROKEN:
+        return BROKEN
+    keys = {history_key.key_id: history_key} if history_key is not None else {}
+    return str(verify_keyed_history(ordered, keys)["status"])
+
+
+def _keyed_refusal(
+    ordered: list[dict[str, Any]], history_key: Any, namespace: str, repository: str
+) -> dict[str, Any] | None:
+    """Refuse to append to a keyed history without its key, or to a forged one."""
+    keyed = [r for r in ordered if r.get("history_mac")]
+    if not keyed:
+        return None
+    key_ids = sorted({str(r.get("key_id")) for r in keyed})
+    if history_key is None:
+        status = "KEY_REQUIRED"
+        detail = (
+            f"observation history for {namespace}/{repository} is keyed "
+            f"({', '.join(key_ids)}); set OPENPULSE_HISTORY_KEY or pass "
+            "--history-key-file to append to it"
+        )
+    elif key_ids != [history_key.key_id]:
+        status = "KEY_MISMATCH"
+        detail = (
+            f"observation history for {namespace}/{repository} is keyed with "
+            f"{', '.join(key_ids)}, not {history_key.key_id}; refusing to append"
+        )
+    elif verify_keyed_history(ordered, {history_key.key_id: history_key})["status"] == BROKEN:
+        status = BROKEN
+        detail = (
+            f"observation history for {namespace}/{repository} has a record whose "
+            "history MAC does not verify; refusing to diff or append"
+        )
+    else:
+        return None
+    return {
+        "observation": None,
+        "history_status": status,
+        "changes": [],
+        "saved_path": None,
+        "error": {
+            "collector": "registries",
+            "error": True,
+            "category": "integrity",
+            "retryable": False,
+            "status_code": None,
+            "safe_message": detail,
+            "namespace": namespace,
+            "repo": repository,
+            "integrity": BROKEN if status == BROKEN else "UNKNOWN",
+        },
+    }
+
+
 def _observe_locked(
     registry: str,
     namespace: str,
@@ -156,6 +236,7 @@ def _observe_locked(
     probe: dict[str, Any],
     store_root: str,
     now: datetime,
+    history_key: Any = None,
 ) -> dict[str, Any]:
     if not isinstance(probe, dict):
         return {
@@ -268,6 +349,9 @@ def _observe_locked(
                 "integrity": BROKEN,
             },
         }
+    refusal = _keyed_refusal(ordered, history_key, namespace, repository)
+    if refusal is not None:
+        return refusal
     try:
         previous = RegistryObservation(**ordered[-1]) if ordered else None
     except Exception as exc:
@@ -284,6 +368,8 @@ def _observe_locked(
     try:
         current = to_observation({**probe, "registry": registry}, observed_at=now)
         current = current.link(ordered[-1] if ordered else None)
+        if history_key is not None:
+            current = current.keyed(history_key)
     except Exception as exc:
         return {
             "observation": None,
@@ -368,6 +454,7 @@ def sweep_catalog(
     store_root: str = ".openpulse/observations",
     slugs: list[str] | None = None,
     observed_at: datetime | None = None,
+    history_key: Any = None,
 ) -> dict[str, Any]:
     """Probe, persist, diff, and analyse. Returns observations/changes/findings/errors."""
     now = observed_at or datetime.now(timezone.utc)
@@ -394,6 +481,7 @@ def sweep_catalog(
             probe if isinstance(probe, dict) else {},
             store_root=store_root,
             observed_at=now,
+            history_key=history_key,
         )
         if result["error"] is not None:
             errors.append({**result["error"], "slug": slug})

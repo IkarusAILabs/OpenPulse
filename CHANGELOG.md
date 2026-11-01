@@ -4,6 +4,15 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Added
+
+- **Keyed history integrity, first slice (v0.9.0 item B3a, finding H2).** Local history used unkeyed SHA-256, so anyone who could write `.openpulse/` could edit a record, recompute its hashes and still verify as VALID.
+  - A history key (`OPENPULSE_HISTORY_KEY`, or `--history-key-file` on `observe`, `sweep`, `report` and `check`) adds an HMAC-SHA256 to every new observation record (`key_id`, `history_mac`, over the chain hash and `first_detected_at`) and every new detection-ledger entry (over its content hash). `openpulse history-key generate` prints a fresh 32-byte key; nothing is written.
+  - New states: VALID_KEYED, VALID_UNKEYED, BROKEN, UNKNOWN (`verify_keyed_history`, `ledger.entry_integrity`). `observe` prints the history's state.
+  - A keyed history is never appended to without its key (`KEY_REQUIRED`, `KEY_MISMATCH`), and a keyed ledger entry is left as it is. Records and entries written before the key stay unkeyed: keyed adoption, with lead times clamped to it, is the next slice (B3c).
+  - A key shorter than 32 bytes, or a key file inside `.openpulse/` or a history store, is refused. The key is never printed or stored in history.
+  - Stdlib only. Without a key, nothing changes. Reports do not yet restrict lead times to keyed history (B3c), and the README keeps calling history corruption-detecting until B3–B5 hold.
+
 ### Fixed
 
 - **A source's `official` authority is derived, not taken on trust (v0.9.0 item B1, finding M1).** Before, any source that said `authority: official` could carry an event to CONFIRMED.

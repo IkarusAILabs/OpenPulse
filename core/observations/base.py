@@ -24,6 +24,7 @@ from core.evidence.provenance import PARSER_VERSION, hash_content
 from core.observations.chain import (
     GENESIS_PREVIOUS,
     chain_hash,
+    history_mac_parts,
     link_hash_for,
 )
 
@@ -45,6 +46,13 @@ class ObservationBase(BaseModel):
         default=None, description="Predecessor chain hash, or 'genesis' for the first sighting"
     )
     chain_hash: str | None = None
+    key_id: str | None = Field(
+        default=None, description="History key that MACed this record (B3), if any"
+    )
+    history_mac: str | None = Field(
+        default=None,
+        description="HMAC-SHA256 over chain_hash and first_detected_at under key_id (B3)",
+    )
 
     def integrity_body(self) -> dict[str, Any]:
         """Payload covered by content_hash — subclass facts, nothing else."""
@@ -88,6 +96,19 @@ class ObservationBase(BaseModel):
         )
         digest = chain_hash(chained.model_dump(mode="json"), str(prev_link))
         return chained.model_copy(update={"chain_hash": digest})
+
+    def keyed(self, key: Any) -> ObservationBase:
+        """Return a copy MACed with ``key`` (a ``core.history_key.HistoryKey``).
+
+        Requires a chained record: the MAC covers the chain hash.
+        """
+        from core.history_key import OBSERVATION_DOMAIN
+
+        if not self.chain_hash:
+            raise ValueError("keyed() requires a chained observation (link first)")
+        parts = history_mac_parts(self.model_dump(mode="json"))
+        mac = key.mac(OBSERVATION_DOMAIN, *parts)
+        return self.model_copy(update={"key_id": key.key_id, "history_mac": mac})
 
     def verify_record(self) -> str:
         """VALID/BROKEN/UNKNOWN: content recompute, then chain-link self-check.
