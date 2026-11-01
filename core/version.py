@@ -21,7 +21,7 @@ from importlib.metadata import version as _pkg_version
 DISTRIBUTION = "ikarus-openpulse"
 
 #: Used only when distribution metadata is unavailable (uninstalled source tree).
-FALLBACK_VERSION = "0.8.0"
+FALLBACK_VERSION = "0.9.0"
 
 
 def openpulse_version() -> str:

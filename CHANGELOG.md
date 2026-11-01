@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.9.0 "Anchored Trust" — 2026-11-01
+
+Authority, independence and history integrity now rest on verifiable facts or a secret key, never on strings the caller supplies. With a history key, regular `openpulse anchor` checkpoints kept outside `.openpulse/` and `openpulse verify` in the schedule, local history is **tamper-evident**; without a key it stays corruption-detecting. **This release changes outputs**: without a history key no lead time or sweep first-detection date is published, `openpulse attest` emits evidence contract 2.0.0 with a new content hash, and a chained history with no tip is refused. Verdicts of the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.
 
 ### Upgrade notes
 

@@ -237,15 +237,15 @@ hardening M6 needs before unattended runs. Sequencing:
 | ID | Finding | Sev | Status |
 |---|---|---|---|
 | H1 | Namespaced pom.xml parsed to `([], [])` - bare-name lookups on `{ns}` tags | High | FIXED #112 |
-| H2 | Unkeyed chain/ledger hashes; missing `tip.json` adopted, so rollback/wipe is silent; `first_detected_at` unchained | High | NEXT v0.9.0 |
-| M1 | `Source.authority` is a free string; `official` is self-declared, never derived from the URL | Med | NEXT v0.9.0 |
-| M2 | Independence falls back to source name; renamed copies count twice | Med | NEXT v0.9.0 |
+| H2 | Unkeyed chain/ledger hashes; missing `tip.json` adopted, so rollback/wipe is silent; `first_detected_at` unchained | High | FIXED v0.9.0 (#229-#235) |
+| M1 | `Source.authority` is a free string; `official` is self-declared, never derived from the URL | Med | FIXED v0.9.0 (#224) |
+| M2 | Independence falls back to source name; renamed copies count twice | Med | FIXED v0.9.0 (#227) |
 | M3 | `normalize_ref` cut at the first colon: `host:port/...` collapsed to `host` | Med | FIXED #113 |
 | M4 | Webhook URL path (the Slack/Teams credential) survives `redact()` into error output | Med | FIXED #115 |
 | M5 | Webhook DNS-rebinding TOCTOU; NAT64/6to4 not unwrapped before the blocklist | Med | NEXT v0.10.0 (M6) |
 | M6 | Stale-lock reclaim can spin forever; two reclaimers can both acquire | Med | FIXED #116 (OS advisory locks) |
 | M7 | SBOMs discovered in GitHub repos never ingested (dict passed to path readers) | Med | FIXED #117 |
-| L1-L11 | Bounded reads, RecursionError, collector body caps, identifier validation, token redaction, clock trust, JCS contract hash, hash-pinned lock + signed releases, generic top-level package names, secret-scan blind spots | Low | FIXED: bounded file reads + RecursionError + blob cap (#118), identifier validation (#119), token redaction (#115), collector response caps (#155), hash-pinned locks (#156). NEXT v0.9.0: clock trust, JCS hash; supply chain: signed releases (D2), packaging (D6) |
+| L1-L11 | Bounded reads, RecursionError, collector body caps, identifier validation, token redaction, clock trust, JCS contract hash, hash-pinned lock + signed releases, generic top-level package names, secret-scan blind spots | Low | FIXED: bounded file reads + RecursionError + blob cap (#118), identifier validation (#119), token redaction (#115), collector response caps (#155), hash-pinned locks (#156). FIXED v0.9.0: clock trust (#223), JCS hash (#236). NEXT supply chain: signed releases (D2), packaging (D6) |
 | - | certifi 2026.7.22 bundled a compromised CA root (PYSEC-2026-4320) | - | FIXED (lock bump in #112/#113) |
 
 Strengths kept: `yaml.safe_load` only, no eval/pickle/subprocess,
@@ -254,12 +254,13 @@ bounded GitHub inspection with explicit coverage, an https-only
 no-redirect body-capped webhook policy, a vetoing gate, atomic writes,
 link-ordered chains with fork/gap/cycle detection, SHA-pinned
 least-privilege CI. Wording corrected in README/METHODOLOGY/ROADMAP:
-observation history is *corruption-detecting* until H2 lands.
+observation history is *corruption-detecting* until H2 lands (it
+landed in v0.9.0: tamper-evident with a history key).
 
 Phase A outcome (2026-10-21, v0.6.1): H1, M3, M4, M6 and M7 fixed;
 `SECURITY.md` added with GitHub private vulnerability reporting
 enabled. Lesson recorded from M6: the first fix (owner tokens plus
 rename-based stale reclaim) double-acquired on the Linux CI runner -
 plain lock files cannot close the stat-then-rename window, so both
-stores now hold OS advisory locks (`core/filelock.py`). Still open:
-H2, M1, M2 (v0.9.0) and M5 (v0.10.0); collector response caps landed in #155 (v0.7.1).
+stores now hold OS advisory locks (`core/filelock.py`). H2, M1 and M2
+were fixed in v0.9.0. Still open: M5 (v0.10.0); collector response caps landed in #155 (v0.7.1).

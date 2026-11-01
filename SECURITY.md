@@ -68,8 +68,8 @@ What to expect:
 
 - **Local history without a key.** Without a history key, the observation
   chain and the detection ledger use unkeyed hashes, which an adversary
-  with write access to `.openpulse/` can recompute. On `main` (unreleased
-  v0.9.0): a history key MACs the history, rollback and downgrade are
+  with write access to `.openpulse/` can recompute. Since v0.9.0, a
+  history key MACs the history, rollback and downgrade are
   refused, and `openpulse anchor` / `verify` detect deletions against a
   checkpoint kept outside the store. A holder of the key can still forge
   history between two anchors (`docs/KEYED_INTEGRITY.md`).

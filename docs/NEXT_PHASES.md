@@ -82,19 +82,19 @@ Each item has an issue with acceptance criteria, so it can go to contributors. M
 
 **Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel.
 
-## Phase 2 — v0.9.0 "Anchored Trust" (layers 2 and 6)
+## Phase 2 — v0.9.0 "Anchored Trust" (layers 2 and 6) — DONE, released 2026-11-01
 
 Goal: authority, independence and history integrity are derived from verifiable facts or keyed secrets, never from strings the caller supplies. ROADMAP M1 says not to expand without a concrete requirement. The concrete requirement here is that lead time, the headline metric, rests on this history.
 
 | # | Item | Finding | Size | Depends on |
 |---|---|---|---|---|
-| B1 | Derived source authority (detail below) — ACTIVE (PR open; `Literal` step deferred) | M1 | M | — |
-| B2 | Derived independence: source family from the registrable domain when `family` is absent | M2 | S | B1 (shared domain helper) |
+| B1 | Derived source authority (detail below) — DONE (#224; `Literal` step deferred) | M1 | M | — |
+| B2 | Derived independence: source family from the registrable domain when `family` is absent — DONE (#227) | M2 | S | B1 (shared domain helper) |
 | B3 | Keyed integrity (detail below) — design APPROVED 2026-11-01 (`docs/KEYED_INTEGRITY.md`); B3a (key, MACs, keyed states) DONE (#229); B3b rotation DONE (#230); B3c keyed adoption and lead-time clamp DONE (#231; sweep first detections keyed-only since 2026-11-01); B3d rescoped to CI documentation (the Action runs `attest`, which keeps no history, so an Action key input would do nothing) | H2, L1 | L | **owner-approved key-management design** |
-| B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
-| B5 | ACTIVE (PR open) — `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
-| B6 | Clock trust (detail below) — DONE (Unreleased, v0.9.0) | L7 | S | — |
-| B7 | Evidence contract v2.0 (JCS hash; detail below) — ACTIVE (approved 2026-11-01; PR open) | L8 | M | — |
+| B4 | Rollback and downgrade detection (detail below) — DONE (#233) | H2 | M | B3 |
+| B5 | DONE (#234) — `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
+| B6 | Clock trust (detail below) — DONE (#223) | L7 | S | — |
+| B7 | Evidence contract v2.0 (JCS hash; detail below) — DONE (#236; #109 `NOT_APPLICABLE` coverage left for its own decision) | L8 | M | — |
 
 **B1 detail:**
 - Add `official_domains` per project in `canonical_projects.yaml`, starting with the projects that have curated official events today (`bitnami`, `bitnami-spark`, `django`, `itext`). More only with owner sign-off.
@@ -133,6 +133,8 @@ Goal: authority, independence and history integrity are derived from verifiable 
 - Same-domain sources can't reach CORROBORATED.
 - Reports cite lead times from keyed-valid detections only.
 - README, METHODOLOGY and ROADMAP move from "corruption-detecting" to "tamper-evident (keyed)" only once all of the above hold.
+
+All exit criteria hold as of v0.9.0 (2026-11-01), and the wording has moved.
 
 ## Phase 3 — v0.10.0 M6 operations (layers 7 and 8)
 
