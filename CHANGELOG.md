@@ -6,6 +6,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Security
 
+- **Error text carries no control, bidi or zero-width characters (track T, T-F3 fix C, v0.12.0 item U1).** `collectors.errors.redact`, and with it `safe_message`, every collector error record, the GitHub reader's skip reasons and webhook delivery errors, now turns C0/C1 control characters into a space and removes bidi overrides and isolates, directional marks and zero-width characters (`strip_unsafe`). This error text reaches terminals, webhooks and MCP agents, where those characters could reorder or hide what is shown. Stripping runs before redaction, so a hidden character can't split a secret past it.
 - **Agent inputs must be identifiers, and are never echoed (track T, T-F3 fix A, v0.12.0 item U1).** The MCP tools took package names, versions, ecosystems and image refs as free text and repeated them in `dependency`, `verdict.reason` and `causes[].reason`. So an agent, or text injected into it, could make OpenPulse return arbitrary instructions inside fields the agent trusts.
   - **What's accepted:** these values must now match a general identifier shape (letters, digits and `@ / . _ : + ~ -` for names; similar sets for versions, ecosystems and image refs). Every ecosystem's real names fit, including legacy npm names with capitals.
   - **Tool arguments:** a failing argument is refused with a reason that doesn't repeat it.
