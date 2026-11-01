@@ -254,6 +254,8 @@ def render_digest_md(digest: dict[str, Any]) -> str:
     ]
     if digest.get("lead_time_note"):
         lines += [f"> {digest['lead_time_note']}", ""]
+    if digest.get("coverage_note"):
+        lines += [f"> {digest['coverage_note']}", ""]
     if not entries:
         lines.append("Nothing upcoming or newly-effective within the warning window.")
         lines.append("")

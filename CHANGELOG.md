@@ -29,6 +29,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **Digest, warnings and the webhook body now say when a repository was not fully read (#102, v0.10.0 item V3).** With a FAILED or PARTIAL `--github-repo` scan, `openpulse digest` and `openpulse warnings` used to drop the inspection result. Their body read "Nothing upcoming or newly-effective within the warning window", with no hint that the repository was never read, and `check --digest --webhook` posted the same. All three now carry `> ⚠️ Repository inspection coverage: <status> — <reasons>. Results are not a clean bill of health.` in the rendered body (and `coverage_note` in `--output json`), so it reaches the webhook too. Output is unchanged when coverage is COMPLETE or no repository is inspected.
 - **The CI tools lock now satisfies the build floor.** Dependabot raised `[build-system].requires` to `setuptools>=84.2.1`, while `.github/ci-tools.lock` stayed at 84.1.0. The lock now pins 84.2.1, with the hashes PyPI publishes, and a test fails if the two drift apart again.
 
 ## 0.9.0 "Anchored Trust" — 2026-11-01
