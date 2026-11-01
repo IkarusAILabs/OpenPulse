@@ -35,6 +35,7 @@ from datetime import time as dt_time
 from pathlib import Path
 from typing import Any
 
+from collectors.errors import strip_unsafe
 from core.resources import data_path
 
 #: Curated events bundled with OpenPulse - the same default set as the
@@ -347,15 +348,33 @@ def _source_status(name: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
 
 def lifecycle_events(slug: str, raw: Bundle, today: date | None = None) -> list[Any]:
     """Lifecycle findings from a live bundle, bridged into matchable events."""
+    return _checked_lifecycle_events(slug, raw, today)[0]
+
+
+def _checked_lifecycle_events(
+    slug: str, raw: Bundle, today: date | None = None
+) -> tuple[list[Any], int]:
+    """(events, withheld): bridged lifecycle events whose scope is version-shaped.
+
+    Release-cycle strings come from endoflife.date, so they are upstream
+    text that the engine interpolates into reasons (T-F3 fix B). An event
+    whose scope versions are not version-shaped is withheld and counted,
+    never silently dropped. Checked here, at the agent boundary, not in
+    analyzers.lifecycle_events: evaluation/replay.py imports that module,
+    and the frozen evaluation must not change.
+    """
     from analyzers.change_analyst import analyze_endoflife
     from analyzers.lifecycle_events import finding_to_event
 
     findings = analyze_endoflife(raw.get("endoflife", []), today=today or date.today())
-    return [
+    events = [
         finding_to_event(f, slug, today=today)
         for f in findings
         if f.get("event_type") in _BRIDGED_EVENT_TYPES
     ]
+    shape = _IDENTIFIER_SHAPES["version"]
+    kept = [e for e in events if all(shape.fullmatch(str(v)) for v in e.scope.versions or [])]
+    return kept, len(events) - len(kept)
 
 
 def _repository(raw: Bundle) -> dict[str, Any] | None:
@@ -519,7 +538,16 @@ def _assess(
             _source_status("osv.dev", raw.get("osv", [])),
             _source_status("github", raw.get("github_meta", [])),
         ]
-        all_events += lifecycle_events(slug, raw, today=today)
+        lifecycle, withheld = _checked_lifecycle_events(slug, raw, today=today)
+        all_events += lifecycle
+        if withheld:
+            sources.append(
+                {
+                    "source": "endoflife.date cycles",
+                    "status": "withheld",
+                    "detail": f"{withheld} release cycle(s) withheld: not version strings",
+                }
+            )
         bundles[slug] = raw
         repository = _repository(raw)
     verdict = check_dependency(
@@ -547,7 +575,7 @@ def _assess(
             "scope_completeness": scope_completeness(scopes.get(str(c.get("event_id")))),
             "affected": c.get("affected"),
             "evidence_confidence": c.get("evidence_confidence"),
-            "reason": c.get("reason"),
+            "reason": strip_unsafe(str(c.get("reason") or "")),
             "evidence_urls": urls.get(str(c.get("event_id")), []),
         }
         for c in relevant
@@ -555,9 +583,10 @@ def _assess(
     ]
     advisories = _advisories([c for c in relevant if c.get("cause") == "security_vulnerability"])
     unknowns = [
-        s["source"] if s["status"] != "budget-exhausted" else f"live lookups ({s['detail']})"
+        s["source"] if s["status"] not in ("budget-exhausted", "withheld")
+        else f"{s['source']} ({s['detail']})"
         for s in sources
-        if s["status"] in ("error", "no-data", "disabled", "budget-exhausted")
+        if s["status"] in ("error", "no-data", "disabled", "budget-exhausted", "withheld")
     ]
     if dep["kind"] == "package" and not dep.get("version"):
         unknowns.append("version (without it only project-level applicability is possible)")
@@ -575,7 +604,7 @@ def _assess(
             "relationship": verdict.relationship,
             "confidence": verdict.confidence,
             "meaning": verdict_meaning(verdict.relationship),
-            "reason": _short(verdict.reason),
+            "reason": strip_unsafe(_short(verdict.reason)),
         },
         "causes": causes,
         "advisories": advisories,
