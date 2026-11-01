@@ -260,3 +260,52 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
         "TOML input with neither a poetry `lock-version` marker nor a Cargo "
         "root `version` - refusing to guess the lockfile format"
     )
+
+
+#: (ecosystem, name, version) -> {"sha256": [...]} (PyPI) or {"integrity": [...]} (npm)
+LockedDigests = dict[tuple[str, str, str], dict[str, list[str]]]
+
+
+def lockfile_digests(path: str) -> LockedDigests:
+    """The digests a poetry.lock or package-lock.json pins, per package (T-B4).
+
+    Kept apart from ``read_lockfile`` on purpose: the dependency entries the
+    verdict engine, contracts and ledger consume stay exactly as they were.
+    Values are returned as written; ``core.digest_integrity`` validates them
+    before any use. Other formats (Cargo.lock) yield nothing yet.
+    """
+    data = read_bytes(path, MAX_LOCKFILE_BYTES, "lockfile")
+    try:
+        doc = loads_json(data, "lockfile")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        doc = None
+    out: LockedDigests = {}
+    if isinstance(doc, dict) and isinstance(doc.get("lockfileVersion"), int):
+        packages = doc.get("packages")
+        if isinstance(packages, dict):
+            for key, entry in packages.items():
+                if "node_modules/" not in str(key) or not isinstance(entry, dict):
+                    continue
+                version, integrity = entry.get("version"), entry.get("integrity")
+                if isinstance(version, str) and isinstance(integrity, str):
+                    name = _name_from_lock_path(str(key))
+                    out[("npm", name, version)] = {"integrity": integrity.split()}
+        return out
+    try:
+        toml_doc = _toml_module().loads(data.decode("utf-8"))
+    except Exception:  # not TOML, not UTF-8, or no tomllib (3.10): no digests
+        return out
+    if "lock-version" not in toml_doc:
+        return out
+    for entry in toml_doc.get("package") or []:
+        if not isinstance(entry, dict):
+            continue
+        name, version = entry.get("name"), entry.get("version")
+        hashes = [
+            str(f.get("hash"))
+            for f in entry.get("files") or []
+            if isinstance(f, dict) and str(f.get("hash", "")).startswith("sha256:")
+        ]
+        if isinstance(name, str) and isinstance(version, str) and hashes:
+            out[("PyPI", name, version)] = {"sha256": [h.split(":", 1)[1] for h in hashes]}
+    return out
