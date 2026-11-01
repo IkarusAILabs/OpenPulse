@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-01 (v0.12 plan):** v0.12.0 "Trusted Inputs" is Phase 6 below: track T Phase 1 (untrusted-text fixes, digest integrity, PyPI provenance, lookalike indicators, trust checks on added dependencies).
 - **Update 2026-11-01 (v0.11 released):** v0.11.0 "Early Warning Operations" is released (Phase 5, W1–W5), together with track T's first milestone T-M1 (#257).
 - **Update 2026-11-01 (v0.11 plan):** v0.11.0 "Early Warning Operations" is Phase 5 below: persistent alert delivery (C1), a severity gate on `warnings`, signed webhooks, MCP hardening (C5), and track T Phase 0 (design only).
 - **Update 2026-11-01 (later):** v0.10.0 "Verified Releases & Safe Gates" is released (Phase 3). The owner decided that product development continues alongside track R rather than waiting for the paper submission (`docs/ROADMAP.md`), so Phase 5 (M6 operations) is no longer paused.
@@ -210,6 +211,25 @@ Earlier item list (kept for the IDs used above):
 - A scheduled `check --webhook` run never sends the same alert twice and retries failed deliveries with a dead-letter record.
 - A rebinding resolver can't steer delivery to a private address.
 - `bench` publishes a reproducibility JSON from CI.
+
+## Phase 6 — v0.12.0 "Trusted Inputs" (track T Phase 1; planned 2026-11-01)
+
+Goal: track T Phase 1's exit from `docs/ROADMAP.md`, "PyPI and npm answers carry existence, digest and provenance statuses; no verdict changes", built on the owner-approved Phase 0 note (`docs/research/TRACK_T_PHASE0.md`, section 8). Every new field uses the T-F1 vocabulary and the T-F3 rule. Nothing here changes a verdict, a contract or the frozen evaluation.
+
+| # | Item | Track T | Size | Depends on |
+|---|---|---|---|---|
+| U1 | Untrusted-text fixes A–E from the Phase 0 audit, one PR each: A MCP inputs validated against ecosystem grammars; B event scope strings bounded when events are built; C `safe_message` strips control and bidi characters; D OSV ids validated before URLs; E repository `full_name` validated | T-F3 | S each | — |
+| U2 | Digest integrity: lockfile hashes (`poetry.lock`, `package-lock.json` `integrity`, pip `--hash`) compared with registry digests; a mismatch is VERIFIED_FAILURE | T-B4 | M | T-M1 |
+| U3 | PyPI provenance: PEP 740 attestations from the Integrity API, verified with `pypi-attestations` in a new optional, hash-locked `[provenance]` extra (approved 2026-11-01); without the extra, NOT_PERFORMED | T-B1 | M | U2 |
+| U4 | Lookalike indicators against pinned, separately licensed name snapshots (PyPI BigQuery CC BY 4.0, npm-high-impact MIT) and UTS #39 v18.0.0 confusables; SUSPICIOUS_INCONCLUSIVE, never a verdict | T-A2 | M | U1 |
+| U5 | Trust checks in file checks on added dependencies only (`check_dependency_file` against a base, and the Action on pull requests), within the W4 budget | T-A1, T-D | M | U2 |
+
+**Exit:**
+- `dependency_status` answers for PyPI and npm carry existence, digest and (PyPI) provenance records.
+- No caller or upstream string reaches an agent-facing field outside a labelled, capped field (injection fixtures pass).
+- No verdict changes (tested by running each check against agreeing and disagreeing stub registries).
+
+**Not in v0.12.0:** T-B2 npm provenance (sigstore-python cannot verify npm bundles yet, Phase 0 section 2); T-C reputation indicators (Phase 2); the T-F2 contract block (Phase 3).
 
 ## Phase 4 — Release supply chain (alongside Phases 2–3)
 
