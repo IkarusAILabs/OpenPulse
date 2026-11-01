@@ -73,9 +73,6 @@ What to expect:
   refused, and `openpulse anchor` / `verify` detect deletions against a
   checkpoint kept outside the store. A holder of the key can still forge
   history between two anchors (`docs/KEYED_INTEGRITY.md`).
-- **Webhook DNS rebinding.** The webhook SSRF check resolves DNS before
-  connecting, so it is open to DNS rebinding. A DNS-pinned transport is
-  planned for v0.10.0.
 - **Unsigned contracts.** Evidence-contract documents are not signed. Their
   `signature` fields are always `null` in v1.
 - **No package-trust checks.** OpenPulse does not detect malicious
