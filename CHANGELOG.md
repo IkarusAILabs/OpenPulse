@@ -11,6 +11,9 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Safety:** lockfile digests are validated before use, and names before any URL. Each check spends one lookup from the session budget, under the 40-per-file cap.
   - **Reader output unchanged:** `core.lockfile_reader.lockfile_digests` reads the digests separately, so the dependency entries the verdict engine, contracts and ledger use are untouched.
   - **Unchanged:** verdicts. No new dependency; hashing only.
+### Security
+
+- **Reader skip messages never carry file text to an agent (track T, T-F3, v0.12.0 item U1).** `check_dependency_file` (MCP) passed the readers' skip messages through as written. Those messages quote the file's own lines, and the agent writes the files it asks about. A quoted value is now shown only when it has a requirement shape (`requests>=2.31.0`, `junit:junit`, `^4.2`: no whitespace, no Markdown link). Any other value becomes `<not shown>`, and messages are stripped of control, bidi and zero-width characters and capped at 240 characters. The CLI keeps the full messages for humans, stripped of control and bidi characters.
 
 ## 0.11.1 — 2026-11-01
 
