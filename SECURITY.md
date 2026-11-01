@@ -89,7 +89,9 @@ What to expect:
 - TLS verification is on everywhere, and collectors never follow
   redirects.
 - GitHub inspection is pinned to commit and blob SHAs, with bounds.
-- Webhooks are https-only, with an IP blocklist and a body cap.
+- Webhooks are https-only, with an IP blocklist and a body cap, and connect
+  only to the addresses that passed the check. With a webhook secret, every
+  post carries an HMAC signature a receiver can verify (v0.11.0).
 - Every file read is bounded, and every collector HTTP response is size-capped while it streams (decoded bytes, so compressed bombs are caught).
 - Every install in CI and in the GitHub Action is hash-checked (`--require-hashes`) against complete, hash-pinned locks; CI fails on any installed package the lock doesn't list.
 - CI actions are pinned by SHA and run with least privilege. CI also runs

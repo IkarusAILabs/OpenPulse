@@ -483,9 +483,18 @@ HTTP status and the scheme + host only, because for Slack/Teams/Discord
 incoming webhooks the URL path is the credential, and shared redaction
 strips webhook paths, `Bearer` credentials and GitHub/Slack token
 shapes. Prefer `OPENPULSE_WEBHOOK_URL` over `--webhook` so the URL
-stays out of the process list. Known limitation: DNS is
-resolved before connecting, so a hostile resolver could race the
-check; short timeouts and no-redirects bound the blast radius.
+stays out of the process list. DNS is resolved once and the
+connection is pinned to the checked addresses (v0.10.0, #242), so a
+rebinding resolver cannot steer delivery elsewhere.
+
+With a webhook secret (`OPENPULSE_WEBHOOK_SECRET` or
+`--webhook-secret-file`, v0.11.0), every post is signed
+(`core/webhook_signing.py`): `X-OpenPulse-Timestamp` (Unix seconds) and
+`X-OpenPulse-Signature: v1=<hex>`, an HMAC-SHA256 over
+`"<timestamp>." + body` on the exact bytes sent. A receiver verifies
+over the raw body in constant time and rejects a timestamp more than
+300 seconds from its clock, which bounds replay. The secret is never
+printed or stored.
 
 ## Alert digest — the first M6 early-warning surface (`core/digest.py`)
 

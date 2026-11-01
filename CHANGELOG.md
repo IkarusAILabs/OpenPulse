@@ -10,6 +10,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Signed webhook payloads (#78, v0.11.0 item W3).** With `OPENPULSE_WEBHOOK_SECRET` or `--webhook-secret-file` (at least 32 characters), every `check --webhook` post carries `X-OpenPulse-Timestamp` and `X-OpenPulse-Signature: v1=<hex>`, an HMAC-SHA256 over `"<timestamp>." + body` on the exact bytes sent. `core/webhook_signing.verify_webhook_signature` (stdlib only) verifies it over the raw body, in constant time, and rejects a timestamp more than 300 seconds off, which bounds replay. The secret is never printed or stored. Without a secret, posts are byte-for-byte unchanged.
 - **`warnings --fail-on {overdue,critical,high,medium,low}` (#78, v0.11.0 item W2).** A CI job can fail on deadlines. The command exits 1 when a warning at or above the severity is in the window; the order is OVERDUE > CRITICAL > HIGH > MEDIUM > LOW, so `critical` includes OVERDUE. As with every gate, it also exits 1 on FAILED repository coverage. The reason goes to stderr, so `--output json` stays parseable. Without the flag, `warnings` only reports, as before.
 - **Persistent alert delivery state (#78, v0.11.0 item W1, C1).** `core/delivery.py` gives each alert a stable ID and records its delivery.
   - **Retry:** a failed post is retried once in the run, then left `pending`. Later runs retry it after a backoff (5 minutes, doubling, at most 6 hours).

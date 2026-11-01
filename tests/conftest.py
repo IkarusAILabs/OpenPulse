@@ -38,3 +38,5 @@ def ledger_clock_at_stamp(monkeypatch):
 def _isolated_delivery_state(monkeypatch, tmp_path):
     """`check --webhook` records delivery state (W1); never in the checkout."""
     monkeypatch.setenv("OPENPULSE_DELIVERY_STATE", str(tmp_path / "deliveries"))
+    # A developer's own signing secret must not sign the suite's webhooks (W3).
+    monkeypatch.delenv("OPENPULSE_WEBHOOK_SECRET", raising=False)
