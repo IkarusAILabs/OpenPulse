@@ -167,7 +167,8 @@ def test_curated_official_fixtures_pass_the_gate():
 
 def test_allowlist_hygiene():
     """Shared hosts are listed only with a path; entries are bare locations."""
-    shared = {"github.com", "gitlab.com", "bitbucket.org", "medium.com", "dev.to"}
+    from core.evidence.domains import SHARED_HOSTS as shared
+
     domains = load_official_domains()
     assert domains, "data/official_domains.yaml is missing or empty"
     for slug, entries in domains.items():
