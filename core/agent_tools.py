@@ -34,6 +34,7 @@ from datetime import date, datetime, timedelta, timezone
 from datetime import time as dt_time
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from core.resources import data_path
 
@@ -403,6 +404,11 @@ def _short(reason: str, keep: int = 3) -> str:
     return "; ".join(parts[:keep]) + f"; ... (+{len(parts) - keep} more)"
 
 
+#: OSV advisory ids are "<DB>-<ENTRYID>" (OSV schema): GHSA-xxxx-xxxx-xxxx,
+#: PYSEC-2024-1, RUSTSEC-2024-0001, MAL-2025-123, CVE-2024-3094, RHSA-2024:1234.
+_OSV_ID = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9][A-Za-z0-9._:]*)+", re.ASCII)
+
+
 def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, Any]:
     """OSV advisory causes, version-specific ones first and listed by id.
 
@@ -413,11 +419,16 @@ def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, An
     exact = sorted({str(c.get("event_id")) for c in security if c.get("relationship") ==
                     "AFFECTS_VERSION"})
     package_level = {str(c.get("event_id")) for c in security} - set(exact)
+    # Advisory ids are upstream strings (T-F3 fix D): only an id with the OSV
+    # "<DB>-<ENTRYID>" shape is listed or put in a URL; others are counted.
+    listed = [i for i in exact if _OSV_ID.fullmatch(i)]
     return {
         "affecting_this_version": [
-            {"id": i, "url": f"https://osv.dev/vulnerability/{i}"} for i in exact[:limit]
+            {"id": i, "url": "https://osv.dev/vulnerability/" + quote(i, safe=":")}
+            for i in listed[:limit]
         ],
         "affecting_this_version_count": len(exact),
+        "ids_withheld": len(exact) - len(listed),
         "package_level_unconfirmed_count": len(package_level),
         "source": "osv.dev",
     }
