@@ -189,8 +189,8 @@ These compete for reviewer time, not for the same files:
 | 2 | Release as v0.7.0 now — **decided: yes** | R3 |
 | 3 | Publish the Action to the Marketplace | R4 |
 | 4 | Keep or retire v0.6.0 item "C" / F5 — **decided: retired** | R6 |
-| 5 | B3 key management: storage, rotation, pre-key histories | B3–B5, C1 |
-| 6 | Which projects get `official_domains` first — **proposed:** the six with curated official fixtures (bitnami, bitnami-spark, django, itext, react, terraform), in `data/official_domains.yaml`; awaiting owner review | B1 scope |
+| 5 | B3 key management: storage, rotation, pre-key histories — **proposed** in `docs/KEYED_INTEGRITY.md`, awaiting owner approval | B3–B5, C1 |
+| 6 | Which projects get `official_domains` first | B1 scope |
 
 ## Risks
 
