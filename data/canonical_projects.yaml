@@ -305,6 +305,7 @@
 - slug: vault
   display_name: HashiCorp Vault
   github: hashicorp/vault
+  endoflife: hashicorp-vault
   website: https://www.vaultproject.io
   aliases: [vault]
   docker_images: []
@@ -565,6 +566,7 @@
 - slug: loki
   display_name: Loki
   github: grafana/loki
+  endoflife: grafana-loki
   website: https://grafana.com/oss/loki/
   aliases: [loki]
   docker_images: []
@@ -790,6 +792,7 @@
 - slug: nest
   display_name: Nest
   github: nestjs/nest
+  endoflife: nestjs
   website: https://nestjs.com
   aliases: [nest, nestjs]
   docker_images: []
@@ -940,6 +943,7 @@
 - slug: cockroach
   display_name: CockroachDB
   github: cockroachdb/cockroach
+  endoflife: cockroachdb
   website: https://www.cockroachlabs.com
   aliases: [cockroach, cockroachdb]
   docker_images: []
