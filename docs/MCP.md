@@ -153,6 +153,7 @@ How to read an answer:
 | `advisories` | OSV advisories whose ranges include this version, listed with links. Advisories that only name the package are counted separately: their version applicability is not established |
 | `sources` | Which sources answered, failed (`error`), had no data (`no-data`) or were off (`disabled`) |
 | `registry_existence` | `dependency_status` only (track T, T-M1). Whether the PyPI or npm package and version exist in their registry, as records with a closed status: `VERIFIED_RELATIONSHIP` (found), `VERIFIED_FAILURE` (the registry answered 404: an identity fact, not evidence of malice), `NOT_PERFORMED` (unsupported ecosystem, offline, budget spent, registry unreachable, or a name outside the ecosystem's grammar). Each record has a fixed `statement`, the registry URL and `checked_at`. Never part of the verdict |
+| `digest_integrity` | `check_dependency_file` on a `package-lock.json` or `poetry.lock` (track T, T-B4). Each locked digest is compared with what PyPI or npm publishes for that version. Counts per status: `VERIFIED_RELATIONSHIP` (every locked digest is published), `VERIFIED_FAILURE` (one isn't: the locked artifact is not the one the registry serves; each listed under `failures`), `MISSING_EVIDENCE` (the lockfile pins no usable digest), `NOT_PERFORMED` (the registry didn't answer, offline, budget spent, or capped past the per-file limit). Never part of a verdict |
 | `not_established` | What this answer does not cover. An unreachable source makes its part UNKNOWN, never "fine" |
 
 ## Where the answers come from

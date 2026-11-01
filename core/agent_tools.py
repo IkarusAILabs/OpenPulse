@@ -224,6 +224,7 @@ class Lookups:
         cache_dir: Path | str | None = None,
         clock: Callable[[], float] = time.time,
         head: Callable[[str], int] | None = None,
+        fetch_json: Callable[[str], tuple[int, Any]] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -235,6 +236,8 @@ class Lookups:
         #: slug -> age in seconds when the last answer came from the disk cache.
         self.disk_hits: dict[str, int] = {}
         self._head = head
+        self._fetch_json = fetch_json
+        self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
 
     @property
@@ -294,6 +297,25 @@ class Lookups:
         if all(r["status"] != registry_existence.NOT_PERFORMED for r in records):
             self._existence[key] = (now, records)
         return records
+
+    def digest_integrity(
+        self, ecosystem: str, name: str, version: str, locked: dict[str, list[str]]
+    ) -> dict[str, Any]:
+        """Digest integrity record (T-B4), cached per session; NOT_PERFORMED never cached."""
+        from core import digest_integrity
+
+        key = (ecosystem, name, version)
+        hit = self._digests.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = digest_integrity.check(ecosystem, name, version, locked, fetch=self._fetch_json)
+        if record["status"] != "NOT_PERFORMED":
+            self._digests[key] = (now, record)
+        return record
 
     def _disk_path(self, slug: str) -> Path | None:
         if self._cache_dir is None:
@@ -742,6 +764,11 @@ def check_dependency_file(
             ] + [f"live lookups (per-file cap of {MAX_LIVE_PROJECTS} projects reached)"]
         results.append(result)
     flagged = [r for r in results if r["verdict"]["affected"] or r["causes"]]
+    integrity = (
+        _digest_integrity(path, deps, lookups if live else None)
+        if kind in ("npm", "poetry")
+        else None
+    )
     return {
         "file": path,
         "format": kind,
@@ -754,9 +781,53 @@ def check_dependency_file(
         "affected": [r["dependency"] for r in results if r["verdict"]["affected"]],
         "results": flagged,
         "unflagged": [r["dependency"] for r in results if r not in flagged],
+        "digest_integrity": integrity,
         "evaluation_context": evaluation.context,
         "note": evaluation.note,
     }
+
+
+def _digest_integrity(
+    path: str, deps: list[dict[str, Any]], lookups: Lookups | None
+) -> dict[str, Any]:
+    """Lockfile digests against registry digests (track T, T-B4); never a verdict input.
+
+    Counts per T-F1 status, with every VERIFIED_FAILURE listed in full. At
+    most MAX_LIVE_PROJECTS packages are checked per file (the W4 per-file
+    bound); the rest are counted as capped, never silently skipped.
+    """
+    from core import digest_integrity
+    from core.lockfile_reader import lockfile_digests
+
+    locked = lockfile_digests(path)
+    summary: dict[str, Any] = {
+        "VERIFIED_RELATIONSHIP": 0,
+        "VERIFIED_FAILURE": 0,
+        "MISSING_EVIDENCE": 0,
+        "NOT_PERFORMED": 0,
+        "capped": 0,
+        "failures": [],
+        "note": "digests are compared, never trusted: a failure means the locked artifact "
+        "is not the one the registry serves; this is not part of any verdict",
+    }
+    checked = 0
+    for dep in deps:
+        key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
+        if checked >= MAX_LIVE_PROJECTS:
+            summary["capped"] += 1
+            continue
+        if lookups is None:
+            record = digest_integrity.not_performed("offline", key[0])
+        else:
+            checked += 1
+            try:
+                record = lookups.digest_integrity(*key, locked.get(key, {}))
+            except BudgetExhausted:
+                record = digest_integrity.not_performed("budget", key[0])
+        summary[record["status"]] += 1
+        if record["status"] == "VERIFIED_FAILURE":
+            summary["failures"].append({"dependency": f"{key[1]}=={key[2]}", **record})
+    return summary
 
 
 def _read_dependency_file(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
