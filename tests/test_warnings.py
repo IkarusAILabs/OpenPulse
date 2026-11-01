@@ -20,6 +20,7 @@ from core.warnings import (
     recommended_action,
     render_warnings_md,
 )
+from tests.history_keys import TEST_KEYS
 
 # Seeds ledger history at past dates (see tests/conftest.py).
 pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
@@ -140,7 +141,9 @@ def test_warning_object_shape_matches_issue(tmp_path):
         root=root,
     )
     verdict = check_dependency(_django_dep(), [event])
-    built = build_warnings([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 1
     w = built["warnings"][0]
     assert w["project"] == "django"
@@ -214,7 +217,9 @@ def test_overdue_change_keeps_its_overdue_severity(tmp_path):
         root=root,
     )
     verdict = check_dependency(_django_dep(), [event])
-    built = build_warnings([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 1
     w = built["warnings"][0]
     assert w["days_until_effective"] == -5
@@ -266,7 +271,9 @@ def test_ranking_shortest_lead_time_breaks_ties(tmp_path):
     deps = [{"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}]
     events = [e_eol, e_depr, e_sup]
     verdicts = [check_dependency(d, events) for d in deps]
-    built = build_warnings(verdicts, events, ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        verdicts, events, ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 3
     assert [w["event_id"] for w in built["warnings"]] == [
         "evt-depr-late-warn",  # 4d lead - least warned, first
@@ -302,7 +309,11 @@ def test_no_ledger_record_means_no_lead_time_claim(tmp_path):
     event = _future_django_eol()
     verdict = check_dependency(_django_dep(), [event])
     built = build_warnings(
-        [verdict], [event], ledger_root=str(tmp_path / "nope"), today=date(2026, 10, 6)
+        [verdict],
+        [event],
+        ledger_root=str(tmp_path / "nope"),
+        history_keys=TEST_KEYS,
+        today=date(2026, 10, 6),
     )
     w = built["warnings"][0]
     assert w["first_detected"] is None
@@ -380,7 +391,9 @@ def test_render_bands_and_rows(tmp_path):
     deps = [{"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}]
     events = [e_overdue, e_critical]
     verdicts = [check_dependency(d, events) for d in deps]
-    built = build_warnings(verdicts, events, ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        verdicts, events, ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     md = render_warnings_md(built)
     assert "# OpenPulse warning deadlines" in md
     assert "## OVERDUE - passed deadlines (1)" in md
@@ -608,7 +621,9 @@ def _warnings_for_cycle(cycle_entry, dep, today, detected_at=None, ledger_root=N
     assert findings, "producer pipeline must fire the UPCOMING EOL finding"
     event = finding_to_event(findings[0], cycle_entry["product"], today=today)
     verdict = check_dependency(dep, [event])
-    return build_warnings([verdict], [event], ledger_root=ledger_root, today=today), event
+    return build_warnings(
+        [verdict], [event], ledger_root=ledger_root, today=today, history_keys=TEST_KEYS
+    ), event
 
 
 def test_case_postgresql_14_lead_time(tmp_path):

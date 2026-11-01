@@ -13,6 +13,7 @@ from core.digest import (
 )
 from core.risk.check import check_dependency, check_watchlist
 from core.schema.models import OSSEvent
+from tests.history_keys import TEST_KEYS
 
 # Seeds ledger history at past dates (see tests/conftest.py).
 pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
@@ -62,7 +63,9 @@ def test_affected_dependency_with_ledger_gets_deadline_and_lead_time(tmp_path):
     )
     dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
     verdict = check_dependency(dep, [event])
-    digest = build_digest([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    digest = build_digest(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(digest["entries"]) == 1
     entry = digest["entries"][0]
     assert entry["dependency"] == "django==4.2"
@@ -202,7 +205,9 @@ def test_no_ledger_record_means_no_lead_time_claim(tmp_path):
     root = tmp_path / "ledger"  # never written
     dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
     verdict = check_dependency(dep, [event])
-    digest = build_digest([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    digest = build_digest(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     entry = digest["entries"][0]
     assert entry["first_detected"] is None
     assert entry["lead_time_days"] is None
@@ -222,7 +227,9 @@ def test_tampered_ledger_entry_degrades_to_no_claim(tmp_path):
     entry_path.write_text(json.dumps(entry), encoding="utf-8")
     dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
     verdict = check_dependency(dep, [event])
-    digest = build_digest([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    digest = build_digest(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     entry_out = digest["entries"][0]
     assert entry_out["first_detected"] is None
     assert entry_out["lead_time_days"] is None
@@ -250,7 +257,11 @@ def test_earliest_detection_survives_across_events(tmp_path):
     dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
     verdicts = [check_dependency(dep, [event_a, event_b])]
     digest = build_digest(
-        verdicts, [event_a, event_b], ledger_root=str(root), today=date(2026, 10, 6)
+        verdicts,
+        [event_a, event_b],
+        ledger_root=str(root),
+        history_keys=TEST_KEYS,
+        today=date(2026, 10, 6),
     )
     assert len(digest["entries"]) == 2
     for entry in digest["entries"]:
@@ -311,7 +322,9 @@ def test_render_bands_and_lines(tmp_path):
     )
     dep = {"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}
     verdict = check_dependency(dep, [event])
-    digest = build_digest([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    digest = build_digest(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     md = render_digest_md(digest)
     assert "## Act this cycle" in md
     assert "**django==4.2**" in md

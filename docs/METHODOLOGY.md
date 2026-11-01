@@ -333,7 +333,18 @@ MACed by both keys) records when each key was retired. After a
 handover, a record under the retired key, a key change without a
 handover, or a ledger sighting under the retired key dated after its
 rotation is BROKEN, so a leaked retired key cannot extend history.
-Keyed adoption of older history, missing-tip
+
+History written before the key is adopted, never re-MACed as if it had
+always been keyed. In an observation chain, unkeyed records followed
+only by keyed ones verify VALID_KEYED: the first keyed record's chain
+hash pins them, and its `observed_at` is the adoption time. A ledger
+entry first written without a key gets `adopted_at`, under the MAC, the
+next time a keyed run writes it. Nothing before adoption is proved, so
+a lead time counts from the later of the first detection and the
+adoption: a lower bound, never an overstatement. Lead times in
+`digest`, `warnings`, `report` and `check` come only from VALID_KEYED
+ledger entries; without a history key they are not published, and the
+output says so. Missing-tip
 rollback detection and external anchoring are still planned for v0.9.0
 (`docs/NEXT_PHASES.md`, `docs/KEYED_INTEGRITY.md`); until all of them
 ship, the history is not claimed to be tamper-evident.

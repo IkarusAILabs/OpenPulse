@@ -263,13 +263,19 @@ BROKEN = "BROKEN"
 UNKNOWN = "UNKNOWN"
 
 
+def _ledger_mac_parts(entry: dict[str, Any]) -> tuple[str, ...]:
+    """What a ledger MAC covers: the content hash, and the adoption time if any."""
+    parts = (str(entry.get("content_hash") or ""),)
+    return parts + (str(entry["adopted_at"]),) if entry.get("adopted_at") else parts
+
+
 def _keyed(entry: dict[str, Any], history_key: Any) -> dict[str, Any]:
-    """The entry with its history MAC (over the content hash), or as is."""
+    """The entry with its history MAC, or as is."""
     if history_key is None:
         return entry
     from core.history_key import LEDGER_DOMAIN
 
-    mac = history_key.mac(LEDGER_DOMAIN, str(entry["content_hash"]))
+    mac = history_key.mac(LEDGER_DOMAIN, *_ledger_mac_parts(entry))
     return {**entry, "key_id": history_key.key_id, "history_mac": mac}
 
 
@@ -364,7 +370,7 @@ def entry_integrity(
     key = (keys or {}).get(str(key_id))
     if key is None:
         return UNKNOWN
-    if not key.verify(mac, LEDGER_DOMAIN, str(entry.get("content_hash") or "")):
+    if not key.verify(mac, LEDGER_DOMAIN, *_ledger_mac_parts(entry)):
         return BROKEN
     handed_over = (rotations or {}).get(str(key_id))
     last = _parse_moment(entry.get("last_seen"))
@@ -394,8 +400,10 @@ def record_detection(
     ``history_key`` (a ``core.history_key.HistoryKey``) MACs new entries
     and keeps keyed entries keyed (B3). A keyed entry is never rewritten
     without its key: the call returns it unchanged with
-    ``key_refused: True``. An entry written before any key stays
-    unkeyed; it is not re-MACed as if it had been keyed all along.
+    ``key_refused: True``. An entry written before any key is adopted
+    (B3c): it is MACed now with ``adopted_at`` set to this moment, so
+    its keyed lead time counts from the adoption, never from the earlier,
+    unkeyed ``first_seen`` (``keyed_first_seen``).
 
     ``previous_keys`` are retired, verify-only keys (B3b). An entry under
     one of them is verified with it, the handover is logged in
@@ -424,9 +432,12 @@ def record_detection(
                 existing = None  # MAC forged: degrade to unknown, as above
             elif entry_key != history_key.key_id:
                 record_rotation(root, ring[entry_key], history_key)
-        keep_key = history_key is not None and (
-            existing is None or bool(existing.get("history_mac"))
-        )
+        keep_key = history_key is not None
+        # Adoption (B3c): an unkeyed entry keyed now carries the moment of
+        # keying; a keyed one keeps its adoption time, if it has one.
+        adopted_at = None
+        if existing is not None and keep_key:
+            adopted_at = existing.get("adopted_at") if existing.get("history_mac") else stamp
         if existing is None:
             entry = {
                 "project": str(project),
@@ -465,6 +476,8 @@ def record_detection(
                 project, finding_class, subject, scope, first_seen, last_seen
             ),
         }
+        if adopted_at:
+            entry["adopted_at"] = str(adopted_at)
         entry = _keyed(entry, history_key if keep_key else None)
         _write_atomic(path, entry)
     return {**entry, "recorded_now": False}
@@ -486,3 +499,34 @@ def first_seen(
         return None
     value = entry.get("first_seen")
     return str(value) if value else None
+
+
+def keyed_first_seen(
+    project: str,
+    finding_class: str,
+    subject: str,
+    scope: list[str] | None = None,
+    root: str | Path = ".openpulse/detections",
+    keys: dict[str, Any] | None = None,
+) -> str | None:
+    """First detection a lead time may rest on, or None (B3c).
+
+    Only a VALID_KEYED entry counts (under ``keys``, with the ledger's
+    rotation log). An adopted entry counts from its adoption: the result
+    is the later of ``first_seen`` and ``adopted_at``, a lower bound on
+    the lead time that never overstates it. Without keys, nothing counts.
+    """
+    if not keys:
+        return None
+    directory = _project_dir(root, project)
+    path = _key_file(directory, fact_key(project, finding_class, subject, list(scope or [])))
+    entry = _try_load(path)
+    if entry is None or entry_integrity(entry, keys, load_rotations(root, keys)) != VALID_KEYED:
+        return None
+    first = _parse_moment(entry.get("first_seen"))
+    adopted = _parse_moment(entry.get("adopted_at"))
+    if first is None:
+        return None
+    if adopted is not None and adopted > first:
+        return str(entry["adopted_at"])
+    return str(entry["first_seen"])

@@ -126,6 +126,7 @@ def build_warnings(
     ledger_root: str | None = None,
     today: date | None = None,
     window_days: int = DEFAULT_WINDOW_DAYS,
+    history_keys: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Verdicts + events + ledger -> ranked warning deadlines.
 
@@ -138,7 +139,12 @@ def build_warnings(
     impact / event_id / relationship for renderers.
     """
     digest = build_digest(
-        verdicts, events, ledger_root=ledger_root, today=today, window_days=window_days
+        verdicts,
+        events,
+        ledger_root=ledger_root,
+        today=today,
+        window_days=window_days,
+        history_keys=history_keys,
     )
     warnings: list[dict[str, Any]] = []
     for entry in digest["entries"]:
@@ -162,11 +168,14 @@ def build_warnings(
             }
         )
     warnings.sort(key=_rank)
-    return {
+    built: dict[str, Any] = {
         "generated_at": digest["generated_at"],
         "window_days": int(window_days),
         "warnings": warnings,
     }
+    if digest.get("lead_time_note"):
+        built["lead_time_note"] = digest["lead_time_note"]
+    return built
 
 
 def _lead_note(w: dict[str, Any]) -> str:
@@ -202,6 +211,8 @@ def render_warnings_md(built: dict[str, Any]) -> str:
         " (upcoming and newly-effective).",
         "",
     ]
+    if built.get("lead_time_note"):
+        lines += [f"> {built['lead_time_note']}", ""]
     if not rows:
         lines.append(f"No warning deadlines within the {window}-day window.")
         lines.append("")

@@ -12,6 +12,7 @@ from core.risk.check import (
     detections_from_verdicts,
 )
 from core.schema.models import OSSEvent
+from tests.history_keys import TEST_KEYS
 
 # Seeds ledger history at past dates (see tests/conftest.py).
 pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
@@ -545,6 +546,7 @@ def test_report_ledger_feeds_upcoming_changes_across_runs(tmp_path):
         [_report_item("django", finding)],
         today=None,
         ledger_root=str(root),
+        history_keys=TEST_KEYS,
     )
     assert "OpenPulse first detected: 2026-07-01" in markdown, markdown
     assert "167 days until effective" in markdown
@@ -598,7 +600,11 @@ def test_report_existing_first_detected_at_is_never_overwritten(tmp_path):
         "sources": ["endoflife.date"],
     }
     markdown = build_report(
-        "2026-10", [_report_item("django", finding)], today=None, ledger_root=str(root)
+        "2026-10",
+        [_report_item("django", finding)],
+        today=None,
+        ledger_root=str(root),
+        history_keys=TEST_KEYS,
     )
     assert "OpenPulse first detected: 2026-09-01" in markdown
     assert "OpenPulse first detected: 2026-07-01" not in markdown

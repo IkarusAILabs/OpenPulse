@@ -295,25 +295,31 @@ def _ledger_fact(finding: dict[str, Any]) -> tuple[str, list[str]] | None:
 
 
 def _with_ledger_first_detected(
-    finding: dict[str, Any], project: str | None, ledger_root: str | None
+    finding: dict[str, Any],
+    project: str | None,
+    ledger_root: str | None,
+    history_keys: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Copy of one finding with ledger first_seen as first_detected_at.
+    """Copy of one finding with the keyed ledger first detection as first_detected_at.
 
-    No-op unless ALL of: ledger enabled, finding lacks a
-    first_detected_at already, and the finding maps to a durable
-    ledger fact. Never invents - absent entry -> unchanged finding.
+    No-op unless ALL of: ledger enabled with history keys, finding lacks
+    a first_detected_at already, and the finding maps to a durable
+    ledger fact. Only a VALID_KEYED entry counts, from its adoption at
+    the earliest (B3c). Never invents - absent entry -> unchanged finding.
     """
-    if not ledger_root:
+    if not ledger_root or not history_keys:
         return finding
     if finding.get("first_detected_at"):
         return finding
     fact = _ledger_fact(finding)
     if fact is None:
         return finding
-    from core.detections.ledger import first_seen
+    from core.detections.ledger import keyed_first_seen
 
     finding_class, subject, scope = fact
-    earliest = first_seen(str(project or ""), finding_class, subject, scope=scope, root=ledger_root)
+    earliest = keyed_first_seen(
+        str(project or ""), finding_class, subject, scope=scope, root=ledger_root, keys=history_keys
+    )
     if not earliest:
         return finding
     return {**finding, "first_detected_at": str(earliest)[:10]}
@@ -326,6 +332,7 @@ def prepare_report(
     include_related: bool = False,
     today: date | None = None,
     ledger_root: str | None = None,
+    history_keys: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assess + classify + place findings without rendering.
 
@@ -338,7 +345,8 @@ def prepare_report(
     security findings from CVE correlation have none), so warning
     windows survive across runs. An existing first_detected_at is
     never overwritten, and an absent ledger entry adds nothing -
-    unknown stays unknown, never estimated.
+    unknown stays unknown, never estimated. Only keyed history counts:
+    without ``history_keys`` the ledger adds nothing (B3c).
     """
     today = today or date.today()
     held_back = 0
@@ -346,7 +354,10 @@ def prepare_report(
     for item in items:
         # Copy: filtering must never mutate the caller's bundles.
         kept = [f for f in item.get("findings", []) if _fresh(f, since)]
-        kept = [_with_ledger_first_detected(f, item.get("project"), ledger_root) for f in kept]
+        kept = [
+            _with_ledger_first_detected(f, item.get("project"), ledger_root, history_keys)
+            for f in kept
+        ]
         held_back += sum(1 for f in kept if not _narrate(f, include_related))
         narrated = aggregate_lifecycle([f for f in kept if _narrate(f, include_related)])
         assessed = []
@@ -392,6 +403,7 @@ def build_report(
     sweep_findings: list[dict[str, Any]] | None = None,
     today: date | None = None,
     ledger_root: str | None = None,
+    history_keys: dict[str, Any] | None = None,
 ) -> str:
     """Monthly public intelligence briefing — web-frontend-ready markdown.
 
@@ -409,7 +421,13 @@ def build_report(
     """
     today = today or date.today()
     prepared = prepare_report(
-        items, sweep_findings, since, include_related, today, ledger_root=ledger_root
+        items,
+        sweep_findings,
+        since,
+        include_related,
+        today,
+        ledger_root=ledger_root,
+        history_keys=history_keys,
     )
     scoped = prepared["scoped"]
     assessed_sweep = prepared["assessed_sweep"]
