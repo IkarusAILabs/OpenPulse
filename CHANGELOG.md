@@ -2,6 +2,16 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Digest integrity for lockfiles (track T, T-B4, v0.12.0 item U2).** `check_dependency_file` (MCP) compares each digest a `package-lock.json` (`integrity`) or `poetry.lock` (`files[].hash`) pins with what npm (`dist.integrity`, or `dist.shasum` for old sha1 locks) or PyPI (`urls[].digests.sha256`) publishes for that version. A locked digest the registry doesn't publish is `VERIFIED_FAILURE`, listed under `digest_integrity.failures`: the locked artifact is not the one the registry serves (substituted, re-uploaded or tampered).
+  - **Other outcomes:** no usable locked digest is `MISSING_EVIDENCE`, and no usable registry answer is `NOT_PERFORMED`, never a failure.
+  - **Safety:** lockfile digests are validated before use, and names before any URL. Each check spends one lookup from the session budget, under the 40-per-file cap.
+  - **Reader output unchanged:** `core.lockfile_reader.lockfile_digests` reads the digests separately, so the dependency entries the verdict engine, contracts and ledger use are untouched.
+  - **Unchanged:** verdicts. No new dependency; hashing only.
+
 ## 0.11.1 — 2026-11-01
 
 A patch release:
