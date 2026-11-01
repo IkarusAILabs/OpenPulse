@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
@@ -403,18 +404,59 @@ def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, An
     }
 
 
+#: Identifier shapes for anything an agent hands us (T-F3, Phase 0 audit A).
+#: Deliberately general - every ecosystem's names and versions, and legacy
+#: npm names with capitals, fit - and deliberately closed: no whitespace,
+#: control, bidi, zero-width or Markdown characters, so a name can never
+#: carry an instruction into an answer. Registry URLs use the stricter
+#: per-ecosystem grammars of core.registry_existence.
+_IDENTIFIER_SHAPES = {
+    "package": re.compile(r"[A-Za-z0-9@][A-Za-z0-9@/._:+~-]{0,213}"),
+    "version": re.compile(r"[A-Za-z0-9][A-Za-z0-9.+!_~:-]{0,63}"),
+    "ecosystem": re.compile(r"[A-Za-z][A-Za-z0-9.+_-]{0,31}"),
+    "image": re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,254}"),
+}
+_SHAPE_HELP = {
+    "package": "letters, digits and @ / . _ : + ~ -, at most 214 characters",
+    "version": "letters, digits and . + ! _ ~ : -, at most 64 characters",
+    "ecosystem": "letters, digits and . + _ -, at most 32 characters",
+    "image": "letters, digits and . _ : / @ + -, at most 255 characters",
+}
+
+
+def _identifier(field: str, value: str) -> str:
+    """``value`` when it has the identifier shape; else ValueError. Never echoes it."""
+    if not _IDENTIFIER_SHAPES[field].fullmatch(value):
+        raise ValueError(
+            f"{field} is not an identifier ({_SHAPE_HELP[field]}); the value is not repeated"
+        )
+    return value
+
+
+def _refused_entry(dep: dict[str, Any]) -> str | None:
+    """The field of a file entry that fails its identifier shape, if any."""
+    fields = {"ref": "image"} if dep.get("kind") == "image" else {
+        "package": "package", "version": "version", "ecosystem": "ecosystem"
+    }
+    for key, field in fields.items():
+        value = dep.get(key)
+        if value is not None and not _IDENTIFIER_SHAPES[field].fullmatch(str(value)):
+            return field
+    return None
+
+
 def _dependency(
     package: str | None, version: str | None, ecosystem: str | None, image: str | None
 ) -> dict[str, Any]:
     if image:
-        return {"kind": "image", "ref": image.strip()}
+        return {"kind": "image", "ref": _identifier("image", image.strip())}
     if not package or not package.strip():
         raise ValueError("give a package name (with ecosystem and version) or an image ref")
-    dep: dict[str, Any] = {"kind": "package", "package": package.strip()}
+    dep: dict[str, Any] = {"kind": "package", "package": _identifier("package", package.strip())}
     if ecosystem:
-        dep["ecosystem"] = ecosystem.strip()
+        dep["ecosystem"] = _identifier("ecosystem", ecosystem.strip())
     if version:
-        dep["version"] = version.strip()
+        dep["version"] = _identifier("version", version.strip())
     return dep
 
 
@@ -606,6 +648,19 @@ def check_dependency_file(
         mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
     )
     deps, skipped, kind = _read_dependency_file(path)
+    # The agent writes the files it asks about: an entry whose name is not an
+    # identifier is skipped like any unpinned entry, and never echoed (T-F3).
+    kept = []
+    for number, dep in enumerate(deps, 1):
+        field = _refused_entry(dep)
+        if field is None:
+            kept.append(dep)
+        else:
+            skipped = [
+                *skipped,
+                f"entry {number}: {field} is not an identifier - skipped, value not shown",
+            ]
+    deps = kept
     truncated = len(deps) > MAX_FILE_DEPENDENCIES
     deps = deps[:MAX_FILE_DEPENDENCIES]
     if live and lookups is None:

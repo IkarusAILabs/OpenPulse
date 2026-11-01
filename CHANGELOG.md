@@ -2,6 +2,16 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Security
+
+- **Agent inputs must be identifiers, and are never echoed (track T, T-F3 fix A, v0.12.0 item U1).** The MCP tools took package names, versions, ecosystems and image refs as free text and repeated them in `dependency`, `verdict.reason` and `causes[].reason`. So an agent, or text injected into it, could make OpenPulse return arbitrary instructions inside fields the agent trusts.
+  - **What's accepted:** these values must now match a general identifier shape (letters, digits and `@ / . _ : + ~ -` for names; similar sets for versions, ecosystems and image refs). Every ecosystem's real names fit, including legacy npm names with capitals.
+  - **Tool arguments:** a failing argument is refused with a reason that doesn't repeat it.
+  - **File entries:** `check_dependency_file` skips a failing entry like an unpinned one ("entry N: package is not an identifier - skipped, value not shown"). The agent writes the files it asks about.
+  - **Unchanged:** every dependency in the bundled fixtures passes the shape.
+
 ## 0.11.0 "Early Warning Operations" — 2026-11-01
 
 Scheduled alerts an operator can leave running, and a first track T check for AI coding agents.
