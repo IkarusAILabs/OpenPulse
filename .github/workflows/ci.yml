@@ -1,7 +1,18 @@
 name: ci
-on: [push, pull_request]
+# One run per change: pushes to main, and pull requests. A push to a PR
+# branch used to start a second, identical run for the push event.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+# A new commit on a pull request cancels that PR's run in progress; runs on
+# main are never cancelled, so every merge keeps its own complete result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test:
     strategy:
@@ -22,7 +33,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       # `python -m pip`: on Windows pip refuses to replace itself through the
       # pip.exe launcher, which fails the job whenever the runner image's pip
       # differs from the pinned one.
@@ -154,7 +172,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       - run: python -m pip install --require-hashes -r .github/ci-tools.lock
       - run: python -m pip install --require-hashes -r requirements.lock -r requirements-mcp.lock && python -m pip install --no-deps -e .
       - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-mcp.lock
@@ -173,7 +198,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: {node-version: '24.22.0'}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

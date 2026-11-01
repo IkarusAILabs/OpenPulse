@@ -191,7 +191,7 @@ def verify_entry(entry: dict[str, Any]) -> bool:
 
 @contextlib.contextmanager
 def ledger_lock(
-    root: str | Path, project: str, wait_seconds: float = _LOCK_WAIT_SECONDS
+    root: str | Path, project: str, wait_seconds: float | None = None
 ) -> Iterator[None]:
     """Per-project exclusive lock across load-merge-save.
 
@@ -204,7 +204,9 @@ def ledger_lock(
     directory = _project_dir(root, project)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    with exclusive_lock(lock, wait_seconds, "ledger"):
+    # Read at call time, so the module constant is the one place to tune it.
+    wait = _LOCK_WAIT_SECONDS if wait_seconds is None else wait_seconds
+    with exclusive_lock(lock, wait, "ledger"):
         yield
 
 

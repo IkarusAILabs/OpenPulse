@@ -58,3 +58,36 @@ def test_every_checkout_drops_the_job_token(workflow):
 def test_the_policy_test_sees_the_workflows():
     assert {p.name for p in WORKFLOWS} >= {"ci.yml", "release.yml"}
     assert sum(1 for p in WORKFLOWS for _ in _checkouts(p)) >= 5
+
+
+def _ci():
+    path = next(p for p in WORKFLOWS if p.name == "ci.yml")
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["on"] = doc.pop(True, doc.get("on"))  # YAML 1.1 reads `on` as a boolean
+    return doc
+
+
+def test_ci_runs_once_per_change():
+    """A push to a PR branch must not start a second, identical run."""
+    on = _ci()["on"]
+    assert on["push"] == {"branches": ["main"]}
+    assert "pull_request" in on
+
+
+def test_ci_cancels_only_superseded_pull_request_runs():
+    concurrency = _ci()["concurrency"]
+    assert "pull_request.number" in concurrency["group"] and "github.sha" in concurrency["group"]
+    assert concurrency["cancel-in-progress"] == "${{ github.event_name == 'pull_request' }}"
+
+
+def test_pip_cache_never_replaces_hash_checking():
+    jobs = _ci()["jobs"]
+    for name, job in jobs.items():
+        steps = job.get("steps", [])
+        if any(s.get("with", {}).get("cache") == "pip" for s in steps):
+            installs = [s["run"] for s in steps if "pip install" in s.get("run", "")]
+            assert installs, name
+            for run in installs:
+                for command in run.replace("\n", "&&").split("&&"):
+                    if "pip install" in command and " -r " in command:
+                        assert "--require-hashes" in command, (name, command)

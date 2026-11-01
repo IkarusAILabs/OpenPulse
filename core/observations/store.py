@@ -131,7 +131,7 @@ def repo_lock(
     registry: str,
     namespace: str,
     repository: str,
-    wait_seconds: float = _LOCK_WAIT_SECONDS,
+    wait_seconds: float | None = None,
 ) -> Iterator[None]:
     """Per-repository exclusive lock across load-diff-save.
 
@@ -145,7 +145,9 @@ def repo_lock(
     directory = repo_dir(root, registry, namespace, repository)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    with exclusive_lock(lock, wait_seconds, "observation"):
+    # Read at call time, so the module constant is the one place to tune it.
+    wait = _LOCK_WAIT_SECONDS if wait_seconds is None else wait_seconds
+    with exclusive_lock(lock, wait, "observation"):
         yield
 
 
