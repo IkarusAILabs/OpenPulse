@@ -175,6 +175,7 @@ Limits are stated in the answer, never applied silently (v0.11.0):
 - **Read-only.** No tool writes or executes anything.
 - **Confined file access.** `check_dependency_file` only reads files inside the server's root (the directory it was started in, or `--root`). A prompt-injected agent cannot use OpenPulse to parse files elsewhere on the machine. Reads are size-bounded.
 - **Limited network.** The only hosts contacted are endoflife.date, api.osv.dev and api.github.com. `--offline` turns network access off entirely and answers from the curated events (`project_lifecycle` then explains that it needs live lookups).
+- **No text comes back from the caller (v0.12.0).** Package names, versions, ecosystems and image refs must be identifiers (letters, digits and a few separators: no whitespace, control, bidi, zero-width or Markdown characters). A tool argument that isn't one is refused, and a file entry that isn't one is skipped. Neither is ever repeated in the answer, so a name can't carry an instruction back to the agent.
 - **Errors with reasons.** Bad input (a path outside the root, an unrecognised file, a missing package name) comes back to the agent as a tool error with the reason, not an opaque failure.
 
 ## Troubleshooting
