@@ -93,7 +93,7 @@ Goal: authority, independence and history integrity are derived from verifiable 
 | B3 | Keyed integrity (detail below) | H2, L1 | L | **owner-approved key-management design** |
 | B4 | Rollback and downgrade detection (detail below) | H2 | M | B3 |
 | B5 | `openpulse anchor`: signed checkpoint of all tips plus a Merkle root of the ledger, stored as a git commit or CI artifact; `verify` compares against the last anchor | H2 | M | B3, B4 |
-| B6 | Clock trust (detail below) | L7 | S | — |
+| B6 | Clock trust (detail below) — DONE (Unreleased, v0.9.0) | L7 | S | — |
 | B7 | Evidence contract v2.0 (JCS hash; detail below) | L8 | M | — |
 
 **B1 detail:**

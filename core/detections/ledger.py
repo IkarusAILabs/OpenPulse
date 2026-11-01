@@ -17,11 +17,14 @@ content hashes - NOT a second storage model):
   every read (``verify_entry``): a post-write edit of ``first_seen``
   breaks the hash and the entry degrades to unknown - the integrity
   claim above is enforced, not aspirational.
-- Earliest evidence wins: a re-detection never moves ``first_seen``
-  later. Clock skew is absorbed the same way: a skewed-later stamp
-  cannot overwrite an earlier one; a skewed-earlier stamp IS taken
-  (it is indistinguishable from a truthful earlier detection, and
-  inventing a correction would violate the "never estimated" rule).
+- ``first_seen`` is set once, when the entry is created: a
+  re-detection never moves it, later or earlier. A stamp earlier than
+  the entry's creation is a sighting the ledger did not witness, so it
+  is not taken (clock trust, finding L7).
+- Every stamp must lie within ``MAX_CLOCK_SKEW`` of UTC wall-clock time
+  at the moment of recording. A caller cannot backdate a detection and
+  so inflate a lead time; a stamp outside the bound raises
+  ``ClockSkewError`` and nothing is written.
 - Writes are atomic (temp file + ``os.replace``) under a per-project
   lock (``O_CREAT|O_EXCL``, stale reclaim after 120s) borrowed from
   the observation store so two simultaneous ``openpulse check`` runs
@@ -48,7 +51,7 @@ import json
 import os
 import tempfile
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +75,17 @@ SECURITY = "security"
 #: and the reader (``reports._ledger_fact``) MUST key identically, so
 #: the set lives here, next to the identity contract it defines.
 LIFECYCLE_EVENT_TYPES = frozenset({"EOL", "EOS", "DEPRECATION", "SUPPORT_CHANGE"})
+
+
+#: Largest distance between a recorded stamp and UTC wall-clock time
+#: at the moment of recording. Covers clock reads a few seconds apart
+#: within one run; anything further is a backdated or future-dated
+#: claim, never a detection this process witnessed.
+MAX_CLOCK_SKEW = timedelta(minutes=5)
+
+
+class ClockSkewError(ValueError):
+    """A ledger stamp is unparseable or too far from wall-clock time."""
 
 
 def _safe(part: str) -> str:
@@ -229,6 +243,18 @@ def _parse_moment(value: Any) -> datetime | None:
     return moment
 
 
+def _check_wall_clock(stamp: str) -> None:
+    """Raise ClockSkewError unless ``stamp`` is near UTC wall-clock time."""
+    moment = _parse_moment(stamp)
+    if moment is None:
+        raise ClockSkewError(f"ledger stamp is not an ISO-8601 time: {stamp!r}")
+    wall = _parse_moment(now_iso())
+    if wall is None or abs(moment - wall) > MAX_CLOCK_SKEW:
+        raise ClockSkewError(
+            f"ledger stamp {stamp} is more than {MAX_CLOCK_SKEW} from wall-clock time"
+        )
+
+
 def record_detection(
     project: str,
     finding_class: str,
@@ -239,12 +265,15 @@ def record_detection(
 ) -> dict[str, Any]:
     """Record one detection; return the ledger entry after merge.
 
-    Earliest-wins merge: a re-detection refreshes ``last_seen`` but
-    never moves ``first_seen`` later. ``recorded_now`` tells the
-    caller whether this call created the entry (first detection).
+    A re-detection refreshes ``last_seen`` but never moves
+    ``first_seen``. ``recorded_now`` tells the caller whether this call
+    created the entry (first detection). Raises ``ClockSkewError``,
+    writing nothing, when ``detected_at`` is unparseable or further
+    than ``MAX_CLOCK_SKEW`` from UTC wall-clock time.
     """
     scope = list(scope or [])
     stamp = detected_at or now_iso()
+    _check_wall_clock(stamp)
     directory = _project_dir(root, project)
     key = fact_key(project, finding_class, subject, scope)
     path = _key_file(directory, key)
@@ -268,16 +297,14 @@ def record_detection(
             }
             _write_atomic(path, entry)
             return {**entry, "recorded_now": True}
-        first_prev = _parse_moment(existing.get("first_seen"))
         incoming = _parse_moment(stamp)
-        if first_prev is None:
-            first_seen = stamp if incoming is not None else str(existing.get("first_seen") or stamp)
-        elif incoming is not None and incoming < first_prev:
-            # Strictly earlier trustworthy stamp wins - includes the
-            # clock-skew case; never corrected, never estimated.
+        if _parse_moment(existing.get("first_seen")) is None:
+            # Unreadable first sighting: this is the first one witnessed.
             first_seen = stamp
         else:
-            first_seen = str(existing.get("first_seen") or stamp)
+            # Set at creation. An earlier stamp predates the entry, so
+            # the ledger never witnessed it (L7): it is not taken.
+            first_seen = str(existing.get("first_seen"))
         last_prev = _parse_moment(existing.get("last_seen"))
         last_seen = str(existing.get("last_seen") or stamp)
         if last_prev is None or (incoming is not None and incoming > last_prev):

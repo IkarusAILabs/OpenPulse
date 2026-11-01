@@ -20,7 +20,7 @@ import json
 import os
 import tempfile
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -108,7 +108,7 @@ def save_observation(obs: dict[str, Any], root: str | Path = ".openpulse/observa
     timestamp never collide: concurrent writers under the repo lock
     still produce distinct, linearly-linked files.
     """
-    observed = obs.get("observed_at") or datetime.now().isoformat()
+    observed = obs.get("observed_at") or datetime.now(timezone.utc).isoformat()
     stamp = str(observed).replace(":", "").replace("-", "").replace("+0000", "Z")
     stamp = "".join(c if c.isalnum() or c in ("T", "Z", ".") else "" for c in stamp)
     digest = str(obs.get("chain_hash") or obs.get("content_hash") or "unhashed")

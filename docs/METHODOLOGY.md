@@ -202,9 +202,13 @@ chain: an entry is a standalone earliest-witness record, so its own
 content hash meets the integrity need, and absence — deleted or
 never written — is
 indistinguishable from never-detected, which is exactly the
-"unknown means unknown" rule. Earliest evidence wins, including
-under clock skew: a later stamp never overwrites, an earlier
-trustworthy stamp is taken (correcting it would be an estimate).
+"unknown means unknown" rule. An entry's first sighting is fixed
+when it is created: a later stamp never overwrites it, and an earlier
+stamp is not taken, because the ledger never witnessed it. Every
+stamp must also lie within five minutes of UTC wall-clock time when
+it is recorded, so a caller cannot backdate a detection to inflate a
+lead time; a stamp outside that bound is refused and nothing is
+written (clock trust, finding L7).
 Deleting the ledger degrades to per-run behavior — no claims, never
 invented dates.
 
