@@ -113,8 +113,12 @@ every version whose leading segments equal it (`versions.in_release_line`):
 
 Every claim names supporting evidence (`Claim.evidence_refs`); an
 official-but-unrelated source never satisfies a claim. Corroboration
-counts independent families, folding `derived_from` chains — and the
-monthly report counts families, not labels: NVD + OSV share the
+counts independent families, folding `derived_from` chains. A family is
+also derived from each source's URL: its registrable domain, or the
+host plus owner on shared hosts such as `github.com/bitnami`. Two
+pages on one site are one source, whatever families their producer
+declares; a declared family can merge sources but never split them.
+The monthly report counts families, not labels: NVD + OSV share the
 vuln-data family, and OpenPulse's own correlation never counts as an
 independent source (`source_family_count`,
 `corroborating_family_count`). Contradicting evidence stays visible
