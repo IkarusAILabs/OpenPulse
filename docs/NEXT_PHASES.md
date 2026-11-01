@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-01 (later):** v0.10.0 "Verified Releases & Safe Gates" is released (Phase 3). The owner decided that product development continues alongside track R rather than waiting for the paper submission (`docs/ROADMAP.md`), so Phase 5 (M6 operations) is no longer paused.
 - **Update 2026-11-01:** v0.9.0 "Anchored Trust" is released (Phase 2, all exit criteria met). v0.10.0 is rescoped from M6 operations, which `docs/ROADMAP.md` pauses until after R-D, to "Verified Releases & Safe Gates" (Phase 3 below), approved by the owner on 2026-11-01. The bullets below are the 2026-10-28 snapshot.
 - **Released:** v0.7.0 "Channels" (2026-10-28): wheel data packaging (#132), the release-line verdict fix (#133, **changes verdicts**), `openpulse mcp`, DefectDojo export and Dependency-Track upload (#134–#137), `python -I -m cli` (#146, #150), the CycloneDX serial fix (#147), shared GitHub auth options (#149) and the install name `ikarus-openpulse` (#154). The Action is not on the Marketplace yet (R4).
 - **Next patch, v0.7.1:** collector response caps (#155, H11) and hash-locked installs everywhere (#156, H12).
@@ -140,17 +141,17 @@ Goal: authority, independence and history integrity are derived from verifiable 
 
 All exit criteria hold as of v0.9.0 (2026-11-01), and the wording has moved.
 
-## Phase 3 — v0.10.0 "Verified Releases & Safe Gates" (rescoped 2026-11-01)
+## Phase 3 — v0.10.0 "Verified Releases & Safe Gates" (rescoped 2026-11-01) — DONE, released 2026-11-01
 
 Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI gate that passes on an input OpenPulse did not fully read. Why this and not M6: `docs/ROADMAP.md` pauses M6 until after R-D, and track R needs a verifiable tagged release for its reproducibility package (R-D2). Nothing here changes the frozen evaluation.
 
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|
-| V1 | ACTIVE (PR open) — Tag-triggered release workflow (= D2): build sdist and wheel from the tag, fail when the tag differs from `openpulse --version`, regenerate the deterministic SBOM, attach all three to the GitHub release, and add build-provenance attestations (`actions/attest-build-provenance`, SHA-pinned, least-privilege per job). PyPI publishing only after decision 7 | #111 | M | — |
-| V2 | `check --fail-on` fails when repository coverage is FAILED, as `--strict` already does | #101 | S | — |
-| V3 | ACTIVE (#109 PR open) — `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
+| V1 | DONE (#241) — Tag-triggered release workflow (= D2): build sdist and wheel from the tag, fail when the tag differs from `openpulse --version`, regenerate the deterministic SBOM, attach all three to the GitHub release, and add build-provenance attestations (`actions/attest-build-provenance`, SHA-pinned, least-privilege per job). PyPI publishing only after decision 7 | #111 | M | — |
+| V2 | DONE (#240) — `check --fail-on` fails when repository coverage is FAILED, as `--strict` already does | #101 | S | — |
+| V3 | DONE (#248, #249) — `NOT_APPLICABLE` inspection coverage for inputs with no repository scan (evidence contract 2.1.0, sibling schema), and `digest` / `warnings` show non-COMPLETE coverage in the body | #109, #102 | M | decision 8 |
 | V4 | DNS-pinned webhook transport (= C2; detail under Phase 5) | M5 | M | — · DONE (#242) |
-| V5 | Hardening good first issues: CI guard for `--deselect` and friends, token-file handling and permissions, `persist-credentials: false`, secret-scan skips | #104, #138, #139, #141, #142 | S each | — |
+| V5 | DONE (#243–#247) — Hardening good first issues: CI guard for `--deselect` and friends, token-file handling and permissions, `persist-credentials: false`, secret-scan skips | #104, #138, #139, #141, #142 | S each | — |
 
 **Exit:**
 - `v0.10.0` is tagged through V1, and `gh attestation verify` passes on its wheel.
@@ -160,7 +161,7 @@ Goal: a release anyone can verify back to its commit, lock and SBOM, and no CI g
 
 **Not in v0.10.0:** C1 persistent delivery state (#78) and C5 MCP hardening (M6, paused); C4 `bench` (superseded by the R-B1 harness); D6 namespace move (its own release); more lockfile readers (#153, contributors any time); track T code (waits for its Phase 0).
 
-## Phase 5 — M6 operations (layers 7 and 8; PAUSED until after R-D, was v0.10.0)
+## Phase 5 — M6 operations (layers 7 and 8; NEXT — un-paused 2026-11-01, was v0.10.0)
 
 | # | Item | Finding / issue | Size | Depends on |
 |---|---|---|---|---|

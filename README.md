@@ -56,7 +56,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.9.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.10.0
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -69,7 +69,7 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.9.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.10.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -268,6 +268,19 @@ everything else. We do not compete on EOL record counts.
 - **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract 2.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+
+## What's new in v0.10
+
+v0.10.0 "Verified Releases & Safe Gates" makes releases verifiable and closes the places where an unread input could pass for a clean one. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+- **Gate change: please read before upgrading.** `--fail-on`, in the CLI and the Action's `fail-on`, now fails when a `--github-repo` scan FAILED: a gate never passes on a repository OpenPulse could not read. PARTIAL still fails only `--fail-on-partial`.
+- **Evidence contract 2.1.0.** Runs that inspect no repository (watchlist, SBOM, lockfile, manifest, images) say `NOT_APPLICABLE` coverage instead of `COMPLETE`. Validate against `schemas/evidence-contract/v2.1/schema.json`.
+- **Coverage in every body.** `digest`, `warnings` and the `check --webhook` message say when a repository was not fully read.
+- **Attested releases.** A tag builds the sdist, wheel, SBOM and `SHA256SUMS` with hash-locked tools and signs build provenance for each file. Check a download with `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+- **Hardening.**
+  - Webhooks connect only to the address that passed the SSRF check (DNS-pinned, with IPv4-mapped, 6to4 and NAT64 forms unwrapped).
+  - `--github-token-file` takes one validated line and warns when other users can read it.
+  - CI drops the job token after checkout, its guard now catches every way pytest can quietly skip tests, and the secret tripwire skips only its own file and virtualenvs.
 
 ## What's new in v0.9
 

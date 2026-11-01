@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status (2026-10-31): track T, AI Dependency Trust Assurance, is added as a planned, separate future study (see below). It changes neither track R nor R's precedence. Status (2026-10-30): research track R (below) takes precedence until the TR-2026-01 journal submission. Earlier status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-11-01): **product development continues alongside track R** (owner decision; see "Amendment 2026-11-01" below). v0.9.0 "Anchored Trust" and v0.10.0 "Verified Releases & Safe Gates" are released; M6 is no longer paused. Status (2026-10-31): track T, AI Dependency Trust Assurance, is added as a planned, separate future study (see below). It changes neither track R nor R's precedence. Status (2026-10-30): research track R (below) takes precedence until the TR-2026-01 journal submission. Earlier status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH, PAUSED. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -20,7 +20,9 @@ An external recommendation on TR-2026-01 (assessment: `papers/tr-2026-01/RECOMME
 
 - Target: "Level 2", an empirically strengthened manuscript. It needs a precise contribution, independent validation, labelled historical cases and a comparative evaluation. Level 3 (multiple ecosystems, longitudinal and practitioner studies) is not a prerequisite.
 - TR-2026-01 itself may be published now as a technical report, with its claims as they stand. The journal version waits for R-C.
-- Rule for R: build only what an experiment needs. Every R item names the research question it serves. Product features that serve no R question wait.
+- Rule for R: build only what an experiment needs. Every R item names the research question it serves.
+
+**Amendment 2026-11-01 (owner decision): product development is not frozen for the paper.** Track R stays the research priority, but product features no longer wait for the journal submission; they are planned on their own merits, release by release. One guardrail stays: product work never changes the frozen evaluation (`evaluation/`, `build_v1_contract`, the freeze tags) or the verdict semantics the registered study depends on without an explicit owner decision. The table below records what this un-pauses.
 
 ### R-A — Research design (contribution and protocol)
 STATUS: ACTIVE
@@ -100,13 +102,13 @@ STATUS: FUTURE (after R-C)
 
 | Work | Disposition | Reason |
 |---|---|---|
-| M6 hosted surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
+| M6 hosted surfaces, dashboards, notifications, delivery state | UN-PAUSED 2026-11-01 (was PAUSED) | Product maturity is not evidence, so M6 never feeds the paper's claims; it now proceeds alongside R (amendment above). |
 | M7 Intelligence Network | FUTURE (unchanged) | |
 | M9, and SafeAI integration in this paper | DEFERRED | It widens scope and complicates attribution. It stays a separate future study. |
 | v0.9.0 Anchored Trust (keyed history, external anchoring) | DONE 2026-11-01 (released ahead of R-C) | Needed for lead-time claims. The applicability evaluation does not rest on them, and the frozen evaluation is unchanged. The paper keeps lead times as caveated observations. |
 | E1–E5 external developments | E5 (comparator runs) folded into R-C3; E1–E4 LATER | |
-| Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue only where they fix a false clear or false impact | |
-| Track T, AI Dependency Trust Assurance (added 2026-10-31) | FUTURE: Phase 0 (docs only) may run now; code waits | It is a separate study, outside the TR-2026-01 registration (§13: discovery and the agent interface are outside the study). It must not change verdicts or the frozen evaluation. |
+| Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue (since 2026-11-01, no longer limited to false clears and false impacts) | |
+| Track T, AI Dependency Trust Assurance (added 2026-10-31) | Phase 0 (design) first; code may follow without waiting for the submission (2026-11-01) | It is a separate study, outside the TR-2026-01 registration (§13: discovery and the agent interface are outside the study). It must not change verdicts or the frozen evaluation. |
 
 ## Product thesis (kept)
 
@@ -237,7 +239,7 @@ ACTION
 Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), and GitHub repository input (`core/github_reader.py`). All inputs converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing. GitHub inspection is bounded, commit-pinned, and reports partial/unsupported coverage rather than treating absence as proof of no dependencies.
 
 ## M6 — Early Warning
-STATUS: PAUSED 2026-10-30 for track R (was ACTIVE / OPERATIONALIZATION)
+STATUS: NEXT (un-paused 2026-11-01; paused 2026-10-30 for track R; was ACTIVE / OPERATIONALIZATION)
 
 Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Research question stays: “What is changing in MY software?”
 
@@ -320,7 +322,7 @@ And which of these did nobody check at all?
 
 Track T extends layers 2 (evidence), 3 (identity) and 9 (AI-mediated change). It is planned as its own study, with its own design, registration and evaluation.
 
-**Relationship to track R.** Track T does not touch track R. It is not part of the TR-2026-01 registration: the registration's §13 already lists discovery and the agent interface as outside that study. It does not change R's hypotheses, thresholds, population, scope or precedence. R stays first until the journal submission. Until then, track T is limited to Phase 0 below, which is design and desk research only.
+**Relationship to track R.** Track T does not touch track R. It is not part of the TR-2026-01 registration: the registration's §13 already lists discovery and the agent interface as outside that study. It does not change R's hypotheses, thresholds, population, scope or precedence. Since 2026-11-01, product work no longer waits for the journal submission: track T starts with Phase 0 below, which is design and desk research only.
 
 Three rules apply to later T code:
 
@@ -583,7 +585,7 @@ This study can share infrastructure with E4, the dependency-decision experiment 
 - DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
 - DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.9.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
 - DONE 2026-11-01: v0.9.0 "Anchored Trust" - derived authority (#224) and independence (#227), clock trust (#223), keyed history with rotation and adoption (#229-#232, #235), rollback and downgrade detection (#233), anchors (#234), evidence contract 2.0.0 (#236).
-- NEXT 2026-11-01: v0.10.0 "Verified Releases & Safe Gates" (owner-approved rescope; M6 stays PAUSED): attested tag-triggered releases (#111), gates that fail on FAILED coverage (#101), `NOT_APPLICABLE` coverage (#109, #102), DNS-pinned webhooks (M5) and hardening issues - see `docs/NEXT_PHASES.md` Phase 3. Track R keeps precedence.
+- DONE 2026-11-01: v0.10.0 "Verified Releases & Safe Gates" (#240-#249): attested tag-triggered releases (#111), gates that fail on FAILED coverage (#101), `NOT_APPLICABLE` coverage (#109, #102), DNS-pinned webhooks (M5) and hardening issues - see `docs/NEXT_PHASES.md` Phase 3. Product work continues alongside track R (amendment 2026-11-01).
 
 ## Next 8–16 weeks (re-baselined 2026-10-30; supersedes the 2026-10-21 list)
 

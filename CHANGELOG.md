@@ -2,7 +2,14 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.10.0 "Verified Releases & Safe Gates" — 2026-11-01
+
+Every release is now built from its tag with hash-locked tools and carries signed build provenance, and no output or CI gate treats an input OpenPulse did not fully read as clean. **This release changes outputs and gates**:
+- `--fail-on` (CLI and Action) now fails on a repository it could not read.
+- `openpulse attest` emits evidence contract 2.1.0, where runs with no repository say `NOT_APPLICABLE` coverage.
+- A token file with two non-empty lines is refused.
+
+Webhooks connect only to the address that passed the SSRF check. Verdicts and the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.
 
 ### Upgrade notes
 
