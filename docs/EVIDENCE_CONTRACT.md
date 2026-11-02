@@ -7,8 +7,8 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema (current, 2.2): [`schemas/evidence-contract/v2.2/schema.json`](../schemas/evidence-contract/v2.2/schema.json)
-  (JSON Schema draft 2020-12); 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
+- Schema (current, 2.3): [`schemas/evidence-contract/v2.3/schema.json`](../schemas/evidence-contract/v2.3/schema.json)
+  (JSON Schema draft 2020-12); 2.2, 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
 - Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
@@ -214,6 +214,20 @@ There is no `SAFE` value. Each check's own free-form evidence stays in the MCP a
 The hash rule is 2.1's: `trust_assurance` is inside the JCS content hash like any other field, so `verify.mjs` and `verify_content_hash` cover it unchanged. The 2.1 schema stays byte-for-byte, and a 2.1 validator rejects a 2.2 document (`trust_assurance` is an unexpected property). `openpulse attest` emits 2.2.0.
 
 **Upgrading a consumer:** validate against `schemas/evidence-contract/v2.2/schema.json`. Treat a null `trust_assurance` as "not checked", and never read a missing status as safe.
+
+### 2.3.0 - reputation indicators (v0.16.0, Q5, track T T-C)
+
+Minor, additive. `trust_assurance.checks[].check` may also be one of three reputation indicators. Each is an indicator only: it reports `SUSPICIOUS_INCONCLUSIVE` at most, never `VERIFIED_FAILURE` or `CONFIRMED_MALICIOUS`, and indicators are never summed into a score.
+
+| `check` | `SUSPICIOUS_INCONCLUSIVE` when | `references` |
+|---|---|---|
+| `publisher_change` (threat T6) | The release was published by an npm account, or a PyPI provenance publisher, that the earlier releases did not use; or trusted publishing or attestations stopped | none |
+| `repository_moved` | The claimed GitHub repository answers under another name (renamed or transferred) | the repository it answers as |
+| `young_popular_repository` (threat T5) | The claimed repository is younger than 180 days and has at least 1000 stars. Stars are inputs, never trust evidence, so this check is never `VERIFIED_RELATIONSHIP` | the repository |
+
+Their firing rates on legitimate packages are in [`docs/research/TRACK_T_MEASUREMENTS.md`](research/TRACK_T_MEASUREMENTS.md). Nothing else changes: same fields, statuses, summary and hash rule. The 2.2 schema stays byte-for-byte, and a 2.2 validator rejects a 2.3 document that names a new check. `openpulse attest` emits 2.3.0.
+
+**Upgrading a consumer:** validate against `schemas/evidence-contract/v2.3/schema.json`. A consumer that switches on `check` must accept the three new names, or ignore names it does not know.
 
 ## CLI
 

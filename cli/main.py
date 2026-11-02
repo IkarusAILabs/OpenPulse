@@ -371,13 +371,14 @@ def mcp_command(root, offline, record):
 
 
 #: Live lookups per dependency for `attest --trust` (malicious, existence,
-#: provenance, linkage), and the most one run may make.
-_ATTEST_TRUST_LOOKUPS_PER_DEP = 4
+#: provenance, linkage, and the three reputation indicators of v0.16.0), and
+#: the most one run may make.
+_ATTEST_TRUST_LOOKUPS_PER_DEP = 7
 _ATTEST_TRUST_MAX_LOOKUPS = 2000
 
 
 def _attest_trust(deps, private_names, base_keys=None):
-    """{dependency index: 2.2 trust_assurance block}; each dependency checked once.
+    """{dependency index: 2.3 trust_assurance block}; each dependency checked once.
 
     With ``base_keys`` (the dependencies of the base files), only dependencies
     added or changed since the base are checked; the others get no block.
@@ -760,8 +761,9 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
 def trust_command(path, base, private_names, offline, as_json):
     """Trust checks for PyPI and npm dependencies (report-only, track T).
 
-    Registry existence, provenance (PyPI) and lookalike-name indicators for
-    the dependencies added since --base, or for every dependency without it.
+    Known-malicious records, registry existence, provenance (PyPI), repository
+    linkage, lookalike names and the reputation indicators for the dependencies
+    added since --base, or for every dependency without it.
     Never part of a verdict, and never a failing exit: review what is listed.
     """
     import json as _json
@@ -2543,7 +2545,7 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     "trust",
     is_flag=True,
     help="Also check trust for PyPI and npm dependencies (live lookups) and record it in "
-    "each contract's trust_assurance (2.2.0); never part of a verdict",
+    "each contract's trust_assurance (2.3.0); never part of a verdict",
 )
 @click.option(
     "--private-names",

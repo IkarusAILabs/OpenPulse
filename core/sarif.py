@@ -13,7 +13,7 @@ Level mapping (per dependency x event contract):
 - RELATED / AFFECTS_PROJECT / UNKNOWN with a match -> ``note``
 - NOT_AFFECTED                      -> omitted
 
-Trust records (contract 2.2.0 ``trust_assurance``, v0.14.0 Y4) are reported
+Trust records (contract 2.2.0+ ``trust_assurance``, v0.14.0 Y4) are reported
 once per file, dependency, check and status, under ``openpulse/trust/<check>``.
 They never make a verdict, and the level never encodes a risk score:
 

@@ -245,9 +245,13 @@ def test_cached_per_session():
     net = Net(files={f"{RAW}/o/fastlib/HEAD/package.json": _package_json("fastlib")})
     lookups = _lookups(net)
     dependency_status("fastlib", "1.0.0", "npm", lookups=lookups)
-    asked = len(net.asked)
+    linkage = lookups._linkage.copy()
+    asked = [u for u in net.asked if u.startswith(RAW)]
     dependency_status("fastlib", "1.0.0", "npm", lookups=lookups)
-    assert len(net.asked) == asked
+    # The reputation checks (v0.16.0) ask the registry again when they were
+    # NOT_PERFORMED; the linkage record and its repository reads are cached.
+    assert lookups._linkage == linkage
+    assert [u for u in net.asked if u.startswith(RAW)] == asked
 
 
 def test_trust_block_lists_a_starjacking_indicator(tmp_path):

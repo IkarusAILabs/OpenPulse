@@ -45,6 +45,9 @@ Each condition is one trust check reaching one status. The labels come from the 
 | `lookalike_name` | `lookalike`, SUSPICIOUS_INCONCLUSIVE | **required** | indicator: fires on 18.8% of real popular npm names |
 | `public_private_name` | `dependency_confusion`, SUSPICIOUS_INCONCLUSIVE | **required** | experimental |
 | `unconfirmed_repository` | `repository_linkage`, SUSPICIOUS_INCONCLUSIVE | **required** | experimental |
+| `publisher_change` | `publisher_change`, SUSPICIOUS_INCONCLUSIVE (a release published by an account, or a provenance publisher, the earlier releases did not use; or trusted publishing or attestations stopped) | **required** | indicator: fires on 4.6% of legitimate npm releases (`new_account`) and under 1% of PyPI releases |
+| `repository_moved` | `repository_moved`, SUSPICIOUS_INCONCLUSIVE (the claimed repository answers under another name) | **required** | indicator: fires on 4.1% of legitimate repositories, all transfers to an organisation |
+| `young_popular_repository` | `young_popular_repository`, SUSPICIOUS_INCONCLUSIVE (younger than 180 days, at least 1000 stars) | **required** | experimental: the organic set has one young repository |
 | `blocklisted` (via `blocklist`) | the package matches a blocklist pattern | the list | — |
 
 - **Experimental conditions** print a warning when a policy uses them: there is no organic false-positive set for them yet.

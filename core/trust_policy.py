@@ -62,6 +62,16 @@ CONDITIONS: dict[str, tuple[str, str, bool, str]] = {
         "experimental",
     ),
     "missing_provenance": ("provenance", "MISSING_EVIDENCE", True, "measured"),
+    # Reputation indicators (track T Phase 2, T-C, v0.16.0): each fires on
+    # legitimate packages at the organic rate measured, so each needs a scope.
+    "publisher_change": ("publisher_change", "SUSPICIOUS_INCONCLUSIVE", True, "indicator"),
+    "repository_moved": ("repository_moved", "SUSPICIOUS_INCONCLUSIVE", True, "indicator"),
+    "young_popular_repository": (
+        "young_popular_repository",
+        "SUSPICIOUS_INCONCLUSIVE",
+        True,
+        "experimental",
+    ),
 }
 BLOCKLISTED = "blocklisted"
 
