@@ -6,6 +6,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Trust policy: prohibited conditions fail the run (track T, T-E1, v0.14.0 item Y2).** `.openpulse/policy.yml` (or `--policy PATH`) is read by `openpulse check` and `openpulse attest` and evaluated without any model. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
+  - **`prohibit`:** for any package, `confirmed_malicious`, `not_found_in_registry`, `digest_mismatch`, `provenance_failure` and `repository_mismatch`. For named packages only, `missing_provenance`, `lookalike_name`, `public_private_name` and `unconfirmed_repository`. A policy that names an indicator without packages is refused, because the Y1 measurements show lookalike fires on 18.8% of real popular npm names. Conditions with no organic false-positive set warn that they are experimental.
+  - **`blocklist`:** `ECOSYSTEM:NAME[==VERSION]` patterns; no lookups needed.
+  - **What never blocks:** silence. `NOT_PERFORMED` and `MISSING_EVIDENCE` never fail a run unless a scoped condition says so.
+  - **When it fails:** a violation exits 1 after every output is written, alongside `--fail-on`. With no policy, gates are unchanged.
+
 - **Track T measurements (v0.14.0 item Y1).** `python benchmarks/trust.py` measures every trust check offline and writes `benchmarks/results/trust.json` and `docs/research/TRACK_T_MEASUREMENTS.md`. The owner accepted these measurements as the false-positive prerequisite for policy gates (T-E1, decision 11). They are not the registered study.
   - **Synthetic cases:** 33 cases with 37 labelled expectations, from the roadmap's evaluation plan (existence, lookalike, dependency confusion, provenance and repository linkage, digest integrity, known-malicious records). They run against a stub world in the reserved `opfx-` namespace. Every case gets its expected status, with no false positives on the synthetic negatives; that shows the checks do what they claim, not how often real attacks are caught.
   - **Degraded sources:** with every source unreachable, or the budget spent, no live check claims anything (0 of 284 records).
