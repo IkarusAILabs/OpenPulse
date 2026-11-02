@@ -667,6 +667,7 @@ def measure(sample: int) -> dict[str, Any]:
         "organic_lookalike": run_organic(sample),
         "organic_reputation": reputation_set.baseline(),
         "organic_publisher_change": reputation_set.publisher_change(),
+        "organic_repository_moved": reputation_set.repository_moved(),
     }
 
 
@@ -781,6 +782,7 @@ def render(results: dict[str, Any]) -> str:
     ]
     lines += _render_reputation(results["organic_reputation"])
     lines += _render_publisher_change(results["organic_publisher_change"])
+    lines += _render_repository_moved(results["organic_repository_moved"])
     lines += [
         "",
         "## What a policy can prohibit, and how well it is measured",
@@ -926,6 +928,30 @@ def _render_publisher_change(pc: dict[str, Any]) -> list[str]:
         + ".",
     ]
     return lines
+
+
+def _render_repository_moved(rm: dict[str, Any]) -> list[str]:
+    moves = ", ".join(f"{k} {v}" for k, v in rm["moves"].items()) or "none"
+    statuses = ", ".join(f"{k} {v}" for k, v in rm["statuses"].items())
+    return [
+        "",
+        "## Organic control: repository moved (v0.16.0 Q3)",
+        "",
+        "The production `repository_moved` classification on every claimed GitHub repository "
+        "in the organic set. Every package is legitimate, so every move flagged is a false "
+        "positive.",
+        "",
+        "| Repositories | Answered | Flagged (moved) | False-positive rate | Moves | Statuses |",
+        "|---:|---:|---:|---:|---|---|",
+        f"| {rm['repositories']} | {rm['answered']} | {rm['flagged']} | "
+        f"{_pct(rm['false_positive_rate'])} | {moves} | {statuses} |",
+        "",
+        "**Findings.** Every move in the set is a project transferred to an organisation, an "
+        "ordinary event, so `repository_moved` is an indicator to scope, not a gate. "
+        f"{rm['excluded_not_repositories']} claims recorded on 2026-11-02 were GitHub pages "
+        "(`sponsors/<user>` Funding links), not repositories; the parser now rejects them, and "
+        "they are excluded here.",
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:

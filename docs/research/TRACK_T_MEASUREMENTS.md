@@ -40,7 +40,7 @@ Leave-one-out: each sampled reference name is checked against all the others.
 
 | Ecosystem | Reference names | Sampled | Flagged | False-positive rate | Without `scope` | Names flagged per rule | ms per name |
 |---|---:|---:|---:|---:|---:|---|---:|
-| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 46.4 |
+| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 44.6 |
 | PyPI | 19 | 19 | 0 | 0.0% | 0.0% | none | 0.0 |
 
 **Finding.** The `scope` rule (npm `@x/name` where `name` is a reference) fires on legitimate scoped packages such as `@types/<name>` and a project's own scope, so it carries most of the organic false positives. The rate without it is the one to use for the other three rules.
@@ -85,6 +85,16 @@ The production `publisher_change` rules on every recorded release, each compared
 | PyPI | 697 | 5 | 0.7% | `attestations_stopped` 3 (0.4%, 3 pkg), `publisher_changed` 2 (0.3%, 2 pkg) | 1 (1.2%) |
 
 **Findings.** `new_account` carries the npm false positives: projects with several maintainers publish from different accounts, so it is an indicator to scope, not a gate. Switches to npm trusted publishing are not flagged (one shared service account publishes for every project), which is why the rule excludes them. On PyPI, `publisher_changed` fired on: repository 1, workflow 1 (changed fields; a renamed workflow in the same repository and a repository transfer both occur legitimately). Rules that fired on no organic release: `trusted_publishing_dropped`.
+
+## Organic control: repository moved (v0.16.0 Q3)
+
+The production `repository_moved` classification on every claimed GitHub repository in the organic set. Every package is legitimate, so every move flagged is a false positive.
+
+| Repositories | Answered | Flagged (moved) | False-positive rate | Moves | Statuses |
+|---:|---:|---:|---:|---|---|
+| 125 | 123 | 5 | 4.1% | transferred 5 | MISSING_EVIDENCE 2, SUSPICIOUS_INCONCLUSIVE 5, VERIFIED_RELATIONSHIP 118 |
+
+**Findings.** Every move in the set is a project transferred to an organisation, an ordinary event, so `repository_moved` is an indicator to scope, not a gate. 4 claims recorded on 2026-11-02 were GitHub pages (`sponsors/<user>` Funding links), not repositories; the parser now rejects them, and they are excluded here.
 
 ## What a policy can prohibit, and how well it is measured
 

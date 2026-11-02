@@ -94,13 +94,12 @@ def _time(value: Any) -> str | None:
     return text if _TIME.fullmatch(text) else None
 
 
-def _repository(value: Any) -> str | None:
-    from core.repository_linkage import github_repository
+def _repository(ecosystem: str, doc: dict[str, Any]) -> str | None:
+    """The repository the production checks would look up (ranked claims)."""
+    from core.repository_linkage import _claimed
 
-    if isinstance(value, dict):
-        value = value.get("url")
-    found = github_repository(value)
-    return found[0] if found else None
+    claims = _claimed(ecosystem, doc)
+    return claims[0][0] if claims else None
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +144,7 @@ def record_npm(name: str, fetch: Fetch) -> dict[str, Any]:
     releases = publisher_change.npm_releases(doc)[-RELEASES:]
     out.update(
         created=_time(times.get("created")),
-        repository=_repository(doc.get("repository")),
+        repository=_repository("npm", doc),
         releases=releases,
     )
     return out
@@ -156,11 +155,7 @@ def record_pypi(name: str, fetch: Fetch) -> dict[str, Any]:
     out: dict[str, Any] = {"ecosystem": "PyPI", "name": name, "status": status}
     if status != 200 or not isinstance(doc, dict):
         return out
-    info = doc.get("info") if isinstance(doc.get("info"), dict) else {}
-    urls = info.get("project_urls") if isinstance(info.get("project_urls"), dict) else {}
-    repository = next(
-        (r for r in (_repository(u) for u in [*urls.values(), info.get("home_page")]) if r), None
-    )
+    repository = _repository("PyPI", doc)
     dated = publisher_change.pypi_releases(doc)
     releases = []
     for published, version, filename in dated[-RELEASES:]:

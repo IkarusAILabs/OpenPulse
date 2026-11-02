@@ -136,6 +136,18 @@ def not_performed(why: str) -> dict[str, Any]:
     return _record(NOT_PERFORMED, "", _now(), why=why)
 
 
+#: First path segments that are GitHub pages, never accounts (GitHub reserves
+#: them as names): ``github.com/sponsors/<user>`` is a Funding link, not a
+#: repository.
+_RESERVED_OWNERS = frozenset(
+    {
+        "about", "apps", "collections", "enterprise", "explore", "features", "issues",
+        "login", "marketplace", "notifications", "orgs", "pricing", "pulls", "search",
+        "settings", "site", "sponsors", "topics",
+    }
+)
+
+
 def github_repository(value: Any) -> tuple[str, str] | None:
     """(owner/repo, directory) for a GitHub URL in any common spelling, else None."""
     from core.github_reader import _valid_repo_parts
@@ -160,7 +172,7 @@ def github_repository(value: Any) -> tuple[str, str] | None:
     if len(segments) < 2:
         return None
     owner, name = segments[0], re.sub(r"\.git$", "", segments[1])
-    if not _valid_repo_parts(owner, name):
+    if owner.lower() in _RESERVED_OWNERS or not _valid_repo_parts(owner, name):
         return None
     directory = ""
     if len(segments) > 4 and segments[2] in ("tree", "blob"):

@@ -17,6 +17,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **PyPI `attestations_stopped`:** no provenance, after a release that had it.
   - **Measured on the organic set:** `new_account` flags 4.6% of legitimate npm releases (projects with several maintainers), `publisher_changed` 0.3% and `attestations_stopped` 0.4% of PyPI releases, `trusted_publishing_dropped` none. Same publisher as before is `VERIFIED_RELATIONSHIP` (continuity, not evidence of a benign release). npm accounts are compared as hashes, never named.
   - Not yet in the `trust` block or a policy: that is item Q5.
+- **`repository_moved`: does the claimed repository answer under another name? (v0.16.0 item Q3).** `core/repository_moved.py` asks GitHub for the repository a package claims, following one redirect within `api.github.com` only.
+  - **Another name:** `SUSPICIOUS_INCONCLUSIVE`, naming both and whether it was `renamed` (same owner) or `transferred`. **Same name** (case ignored): `VERIFIED_RELATIONSHIP`, meaning only that the claim is current. No claim, or GitHub does not know the repository: `MISSING_EVIDENCE`.
+  - **Measured on the organic set:** 5 of 123 legitimate repositories (4.1%) were moved, all transferred to an organisation, so this is an indicator to scope, not a gate.
+  - Not yet in the `trust` block or a policy: that is item Q5.
+
+### Fixed
+
+- **GitHub pages are no longer read as repositories.** A project URL such as `https://github.com/sponsors/<user>` (a Funding link) was parsed as the repository `sponsors/<user>`; GitHub's reserved paths (`sponsors`, `orgs`, `marketplace` and others) are now rejected. This affects `repository_linkage`, which could look up such a page as the claimed repository, and the reputation recorder, which now ranks claims like the checks do.
 
 ## 0.15.0 "Pre-Install Gates" — 2026-11-02
 
