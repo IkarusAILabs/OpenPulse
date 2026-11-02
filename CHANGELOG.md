@@ -10,6 +10,8 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Comparison:** with `--base-ref`, each file's copy at that ref is read with `git show`, and trust checks run only for added or changed dependencies. A file new since the ref counts as added.
   - **The same evaluation as `check` and `attest`:** the blocklist covers every dependency, lockfile hashes edited in place are caught, and `NOT_PERFORMED` never blocks.
   - **Exit codes:** 0 pass, 1 violation, 2 usage error. Without a policy it passes and says so. Deleted and non-dependency files are skipped.
+- **Pre-commit hook `openpulse-gate` (v0.15.0 item Z2).** `.pre-commit-hooks.yaml` runs `openpulse gate --base-ref HEAD` on staged dependency files (`requirements*.txt`, `pyproject.toml`, `poetry.lock`, `package-lock.json`, `Cargo.toml`, `Cargo.lock`, `go.mod`, `pom.xml`), so a commit is checked only for the dependencies it adds or changes. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Pre-commit hook".
+  - **First commit:** `openpulse gate --base-ref HEAD` in a repository with no commits treats every file as new instead of failing. Any other unknown ref is still a usage error.
 
 ## 0.14.0 "Enforced Trust" — 2026-11-02
 
