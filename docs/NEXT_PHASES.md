@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.12 released):** v0.12.0 "Trusted Inputs" is released (Phase 6, U1–U5: #260–#264, #272–#276). The Action part of U5 moved to T-E1. Still open: the PyPI popular-name list for lookalike indicators (an owner-run BigQuery query, or another approved source).
 - **Update 2026-11-01 (v0.12 plan):** v0.12.0 "Trusted Inputs" is Phase 6 below: track T Phase 1 (untrusted-text fixes, digest integrity, PyPI provenance, lookalike indicators, trust checks on added dependencies).
 - **Update 2026-11-01 (v0.11 released):** v0.11.0 "Early Warning Operations" is released (Phase 5, W1–W5), together with track T's first milestone T-M1 (#257).
 - **Update 2026-11-01 (v0.11 plan):** v0.11.0 "Early Warning Operations" is Phase 5 below: persistent alert delivery (C1), a severity gate on `warnings`, signed webhooks, MCP hardening (C5), and track T Phase 0 (design only).
@@ -212,7 +213,7 @@ Earlier item list (kept for the IDs used above):
 - A rebinding resolver can't steer delivery to a private address.
 - `bench` publishes a reproducibility JSON from CI.
 
-## Phase 6 — v0.12.0 "Trusted Inputs" (track T Phase 1; planned 2026-11-01)
+## Phase 6 — v0.12.0 "Trusted Inputs" (track T Phase 1; planned 2026-11-01) — DONE, released 2026-11-02
 
 Goal: track T Phase 1's exit from `docs/ROADMAP.md`, "PyPI and npm answers carry existence, digest and provenance statuses; no verdict changes", built on the owner-approved Phase 0 note (`docs/research/TRACK_T_PHASE0.md`, section 8). Every new field uses the T-F1 vocabulary and the T-F3 rule. Nothing here changes a verdict, a contract or the frozen evaluation.
 

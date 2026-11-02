@@ -2,7 +2,16 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.12.0 "Trusted Inputs" — 2026-11-02
+
+Track T Phase 1: for PyPI and npm, MCP answers now carry checks on whether a dependency can be trusted, so an AI coding agent sees them before it adds or changes one.
+- **Registry digests:** locked digests are compared with what the registry publishes.
+- **PyPI provenance:** attestations are verified with the new optional `[provenance]` extra.
+- **Lookalike names:** names that resemble popular packages are flagged as indicators.
+- **Added dependencies:** a file check against an earlier copy checks only what was added or changed, and `openpulse trust` does the same from the CLI.
+- **Untrusted text:** text from files and upstreams never reaches an agent unvalidated.
+
+Every check uses the closed T-F1 status vocabulary and is never part of a verdict. Verdicts, contracts and the frozen evaluation are unchanged. No upgrade steps are needed. The new `trust`, `provenance`, `lookalike` and `digest_integrity` fields are additive.
 
 ### Added
 
