@@ -179,7 +179,7 @@ def test_dependency_status_carries_the_existence_records():
     out = dependency_status(
         package="django", version="9.9", ecosystem="PyPI", lookups=_lookups(registry)
     )
-    assert _statuses(out["registry_existence"]) == [
+    assert _statuses(out["trust"]["checks"]["registry_existence"]) == [
         ("version", VERIFIED_FAILURE),
         ("package", VERIFIED_RELATIONSHIP),
     ]
@@ -195,8 +195,8 @@ def test_existence_never_changes_the_verdict():
     absent = dependency_status(
         package="django", version="4.2", ecosystem="PyPI", lookups=_lookups(Registry())
     )
-    assert found["registry_existence"][0]["status"] == VERIFIED_RELATIONSHIP
-    assert absent["registry_existence"][0]["status"] == VERIFIED_FAILURE
+    assert found["trust"]["checks"]["registry_existence"][0]["status"] == VERIFIED_RELATIONSHIP
+    assert absent["trust"]["checks"]["registry_existence"][0]["status"] == VERIFIED_FAILURE
     assert found["verdict"] == absent["verdict"] and found["causes"] == absent["causes"]
 
 
@@ -214,13 +214,13 @@ def test_unsupported_inputs_are_not_performed(kwargs, reason):
     registry = Registry(default=200)
     out = dependency_status(**kwargs, lookups=_lookups(registry))
     assert registry.asked == []
-    assert out["registry_existence"][0]["status"] == NOT_PERFORMED
-    assert reason in out["registry_existence"][0]["statement"]
+    assert out["trust"]["checks"]["registry_existence"][0]["status"] == NOT_PERFORMED
+    assert reason in out["trust"]["checks"]["registry_existence"][0]["statement"]
 
 
 def test_offline_answers_say_not_performed():
     out = dependency_status(package="django", version="4.2", ecosystem="PyPI", live=False)
-    record = out["registry_existence"][0]
+    record = out["trust"]["checks"]["registry_existence"][0]
     assert record["status"] == NOT_PERFORMED and "live lookups are off" in record["statement"]
 
 
@@ -230,8 +230,8 @@ def test_a_spent_budget_is_not_performed_not_absent():
         package="left-pad", version="1.3.0", ecosystem="npm", lookups=_lookups(registry, budget=1)
     )
     assert registry.asked == []  # the one lookup went to the lifecycle bundle
-    assert out["registry_existence"][0]["status"] == NOT_PERFORMED
-    assert "budget" in out["registry_existence"][0]["statement"]
+    assert out["trust"]["checks"]["registry_existence"][0]["status"] == NOT_PERFORMED
+    assert "budget" in out["trust"]["checks"]["registry_existence"][0]["statement"]
 
 
 def test_existence_is_cached_per_session_but_failures_are_not():
