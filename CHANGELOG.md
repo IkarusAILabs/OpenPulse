@@ -2,7 +2,15 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.14.0 "Enforced Trust" — 2026-11-02
+
+Track T Phase 4 (T-E1): trust conditions you prohibit now fail CI deterministically, with no model involved, because advisory answers to an agent are not a security boundary.
+- **Trust policy:** `.openpulse/policy.yml` prohibits trust conditions, read by `check`, `attest` and the GitHub Action. It is backed by measured false-positive rates: lookalike names fire on 18.8% of real popular npm names, so indicators must name the packages they apply to.
+- **The Action on pull requests:** it checks trust for the dependencies a pull request adds or changes, and uses the base branch's policy so a pull request cannot weaken its own gate.
+- **Exports:** trust results appear in SARIF, the job summary and DefectDojo, with levels set by your policy, never by a risk score.
+- **Bypass tests:** they found and closed two pull-request bypasses, and document the routes the gate cannot cover.
+
+Nothing new blocks without a policy, and verdicts and the frozen evaluation are unchanged. **One upgrade note:** `dependency_status` drops the v0.12 top-level trust fields, which were deprecated in v0.13.0; read `trust.checks`.
 
 ### Upgrade notes
 
