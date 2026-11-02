@@ -2,7 +2,19 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.13.0 "Agent Trust Evidence" — 2026-11-02
+
+Track T Phase 3: trust evidence reaches agents in one place and goes into the evidence contract, with three new checks that each hold or fail against a cited source.
+- **Known-malicious packages:** OSV `MAL-` records for any PyPI or npm name are the first `CONFIRMED_MALICIOUS` answers, always with the record cited.
+- **Dependency confusion:** checked against your own private-name list.
+- **Starjacking:** repository linkage checks whether a package is really from the repository it claims.
+- **One `trust` block** in `dependency_status`, with the agent's stated reasons (`intent`, `name_source`) recorded but never used.
+- **Evidence contract 2.2.0:** `openpulse attest --trust` records the trust checks in `trust_assurance`.
+- **Opt-in local recording** of agent questions and answers (`openpulse mcp --record`), for research on how agents choose dependencies.
+
+Verdicts and the frozen evaluation are unchanged. **Two upgrade notes:**
+- `attest` now emits contract 2.2.0;
+- agents should read trust results from `dependency_status`'s `trust.checks`. The v0.12 top-level copies stay until v0.14.0.
 
 ### Upgrade notes
 
