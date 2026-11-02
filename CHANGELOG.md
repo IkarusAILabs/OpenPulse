@@ -2,7 +2,15 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.15.0 "Pre-Install Gates" — 2026-11-02
+
+Track T Phase 4 (T-E2): the v0.14 trust policy now also applies where dependencies enter, before anything is installed. The same policy that fails CI fails a commit and a pre-install CI step, with no model involved.
+- **`openpulse gate`:** applies the policy to dependency files alone, comparing with a git ref so only what changed is trust-checked.
+- **Pre-commit hook:** `openpulse-gate` checks the dependencies a commit adds or changes.
+- **The Action's `gate` input:** runs before `pip install` or `npm ci`, with the base branch's files and policy, on a shallow checkout.
+- **Bypass routes:** `--no-verify` is caught by the CI gate. A lockfile regenerated after the gate, an ungated file, and file names outside the hook's pattern are documented limits, each with a workaround.
+
+Nothing new blocks without a policy, and verdicts, the evidence contract and the frozen evaluation are unchanged. No upgrade notes.
 
 ### Added
 
@@ -17,7 +25,6 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Settings:** the policy and the private-name list come from the base branch when it has them, so a pull request cannot weaken or delete its own gate.
   - **Dogfood:** CI runs the gate input on every push, once passing and once blocked by the blocklist.
   - **CLI without the Action:** `docs/TRUST_POLICY.md`, "In CI, before install".
-
 - **Pre-install bypass routes pinned by tests (v0.15.0 item Z4).** `tests/test_gate_bypass.py` now also covers the routes around the hook and the CI gate:
   - **Covered:** `git commit --no-verify` is caught by the CI gate, which compares with the base branch.
   - **Documented limits:** dependency files outside the hook's name pattern, a lockfile regenerated after the gate, and an install from a file the gate was not given.
