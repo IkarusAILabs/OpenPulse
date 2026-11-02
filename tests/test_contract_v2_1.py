@@ -45,7 +45,7 @@ def test_non_repository_inputs_are_not_applicable(tmp_path, name):
     assert result.exit_code == 0, result.output
     assert docs
     for doc in docs:
-        assert doc["contract_version"] == "2.1.0"
+        assert doc["contract_version"] == "2.2.0"  # 2.2 keeps 2.1's coverage values
         assert doc["inspection_coverage"] == {"status": "NOT_APPLICABLE", "reasons": []}
         assert validate_contract(doc) == []
         assert verify_content_hash(doc)
@@ -119,6 +119,7 @@ def test_not_applicable_is_a_2_1_value_only(tmp_path):
     _result, docs = _attest(tmp_path, NON_REPO_INPUTS["watchlist"])
     doc = docs[0]
     as_2_0 = json.loads(json.dumps(doc))
+    as_2_0.pop("trust_assurance")  # a 2.2 field; this test is about the 2.1 value
     as_2_0["contract_version"] = as_2_0["provenance"]["contract_version"] = "2.0.0"
     errors = validate_v1_contract(as_2_0, load_v2_schema())
     assert any("inspection_coverage" in e for e in errors), errors
@@ -127,13 +128,14 @@ def test_not_applicable_is_a_2_1_value_only(tmp_path):
     assert validate_v1_contract(complete, load_v2_schema()) == []
 
 
-#: Line-ending-neutral SHA-256 of each published schema before 2.1. Sibling
+#: Line-ending-neutral SHA-256 of each published schema before 2.2. Sibling
 #: schemas are never edited (docs/EVIDENCE_CONTRACT.md, versioning policy).
 PUBLISHED = {
     "v1": "d9863e7ce6494800c1adf1338fddb1c8115466489f51a4b94f06fadf3692aee9",
     "v1.1": "517cd0dc367c9e06a5ee92e2bb4322fb6a8ad3a43760d6e13aac14f3352cd161",
     "v1.2": "ab48d7cf15a1b4e3d345990bcc910b13ecd529e637a919b5234a799ad1963718",
     "v2": "e15f19d3871d1d2571315a8208db33829f815002f55363529528ef723ec0ca46",
+    "v2.1": "dba708b28f7bc9d96a5b9d4a92b74e4ae45228ea07e3df59425d3678c3d905a3",
 }
 
 

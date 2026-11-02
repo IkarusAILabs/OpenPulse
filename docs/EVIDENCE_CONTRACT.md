@@ -7,8 +7,8 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema (current, 2.1): [`schemas/evidence-contract/v2.1/schema.json`](../schemas/evidence-contract/v2.1/schema.json)
-  (JSON Schema draft 2020-12); 2.0, 1.2, 1.1 and 1.0 stay published beside it
+- Schema (current, 2.2): [`schemas/evidence-contract/v2.2/schema.json`](../schemas/evidence-contract/v2.2/schema.json)
+  (JSON Schema draft 2020-12); 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
 - Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
@@ -185,6 +185,36 @@ Shape and hash are 2.0's: the content hash is the same JCS rule, and `content_ha
 
 **Upgrading a consumer:** validate against `schemas/evidence-contract/v2.1/schema.json`, and treat `NOT_APPLICABLE` as "no repository in this run". A consumer that switches on the status must accept the fourth value.
 
+### 2.2.0 - trust assurance (v0.13.0, X5, track T T-F2)
+
+Minor, additive. One new required top-level field, `trust_assurance`:
+
+- **`null`:** the run did not check trust. This is `openpulse attest` without `--trust`, and it is not a clean result: nothing was checked.
+- **An object**, from `openpulse attest --trust`, which looks the dependency up live:
+  - **`checks`:** one record per trust check, in a fixed shape: `check`, `status`, `statement`, `checked_at` and `references`.
+    - `check` is one of `malicious` (OSV `MAL-` records), `registry_existence` (T-A1), `provenance` (T-B1), `repository_linkage` (T-A4), `dependency_confusion` (T-A3) or `lookalike` (T-A2).
+    - `status` is the closed T-F1 vocabulary.
+    - `statement` is a fixed template, never upstream text, and at most 500 characters.
+    - `checked_at` is a date-time, or null for local checks.
+    - `references` are the https URIs the record cites: the registry URL, the OSV record, the claimed repository.
+  - **`summary`:** counts for all six statuses.
+  - **`used_in_verdict`:** always `false`. Trust records never change `assessment`, `affected_dependency`, `recommendation` or `verdict_meaning` (tested).
+
+| Status | Meaning |
+|---|---|
+| `CONFIRMED_MALICIOUS` | A cited authoritative record says so (an OSV `MAL-` record). OpenPulse never assigns it on its own indicators |
+| `VERIFIED_FAILURE` | A check ran and failed: a digest or signature that doesn't verify, a provenance identity that differs from the claimed repository |
+| `SUSPICIOUS_INCONCLUSIVE` | An indicator fired without confirmation |
+| `MISSING_EVIDENCE` | The check ran but there was nothing to verify. Not evidence of authenticity |
+| `VERIFIED_RELATIONSHIP` | The check ran and the binding holds. It binds an identity; it does not say the package is benign |
+| `NOT_PERFORMED` | The check did not run (unsupported ecosystem, offline, source unreachable, budget, a private package) |
+
+There is no `SAFE` value. Each check's own free-form evidence stays in the MCP answers and out of the contract, so this public shape does not change when a check's internals do.
+
+The hash rule is 2.1's: `trust_assurance` is inside the JCS content hash like any other field, so `verify.mjs` and `verify_content_hash` cover it unchanged. The 2.1 schema stays byte-for-byte, and a 2.1 validator rejects a 2.2 document (`trust_assurance` is an unexpected property). `openpulse attest` emits 2.2.0.
+
+**Upgrading a consumer:** validate against `schemas/evidence-contract/v2.2/schema.json`. Treat a null `trust_assurance` as "not checked", and never read a missing status as safe.
+
 ## CLI
 
 ```
@@ -199,4 +229,8 @@ goes to stderr, so stdout is always exactly the documents. `--event`
 is repeatable, and all five dependency sources (`--watchlist`,
 `--sbom`, `--spdx`, `--images`, `--lockfile`) compose with each other
 exactly as in `openpulse check`. `--raw-bundle-dir` enables the
-security-correlation stream the same way check does.
+security-correlation stream the same way check does. `--trust` also
+checks each PyPI and npm dependency once per run (live lookups, at most
+4 per dependency and 2000 per run) and records the result in every
+contract's `trust_assurance`; `--private-names` names the private-name
+list (default `.openpulse/private-packages.txt` when present).

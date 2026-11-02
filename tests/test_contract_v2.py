@@ -12,6 +12,7 @@ from click.testing import CliRunner
 from core.evidence_contract import (
     CONTENT_HASH_METHOD,
     CONTRACT_V2_1_VERSION,
+    CONTRACT_V2_2_VERSION,
     CONTRACT_V2_VERSION,
     build_contract,
     build_v1_contract,
@@ -93,9 +94,11 @@ def doc(django_event):
 
 
 def test_v2_document_shape(doc):
-    # attest emits 2.1.0 since v0.10.0 (#109): 2.0's hash and shape, one more coverage value.
-    assert doc["contract_version"] == CONTRACT_V2_1_VERSION == "2.1.0"
-    assert doc["provenance"]["contract_version"] == "2.1.0"
+    # attest emits 2.2.0 since v0.13.0 (X5): 2.1 plus trust_assurance, same hash rule.
+    assert CONTRACT_V2_1_VERSION == "2.1.0"
+    assert doc["contract_version"] == CONTRACT_V2_2_VERSION == "2.2.0"
+    assert doc["provenance"]["contract_version"] == "2.2.0"
+    assert doc["trust_assurance"] is None
     assert CONTRACT_V2_VERSION == "2.0.0"
     assert doc["provenance"]["content_hash_method"] == CONTENT_HASH_METHOD == "jcs-sha256"
     assert validate_contract(doc) == []
@@ -174,7 +177,7 @@ def test_attest_cli_emits_v2(tmp_path):
     )
     assert result.exit_code == 0, result.output
     docs = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line]
-    assert docs and all(d["contract_version"] == "2.1.0" for d in docs)
+    assert docs and all(d["contract_version"] == "2.2.0" for d in docs)
     assert all(validate_contract(d) == [] and verify_content_hash(d) for d in docs)
 
 

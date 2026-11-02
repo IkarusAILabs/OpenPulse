@@ -927,20 +927,7 @@ def _assess(
     }
     if existence:
         # Track T: one trust block, additive, never read by the verdict (T-D).
-        checks: dict[str, Any] = {"malicious": _malicious(dep, lookups)}
-        if _is_private(dep, private_names):
-            # The public registry is not where a private package comes from (T-A3).
-            checks["registry_existence"] = _registry_existence_private(dep)
-            checks["provenance"] = _provenance_private()
-            checks["repository_linkage"] = _repository_linkage_private()
-        else:
-            checks["registry_existence"] = _registry_existence(dep, lookups)
-            checks["provenance"] = _provenance(dep, lookups)
-            checks["repository_linkage"] = _repository_linkage(
-                dep, lookups, checks["provenance"]
-            )
-        checks["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
-        checks["lookalike"] = _lookalike(dep)
+        checks = trust_checks(dep, lookups, private_names)
         answer["trust"] = _trust_block(checks, evaluation, selection_context)
         # v0.12 top-level fields, kept one minor release (deprecated in v0.13.0).
         for field in DEPRECATED_TRUST_FIELDS:
@@ -956,6 +943,31 @@ def _assess(
 
 
 DEPRECATED_TRUST_FIELDS = ("registry_existence", "provenance", "lookalike")
+
+
+def trust_checks(
+    dep: dict[str, Any],
+    lookups: Lookups | None,
+    private_names: frozenset[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Every track T record for one dependency entry, keyed by check name.
+
+    ``dep`` is a reader entry (``kind`` package or image). ``lookups`` None
+    means offline: every live check is NOT_PERFORMED. Never a verdict input.
+    """
+    checks: dict[str, Any] = {"malicious": _malicious(dep, lookups)}
+    if _is_private(dep, private_names):
+        # The public registry is not where a private package comes from (T-A3).
+        checks["registry_existence"] = _registry_existence_private(dep)
+        checks["provenance"] = _provenance_private()
+        checks["repository_linkage"] = _repository_linkage_private()
+    else:
+        checks["registry_existence"] = _registry_existence(dep, lookups)
+        checks["provenance"] = _provenance(dep, lookups)
+        checks["repository_linkage"] = _repository_linkage(dep, lookups, checks["provenance"])
+    checks["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
+    checks["lookalike"] = _lookalike(dep)
+    return checks
 
 #: Where an agent says a package name came from (T-D); a closed vocabulary.
 NAME_SOURCES = (
