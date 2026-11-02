@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.15 released):** v0.15.0 "Pre-Install Gates" is released (Phase 9, Z1–Z4: #295–#298). T-E2's exit is met: the policy that fails CI also fails a commit and a pre-install CI step, with no model involved, and the pre-install bypass routes are tested and documented. Track T Phase 4 (T-E1, T-E2) is complete. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2's T-C reputation indicators (need labelled data).
 - **Update 2026-11-02 (v0.15 plan):** v0.15.0 "Pre-Install Gates" is Phase 9 below: track T Phase 4's T-E2, the trust policy enforced where dependencies enter (a pre-commit hook on dependency files, and a CI step before `pip install` or `npm ci`), through one new `openpulse gate` command. Started on the owner's "continue building next steps" (2026-11-02); scope open to change.
 - **Update 2026-11-02 (v0.14 released):** v0.14.0 "Enforced Trust" is released (Phase 8, Y1–Y6: #287–#292). T-E1's exit is met: prohibited conditions fail CI with no model involved, and the bypass tests pass with the uncovered routes documented. Two pull-request bypasses found by Y5 were fixed. Still open: the PyPI popular-name list (decision 9). Next in track T: T-E2 pre-installation controls (P2) and Phase 2's T-C reputation indicators (need labelled data).
 - **Update 2026-11-02 (v0.14 plan, owner-approved):** v0.14.0 "Enforced Trust" is Phase 8 below: track T Phase 4's T-E1 (a policy file evaluated without any model, the Action on pull requests, trust in SARIF), preceded by a measurement harness whose false-positive results the owner accepted as Phase 4's prerequisite, and the scheduled removal of the deprecated v0.12 fields.
@@ -279,7 +280,7 @@ Goal: track T Phase 4's exit from `docs/ROADMAP.md`, "prohibited conditions bloc
 
 **Not in v0.14.0:** T-E2 pre-installation controls (P2); T-C reputation indicators (need star history and labelled data); the registered study itself; the PyPI popular-name list (decision 9).
 
-## Phase 9 — v0.15.0 "Pre-Install Gates" (track T Phase 4, T-E2; planned 2026-11-02)
+## Phase 9 — v0.15.0 "Pre-Install Gates" (track T Phase 4, T-E2; planned 2026-11-02) — DONE, released 2026-11-02
 
 Goal: T-E2 from `docs/ROADMAP.md`: the T-E1 trust policy enforced at the existing integration points where dependencies enter, before anything is installed. A registry proxy or firewall stays out of scope.
 
