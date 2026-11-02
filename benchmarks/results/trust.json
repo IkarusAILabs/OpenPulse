@@ -19,14 +19,14 @@
     "refused_before_any_request": 4,
     "upstream_instruction_echoed": false
   },
-  "openpulse_version": "0.13.0",
+  "openpulse_version": "0.15.0",
   "organic_lookalike": {
     "PyPI": {
       "by_rule": {},
       "false_positive_rate": 0.0,
       "false_positive_rate_without_scope": 0.0,
       "flagged": 0,
-      "ms_per_name": 0.0,
+      "ms_per_name": 0.2,
       "reference_names": 19,
       "references": [
         {
@@ -51,7 +51,7 @@
       "false_positive_rate": 0.188,
       "false_positive_rate_without_scope": 0.097,
       "flagged": 188,
-      "ms_per_name": 46.3,
+      "ms_per_name": 165.0,
       "reference_names": 17336,
       "references": [
         {
@@ -66,6 +66,49 @@
         }
       ],
       "sampled": 1000
+    }
+  },
+  "organic_reputation": {
+    "PyPI": {
+      "attestations_stopped_at_latest": 2,
+      "attestations_stopped_at_latest_rate": 0.0417,
+      "latest_attested_publisher_changed": 1,
+      "latest_attested_publisher_changed_rate": 0.0213,
+      "packages": 80,
+      "packages_with_attestations": 48,
+      "packages_with_two_attested_releases": 47,
+      "recorded": 80,
+      "releases": 777,
+      "releases_attested": 0.426,
+      "releases_unanswered": 0
+    },
+    "npm": {
+      "latest_from_new_account": 2,
+      "latest_from_new_account_not_trusted_publishing": 0,
+      "latest_from_new_account_not_trusted_publishing_rate": 0.0,
+      "latest_from_new_account_rate": 0.0333,
+      "packages": 60,
+      "packages_with_several_accounts": 18,
+      "recorded": 60,
+      "releases": 540,
+      "releases_attested": 0.2148,
+      "releases_trusted_publisher": 0.2259
+    },
+    "recorded_at": "2026-11-02T17:32:53Z",
+    "releases_per_package": 10,
+    "repositories": {
+      "answered": 123,
+      "archived": 2,
+      "median_stars": 1367,
+      "moved": 5,
+      "moved_rate": 0.0407,
+      "repositories": 129,
+      "younger_than_a_year": 1,
+      "younger_than_a_year_rate": 0.0081
+    },
+    "selection": {
+      "PyPI": "the curated catalog's PyPI packages and OpenPulse's own locked dependencies (requirements*.lock); no popular-name list yet (decision 9)",
+      "npm": "a fixed-stride sample of 60 names from the pinned npm-high-impact list (sorted)"
     }
   },
   "organic_sample": 1000,
