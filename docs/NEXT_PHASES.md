@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.14 plan, owner-approved):** v0.14.0 "Enforced Trust" is Phase 8 below: track T Phase 4's T-E1 (a policy file evaluated without any model, the Action on pull requests, trust in SARIF), preceded by a measurement harness whose false-positive results the owner accepted as Phase 4's prerequisite, and the scheduled removal of the deprecated v0.12 fields.
 - **Update 2026-11-02 (v0.13 released):** v0.13.0 "Agent Trust Evidence" is released (Phase 7, X1–X6: #279–#284). Track T Phase 3's exit is met: agent answers carry the trust block and contract 2.2.0 is published beside 2.1. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2 (T-C, needs a measured false-positive rate) and Phase 4 (T-E1 enforcement).
 - **Update 2026-11-02 (v0.13 plan, owner-approved):** v0.13.0 "Agent Trust Evidence" is Phase 7 below: track T Phase 3 (the `trust` block for agents, the T-F2 contract block, M8 recording) with three checks that hold or fail rather than score: known-malicious records, dependency confusion against the user's own list, and repository linkage.
 - **Update 2026-11-02 (v0.12 released):** v0.12.0 "Trusted Inputs" is released (Phase 6, U1–U5: #260–#264, #272–#276). The Action part of U5 moved to T-E1. Still open: the PyPI popular-name list for lookalike indicators (an owner-run BigQuery query, or another approved source).
@@ -256,6 +257,26 @@ Goal: track T Phase 3's exit from `docs/ROADMAP.md`, "agent answers carry the tr
 
 **Not in v0.13.0:** T-C reputation indicators (Phase 2 needs a measured false-positive rate first); T-E1 policy enforcement and the Action's pull-request trust step (Phase 4, after those results); T-B2 npm provenance (no verifier yet); the PyPI popular-name list (owner decision 9).
 
+## Phase 8 — v0.14.0 "Enforced Trust" (track T Phase 4, T-E1; approved 2026-11-02)
+
+Goal: track T Phase 4's exit from `docs/ROADMAP.md`, "prohibited conditions block in CI without any model involved; bypass tests pass", for T-E1. Phase 4 depends on "the false-positive results of the evaluation": the owner approved (2026-11-02, decision 11) that Y1's measurements on synthetic and organic sets meet that dependency for T-E1, with the separately registered study (RQ1–RQ5) still to come. Fail closed only for conditions the user's policy prohibits; nothing new blocks without a policy.
+
+| # | Item | Track T | Size | Depends on |
+|---|---|---|---|---|
+| Y1 | Measurement harness (offline, synthetic, evaluation-plan categories 1–5 and 7, each also degraded): a stub registry world, detection, false-positive and unresolved rates per check and status, and an organic control (leave-one-out lookalike over the pinned popular-name list). Results in `docs/research/TRACK_T_MEASUREMENTS.md`; a check without a measured false-positive rate is labelled experimental | evaluation plan | M | — |
+| Y2 | `.openpulse/policy.yml`: prohibited conditions (confirmed malicious, a failed digest or provenance check, not found in the registry, a user blocklist, provenance required for named packages, a status prohibited for a named scope), evaluated deterministically by `check` and `attest`, extending `--fail-on` | T-E1 | M | Y1 |
+| Y3 | The GitHub Action on pull requests: trust checks on dependencies added against the base branch's copy of each file, gated by the policy (deferred from U5) | T-E1 | M | Y2 |
+| Y4 | T-F1 statuses in SARIF and DefectDojo: error only when the policy prohibits the condition, otherwise warning or note; no risk score (Phase 0 open question) | T-E1 | S | Y2 |
+| Y5 | Bypass tests (evaluation-plan category 8): edited lockfiles, additions outside the gate, an agent ignoring a warning; what the gate catches and what it cannot | T-E1 | S | Y3 |
+| Y6 | Remove the deprecated v0.12 top-level `registry_existence`, `provenance` and `lookalike` from `dependency_status` (announced for 0.14.0) | T-D | S | — |
+
+**Exit:**
+- A prohibited condition fails `check`, `attest` and the Action with no model involved; with no policy, gates behave as in v0.13.
+- Every condition a policy can prohibit has a measured false-positive rate, or is labelled experimental.
+- Bypass tests pass, and the routes the gate cannot cover are documented.
+
+**Not in v0.14.0:** T-E2 pre-installation controls (P2); T-C reputation indicators (need star history and labelled data); the registered study itself; the PyPI popular-name list (decision 9).
+
 ## Phase 4 — Release supply chain (alongside Phases 2–3)
 
 | # | Item | Issue | Size | Depends on |
@@ -290,6 +311,7 @@ These compete for reviewer time, not for the same files:
 | 8 | Evidence contract 2.1.0: `NOT_APPLICABLE` coverage status — **decided 2026-11-01: approved** | V3 |
 | 9 | PyPI popular-name list for lookalike indicators: run the dated BigQuery query (CC BY 4.0), or approve another source — open | U4's PyPI reference |
 | 10 | v0.13.0 scope, including the additive evidence contract 2.2.0 (`trust_assurance`) — **decided 2026-11-02: approved** | X1–X6 |
+| 11 | v0.14.0 scope, and that Y1's synthetic and organic false-positive measurements meet track T Phase 4's "false-positive results" dependency for T-E1 (the registered study still to come) — **decided 2026-11-02: approved** | Y1–Y6 |
 
 ## Risks
 
