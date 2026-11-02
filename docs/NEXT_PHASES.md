@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.16 plan, proposed):** v0.16.0 "Reputation Evidence" is Phase 10 below: track T Phase 2's T-C, the transparent reputation indicators that need no star history (a publisher change, a moved repository, a young repository claiming popularity), each measured on recorded organic projects before it ships. It needs evidence contract 2.3.0 for the new check names. Awaiting the owner's approval (decision 12).
 - **Update 2026-11-02 (v0.15 released):** v0.15.0 "Pre-Install Gates" is released (Phase 9, Z1–Z4: #295–#298). T-E2's exit is met: the policy that fails CI also fails a commit and a pre-install CI step, with no model involved, and the pre-install bypass routes are tested and documented. Track T Phase 4 (T-E1, T-E2) is complete. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2's T-C reputation indicators (need labelled data).
 - **Update 2026-11-02 (v0.15 plan):** v0.15.0 "Pre-Install Gates" is Phase 9 below: track T Phase 4's T-E2, the trust policy enforced where dependencies enter (a pre-commit hook on dependency files, and a CI step before `pip install` or `npm ci`), through one new `openpulse gate` command. Started on the owner's "continue building next steps" (2026-11-02); scope open to change.
 - **Update 2026-11-02 (v0.14 released):** v0.14.0 "Enforced Trust" is released (Phase 8, Y1–Y6: #287–#292). T-E1's exit is met: prohibited conditions fail CI with no model involved, and the bypass tests pass with the uncovered routes documented. Two pull-request bypasses found by Y5 were fixed. Still open: the PyPI popular-name list (decision 9). Next in track T: T-E2 pre-installation controls (P2) and Phase 2's T-C reputation indicators (need labelled data).
@@ -295,6 +296,23 @@ Goal: T-E2 from `docs/ROADMAP.md`: the T-E1 trust policy enforced at the existin
 
 **Not in v0.15.0:** a registry proxy or firewall (out of scope by design); T-C reputation indicators (need labelled data); the PyPI popular-name list (decision 9).
 
+## Phase 10 — v0.16.0 "Reputation Evidence" (track T Phase 2, T-C; proposed 2026-11-02) — awaiting approval (decision 12)
+
+Goal: T-C from `docs/ROADMAP.md`, limited to the indicators that need no star history. Each indicator has a written rule, its inputs and its source. Indicators are reported one by one and never summed into a score. None is a verdict or changes one, and the absence of an indicator is never evidence of authenticity. Each ships with a firing rate measured on recorded organic projects, or is labelled experimental. Builds on T-B1 provenance, T-A4 repository linkage and the v0.14 measurement harness (`benchmarks/trust.py`).
+
+| # | Item | Track T | Size | Depends on |
+|---|---|---|---|---|
+| Q1 | Organic reputation fixtures, measured first: a recorded, dated set of real popular PyPI and npm packages (registry metadata for recent releases, verified provenance where published, GitHub repository metadata), a recorder script, and offline replay. `benchmarks/trust.py` reports each new indicator's firing rate on it before the indicator ships | T-C | M | v0.15.0 |
+| Q2 | `publisher_change` (threat T6): a release published by someone the package's earlier releases were not. PyPI: the verified provenance publisher (repository, workflow) differs from the previous attested release's, or attestations stop after attested releases. npm: the version's publishing account (`_npmUser`) published no earlier version. `SUSPICIOUS_INCONCLUSIVE`, naming both publishers; handovers are legitimate, so never a verdict | T-C, T-B | M | Q1 |
+| Q3 | `repository_moved`: the claimed repository answers under another name (a GitHub transfer or rename redirect). `SUSPICIOUS_INCONCLUSIVE`, naming the old and new names. Reuses the linkage check and the collector's redirect handling | T-C | S | Q1 |
+| Q4 | `young_popular_repository` (threat T5): a repository younger than a set age with a star count above a set threshold. Experimental unless Q1 measures it; star counts are inputs, never trust evidence | T-C | S | Q1 |
+| Q5 | Wiring: the `trust` block, evidence contract 2.3.0 (additive: the three check names; 2.2 published unchanged beside it), trust-policy conditions (scoped indicators that must name packages; experimental where Q1 measured no organic rate), SARIF and DefectDojo, MCP docs | T-D, T-F2, T-E1 | M | Q2–Q4 |
+| Q6 | Echo and degraded-run tests: hostile publisher and repository names are never echoed (T-F3); an unreachable source is `NOT_PERFORMED`; the measurements document is regenerated | T-C | S | Q5 |
+
+**Exit:** each indicator is documented with its rule, inputs, source and a measured organic firing rate (or an experimental label). None changes a verdict, and prohibiting one requires named packages. Track T Phase 2's exit ("each indicator is documented, with a measured false-positive rate on the organic fixture set") is met for these three.
+
+**Not in v0.16.0:** star-history bursts and stars inconsistent with downloads or dependents (GitHub's API budget makes them on-demand only, and they need labelled data; LATER); any statistical or ML detection (needs the evaluation plan's labelled data); a registry proxy; the PyPI popular-name list (decision 9).
+
 ## Phase 4 — Release supply chain (alongside Phases 2–3)
 
 | # | Item | Issue | Size | Depends on |
@@ -330,6 +348,7 @@ These compete for reviewer time, not for the same files:
 | 9 | PyPI popular-name list for lookalike indicators: run the dated BigQuery query (CC BY 4.0), or approve another source — open | U4's PyPI reference |
 | 10 | v0.13.0 scope, including the additive evidence contract 2.2.0 (`trust_assurance`) — **decided 2026-11-02: approved** | X1–X6 |
 | 11 | v0.14.0 scope, and that Y1's synthetic and organic false-positive measurements meet track T Phase 4's "false-positive results" dependency for T-E1 (the registered study still to come) — **decided 2026-11-02: approved** | Y1–Y6 |
+| 12 | v0.16.0 scope (Phase 10), including the additive evidence contract 2.3.0 for the three new check names — open | Q1–Q6 |
 
 ## Risks
 
