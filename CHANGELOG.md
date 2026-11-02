@@ -11,6 +11,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Opt-in local recording of agent questions and answers (M8, v0.13.0 item X6).** `openpulse mcp --record DIR` appends one JSON line per tool call to `DIR/mcp-<session>.jsonl`. Each line holds the tool, its arguments, the outcome and a research summary: verdict, trust statuses, and the agent's `intent` and `name_source`. The full answer is included unless it is over 256 KB. It is off by default and local only: nothing is sent anywhere. Recording never changes an answer, a write failure stops recording without failing a tool, and on POSIX the files are owner-only. This is the data source for the track T research questions on how agents choose dependencies (RQ1, RQ4).
 - **Evidence contract 2.2.0 with `trust_assurance` (track T, T-F2, v0.13.0 item X5).** `openpulse attest --trust` checks each PyPI and npm dependency once per run and records it in every contract for that dependency:
   - **The checks:** malicious records, registry existence, provenance, repository linkage, dependency confusion and lookalike.
   - **Record shape:** each record is fixed: check, T-F1 status, a fixed statement, `checked_at` and the https URIs it cites. A summary counts every status, and `used_in_verdict` is always `false`. Free-form evidence stays out, so the public shape is stable.

@@ -183,12 +183,29 @@ Limits are stated in the answer, never applied silently (v0.11.0):
 
 ## Security model
 
-- **Read-only.** No tool writes or executes anything.
+- **Read-only.** No tool writes or executes anything. The one exception is opt-in: with `--record DIR`, the server appends its own question-and-answer log to DIR (see *Recording* below).
 - **Confined file access.** `check_dependency_file` only reads files inside the server's root (the directory it was started in, or `--root`). A prompt-injected agent cannot use OpenPulse to parse files elsewhere on the machine. Reads are size-bounded.
 - **The private-name list is in the agent's reach.** An agent can edit `.openpulse/private-packages.txt` like any project file. Listing a public package there does not hide it: the existence and provenance checks give way to `dependency_confusion`, which reports the public package as `SUSPICIOUS_INCONCLUSIVE`, and `malicious` still runs. Review changes to the list like any other change to the project's dependencies.
-- **Limited network.** The only hosts contacted are endoflife.date, api.osv.dev and api.github.com. `--offline` turns network access off entirely and answers from the curated events (`project_lifecycle` then explains that it needs live lookups).
-- **No text comes back from the caller (v0.12.0).** Package names, versions, ecosystems and image refs must be identifiers (letters, digits and a few separators: no whitespace, control, bidi, zero-width or Markdown characters). A tool argument that isn't one is refused, and a file entry that isn't one is skipped. Neither is ever repeated in the answer, so a name can't carry an instruction back to the agent.
+- **Limited network.** The only hosts contacted are endoflife.date, api.osv.dev and api.github.com, plus, for the trust checks, pypi.org, registry.npmjs.org and raw.githubusercontent.com. `--offline` turns network access off entirely and answers from the curated events (`project_lifecycle` then explains that it needs live lookups).
+- **No text comes back from the caller (v0.12.0).** Package names, versions, ecosystems and image refs must be identifiers (letters, digits and a few separators: no whitespace, control, bidi, zero-width or Markdown characters). A tool argument that isn't one is refused, and a file entry that isn't one is skipped. Neither is ever repeated in the answer, so a name can't carry an instruction back to the agent. The one free-text field, `intent` (v0.13.0), is returned only inside `trust.selection_context`, labelled `supplied_by: agent`, stripped of control, bidi and zero-width characters and capped at 280 characters.
 - **Errors with reasons.** Bad input (a path outside the root, an unrecognised file, a missing package name) comes back to the agent as a tool error with the reason, not an opaque failure.
+
+## Recording (opt-in, local)
+
+`openpulse mcp --record DIR` appends one JSON line per tool call to `DIR/mcp-<session>.jsonl` (v0.13.0, M8). It is off unless you pass the flag, and **nothing is ever sent anywhere**: the files are yours to read, share or delete. It exists to answer research questions about how coding agents use dependency evidence: what they ask, what they are told, and what they say about why they ask (`intent`, `name_source`).
+
+Each line (`schema: openpulse-mcp-record/1`) holds:
+- `session`, `seq`, `at` and `openpulse_version`;
+- `tool` and `arguments`, as the agent gave them, capped at 1000 characters each;
+- `outcome`: `answer` or `error`, with the error message;
+- `summary`: the verdict, trust statuses and selection context;
+- `answer`: the full answer, unless it is over 256 KB, in which case `answer_omitted` is true.
+
+What it does and doesn't do:
+- **Answers:** recording never changes an answer.
+- **Failures:** a write failure is reported once on stderr and stops recording; the tools keep working.
+- **Permissions:** on POSIX the directory and files are owner-only.
+- **Contents:** the log contains what the agent asked about, including file paths and package names. Treat it like any project log.
 
 ## Troubleshooting
 
