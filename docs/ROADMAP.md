@@ -310,7 +310,7 @@ Checked against recent research and open-source tools. Items are adopted only wh
 Considered and not adopted: dependency-discovery benchmarking (inventory generation is Syft's and the SBOM producer's job; OpenPulse consumes inventories); vulnerability-feed accuracy and freshness as a product metric (a property of OSV and NVD, not a differentiator — temporal coverage stays the P0 audit item); a reachability or call-graph engine (generic SCA); malicious-package detection. Track T below keeps that decision: it cites confirmed-malicious records published by others and reports transparent indicators, but it does not detect malware.
 
 ## Track T — AI Dependency Trust Assurance: Know Why You Trust Your Dependencies
-STATUS: FUTURE (planned 2026-10-31; a separate future study; nothing in this section is implemented)
+STATUS: ACTIVE (planned 2026-10-31 as a separate future study; since implemented in phases: registry existence, provenance, lookalike names and lockfile digests in v0.12.0, malicious records, dependency confusion, repository linkage and contract 2.2.0 in v0.13.0, trust policy and measurements in v0.14.0, pre-install gates in v0.15.0, reputation indicators and contract 2.3.0 in v0.16.0. See `CHANGELOG.md` and `docs/NEXT_PHASES.md`. The study's research questions remain open.)
 
 **The question.** When a person or a coding agent is about to add a dependency, what evidence shows that:
 
@@ -343,7 +343,9 @@ Track T does **not** make OpenPulse any of the following:
 
 There is no composite score and no SAFE status. Every statement names the check that produced it, its source and when it ran. Principle 12 holds: no model sits in the trusted decision path, and no model sits in the enforcement path either.
 
-### Available today vs planned (verified against `main` @ `f16c8aa`)
+### Baseline when track T was planned (verified against `main` @ `f16c8aa`, 2026-10-31)
+
+This table is the starting point the plan was written against, kept as a record. It is not the current state: most of the "Planned" column has since been implemented (see the STATUS line above).
 
 | Capability | Today | Planned in track T |
 |---|---|---|

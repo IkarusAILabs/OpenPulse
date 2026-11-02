@@ -28,6 +28,7 @@ blocklist:
   - `*` and `?` are wildcards in the name;
   - PyPI names compare in normalized form (`Acme_Billing` matches `acme-*`).
 - **Blocklist:** a package on it fails the run without any lookup.
+- **`unchecked: fail`** (the default) or **`unchecked: pass`:** what `openpulse gate` does when a prohibited check applied to a dependency but did not run. See "How a run decides".
 - **Validation:** an invalid policy (unknown key or condition, a bad pattern, an indicator without `packages`) is refused with the reason, and the run stops.
 
 ## Conditions
@@ -57,7 +58,11 @@ Each condition is one trust check reaching one status. The labels come from the 
 
 - **Network:** the trust checks run only when the policy needs them. A blocklist-only policy makes no lookups.
 - **Budget:** each dependency is checked once per run, within the same bounded budget as `attest --trust`. Digest checks need `--lockfile`.
-- **Silence never blocks:** `NOT_PERFORMED` (a source unreachable, a spent budget) and `MISSING_EVIDENCE` never fail a run by themselves. Only a scoped condition such as `missing_provenance` makes missing evidence fail.
+- **Missing evidence:** `MISSING_EVIDENCE` never fails a run by itself. Only a scoped condition such as `missing_provenance` makes missing evidence fail.
+- **A check that did not run:** a prohibited check that applied to a dependency but returned `NOT_PERFORMED` (a source unreachable or rate-limited, a spent lookup budget) is *unchecked*.
+  - `openpulse gate` fails on it (exit 1, `policy: PROHIBITED unchecked <condition>: ...`), because a pre-install gate must not pass because a source was down. `unchecked: pass` in the policy restores the old behaviour.
+  - `check --policy` and `attest --policy` print how many there were and do not fail on them.
+  - A check that does not apply is never unchecked: npm packages have no PyPI provenance, a name on the private-name list skips the public-registry checks, `publisher_change` needs a version.
 - **When it fails:** a violation prints `policy: PROHIBITED <condition>: <ecosystem>:<name>==<version>` with the check's fixed statement. The run exits 1 **after** every output is written (contracts, SARIF, DefectDojo, digest, webhook), alongside `--fail-on`.
 - **Model-free:** the same files and the same source answers give the same decision.
 
@@ -74,9 +79,10 @@ openpulse gate package-lock.json --base-ref HEAD                     # pre-commi
 - **The same evaluation as `check` and `attest`:**
   - the blocklist covers every dependency;
   - lockfile digests are checked for every entry whose hash changed;
-  - `NOT_PERFORMED` never blocks.
-- **Exit codes:** 0 when nothing prohibited is found, 1 on a violation, 2 on a usage error (an unknown ref, not a git repository, mismatched `--base`). Without a policy it passes and says so.
-- **Files a hook may pass:** deleted files and files that are not dependency files are skipped with a note.
+  - except that a prohibited check that did not run fails the gate (see above).
+- **Exit codes:** 0 when nothing prohibited is found, 1 on a violation, 2 on a usage error (an unknown ref, not a git repository, mismatched `--base`) or a named file it cannot read. Without a policy it passes and says so.
+- **Files it cannot read fail closed:** a named file that is not a readable dependency file (a malformed `package-lock.json`, a broken `pyproject.toml`, a README) exits 2: nothing in it was checked, so it is never a pass. Deleted files are skipped with a note.
+- **Entries it does not check are listed:** lines that are not exactly pinned PyPI or npm packages (`flask>=2`, a bare `requests`) are printed as not checked. The lockfile pins them: gate the lockfile too.
 - **First commit:** in a repository with no commits yet, `--base-ref HEAD` treats every file as new. Any other unknown ref is still a usage error.
 
 ### In CI, before install
@@ -137,9 +143,10 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | An agent that ignores the MCP warning | Yes | CI evaluates the files again, with no model involved |
 | A pull request that weakens its own policy or private-name list | Yes, in the Action with `trust: pull-request` | The Action uses the **base branch's** `.openpulse/policy.yml` (or the `policy` path) and `.openpulse/private-packages.txt` when they exist. A policy the pull request adds is used as is. With `trust: off` or `all`, the policy comes from the checked-out tree: protect `.openpulse/` with CODEOWNERS |
 | A pull request that removes or edits the workflow step | No (outside OpenPulse) | Make the OpenPulse job a **required status check** with branch protection. A job that never runs then blocks the merge |
-| An unpinned entry (`evil-pkg>=1.0`) | No | Unpinned entries are skipped, never guessed. Pin dependencies, or gate on the lockfile |
+| An unpinned entry (`evil-pkg>=1.0`) | No | Unpinned entries are never guessed; the gate lists them as not checked. Pin dependencies, or gate on the lockfile |
 | A blocklist entry pinned to one version | No, by design | `PyPI:flask==3.0.0` matches that version only. Use `PyPI:flask` to block every version |
-| A source that does not answer (offline, rate-limited) | No, by design | `NOT_PERFORMED` never blocks: silence is not evidence. The step log and `trust_assurance` record it |
+| A source that does not answer (offline, rate-limited), or a spent lookup budget | Yes, in `openpulse gate` | A prohibited check that did not run fails the gate unless the policy says `unchecked: pass`. `check` and `attest` report the count without failing |
+| A malformed or unrecognised dependency file | Yes, in `openpulse gate` | Exit 2: a file the gate cannot read is never a pass |
 | A dependency installed outside the files (`pip install x` in a build script) | No | The gate sees only its inputs. Install from the lockfile you gate, e.g. `pip install --require-hashes -r requirements.lock` |
 | `git commit --no-verify` (or a hook never installed) | Yes, in CI | The hook is a convenience, not a boundary: every hook can be skipped locally. The CI gate compares with the base branch, so the skipped commit's additions are still checked. Run it as a required status check |
 | A dependency file the hook's pattern does not name (`requirements/base.txt`, `constraints.txt`) | No, at commit | The hook selects `requirements*.txt` and the standard manifest and lockfile names. Widen it with `files:` in your `.pre-commit-config.yaml`, and list every file in the CI gate |
