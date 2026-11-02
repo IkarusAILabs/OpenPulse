@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -140,12 +141,91 @@ def test_explicit_base_files_work_without_git(repo, monkeypatch, tmp_path_factor
 # ---------------------------------------------------------------------------
 
 
-def test_deleted_and_non_dependency_files_are_skipped(repo):
-    (repo / "README.md").write_text("# hello\n", encoding="utf-8")
+def test_a_deleted_file_is_skipped(repo):
     policy = _policy(repo, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
-    result = _gate("README.md", "gone.txt", "--base-ref", "HEAD", "--policy", policy)
+    result = _gate("gone.txt", "--base-ref", "HEAD", "--policy", policy)
     assert result.exit_code == 0, result.output
-    assert "not present" in result.output and "not a dependency file" in result.output
+    assert "not present" in result.output
+
+
+@pytest.mark.parametrize(
+    ("name", "text"),
+    [
+        ("package-lock.json", '{"lockfileVersion": 3, "packages": {"node_modules/x": '),
+        ("pyproject.toml", '[tool.poetry]\nname = "x"\n[[[broken\n'),
+        ("README.md", "# hello\n"),
+    ],
+)
+def test_a_named_file_it_cannot_read_fails_closed(repo, name, text):
+    """A file the gate cannot parse is never a pass (exit 2, not 0)."""
+    (repo / name).write_text(text, encoding="utf-8")
+    policy = _policy(repo, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    result = _gate(name, "--policy", policy)
+    assert result.exit_code == 2, result.output
+    assert "cannot be read as a dependency file" in result.output
+    assert "gate: passed" not in result.output
+
+
+def test_violations_still_win_over_an_unreadable_file(repo, monkeypatch):
+    monkeypatch.setattr("core.malicious.default_query", _osv("evil-pkg"))
+    (repo / "requirements.txt").write_text("evil-pkg==1.0\n", encoding="utf-8")
+    (repo / "package-lock.json").write_text("{", encoding="utf-8")
+    policy = _policy(repo, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    result = _gate("requirements.txt", "package-lock.json", "--policy", policy)
+    assert result.exit_code == 1, result.output
+
+
+@pytest.mark.parametrize("text", ["evilpkg\nrequests\n", "requests==2.31.0\nevilpkg\nflask>=2\n"])
+def test_entries_that_are_not_exact_pins_are_listed_not_silently_skipped(repo, monkeypatch, text):
+    monkeypatch.setattr("core.malicious.default_query", _osv())
+    (repo / "requirements.txt").write_text(text, encoding="utf-8")
+    policy = _policy(repo, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    result = _gate("requirements.txt", "--policy", policy)
+    assert result.exit_code == 0, result.output
+    assert "not checked" in result.output and "evilpkg" in result.output
+
+
+# ---------------------------------------------------------------------------
+# A prohibited check that did not run never passes the gate
+# ---------------------------------------------------------------------------
+
+
+def test_an_unreachable_source_fails_the_gate(repo, monkeypatch):
+    monkeypatch.setattr("core.malicious.default_query", lambda _body: (0, None))
+    (repo / "requirements.txt").write_text("django==4.2\nnewpkg==1.0\n", encoding="utf-8")
+    policy = _policy(repo, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    result = _gate("requirements.txt", "--base-ref", "HEAD", "--policy", policy)
+    assert result.exit_code == 1, result.output
+    assert "PROHIBITED unchecked confirmed_malicious: PyPI:newpkg==1.0" in result.output
+    assert "PyPI:django" not in result.output  # unchanged since the base: not gated
+
+
+def test_unchecked_pass_opts_out(repo, monkeypatch):
+    monkeypatch.setattr("core.malicious.default_query", lambda _body: (0, None))
+    doc = {"version": 1, "prohibit": ["confirmed_malicious"], "unchecked": "pass"}
+    result = _gate("requirements.txt", "--policy", _policy(repo, doc))
+    assert result.exit_code == 0, result.output
+
+
+def test_a_spent_budget_fails_the_gate(repo, monkeypatch):
+    monkeypatch.setattr("core.malicious.default_query", _osv())
+    monkeypatch.setattr("cli.main._ATTEST_TRUST_MAX_LOOKUPS", 1)
+    names = "\n".join(f"pkg{i}==1.0" for i in range(3))
+    (repo / "requirements.txt").write_text(names + "\n", encoding="utf-8")
+    policy = _policy(repo, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    result = _gate("requirements.txt", "--policy", policy)
+    assert result.exit_code == 1, result.output
+    assert result.output.count("PROHIBITED unchecked confirmed_malicious") == 2
+
+
+def test_a_check_that_does_not_apply_is_not_unchecked(repo, monkeypatch):
+    """npm has no PyPI provenance: missing_provenance on an npm name never fails."""
+    monkeypatch.setattr("core.malicious.default_query", _osv())
+    lock = {"lockfileVersion": 3, "packages": {"node_modules/left-pad": {"version": "1.3.0"}}}
+    (repo / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
+    doc = {"version": 1, "prohibit": [{"condition": "missing_provenance", "packages": ["npm:*"]}]}
+    result = _gate("package-lock.json", "--policy", _policy(repo, doc))
+    assert result.exit_code == 0, result.output
 
 
 @pytest.mark.parametrize(

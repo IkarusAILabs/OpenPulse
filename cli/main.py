@@ -465,6 +465,7 @@ def _policy_violations(
     base_keys=None,
     base_lockfile=None,
     private_names=None,
+    fail_unchecked=False,
 ):
     """Every policy violation across the run's dependencies, deterministically.
 
@@ -473,8 +474,13 @@ def _policy_violations(
     With ``base_lockfile``, digests are checked for every lockfile entry
     whose locked digests differ from the base, including an existing entry
     whose hash was edited in place (same name and version).
+
+    A prohibited check that applied but did not run (a source down, a spent
+    budget) is unchecked: with ``fail_unchecked`` (``openpulse gate``, unless
+    the policy says ``unchecked: pass``) each one is a violation; otherwise
+    the count is printed.
     """
-    from core import agent_tools
+    from core import agent_tools, registry_existence
     from core import trust_policy as _policy
 
     if loaded is None:
@@ -482,6 +488,7 @@ def _policy_violations(
     if loaded.needs_trust and blocks is None:
         blocks = _attest_trust(deps, private_names, base_keys)
     digests: dict[Any, Any] = {}
+    locked: dict[Any, Any] = {}
     if loaded.needs_digests and lockfile:
         from core.lockfile_reader import lockfile_digests
 
@@ -512,12 +519,51 @@ def _policy_violations(
             except agent_tools.BudgetExhausted:
                 break
     violations = []
+    unchecked = []
     for index, dep in enumerate(deps):
         records = list((blocks or {}).get(index, {}).get("checks", []))
         key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
         if key in digests:
             records.append({"check": "digest_integrity", **digests[key]})
         violations += [dict(v, index=index) for v in _policy.evaluate(loaded, dep, records)]
+        gated = (
+            dep.get("kind") == "package"
+            and registry_existence.ecosystem_of(dep.get("ecosystem")) in ("PyPI", "npm")
+            and (base_keys is None or agent_tools._dependency_key(dep) not in base_keys)
+        )
+        if gated and loaded.needs_trust:
+            private = agent_tools._is_private(dep, private_names)
+            unchecked += [
+                dict(v, index=index) for v in _policy.unchecked(loaded, dep, records, private)
+            ]
+        if key in locked and (
+            key not in digests or digests[key].get("status") == "NOT_PERFORMED"
+        ):
+            for rule in loaded.rules:
+                if _policy.CONDITIONS[rule.condition][0] == "digest_integrity" and (
+                    not rule.packages or _policy._matches(rule.packages, dep)
+                ):
+                    statement = (digests.get(key) or {}).get("statement") or (
+                        "the lookup budget was spent before this digest was checked"
+                    )
+                    unchecked.append(
+                        dict(
+                            _policy.unchecked_violation(
+                                rule.condition, dep, "digest_integrity", statement
+                            ),
+                            index=index,
+                        )
+                    )
+                    break
+    if fail_unchecked and loaded.unchecked == "fail":
+        violations += unchecked
+    elif unchecked:
+        _echo(
+            f"policy: {len(unchecked)} prohibited check(s) did not run (a source was down "
+            "or the lookup budget was spent); not a violation here, `openpulse gate` fails "
+            "on them",
+            err=True,
+        )
     return violations
 
 
@@ -541,6 +587,40 @@ def _base_keys(base_files):
             raise click.ClickException(f"{path}: cannot read the base file: {e}") from e
         keys |= {agent_tools._dependency_key(d) for d in deps}
     return keys
+
+
+def _untracked(_ctx, param, value):
+    """Click callback: refuse a local state store that git tracks.
+
+    Observation history, the detection ledger and webhook delivery state are
+    local history: records of what this machine saw and sent. A copy committed
+    to the repository comes from whoever can commit, so it could move lead-time
+    claims or mark alerts as already delivered. Outside a git checkout, or
+    without git, there is nothing to check.
+    """
+    import subprocess
+
+    if not value:
+        return value
+    try:
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z", "--", value],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return value
+    files = [f for f in tracked.stdout.split(b"\0") if f] if tracked.returncode == 0 else []
+    if files:
+        flag = param.opts[0]
+        raise click.UsageError(
+            f"{value} is tracked by git ({len(files)} file(s)): state committed to the "
+            "repository is not local history, and anyone who can commit could forge it. "
+            f"Untrack it (git rm -r --cached {value}) or pass {flag} a directory git "
+            "does not track"
+        )
+    return value
 
 
 def _report_violations(violations) -> bool:
@@ -675,8 +755,13 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
 
     Run it before `pip install` or `npm ci`, or as a pre-commit hook. Exit 0
     when nothing the policy prohibits is found, 1 on a violation, 2 on a
-    usage error. Without a policy there is nothing to enforce, so it passes.
-    No events are needed: this checks trust, not upstream changes.
+    usage error or a named file it cannot read as a package dependency file
+    (fail closed: an unread file is never a pass). A prohibited check that
+    applied but did not run (a source down, a spent budget) is a violation
+    unless the policy says `unchecked: pass`. Entries that are not exactly
+    pinned packages are listed as not checked. Without a policy there is
+    nothing to enforce, so it passes. No events are needed: this checks
+    trust, not upstream changes.
     """
     import tempfile
     from pathlib import Path as _Path
@@ -698,6 +783,7 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
         return
     names = _private_name_list(private_names)
     violations: list[dict[str, Any]] = []
+    unreadable: list[str] = []
     checked = added = 0
     with tempfile.TemporaryDirectory(prefix="openpulse-gate-") as scratch:
         for index, path in enumerate(paths):
@@ -705,10 +791,27 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
                 _echo(f"gate: {path}: not present (deleted?), skipped", err=True)
                 continue
             try:
-                deps, _skipped, kind = agent_tools._read_dependency_file(path)
-            except ValueError:
-                _echo(f"gate: {path}: not a dependency file, skipped", err=True)
+                deps, skipped, kind = agent_tools._read_dependency_file(path)
+            except ValueError as e:
+                _echo(f"gate: {path}: cannot be read as a dependency file: {e}", err=True)
+                unreadable.append(path)
                 continue
+            if kind == "images":
+                # The image-list fallback: no exact pins, so no package to check.
+                # A requirements file of unpinned names lands here too.
+                skipped = [f"`{d['ref']}`: not an exactly pinned package" for d in deps]
+                deps = []
+            if skipped:
+                _echo(
+                    f"gate: {path}: {len(skipped)} entr{'y' if len(skipped) == 1 else 'ies'} "
+                    "not checked (only exactly pinned PyPI and npm packages are; a lockfile "
+                    "pins the rest):",
+                    err=True,
+                )
+                for message in skipped[:20]:
+                    _echo(f"  {strip_unsafe(str(message))[:200]}", err=True)
+                if len(skipped) > 20:
+                    _echo(f"  ... and {len(skipped) - 20} more", err=True)
             if base_paths:
                 base = base_paths[index]
             elif base_ref:
@@ -733,9 +836,17 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
                 base_keys,
                 base_lockfile,
                 private_names=names,
+                fail_unchecked=True,
             )
     if _report_violations(violations):
         raise SystemExit(1)
+    if unreadable:
+        _echo(
+            f"gate: failed: {len(unreadable)} file(s) could not be read, so nothing in "
+            "them was checked; fix or remove them, or leave them out of the gate",
+            err=True,
+        )
+        raise SystemExit(2)
     scope = "added or changed" if (base_ref or base_paths) else "checked"
     _echo(f"gate: passed ({checked} dependencies, {added} {scope}, no violation)")
 
@@ -1044,7 +1155,12 @@ def demo_bitnami():
 @cli.command()
 @click.option("--namespace", required=True, help="Registry namespace (e.g. bitnami)")
 @click.option("--repo", "repository", required=True, help="Repository (e.g. redis)")
-@click.option("--store", default=".openpulse/observations", help="History root directory")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root directory",
+    callback=_untracked,
+)
 @click.option(
     "--rebaseline",
     is_flag=True,
@@ -1135,11 +1251,17 @@ def observe(
     is_flag=True,
     help="Run live distribution sweep first and include its findings",
 )
-@click.option("--store", default=".openpulse/observations", help="History root for --with-sweep")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root for --with-sweep",
+    callback=_untracked,
+)
 @click.option(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable detection ledger root ('' disables; feeds first_detected_at in findings)",
 )
@@ -1858,6 +1980,7 @@ def _load_check_inputs(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (recording is the default; '' disables)",
 )
@@ -1885,6 +2008,7 @@ def _load_check_inputs(
     "--delivery-state",
     "delivery_root",
     default=".openpulse/deliveries",
+    callback=_untracked,
     envvar="OPENPULSE_DELIVERY_STATE",
     show_default=True,
     show_envvar=True,
@@ -2181,6 +2305,7 @@ def check(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
@@ -2336,6 +2461,7 @@ def digest(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
@@ -2860,7 +2986,12 @@ def attest(
 
 
 @cli.command()
-@click.option("--store", default=".openpulse/observations", help="History root directory")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root directory",
+    callback=_untracked,
+)
 @click.option(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
 )

@@ -25,8 +25,14 @@ cited records (``measured`` in ``docs/research/TRACK_T_MEASUREMENTS.md``)
 may be prohibited for any package. Indicators fire on legitimate packages
 (lookalike flags 18.8% of real popular npm names), so they must name the
 packages they apply to; conditions without an organic false-positive set
-are ``experimental`` and say so when used. MISSING_EVIDENCE and
-NOT_PERFORMED never block by themselves, only through a scoped condition.
+are ``experimental`` and say so when used. MISSING_EVIDENCE never blocks
+by itself, only through a scoped condition.
+
+A prohibited check that applied to a dependency but did not run (a source
+down, a spent lookup budget) is *unchecked*: :func:`unchecked` lists them.
+``openpulse gate`` fails on them unless the policy says ``unchecked: pass``
+(a pre-install gate must not pass because a source was down); ``check`` and
+``attest`` report how many there were.
 """
 
 from __future__ import annotations
@@ -74,6 +80,7 @@ CONDITIONS: dict[str, tuple[str, str, bool, str]] = {
     ),
 }
 BLOCKLISTED = "blocklisted"
+UNCHECKED_MODES = ("fail", "pass")
 
 _PATTERN = re.compile(r"([A-Za-z][A-Za-z0-9.-]{0,30}):([^\s=]{1,214})(?:==([^\s]{1,128}))?")
 
@@ -93,6 +100,8 @@ class Policy:
     rules: list[Rule] = field(default_factory=list)
     blocklist: tuple[tuple[str, str, str | None], ...] = ()
     source: str = ""
+    #: What ``openpulse gate`` does when a prohibited check did not run.
+    unchecked: str = "fail"
 
     @property
     def needs_trust(self) -> bool:
@@ -133,7 +142,7 @@ def parse(doc: Any, source: str = "") -> Policy:
     """A validated Policy from the YAML document; PolicyError with the reason otherwise."""
     if not isinstance(doc, dict):
         raise PolicyError("policy: expected a mapping with version, prohibit and blocklist")
-    unknown = set(doc) - {"version", "prohibit", "blocklist"}
+    unknown = set(doc) - {"version", "prohibit", "blocklist", "unchecked"}
     if unknown:
         raise PolicyError(f"policy: unknown key(s) {', '.join(sorted(map(str, unknown)))}")
     if doc.get("version") != 1:
@@ -158,7 +167,10 @@ def parse(doc: Any, source: str = "") -> Policy:
     blocklist = _patterns(doc["blocklist"], "blocklist") if doc.get("blocklist") else ()
     if not rules and not blocklist:
         raise PolicyError("policy: prohibits nothing; add prohibit or blocklist entries")
-    return Policy(rules=rules, blocklist=blocklist, source=source)
+    mode = doc.get("unchecked", "fail")
+    if mode not in UNCHECKED_MODES:
+        raise PolicyError("policy: unchecked must be fail or pass")
+    return Policy(rules=rules, blocklist=blocklist, source=source, unchecked=mode)
 
 
 def load(path: str | Path) -> Policy:
@@ -220,6 +232,72 @@ def evaluate(policy: Policy, dep: dict[str, Any], records: list[dict[str, Any]])
     return violations
 
 
+def applies(check: str, dep: dict[str, Any], private: bool) -> bool:
+    """Whether ``check`` should run for this PyPI or npm dependency
+    (``private``: the package is on the private-name list).
+
+    A check that does not apply (npm has no PyPI provenance, a private name has
+    no public publisher) is never unchecked; one that applies and did not run is.
+    """
+    if check == "dependency_confusion":
+        return private
+    if check in ("malicious", "lookalike"):
+        return True
+    if private:
+        return False
+    if check == "provenance":
+        return str(dep.get("ecosystem")).lower() == "pypi" and bool(dep.get("version"))
+    if check == "publisher_change":
+        return bool(dep.get("version"))
+    return True
+
+
+def unchecked(
+    policy: Policy, dep: dict[str, Any], records: list[dict[str, Any]], private: bool = False
+) -> list[dict[str, Any]]:
+    """Prohibited checks that applied to ``dep`` but did not run.
+
+    ``records`` are the dependency's trust records; a check with no record, or
+    only NOT_PERFORMED records, did not run. Digest checks are reported by the
+    caller (they need a lockfile). Never a violation by itself: the gate decides.
+    """
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for rule in policy.rules:
+        check = CONDITIONS[rule.condition][0]
+        if check == "digest_integrity" or check in seen:
+            continue
+        if rule.packages and not _matches(rule.packages, dep):
+            continue
+        if not applies(check, dep, private):
+            continue
+        ran = [
+            r for r in records if r.get("check") == check and r.get("status") != "NOT_PERFORMED"
+        ]
+        if ran:
+            continue
+        seen.add(check)
+        statement = next(
+            (str(r.get("statement")) for r in records if r.get("check") == check),
+            "the check was not run",
+        )
+        out.append(unchecked_violation(rule.condition, dep, check, statement))
+    return out
+
+
+def unchecked_violation(
+    condition: str, dep: dict[str, Any], check: str, statement: str
+) -> dict[str, Any]:
+    return {
+        "condition": f"unchecked {condition}",
+        "dependency": _label(dep),
+        "check": check,
+        "status": "NOT_PERFORMED",
+        "statement": statement,
+        "label": "unchecked",
+    }
+
+
 def _label(dep: dict[str, Any]) -> str:
     if dep.get("kind") != "package":
         return str(dep.get("ref") or "")
@@ -236,4 +314,5 @@ __all__ = [
     "evaluate",
     "load",
     "parse",
+    "unchecked",
 ]
