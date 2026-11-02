@@ -342,7 +342,15 @@ def analyze(project, raw_bundle, project_version):
     is_flag=True,
     help="No network: answer from the bundled curated events only",
 )
-def mcp_command(root, offline):
+@click.option(
+    "--record",
+    "record",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Opt-in: append each question and answer as JSON lines to a file in this "
+    "local directory (research on how agents use dependency evidence); never sent anywhere",
+)
+def mcp_command(root, offline, record):
     """MCP server (stdio) for AI coding agents: dependency evidence as tools.
 
     Needs the optional `mcp` extra (see docs/MCP.md).
@@ -357,7 +365,9 @@ def mcp_command(root, offline):
         ) from None
     from cli.mcp_server import run
 
-    run(root=root, live=not offline)
+    if record:
+        _echo(f"openpulse mcp: recording questions and answers under {record}", err=True)
+    run(root=root, live=not offline, record=record)
 
 
 #: Live lookups per dependency for `attest --trust` (malicious, existence,

@@ -8,7 +8,9 @@ upstream distribution/license/support change, or has advisories for the
 exact version - with the evidence behind each answer.
 
 Security posture:
-- every tool is read-only; nothing is written, nothing is executed;
+- every tool is read-only; nothing is executed, and nothing is written
+  except, when the user passes ``--record DIR``, the local record files
+  (:mod:`core.agent_record`; opt-in, never sent anywhere);
 - file checks are confined to the server's project root (the directory
   it was started in, or ``--root``): a prompt-injected agent cannot use
   the server to parse files elsewhere on the machine;
@@ -59,11 +61,14 @@ def _answer(call: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         raise ToolError(str(exc)) from exc
 
 
-def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None) -> Any:
+def build_server(
+    root: str | Path = ".", live: bool = True, lookups: Any = None, record: Any = None
+) -> Any:
     """The configured MCPServer (separate from `run` so tests can drive it).
 
     One ``Lookups`` per server session: its budget and cache span every call.
-    ``lookups`` is injectable for offline tests.
+    ``lookups`` is injectable for offline tests. ``record`` is a directory
+    (or a :class:`core.agent_record.Recorder`) for opt-in local recording.
     """
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
@@ -81,6 +86,26 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         instructions=INSTRUCTIONS,
         version=openpulse_version(),
     )
+
+    recorder = record
+    if record is not None and not hasattr(record, "record"):
+        from core.agent_record import Recorder
+
+        recorder = Recorder(record, version=openpulse_version())
+
+    def answered(
+        tool: str, arguments: dict[str, Any], call: Callable[[], dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Run one tool and, when recording, append the call; never alters the answer."""
+        try:
+            result = _answer(call)
+        except Exception as exc:
+            if recorder is not None:
+                recorder.record(tool, arguments, error=str(exc))
+            raise
+        if recorder is not None:
+            recorder.record(tool, arguments, answer=result)
+        return result
 
     def private_names() -> frozenset[tuple[str, str]] | None:
         """The user's private-name list under the root, read per call (T-A3)."""
@@ -115,7 +140,17 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         `name_source` (one of user_request, existing_code, documentation,
         search_result, model_suggestion, other). They are recorded in
         `trust.selection_context` and never change any status or verdict."""
-        return _answer(
+        arguments = {
+            "package": package,
+            "version": version,
+            "ecosystem": ecosystem,
+            "image": image,
+            "intent": intent,
+            "name_source": name_source,
+        }
+        return answered(
+            "dependency_status",
+            arguments,
             lambda: agent_tools.dependency_status(
                 package or None,
                 version or None,
@@ -145,7 +180,9 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         project's private-name list).
         `trust_all` runs them on every dependency instead. Trust checks are never part
         of the verdict; review anything listed under `trust.attention`."""
-        return _answer(
+        return answered(
+            "check_dependency_file",
+            {"path": path, "base_path": base_path, "trust_all": trust_all},
             lambda: agent_tools.check_dependency_file(
                 _confined(project_root, path),
                 lookups=lookups,
@@ -165,10 +202,10 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
                 raise ValueError("project_lifecycle needs live lookups (server runs --offline)")
             return agent_tools.project_lifecycle(project, lookups=lookups)
 
-        return _answer(lifecycle)
+        return answered("project_lifecycle", {"project": project}, lifecycle)
 
     return server
 
 
-def run(root: str | Path = ".", live: bool = True) -> None:
-    build_server(root, live).run()
+def run(root: str | Path = ".", live: bool = True, record: str | Path | None = None) -> None:
+    build_server(root, live, record=record).run()
