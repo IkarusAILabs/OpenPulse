@@ -2,6 +2,15 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **`openpulse gate`: the trust policy before install (track T, T-E2, v0.15.0 item Z1).** `openpulse gate FILE... [--base-ref REF | --base FILE...] [--policy PATH]` applies the trust policy to dependency files alone, with no events needed. It is for a CI step before `pip install` or `npm ci` (`--base-ref origin/main`), and for a pre-commit hook (`--base-ref HEAD`). See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Before install".
+  - **Comparison:** with `--base-ref`, each file's copy at that ref is read with `git show`, and trust checks run only for added or changed dependencies. A file new since the ref counts as added.
+  - **The same evaluation as `check` and `attest`:** the blocklist covers every dependency, lockfile hashes edited in place are caught, and `NOT_PERFORMED` never blocks.
+  - **Exit codes:** 0 pass, 1 violation, 2 usage error. Without a policy it passes and says so. Deleted and non-dependency files are skipped.
+
 ## 0.14.0 "Enforced Trust" — 2026-11-02
 
 Track T Phase 4 (T-E1): trust conditions you prohibit now fail CI deterministically, with no model involved, because advisory answers to an agent are not a security boundary.
