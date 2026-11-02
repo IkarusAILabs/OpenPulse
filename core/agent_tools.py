@@ -820,6 +820,8 @@ def check_dependency_file(
     mode: str = CURRENT,
     as_of: datetime | None = None,
     max_evidence_age_days: int | None = None,
+    base_path: str | None = None,
+    trust_all: bool = False,
 ) -> dict[str, Any]:
     """Every pinned dependency of one manifest, lockfile, SBOM or image list.
 
@@ -827,6 +829,11 @@ def check_dependency_file(
     are reported as skipped, never guessed. ``mode``, ``as_of`` and
     ``max_evidence_age_days`` as in :func:`dependency_status`; one time
     frame covers the whole file.
+
+    ``base_path`` is an earlier version of the file: the dependencies added
+    or changed since then get the track T trust checks (``trust``, U5).
+    ``trust_all`` runs them on every dependency instead. Neither: no trust
+    checks, ``trust`` is None.
     """
     evaluation = Evaluation(
         mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
@@ -846,10 +853,20 @@ def check_dependency_file(
             ]
     deps = kept
     skipped = [_safe_skip(message) for message in skipped]
-    truncated = len(deps) > MAX_FILE_DEPENDENCIES
-    deps = deps[:MAX_FILE_DEPENDENCIES]
     if live and lookups is None:
         lookups = Lookups()
+    # Trust checks first: the additions under review get the budget before the
+    # file-wide lookups do.
+    trust = None
+    if base_path is not None:
+        base_deps, _, _ = _read_dependency_file(base_path)
+        base_keys = {_dependency_key(d) for d in base_deps}
+        added = [d for d in deps if _dependency_key(d) not in base_keys]
+        trust = _trust_checks(added, lookups if live else None, scope="added since base")
+    elif trust_all:
+        trust = _trust_checks(deps, lookups if live else None, scope="all dependencies")
+    truncated = len(deps) > MAX_FILE_DEPENDENCIES
+    deps = deps[:MAX_FILE_DEPENDENCIES]
     events = curated_events()
     results = []
     looked_up: set[str] = set()
@@ -886,8 +903,91 @@ def check_dependency_file(
         "results": flagged,
         "unflagged": [r["dependency"] for r in results if r not in flagged],
         "digest_integrity": integrity,
+        "trust": trust,
         "evaluation_context": evaluation.context,
         "note": evaluation.note,
+    }
+
+
+_TRUST_STATUSES = (
+    "CONFIRMED_MALICIOUS",
+    "VERIFIED_FAILURE",
+    "SUSPICIOUS_INCONCLUSIVE",
+    "MISSING_EVIDENCE",
+    "VERIFIED_RELATIONSHIP",
+    "NOT_PERFORMED",
+)
+_ATTENTION = frozenset(_TRUST_STATUSES[:3])
+
+
+def _dependency_key(dep: dict[str, Any]) -> tuple[str, ...]:
+    """What makes two entries the same dependency at the same version."""
+    from core import registry_existence
+
+    if dep.get("kind") != "package":
+        return ("image", str(dep.get("ref")))
+    ecosystem = str(dep.get("ecosystem") or "").lower()
+    name = str(dep.get("package"))
+    if registry_existence.ecosystem_of(ecosystem) == "PyPI":
+        name = re.sub(r"[-_.]+", "-", name)
+    return (ecosystem, name.lower(), str(dep.get("version") or ""))
+
+
+def _trust_checks(
+    deps: list[dict[str, Any]], lookups: Lookups | None, *, scope: str
+) -> dict[str, Any]:
+    """Track T trust checks (U5) on the given dependencies; never a verdict input.
+
+    PyPI and npm packages get registry existence (T-M1), provenance (T-B1,
+    PyPI) and lookalike indicators (T-A2). The live checks run for at most
+    MAX_LIVE_PROJECTS packages (the W4 per-file bound) within the session
+    budget; the rest are counted as capped. Lookalike is local data, so every
+    package gets it. Counts per check and status, with every record that
+    needs attention (CONFIRMED_MALICIOUS, VERIFIED_FAILURE,
+    SUSPICIOUS_INCONCLUSIVE) listed in full.
+    """
+    from core import registry_existence
+
+    counts = {
+        check: dict.fromkeys(_TRUST_STATUSES, 0)
+        for check in ("registry_existence", "provenance", "lookalike")
+    }
+    attention: list[dict[str, Any]] = []
+    checked = capped = unsupported = 0
+    for dep in deps:
+        if (
+            dep["kind"] != "package"
+            or registry_existence.ecosystem_of(dep.get("ecosystem")) is None
+        ):
+            unsupported += 1
+            continue
+        records = {"lookalike": [_lookalike(dep)]}
+        if lookups is None or checked < MAX_LIVE_PROJECTS:
+            checked += lookups is not None
+            records["registry_existence"] = _registry_existence(dep, lookups)
+            records["provenance"] = [_provenance(dep, lookups)]
+        else:
+            capped += 1
+        subject = {
+            "ecosystem": dep.get("ecosystem"),
+            "package": dep["package"],
+            "version": dep.get("version"),
+        }
+        for check, found in records.items():
+            for record in found:
+                counts[check][record["status"]] += 1
+                if record["status"] in _ATTENTION:
+                    attention.append({"dependency": subject, **record, "check": check})
+    return {
+        "scope": scope,
+        "dependencies": len(deps),
+        "live_checked": checked,
+        "live_capped": capped,
+        "not_supported": unsupported,
+        "counts": counts,
+        "attention": attention,
+        "note": "trust checks are indicators and checks, never part of any verdict; "
+        "no status means safe, and MISSING_EVIDENCE is not evidence of authenticity",
     }
 
 

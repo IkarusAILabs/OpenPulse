@@ -360,6 +360,56 @@ def mcp_command(root, offline):
     run(root=root, live=not offline)
 
 
+@cli.command(name="trust")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--base",
+    "base",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Earlier copy of the file (e.g. `git show main:poetry.lock > base.lock`): "
+    "only dependencies added or changed since then are checked",
+)
+@click.option("--offline", is_flag=True, help="No network: lookalike indicators only")
+@click.option("--json", "as_json", is_flag=True, help="Print the full trust block as JSON")
+def trust_command(path, base, offline, as_json):
+    """Trust checks for PyPI and npm dependencies (report-only, track T).
+
+    Registry existence, provenance (PyPI) and lookalike-name indicators for
+    the dependencies added since --base, or for every dependency without it.
+    Never part of a verdict, and never a failing exit: review what is listed.
+    """
+    import json as _json
+
+    from core import agent_tools
+
+    lookups = None if offline else agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
+    try:
+        out = agent_tools.check_dependency_file(
+            path, lookups=lookups, live=not offline, base_path=base, trust_all=base is None
+        )
+    except ValueError as e:
+        raise click.ClickException(str(e)) from e
+    trust = out["trust"]
+    if as_json:
+        click.echo(_json.dumps(trust, indent=2, sort_keys=True))
+        return
+    click.echo(
+        f"{path}: {trust['dependencies']} dependencies ({trust['scope']}), "
+        f"{trust['live_checked']} checked live, {trust['live_capped']} capped, "
+        f"{trust['not_supported']} not PyPI or npm"
+    )
+    for check, counts in trust["counts"].items():
+        shown = ", ".join(f"{status} {n}" for status, n in counts.items() if n)
+        click.echo(f"  {check}: {shown or 'none'}")
+    for item in trust["attention"]:
+        dep = item["dependency"]
+        click.echo(
+            f"  ! {dep['package']} {dep.get('version') or ''} ({dep['ecosystem']}) "
+            f"{item['check']} {item['status']}: {item['statement']}"
+        )
+    click.echo(f"note: {trust['note']}")
+
+
 @cli.command(name="dependency-track")
 @click.option(
     "--contracts",

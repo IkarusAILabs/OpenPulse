@@ -106,14 +106,26 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         )
 
     @server.tool(annotations=read_only)
-    def check_dependency_file(path: str) -> dict[str, Any]:
+    def check_dependency_file(
+        path: str, base_path: str = "", trust_all: bool = False
+    ) -> dict[str, Any]:
         """Check every pinned dependency in a manifest (requirements.txt, pyproject.toml,
         pom.xml, go.mod, Cargo.toml), lockfile (package-lock.json, poetry.lock,
         Cargo.lock), CycloneDX/SPDX SBOM or image list, relative to the project root.
-        Unpinned entries are listed as skipped, never guessed."""
+        Unpinned entries are listed as skipped, never guessed.
+
+        `base_path` is an earlier copy of the same file (for example the version
+        before your edit): the PyPI and npm dependencies added or changed since then
+        get trust checks in `trust` (registry existence, provenance, lookalike names).
+        `trust_all` runs them on every dependency instead. Trust checks are never part
+        of the verdict; review anything listed under `trust.attention`."""
         return _answer(
             lambda: agent_tools.check_dependency_file(
-                _confined(project_root, path), lookups=lookups, live=live
+                _confined(project_root, path),
+                lookups=lookups,
+                live=live,
+                base_path=_confined(project_root, base_path) if base_path else None,
+                trust_all=trust_all,
             )
         )
 

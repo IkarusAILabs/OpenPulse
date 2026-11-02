@@ -229,6 +229,8 @@ Goal: track T Phase 1's exit from `docs/ROADMAP.md`, "PyPI and npm answers carry
 - No caller or upstream string reaches an agent-facing field outside a labelled, capped field (injection fixtures pass).
 - No verdict changes (tested by running each check against agreeing and disagreeing stub registries).
 
+**U5 scope (2026-11-02):** `check_dependency_file(base_path=...)` (MCP) and `openpulse trust --base` (CLI). The Action part moves to T-E1: a pull-request job has no base file without a deeper checkout and `git show`, and gating on trust statuses is T-E1's job by design.
+
 **Not in v0.12.0:** T-B2 npm provenance (sigstore-python cannot verify npm bundles yet, Phase 0 section 2); T-C reputation indicators (Phase 2); the T-F2 contract block (Phase 3).
 
 ## Phase 4 — Release supply chain (alongside Phases 2–3)

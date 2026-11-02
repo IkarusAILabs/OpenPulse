@@ -6,6 +6,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Trust checks on added dependencies (track T, v0.12.0 item U5).** `check_dependency_file` takes an earlier copy of the file as `base_path`; the PyPI and npm dependencies added or changed since then get registry existence, provenance (PyPI) and lookalike indicators in a new `trust` block. It holds counts per check and status, and lists every `CONFIRMED_MALICIOUS`, `VERIFIED_FAILURE` or `SUSPICIOUS_INCONCLUSIVE` record under `attention`.
+  - `trust_all` checks every dependency instead. With neither, `trust` is null and nothing extra is fetched.
+  - **Budget:** trust checks run before the file-wide lookups, so the additions get the session budget first. The live checks are capped at 40 packages per file (the W4 bound), and the rest are counted as capped. Lookalike is local data, so every package gets it.
+  - **MCP:** `base_path` is confined to the project root like `path`.
+  - **CLI:** `openpulse trust FILE [--base EARLIER] [--offline] [--json]` prints the same block. It is report-only and never exits non-zero.
+  - Never part of a verdict (tested). PyPI spelling variants (`Zope_Interface`, `zope.interface`) are the same dependency, not an addition.
+  - **Not yet:** the GitHub Action on pull requests. It needs the base file from git, and gating on trust statuses is T-E1 (track T Phase 4).
+
 - **Lookalike-name indicators in `dependency_status` (track T, T-A2, v0.12.0 item U4).** A PyPI or npm name is compared with the curated catalog and a pinned popular-name list. Every rule that fires is named, with the reference it matched:
   - `separator`: equal once `-`, `_` and `.` are removed;
   - `edit_distance`: within 1 edit, or 2 for names of 10+ characters, where a swap counts as one;
