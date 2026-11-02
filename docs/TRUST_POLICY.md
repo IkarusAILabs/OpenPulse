@@ -112,7 +112,7 @@ repos:
 - **What it runs:** `openpulse gate --base-ref HEAD` on the staged files named `requirements*.txt`, `pyproject.toml`, `poetry.lock`, `package-lock.json`, `Cargo.toml`, `Cargo.lock`, `go.mod` or `pom.xml`. A commit that touches none of them does not run it.
 - **What it compares:** pre-commit hides unstaged changes while hooks run, so the gate sees the commit being made and checks only the dependencies it adds or changes.
 - **Settings:** the policy and the private-name list are read from `.openpulse/policy.yml` and `.openpulse/private-packages.txt` at the repository root. Without a policy the hook passes.
-- **Install:** pre-commit installs OpenPulse into its own environment (`language: python`). The trust checks query public sources; one that does not answer never blocks.
+- **Install:** pre-commit installs OpenPulse into its own environment (`language: python`). The trust checks query public sources; a prohibited check that does not get an answer fails the hook unless the policy says `unchecked: pass` (see "How a run decides").
 - **Not a boundary on its own:** `git commit --no-verify` skips every hook. Run the same gate in CI before install, as a required status check.
 
 ## Where violations and trust records show up
