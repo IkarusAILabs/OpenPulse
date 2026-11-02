@@ -85,6 +85,8 @@ _NOT_PERFORMED = {
     "ecosystem's version grammar",
     "unreachable": "registry existence not established: registry {host} gave no usable answer "
     "at {at}",
+    "private": "registry existence not checked: the package is on your private-name list, so "
+    "the public registry is not where it comes from (see dependency_confusion)",
 }
 
 Head = Callable[[str], int]
