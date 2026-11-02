@@ -634,6 +634,8 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
         raise click.UsageError(f"{path}: not inside a git repository (--base-ref)")
     root = _Path(top.stdout.decode("utf-8").strip())
     if git("-C", str(root), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").returncode:
+        if ref == "HEAD" and not git("-C", str(root), "rev-list", "-n1", "--all").stdout.strip():
+            return None  # the first commit (pre-commit hook): every file in it is new
         raise click.UsageError(f"--base-ref {ref}: not a commit in {root}")
     relative = _Path(path).resolve().relative_to(root.resolve()).as_posix()
     shown = git("-C", str(root), "show", f"{ref}:{relative}")
