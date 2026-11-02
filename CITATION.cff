@@ -6,7 +6,9 @@ title: "OpenPulse"
 abstract: >-
   Research instrument for evidence-based dependency decisions: it collects,
   qualifies and applies upstream change evidence to declared dependency
-  inventories. Part of the Ikarus AI Labs research programme on
+  inventories, and checks whether a package is what it claims to be (trust
+  evidence and pre-install policy gates) before it is added, including by
+  AI coding agents. Part of the Ikarus AI Labs research programme on
   Evidence-Based Assurance for AI-Mediated Software Change.
 type: software
 authors:
