@@ -457,7 +457,13 @@ def _load_policy(path):
 
 
 def _policy_violations(
-    deps, loaded, lockfile=None, blocks=None, base_keys=None, base_lockfile=None
+    deps,
+    loaded,
+    lockfile=None,
+    blocks=None,
+    base_keys=None,
+    base_lockfile=None,
+    private_names=None,
 ):
     """Every policy violation across the run's dependencies, deterministically.
 
@@ -473,7 +479,7 @@ def _policy_violations(
     if loaded is None:
         return []
     if loaded.needs_trust and blocks is None:
-        blocks = _attest_trust(deps, None, base_keys)
+        blocks = _attest_trust(deps, private_names, base_keys)
     digests: dict[Any, Any] = {}
     if loaded.needs_digests and lockfile:
         from core.lockfile_reader import lockfile_digests
@@ -606,6 +612,124 @@ def confusion_command(names_file, offline, as_json):
             "note: a public package carries each name marked SUSPICIOUS_INCONCLUSIVE; "
             "if you did not publish it, pin your private index for that name"
         )
+
+
+def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
+    """The file at ``ref`` written under ``out_dir`` (same name), or None if new there.
+
+    Raises click.UsageError when git or the ref is unusable: a gate never
+    guesses its base.
+    """
+    import subprocess
+    from pathlib import Path as _Path
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], capture_output=True, check=False)
+
+    try:
+        top = git("-C", str(_Path(path).resolve().parent), "rev-parse", "--show-toplevel")
+    except OSError as e:
+        raise click.UsageError(f"--base-ref needs git: {e}") from e
+    if top.returncode != 0:
+        raise click.UsageError(f"{path}: not inside a git repository (--base-ref)")
+    root = _Path(top.stdout.decode("utf-8").strip())
+    if git("-C", str(root), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").returncode:
+        raise click.UsageError(f"--base-ref {ref}: not a commit in {root}")
+    relative = _Path(path).resolve().relative_to(root.resolve()).as_posix()
+    shown = git("-C", str(root), "show", f"{ref}:{relative}")
+    if shown.returncode != 0:
+        return None  # the file does not exist at ref: everything in it is added
+    target = _Path(out_dir) / _Path(relative).name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(shown.stdout)
+    return str(target)
+
+
+@cli.command(name="gate")
+@click.argument("paths", nargs=-1, required=True, type=click.Path(dir_okay=False))
+@click.option(
+    "--base-ref",
+    default=None,
+    help="Git ref to compare with (e.g. HEAD in a pre-commit hook, origin/main in CI): "
+    "trust checks run only for dependencies added or changed since it",
+)
+@click.option(
+    "--base",
+    "base_paths",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Base copy of each PATH, in the same order (instead of --base-ref)",
+)
+@click.option(
+    "--private-names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Private-name list (default: .openpulse/private-packages.txt if present)",
+)
+@_policy_option
+def gate_command(paths, base_ref, base_paths, private_names, policy_path):
+    """Pre-install trust gate (track T, T-E2): the trust policy on dependency files.
+
+    Run it before `pip install` or `npm ci`, or as a pre-commit hook. Exit 0
+    when nothing the policy prohibits is found, 1 on a violation, 2 on a
+    usage error. Without a policy there is nothing to enforce, so it passes.
+    No events are needed: this checks trust, not upstream changes.
+    """
+    import tempfile
+    from pathlib import Path as _Path
+
+    from core import agent_tools
+
+    if base_ref and base_paths:
+        raise click.UsageError("use --base-ref or --base, not both")
+    if base_paths and len(base_paths) != len(paths):
+        raise click.UsageError("give one --base per PATH, in the same order")
+    loaded = _load_policy(policy_path)
+    if loaded is None:
+        _echo("gate: no trust policy (.openpulse/policy.yml): nothing is prohibited, passed")
+        return
+    names = _private_name_list(private_names)
+    violations: list[dict[str, Any]] = []
+    checked = added = 0
+    with tempfile.TemporaryDirectory(prefix="openpulse-gate-") as scratch:
+        for index, path in enumerate(paths):
+            if not _Path(path).is_file():
+                _echo(f"gate: {path}: not present (deleted?), skipped", err=True)
+                continue
+            try:
+                deps, _skipped, kind = agent_tools._read_dependency_file(path)
+            except ValueError:
+                _echo(f"gate: {path}: not a dependency file, skipped", err=True)
+                continue
+            if base_paths:
+                base = base_paths[index]
+            elif base_ref:
+                base = _git_base_copy(path, base_ref, str(_Path(scratch) / str(index)))
+            else:
+                base = None
+            if base_ref or base_paths:
+                base_keys = _base_keys([base]) if base else set()
+            else:
+                base_keys = None
+            lockfile = path if kind in ("npm", "poetry") else None
+            base_lockfile = base if lockfile and base else None
+            checked += len(deps)
+            added += len(deps) if base_keys is None else sum(
+                agent_tools._dependency_key(d) not in base_keys for d in deps
+            )
+            violations += _policy_violations(
+                deps,
+                loaded,
+                lockfile,
+                None,
+                base_keys,
+                base_lockfile,
+                private_names=names,
+            )
+    if _report_violations(violations):
+        raise SystemExit(1)
+    scope = "added or changed" if (base_ref or base_paths) else "checked"
+    _echo(f"gate: passed ({checked} dependencies, {added} {scope}, no violation)")
 
 
 @cli.command(name="trust")

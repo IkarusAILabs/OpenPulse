@@ -58,6 +58,23 @@ Each condition is one trust check reaching one status. The labels come from the 
 - **When it fails:** a violation prints `policy: PROHIBITED <condition>: <ecosystem>:<name>==<version>` with the check's fixed statement. The run exits 1 **after** every output is written (contracts, SARIF, DefectDojo, digest, webhook), alongside `--fail-on`.
 - **Model-free:** the same files and the same source answers give the same decision.
 
+## Before install: `openpulse gate`
+
+`openpulse gate FILE...` applies the policy to dependency files on their own (track T, T-E2, v0.15.0). It needs no events, because it checks trust, not upstream changes. Run it where dependencies enter, before anything is installed:
+
+```bash
+openpulse gate requirements.txt poetry.lock --base-ref origin/main   # CI, before pip install
+openpulse gate package-lock.json --base-ref HEAD                     # pre-commit
+```
+
+- **Comparison:** with `--base-ref`, each file is compared with its copy at that git ref (read with `git show`). Trust checks run only for dependencies added or changed since then; a file that is new since the ref counts entirely as added. `--base FILE` (one per file, in order) gives the copies explicitly. With neither, every dependency is checked.
+- **The same evaluation as `check` and `attest`:**
+  - the blocklist covers every dependency;
+  - lockfile digests are checked for every entry whose hash changed;
+  - `NOT_PERFORMED` never blocks.
+- **Exit codes:** 0 when nothing prohibited is found, 1 on a violation, 2 on a usage error (an unknown ref, not a git repository, mismatched `--base`). Without a policy it passes and says so.
+- **Files a hook may pass:** deleted files and files that are not dependency files are skipped with a note.
+
 ## Where violations and trust records show up
 
 `openpulse attest --sarif` and `--defectdojo` (and the GitHub Action) report trust records and violations as their own results, never as verdicts. The level and the severity follow your policy, never an OpenPulse risk score:
