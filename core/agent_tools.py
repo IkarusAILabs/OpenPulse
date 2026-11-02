@@ -228,6 +228,7 @@ class Lookups:
         fetch_provenance: Callable[[str], tuple[int, Any]] | None = None,
         verify: Callable[[Any, str, str], list[dict[str, Any]]] | None = None,
         osv_query: Callable[[dict[str, Any]], tuple[int, Any]] | None = None,
+        fetch_text: Callable[[str], tuple[int, str | None]] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -243,6 +244,8 @@ class Lookups:
         self._fetch_provenance = fetch_provenance
         self._verify = verify
         self._osv_query = osv_query
+        self._fetch_text = fetch_text
+        self._linkage: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
         self._malicious: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
@@ -365,6 +368,37 @@ class Lookups:
         record = malicious.check(ecosystem, name, version, query=self._osv_query)
         if record["status"] != "NOT_PERFORMED":
             self._malicious[key] = (now, record)
+        return record
+
+    def linkage(
+        self,
+        ecosystem: str,
+        name: str,
+        version: str | None,
+        publishers: list[dict[str, Any]] | None,
+    ) -> dict[str, Any]:
+        """Repository linkage record (T-A4), cached per session; NOT_PERFORMED never cached."""
+        from core import repository_linkage
+
+        named = sorted(str(p.get("repository")) for p in publishers or [] if p.get("repository"))
+        key = (ecosystem, name, version or "", *named)
+        hit = self._linkage.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = repository_linkage.check(
+            ecosystem,
+            name,
+            version,
+            publishers=publishers,
+            fetch_json=self._fetch_json,
+            fetch_text=self._fetch_text,
+        )
+        if record["status"] != "NOT_PERFORMED":
+            self._linkage[key] = (now, record)
         return record
 
     def _disk_path(self, slug: str) -> Path | None:
@@ -684,6 +718,12 @@ def _registry_existence_private(dep: dict[str, Any]) -> list[dict[str, Any]]:
     return registry_existence.not_performed("private", ecosystem=eco)
 
 
+def _repository_linkage_private() -> dict[str, Any]:
+    from core import repository_linkage
+
+    return repository_linkage.not_performed("private")
+
+
 def _provenance_private() -> dict[str, Any]:
     from core import provenance
 
@@ -721,6 +761,30 @@ def dependency_confusion_record(
     """T-A3 for one listed name, outside any file or version."""
     dep = {"kind": "package", "package": name, "ecosystem": ecosystem}
     return _dependency_confusion(dep, lookups, names)
+
+
+def _repository_linkage(
+    dep: dict[str, Any], lookups: Lookups | None, provenance: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """T-A4: is the package from the repository it claims? Never a verdict input.
+
+    Verified publishers from the T-B1 record, when there are any, settle the
+    question without reading the repository.
+    """
+    from core import registry_existence, repository_linkage
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return repository_linkage.not_performed("unsupported")
+    if lookups is None:
+        return repository_linkage.not_performed("offline")
+    publishers = None
+    if provenance and provenance.get("status") in ("VERIFIED_RELATIONSHIP", "VERIFIED_FAILURE"):
+        publishers = provenance.get("evidence", {}).get("publishers") or None
+    try:
+        return lookups.linkage(ecosystem, str(dep["package"]), dep.get("version"), publishers)
+    except BudgetExhausted:
+        return repository_linkage.not_performed("budget")
 
 
 def _lookalike(dep: dict[str, Any]) -> dict[str, Any]:
@@ -872,6 +936,11 @@ def _assess(
         answer["lookalike"] = _lookalike(dep)
         answer["malicious"] = _malicious(dep, lookups)
         answer["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
+        answer["repository_linkage"] = (
+            _repository_linkage_private()
+            if _is_private(dep, private_names)
+            else _repository_linkage(dep, lookups, answer["provenance"])
+        )
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer
@@ -1060,8 +1129,9 @@ def _trust_checks(
 
     PyPI and npm packages get malicious-package records (X1), registry
     existence (T-M1), provenance (T-B1, PyPI) and lookalike indicators (T-A2).
-    A package on the private-name list gets dependency confusion (T-A3)
-    instead of existence and provenance, which describe the public package.
+    Repository linkage (T-A4) reuses the provenance record. A package on
+    the private-name list gets dependency confusion (T-A3) instead of
+    existence, provenance and linkage, which describe the public package.
     The live checks run for at most MAX_LIVE_PROJECTS packages (the W4
     per-file bound) within the session budget; the rest are counted as
     capped. Lookalike is local data, so every package gets it. Counts per
@@ -1078,6 +1148,7 @@ def _trust_checks(
             "dependency_confusion",
             "registry_existence",
             "provenance",
+            "repository_linkage",
             "lookalike",
         )
     }
@@ -1098,7 +1169,9 @@ def _trust_checks(
                 records["dependency_confusion"] = [_dependency_confusion(dep, lookups, private)]
             else:
                 records["registry_existence"] = _registry_existence(dep, lookups)
-                records["provenance"] = [_provenance(dep, lookups)]
+                provenance = _provenance(dep, lookups)
+                records["provenance"] = [provenance]
+                records["repository_linkage"] = [_repository_linkage(dep, lookups, provenance)]
         else:
             capped += 1
         subject = {

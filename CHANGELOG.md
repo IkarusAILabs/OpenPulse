@@ -6,6 +6,13 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Repository linkage in `dependency_status` (track T, T-A4, v0.13.0 item X3).** Registry metadata can claim any repository: npm `repository`, PyPI `project_urls`. A package that claims a popular one borrows its stars ("starjacking", threat T4). The new `repository_linkage` field checks whether the claim holds in either direction:
+  - **Verified PyPI provenance settles it**, without reading GitHub. If it names the claimed repository as publisher, the result is `VERIFIED_RELATIONSHIP`. If it names a different one, the result is `VERIFIED_FAILURE`: the artifact was not built from the repository it claims.
+  - **Otherwise the claimed repository's manifest is read** at its default branch (`package.json`, following npm's `repository.directory`, or `pyproject.toml` then `setup.cfg`). If it names the package back, the result is `VERIFIED_RELATIONSHIP`. If it names a different package, the result is `SUSPICIOUS_INCONCLUSIVE`, an indicator only, since monorepos and renames do this too.
+  - **`MISSING_EVIDENCE`:** no GitHub repository is claimed, or the repository has no readable manifest. **`NOT_PERFORMED`:** registry or GitHub trouble, offline, a spent budget, or a package on the private-name list.
+  - **Bounds and parsing:** one budgeted lookup per package, cached per session. Manifests are parsed and never executed (`setup.py` is never read), and capped at 1 MB. Repository names, directories and the manifest's name are validated before they appear. GitHub repositories only.
+  - **Trust block:** file checks run it for every non-private package in `trust`. Never part of a verdict (tested).
+
 - **Dependency confusion against your private-name list (track T, T-A3, v0.13.0 item X2).** List your internal package names in `.openpulse/private-packages.txt`, one `ecosystem:name` per line (`PyPI:acme-billing`, `npm:@acme/ui-kit`). OpenPulse asks the public registry about those names, and only those.
   - **`SUSPICIOUS_INCONCLUSIVE`:** a public package has the name. If you did not publish it, an installer that also consults the public registry may resolve it instead of yours.
   - **`MISSING_EVIDENCE`:** no public package has the name. It is unclaimed, which also means anyone can still register it.

@@ -48,5 +48,6 @@ def _isolated_delivery_state(monkeypatch, tmp_path):
     monkeypatch.setattr("core.digest_integrity.default_fetch", lambda _url: (0, None))
     monkeypatch.setattr("core.provenance.default_fetch_provenance", lambda _url: (0, None))
     monkeypatch.setattr("core.malicious.default_query", lambda _body: (0, None))
+    monkeypatch.setattr("core.repository_linkage.default_fetch_text", lambda _url: (0, None))
     # NVD pacing and retry waits (collectors/nvd) are instant in tests.
     monkeypatch.setattr("collectors.nvd.collector._sleep", lambda _seconds: None)
