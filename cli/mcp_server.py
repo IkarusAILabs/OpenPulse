@@ -82,6 +82,13 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         version=openpulse_version(),
     )
 
+    def private_names() -> frozenset[tuple[str, str]] | None:
+        """The user's private-name list under the root, read per call (T-A3)."""
+        from core import dependency_confusion
+
+        path = project_root / dependency_confusion.DEFAULT_LIST
+        return dependency_confusion.load(path)[0] if path.is_file() else None
+
     @server.tool(annotations=read_only)
     def dependency_status(
         package: str = "", version: str = "", ecosystem: str = "", image: str = ""
@@ -90,7 +97,9 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         curated upstream changes (distribution, license, support) and OSV advisories,
         plus whether a PyPI or npm package and version exist in their registry
         (`registry_existence`: a name not found there may be hallucinated), and whether
-        OSV publishes a malicious-package record for it (`malicious`).
+        OSV publishes a malicious-package record for it (`malicious`). A package on the
+        project's private-name list (.openpulse/private-packages.txt) is checked for a
+        public package with the same name instead (`dependency_confusion`).
 
         Give either `package` (+ `ecosystem` such as PyPI, npm, Maven, Go, crates.io,
         and an exact `version`) or a container `image` ref such as `postgres:13`.
@@ -103,6 +112,7 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
                 image or None,
                 lookups=lookups,
                 live=live,
+                private_names=private_names(),
             )
         )
 
@@ -118,7 +128,8 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         `base_path` is an earlier copy of the same file (for example the version
         before your edit): the PyPI and npm dependencies added or changed since then
         get trust checks in `trust` (known-malicious records, registry existence,
-        provenance, lookalike names).
+        provenance, lookalike names, and dependency confusion for names on the
+        project's private-name list).
         `trust_all` runs them on every dependency instead. Trust checks are never part
         of the verdict; review anything listed under `trust.attention`."""
         return _answer(
@@ -128,6 +139,7 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
                 live=live,
                 base_path=_confined(project_root, base_path) if base_path else None,
                 trust_all=trust_all,
+                private_names=private_names(),
             )
         )
 

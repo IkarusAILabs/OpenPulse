@@ -6,6 +6,15 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Dependency confusion against your private-name list (track T, T-A3, v0.13.0 item X2).** List your internal package names in `.openpulse/private-packages.txt`, one `ecosystem:name` per line (`PyPI:acme-billing`, `npm:@acme/ui-kit`). OpenPulse asks the public registry about those names, and only those.
+  - **`SUSPICIOUS_INCONCLUSIVE`:** a public package has the name. If you did not publish it, an installer that also consults the public registry may resolve it instead of yours.
+  - **`MISSING_EVIDENCE`:** no public package has the name. It is unclaimed, which also means anyone can still register it.
+  - **`NOT_PERFORMED`:** the registry gave no usable answer, offline, budget spent, or the package is not on the list (or there is no list).
+  - **MCP:** `dependency_status` gains `dependency_confusion`, and the server reads the list from its project root on every call. A listed package skips the public-registry `registry_existence` and `provenance` checks, which describe someone else's package, so a private dependency no longer reads as a hallucinated name. `malicious` and `lookalike` still run.
+  - **Trust block:** `check_dependency_file` runs it for listed packages in `trust`.
+  - **CLI:** `openpulse confusion [LIST]` checks every listed name, and `openpulse trust --private-names LIST` uses a list (the default file when present). Both are report-only.
+  - **Validation:** names are validated against the registry grammars, PyPI spellings are normalized (PEP 503), and a bad line is skipped by line number without echoing its text. The list is capped at 500 names and 256 KB. Never part of a verdict (tested).
+
 - **Known-malicious records in `dependency_status` (v0.13.0 item X1).** For any PyPI or npm package, catalogued or not, the new `malicious` field asks OSV whether it publishes a malicious-package record (`MAL-`, the OpenSSF malicious-packages feed) for that package and version.
   - **`CONFIRMED_MALICIOUS`** cites each record by id and osv.dev URL (10 at most, with a total). This is the first check that can return this status, and only from a cited record, never from OpenPulse's own indicators. A record listed only under an alias counts; a withdrawn record does not.
   - **`MISSING_EVIDENCE`:** no such record. The feed covers reported packages only, so this is not evidence of safety. There is no "verified" outcome.

@@ -360,6 +360,68 @@ def mcp_command(root, offline):
     run(root=root, live=not offline)
 
 
+def _private_name_list(path):
+    """An explicit list must exist; the default one is used only when present."""
+    from core import dependency_confusion
+
+    if path is None:
+        default = dependency_confusion.DEFAULT_LIST
+        return dependency_confusion.load(default)[0] if default.is_file() else None
+    if not os.path.isfile(path):
+        raise click.ClickException(f"{path}: private-name list not found")
+    names, skipped = dependency_confusion.load(path)
+    for message in skipped:
+        _echo(f"warning: {path}: {message}", err=True)
+    return names
+
+
+@cli.command(name="confusion")
+@click.argument("names_file", required=False, type=click.Path(dir_okay=False))
+@click.option("--offline", is_flag=True, help="No network: list what would be checked")
+@click.option("--json", "as_json", is_flag=True, help="Print the records as JSON")
+def confusion_command(names_file, offline, as_json):
+    """Dependency confusion: which of your private names exist publicly (track T, T-A3).
+
+    Reads NAMES_FILE (default .openpulse/private-packages.txt), one
+    `ecosystem:name` per line (PyPI or npm), and asks the public registry
+    about each. Report-only: never part of a verdict, never a failing exit.
+    """
+    import json as _json
+
+    from core import agent_tools, dependency_confusion
+
+    path = names_file or str(dependency_confusion.DEFAULT_LIST)
+    if not os.path.isfile(path):
+        raise click.ClickException(f"{path}: private-name list not found")
+    try:
+        names, skipped = dependency_confusion.load(path)
+    except (ValueError, UnicodeDecodeError) as e:
+        raise click.ClickException(f"{path}: {e}") from e
+    lookups = None if offline else agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
+    results = [
+        {
+            "ecosystem": eco,
+            "name": name,
+            **agent_tools.dependency_confusion_record(eco, name, lookups, names),
+        }
+        for eco, name in sorted(names)
+    ]
+    if as_json:
+        click.echo(_json.dumps({"list": path, "skipped": skipped, "results": results}, indent=2))
+        return
+    for message in skipped:
+        _echo(f"warning: {path}: {message}", err=True)
+    click.echo(f"{path}: {len(results)} private names")
+    for r in results:
+        click.echo(f"  {r['status']:<24} {r['ecosystem']}:{r['name']}")
+    public = [r for r in results if r["status"] == "SUSPICIOUS_INCONCLUSIVE"]
+    if public:
+        click.echo(
+            "note: a public package carries each name marked SUSPICIOUS_INCONCLUSIVE; "
+            "if you did not publish it, pin your private index for that name"
+        )
+
+
 @cli.command(name="trust")
 @click.argument("path", type=click.Path(exists=True, dir_okay=False))
 @click.option(
@@ -369,9 +431,16 @@ def mcp_command(root, offline):
     help="Earlier copy of the file (e.g. `git show main:poetry.lock > base.lock`): "
     "only dependencies added or changed since then are checked",
 )
+@click.option(
+    "--private-names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Private-name list (default: .openpulse/private-packages.txt if present): listed "
+    "packages are checked for a public package with the same name",
+)
 @click.option("--offline", is_flag=True, help="No network: lookalike indicators only")
 @click.option("--json", "as_json", is_flag=True, help="Print the full trust block as JSON")
-def trust_command(path, base, offline, as_json):
+def trust_command(path, base, private_names, offline, as_json):
     """Trust checks for PyPI and npm dependencies (report-only, track T).
 
     Registry existence, provenance (PyPI) and lookalike-name indicators for
@@ -384,8 +453,14 @@ def trust_command(path, base, offline, as_json):
 
     lookups = None if offline else agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
     try:
+        names = _private_name_list(private_names)
         out = agent_tools.check_dependency_file(
-            path, lookups=lookups, live=not offline, base_path=base, trust_all=base is None
+            path,
+            lookups=lookups,
+            live=not offline,
+            base_path=base,
+            trust_all=base is None,
+            private_names=names,
         )
     except ValueError as e:
         raise click.ClickException(str(e)) from e

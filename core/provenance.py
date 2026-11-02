@@ -75,6 +75,7 @@ _WHY = {
     "invalid": "the name or version does not match PyPI's grammar",
     "unsupported": "checked for PyPI packages with a version only",
     "unreachable": "pypi.org gave no usable answer at {at}",
+    "private": "the package is on your private-name list; public provenance does not apply",
 }
 
 
