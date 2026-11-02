@@ -91,21 +91,30 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
 
     @server.tool(annotations=read_only)
     def dependency_status(
-        package: str = "", version: str = "", ecosystem: str = "", image: str = ""
+        package: str = "",
+        version: str = "",
+        ecosystem: str = "",
+        image: str = "",
+        intent: str = "",
+        name_source: str = "",
     ) -> dict[str, Any]:
         """Evidence for ONE dependency: end-of-life / end-of-support for its version,
-        curated upstream changes (distribution, license, support) and OSV advisories,
-        plus whether a PyPI or npm package and version exist in their registry
-        (`registry_existence`: a name not found there may be hallucinated), and whether
-        OSV publishes a malicious-package record for it (`malicious`), and whether it is
-        really from the GitHub repository its registry metadata claims
-        (`repository_linkage`). A package on the
-        project's private-name list (.openpulse/private-packages.txt) is checked for a
-        public package with the same name instead (`dependency_confusion`).
+        curated upstream changes (distribution, license, support) and OSV advisories.
+
+        `trust` holds every trust check for a PyPI or npm package, never part of the
+        verdict: a malicious-package record (`malicious`), whether the package and
+        version exist in their registry (`registry_existence`: a name not found may be
+        hallucinated), PyPI provenance, whether it is from the repository it claims
+        (`repository_linkage`), lookalike names, and, for names on the project's
+        private-name list, a public package with the same name (`dependency_confusion`).
+        Review everything under `trust.attention`.
 
         Give either `package` (+ `ecosystem` such as PyPI, npm, Maven, Go, crates.io,
         and an exact `version`) or a container `image` ref such as `postgres:13`.
-        """
+        Optionally say why you are asking: `intent` (a short sentence) and
+        `name_source` (one of user_request, existing_code, documentation,
+        search_result, model_suggestion, other). They are recorded in
+        `trust.selection_context` and never change any status or verdict."""
         return _answer(
             lambda: agent_tools.dependency_status(
                 package or None,
@@ -115,6 +124,8 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
                 lookups=lookups,
                 live=live,
                 private_names=private_names(),
+                intent=intent or None,
+                name_source=name_source or None,
             )
         )
 

@@ -137,17 +137,17 @@ def test_dependency_status_carries_malicious_and_never_changes_the_verdict():
     evil = dependency_status(
         "left-pad", "1.3.0", "npm", lookups=_lookups(OSV(doc={"vulns": [MAL]}))
     )
-    assert clean["malicious"]["status"] == "MISSING_EVIDENCE"
-    assert evil["malicious"]["status"] == "CONFIRMED_MALICIOUS"
+    assert clean["trust"]["checks"]["malicious"]["status"] == "MISSING_EVIDENCE"
+    assert evil["trust"]["checks"]["malicious"]["status"] == "CONFIRMED_MALICIOUS"
     assert evil["verdict"] == clean["verdict"]
 
 
 def test_offline_and_images_are_not_performed():
-    assert dependency_status("left-pad", "1.3.0", "npm", live=False)["malicious"]["status"] == (
-        "NOT_PERFORMED"
-    )
+    assert dependency_status("left-pad", "1.3.0", "npm", live=False)["trust"]["checks"][
+        "malicious"
+    ]["status"] == ("NOT_PERFORMED")
     image = dependency_status(image="postgres:13", live=False)
-    assert image["malicious"]["status"] == "NOT_PERFORMED"
+    assert image["trust"]["checks"]["malicious"]["status"] == "NOT_PERFORMED"
 
 
 def test_cached_per_session_and_budgeted():
@@ -158,7 +158,7 @@ def test_cached_per_session_and_budgeted():
     assert len(osv.asked) == 1
     spent = _lookups(OSV(doc={}), budget=0)
     out = dependency_status("left-pad", "1.3.0", "npm", lookups=spent)
-    assert out["malicious"]["status"] == "NOT_PERFORMED"
+    assert out["trust"]["checks"]["malicious"]["status"] == "NOT_PERFORMED"
 
 
 def test_not_performed_is_never_cached():

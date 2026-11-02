@@ -4,9 +4,20 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Upgrade notes
+
+- **`dependency_status` gathers its trust checks into one `trust` block (v0.13.0 item X4).** Read them from `trust.checks`. The v0.12.0 top-level fields `registry_existence`, `provenance` and `lookalike` are still there with the same values, listed under `deprecated`, and are removed in v0.14.0. The checks added in v0.13.0 (`malicious`, `dependency_confusion`, `repository_linkage`) are only in `trust.checks`. File checks keep their own `trust` block unchanged. Verdicts are unchanged.
+
 ### Added
 
-- **Repository linkage in `dependency_status` (track T, T-A4, v0.13.0 item X3).** Registry metadata can claim any repository: npm `repository`, PyPI `project_urls`. A package that claims a popular one borrows its stars ("starjacking", threat T4). The new `repository_linkage` field checks whether the claim holds in either direction:
+- **One trust block, and the agent's reasons (track T, T-D, v0.13.0 item X4).** `dependency_status` answers carry `trust`:
+  - `checks`: every trust record (`malicious`, `registry_existence`, `provenance`, `repository_linkage`, `dependency_confusion`, `lookalike`);
+  - `summary`: counts per status;
+  - `attention`: each `CONFIRMED_MALICIOUS`, `VERIFIED_FAILURE` or `SUSPICIOUS_INCONCLUSIVE` record, with its check and statement;
+  - `time_frame`: the records are live lookups at their `checked_at`, and in replay mode it says they are not as of the replay date.
+  - **`selection_context`:** agents may say why they ask. `intent` is a short sentence, stripped of control, bidi and zero-width characters and capped at 280 characters. `name_source` is one of `user_request`, `existing_code`, `documentation`, `search_result`, `model_suggestion` or `other`; any other value is recorded as `unrecognized`, not echoed. Both are recorded as `supplied_by: agent`, `used_in_status: false`, and never change a status or verdict (tested). This is the input for the M8 research questions on how agents choose dependencies.
+
+- **Repository linkage in `dependency_status` `trust.checks` (track T, T-A4, v0.13.0 item X3).** Registry metadata can claim any repository: npm `repository`, PyPI `project_urls`. A package that claims a popular one borrows its stars ("starjacking", threat T4). The new `repository_linkage` record checks whether the claim holds in either direction:
   - **Verified PyPI provenance settles it**, without reading GitHub. If it names the claimed repository as publisher, the result is `VERIFIED_RELATIONSHIP`. If it names a different one, the result is `VERIFIED_FAILURE`: the artifact was not built from the repository it claims.
   - **Otherwise the claimed repository's manifest is read** at its default branch (`package.json`, following npm's `repository.directory`, or `pyproject.toml` then `setup.cfg`). If it names the package back, the result is `VERIFIED_RELATIONSHIP`. If it names a different package, the result is `SUSPICIOUS_INCONCLUSIVE`, an indicator only, since monorepos and renames do this too.
   - **`MISSING_EVIDENCE`:** no GitHub repository is claimed, or the repository has no readable manifest. **`NOT_PERFORMED`:** registry or GitHub trouble, offline, a spent budget, or a package on the private-name list.
@@ -17,12 +28,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **`SUSPICIOUS_INCONCLUSIVE`:** a public package has the name. If you did not publish it, an installer that also consults the public registry may resolve it instead of yours.
   - **`MISSING_EVIDENCE`:** no public package has the name. It is unclaimed, which also means anyone can still register it.
   - **`NOT_PERFORMED`:** the registry gave no usable answer, offline, budget spent, or the package is not on the list (or there is no list).
-  - **MCP:** `dependency_status` gains `dependency_confusion`, and the server reads the list from its project root on every call. A listed package skips the public-registry `registry_existence` and `provenance` checks, which describe someone else's package, so a private dependency no longer reads as a hallucinated name. `malicious` and `lookalike` still run.
+  - **MCP:** `dependency_status` gains a `dependency_confusion` record in `trust.checks`, and the server reads the list from its project root on every call. A listed package skips the public-registry `registry_existence` and `provenance` checks, which describe someone else's package, so a private dependency no longer reads as a hallucinated name. `malicious` and `lookalike` still run.
   - **Trust block:** `check_dependency_file` runs it for listed packages in `trust`.
   - **CLI:** `openpulse confusion [LIST]` checks every listed name, and `openpulse trust --private-names LIST` uses a list (the default file when present). Both are report-only.
   - **Validation:** names are validated against the registry grammars, PyPI spellings are normalized (PEP 503), and a bad line is skipped by line number without echoing its text. The list is capped at 500 names and 256 KB. Never part of a verdict (tested).
 
-- **Known-malicious records in `dependency_status` (v0.13.0 item X1).** For any PyPI or npm package, catalogued or not, the new `malicious` field asks OSV whether it publishes a malicious-package record (`MAL-`, the OpenSSF malicious-packages feed) for that package and version.
+- **Known-malicious records in `dependency_status` `trust.checks` (v0.13.0 item X1).** For any PyPI or npm package, catalogued or not, the new `malicious` record asks OSV whether it publishes a malicious-package record (`MAL-`, the OpenSSF malicious-packages feed) for that package and version.
   - **`CONFIRMED_MALICIOUS`** cites each record by id and osv.dev URL (10 at most, with a total). This is the first check that can return this status, and only from a cited record, never from OpenPulse's own indicators. A record listed only under an alias counts; a withdrawn record does not.
   - **`MISSING_EVIDENCE`:** no such record. The feed covers reported packages only, so this is not evidence of safety. There is no "verified" outcome.
   - **`NOT_PERFORMED`:** OSV gave no usable answer, paged its answer without a record on the first page, offline, or a spent budget.
