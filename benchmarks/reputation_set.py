@@ -193,3 +193,45 @@ def publisher_change(doc: dict[str, Any] | None = None) -> dict[str, Any]:
             "latest_release_rate": _ratio(latest, latest_compared),
         }
     return out
+
+
+def repository_moved(doc: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The production ``repository_moved`` classification (v0.16.0 Q3) on every
+    recorded repository. Every package is legitimate, so every move flagged is a
+    false positive. Claims the current parser rejects (GitHub pages such as
+    ``sponsors/<user>``, which the 2026-11-02 recording still took from Funding
+    links) are excluded and counted.
+    """
+    from core import repository_moved as rm
+    from core.repository_linkage import github_repository
+
+    doc = doc or load()
+    statuses: dict[str, int] = {}
+    moves: dict[str, int] = {}
+    excluded = 0
+    for claimed, repo in sorted(doc["repositories"].items()):
+        if github_repository(claimed) is None:
+            excluded += 1
+            continue
+        if repo.get("status") == 404:
+            status = "MISSING_EVIDENCE"
+        elif repo.get("status") == 200 and repo.get("full_name"):
+            status, move = rm.classify(claimed, repo["full_name"])
+            if move:
+                moves[move] = moves.get(move, 0) + 1
+        else:
+            status = "NOT_PERFORMED"
+        statuses[status] = statuses.get(status, 0) + 1
+    answered = statuses.get("SUSPICIOUS_INCONCLUSIVE", 0) + statuses.get(
+        "VERIFIED_RELATIONSHIP", 0
+    )
+    flagged = statuses.get("SUSPICIOUS_INCONCLUSIVE", 0)
+    return {
+        "repositories": len(doc["repositories"]) - excluded,
+        "excluded_not_repositories": excluded,
+        "statuses": dict(sorted(statuses.items())),
+        "answered": answered,
+        "flagged": flagged,
+        "false_positive_rate": _ratio(flagged, answered),
+        "moves": dict(sorted(moves.items())),
+    }

@@ -51,7 +51,7 @@
       "false_positive_rate": 0.188,
       "false_positive_rate_without_scope": 0.097,
       "flagged": 188,
-      "ms_per_name": 46.4,
+      "ms_per_name": 44.6,
       "reference_names": 17336,
       "references": [
         {
@@ -116,6 +116,21 @@
         "SUSPICIOUS_INCONCLUSIVE": 22,
         "VERIFIED_RELATIONSHIP": 451
       }
+    }
+  },
+  "organic_repository_moved": {
+    "answered": 123,
+    "excluded_not_repositories": 4,
+    "false_positive_rate": 0.0407,
+    "flagged": 5,
+    "moves": {
+      "transferred": 5
+    },
+    "repositories": 125,
+    "statuses": {
+      "MISSING_EVIDENCE": 2,
+      "SUSPICIOUS_INCONCLUSIVE": 5,
+      "VERIFIED_RELATIONSHIP": 118
     }
   },
   "organic_reputation": {
