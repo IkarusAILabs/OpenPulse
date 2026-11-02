@@ -686,7 +686,12 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
         raise click.UsageError("use --base-ref or --base, not both")
     if base_paths and len(base_paths) != len(paths):
         raise click.UsageError("give one --base per PATH, in the same order")
-    loaded = _load_policy(policy_path)
+    try:
+        loaded = _load_policy(policy_path)
+    except click.UsageError:
+        raise
+    except click.ClickException as e:  # a missing or invalid policy is not a violation
+        raise click.UsageError(e.message) from e
     if loaded is None:
         _echo("gate: no trust policy (.openpulse/policy.yml): nothing is prohibited, passed")
         return

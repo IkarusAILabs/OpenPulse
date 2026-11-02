@@ -153,6 +153,7 @@ def test_deleted_and_non_dependency_files_are_skipped(repo):
     [
         (["--base-ref", "no-such-ref"], "not a commit"),
         (["--base-ref", "HEAD", "--base", "requirements.txt"], "not both"),
+        (["--policy", "no-such-policy.yml"], "policy file not found"),
     ],
 )
 def test_usage_errors_exit_2(repo, args, message):

@@ -65,8 +65,17 @@ inputs:
       when it exists. A prohibited condition fails the step.
     required: false
     default: ''
+  gate:
+    description: >-
+      Pre-install gate (docs/TRUST_POLICY.md): whitespace/newline-separated
+      dependency files. When set, the step runs only `openpulse gate` on them,
+      with the trust policy, so place it before `pip install` or `npm ci`. On a
+      pull request only dependencies added or changed against the base branch
+      are trust-checked, and the base branch's policy is used. No SARIF.
+    required: false
+    default: ''
   base-sha:
-    description: Base commit for trust pull-request (default the pull request's base)
+    description: Base commit for trust pull-request and gate (default the pull request's base)
     required: false
     default: ${{ github.event.pull_request.base.sha }}
   sarif-file:
@@ -98,7 +107,7 @@ outputs:
     value: ${{ steps.run.outputs.inspection-coverage }}
   threshold-breached:
     description: "'true' when the fail-on threshold or a trust policy was breached"
-    value: ${{ steps.run.outputs.threshold-breached }}
+    value: ${{ steps.run.outputs.threshold-breached || steps.gate.outputs.threshold-breached }}
 
 runs:
   using: composite
@@ -130,9 +139,27 @@ runs:
           --no-deps -e "$ACTION_ROOT"
         echo "OPENPULSE_BIN=$bin" >> "$GITHUB_ENV"
 
+    # Pre-install gate (v0.15.0 Z3): only `openpulse gate`, before anything
+    # is installed. Threat: a pull request weakening its own gate - the base
+    # copies, the policy and the private-name list come from the base branch.
+    - id: gate
+      if: inputs.gate != ''
+      name: Run openpulse gate
+      shell: bash
+      env:
+        ACTION_ROOT: ${{ github.action_path }}
+        IN_GATE: ${{ inputs.gate }}
+        IN_POLICY: ${{ inputs.policy }}
+        IN_BASE_SHA: ${{ inputs.base-sha }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        "$OPENPULSE_BIN/python" "$ACTION_ROOT/scripts/action_gate.py"
+
     # Threat: script injection - every input reaches the shell as an env var
     # and a quoted argv element, never interpolated into the script text.
     - id: run
+      if: inputs.gate == ''
       name: Run openpulse attest
       shell: bash
       env:
@@ -285,7 +312,7 @@ runs:
         } >> "$GITHUB_OUTPUT"
 
     # Threat: an unpinned upload action - pinned by SHA like ci.yml.
-    - if: inputs.upload-sarif == 'true'
+    - if: inputs.upload-sarif == 'true' && inputs.gate == ''
       uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
       with:
         sarif_file: ${{ steps.run.outputs.sarif-file }}
@@ -303,4 +330,11 @@ runs:
         else
           echo "::error title=OpenPulse::gate failed: fail-on $IN_FAIL_ON threshold or a trust policy violation (see the job summary and log)"
         fi
+        exit 1
+
+    - name: Enforce the gate
+      if: steps.gate.outputs.threshold-breached == 'true'
+      shell: bash
+      run: |
+        echo "::error title=OpenPulse gate::the trust policy prohibits a dependency (see the log above); nothing should be installed"
         exit 1

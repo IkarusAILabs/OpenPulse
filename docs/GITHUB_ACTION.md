@@ -50,7 +50,8 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs. |
 | `trust` | `off` | `off`, `pull-request` (dependencies a pull request adds or changes) or `all`. Live lookups; see *Trust checks and a trust policy* |
 | `policy` | (empty) | Trust policy file; empty uses `.openpulse/policy.yml` when present |
-| `base-sha` | the pull request's base | Base commit for `trust: pull-request` |
+| `gate` | (empty) | Dependency files for the pre-install gate. When set, the step runs only `openpulse gate`; see *Before install: the `gate` input* |
+| `base-sha` | the pull request's base | Base commit for `trust: pull-request` and `gate` |
 | `sarif-file` | `openpulse.sarif` | Where to write the SARIF log |
 | `contracts-file` | `openpulse-contracts.jsonl` | Where to write the evidence-contract JSONL |
 | `upload-sarif` | `false` | Upload the SARIF to Code Scanning (needs `security-events: write`) |
@@ -108,6 +109,34 @@ How `trust: pull-request` works:
 - **Blocklist:** the policy's blocklist always applies to every dependency, since it needs no lookups.
 - **Gate settings from the base branch:** the action also reads the base branch's copy of the policy (`.openpulse/policy.yml`, or the `policy` path) and of `.openpulse/private-packages.txt`, and uses them when they exist, so a pull request cannot weaken its own gate. If they can't be read, the action warns and uses the pull request's copies. Make the OpenPulse job a required status check so that removing the step blocks the merge. See *Bypass routes* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
 - **`threshold-breached`:** this output is `true` when either `fail-on` or the policy failed the step. The log names each violation (`policy: PROHIBITED <condition>: <dependency>`).
+
+## Before install: the `gate` input (v0.15.0)
+
+Put the action before the step that installs dependencies, with `gate` naming the dependency files. It then runs only [`openpulse gate`](TRUST_POLICY.md#before-install-openpulse-gate): the trust policy, with no events, contracts or SARIF. A violation fails the step, so nothing is installed:
+
+```yaml
+on: pull_request
+permissions:
+  contents: read          # the base copies and the base branch's policy
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.15.0
+        with:
+          gate: requirements.txt poetry.lock
+      - run: pip install --require-hashes -r requirements.txt
+```
+
+- **Pull requests:** each file is compared with its copy on the base commit, read through the contents API like `trust: pull-request`. A shallow checkout is enough. Only dependencies the pull request adds or changes are trust-checked. A file the pull request adds is checked in full.
+- **Unreadable base:** the action warns and checks every dependency in that file. A failure never narrows the checks.
+- **Settings from the base branch:** the policy (`.openpulse/policy.yml`, or a repository-relative `policy` path) and `.openpulse/private-packages.txt` come from the base branch when it has them. A pull request that weakens or deletes its policy is still gated by the base branch's.
+- **Other events:** without a base commit (`push`, `schedule`), every dependency is checked.
+- **Isolation:** OpenPulse runs in its own virtual environment, installed from its hash-locked runtime set, so the gate itself installs none of your dependencies. The job token reads the base files only and is removed before the trust lookups.
+- **Outputs:** `threshold-breached` is `true` on a violation. `sarif-file`, `contracts-file` and `inspection-coverage` are empty, and `upload-sarif` is ignored.
+- **Without a policy** the gate passes and says so.
 
 ## Pinning
 

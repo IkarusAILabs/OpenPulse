@@ -12,6 +12,15 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Exit codes:** 0 pass, 1 violation, 2 usage error. Without a policy it passes and says so. Deleted and non-dependency files are skipped.
 - **Pre-commit hook `openpulse-gate` (v0.15.0 item Z2).** `.pre-commit-hooks.yaml` runs `openpulse gate --base-ref HEAD` on staged dependency files (`requirements*.txt`, `pyproject.toml`, `poetry.lock`, `package-lock.json`, `Cargo.toml`, `Cargo.lock`, `go.mod`, `pom.xml`), so a commit is checked only for the dependencies it adds or changes. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Pre-commit hook".
   - **First commit:** `openpulse gate --base-ref HEAD` in a repository with no commits treats every file as new instead of failing. Any other unknown ref is still a usage error.
+- **The Action's `gate` input: the trust policy before install (v0.15.0 item Z3).** With `gate: <dependency files>`, the Action runs only `openpulse gate` (no events, contracts or SARIF), so it can sit before `pip install` or `npm ci`. See [`docs/GITHUB_ACTION.md`](docs/GITHUB_ACTION.md), "Before install".
+  - **Pull requests:** base copies come through the contents API (a shallow checkout is enough), and only added or changed dependencies are trust-checked. An unreadable base copy means that file is checked in full.
+  - **Settings:** the policy and the private-name list come from the base branch when it has them, so a pull request cannot weaken or delete its own gate.
+  - **Dogfood:** CI runs the gate input on every push, once passing and once blocked by the blocklist.
+  - **CLI without the Action:** `docs/TRUST_POLICY.md`, "In CI, before install".
+
+### Changed
+
+- **`openpulse gate`: a missing or invalid policy file is a usage error (exit 2),** not a violation (exit 1).
 
 ## 0.14.0 "Enforced Trust" — 2026-11-02
 
