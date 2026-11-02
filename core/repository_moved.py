@@ -145,6 +145,38 @@ def not_performed(why: str) -> dict[str, Any]:
     return _record(NOT_PERFORMED, why)
 
 
+def claimed_repository(
+    ecosystem: str | None, name: str, version: str | None, fetch_json: FetchJson | None
+) -> tuple[str | None, str | None, int | None]:
+    """(why, claimed ``owner/name``, registry http status) for one package.
+
+    ``why`` is None when a GitHub repository is claimed; otherwise it names
+    the refusal (``unsupported``, ``invalid``, ``registry``, ``no_repository``).
+    Shared with ``young_popular_repository``.
+    """
+    from core import digest_integrity
+    from core.repository_linkage import _claimed
+
+    eco = ecosystem_of(ecosystem)
+    if eco not in ("npm", "PyPI"):
+        return "unsupported", None, None
+    name_ok, version_ok = (
+        (_PYPI_NAME, _PYPI_VERSION) if eco == "PyPI" else (_NPM_NAME, _NPM_VERSION)
+    )
+    if not name_ok.fullmatch(name if eco == "PyPI" else name.lower()) or (
+        version and not version_ok.fullmatch(version)
+    ):
+        return "invalid", None, None
+    package_url, version_url = urls(eco, name, version)
+    if eco == "npm" and version_url is None:
+        version_url = package_url + "/latest"
+    status, doc = (fetch_json or digest_integrity.default_fetch)(str(version_url or package_url))
+    if status != 200 or not isinstance(doc, dict):
+        return "registry", None, status or None
+    claims = _claimed(eco, doc)
+    return (None, claims[0][0], status) if claims else ("no_repository", None, status)
+
+
 def check(
     ecosystem: str | None,
     name: str,
@@ -154,29 +186,13 @@ def check(
     fetch_github: FetchJson | None = None,
 ) -> dict[str, Any]:
     """One T-F1 record for one package. Never raises on registry or GitHub trouble."""
-    from core import digest_integrity
-    from core.repository_linkage import _claimed
-
-    eco = ecosystem_of(ecosystem)
-    if eco not in ("npm", "PyPI"):
-        return not_performed("unsupported")
-    name_ok, version_ok = (
-        (_PYPI_NAME, _PYPI_VERSION) if eco == "PyPI" else (_NPM_NAME, _NPM_VERSION)
-    )
-    if not name_ok.fullmatch(name if eco == "PyPI" else name.lower()) or (
-        version and not version_ok.fullmatch(version)
-    ):
-        return not_performed("invalid")
-    package_url, version_url = urls(eco, name, version)
-    if eco == "npm" and version_url is None:
-        version_url = package_url + "/latest"
-    status, doc = (fetch_json or digest_integrity.default_fetch)(str(version_url or package_url))
-    if status != 200 or not isinstance(doc, dict):
-        return _record(NOT_PERFORMED, "registry", http_status=status or None)
-    claims = _claimed(eco, doc)
-    if not claims:
+    why, claimed, status = claimed_repository(ecosystem, name, version, fetch_json)
+    if why in ("unsupported", "invalid"):
+        return not_performed(why)
+    if why == "registry":
+        return _record(NOT_PERFORMED, "registry", http_status=status)
+    if why == "no_repository" or claimed is None:
         return _record(MISSING_EVIDENCE, "no_repository")
-    claimed = claims[0][0]
     status, repo = (fetch_github or default_fetch_github)(API.format(repo=claimed))
     if status == 404:
         return _record(MISSING_EVIDENCE, "unknown", claimed_repository=claimed)
@@ -199,6 +215,7 @@ __all__ = [
     "CHECK",
     "answered_name",
     "check",
+    "claimed_repository",
     "classify",
     "default_fetch_github",
     "http_github",
