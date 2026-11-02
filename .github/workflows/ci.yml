@@ -138,15 +138,33 @@ jobs:
           manifest: data/fixtures/manifests/requirements.txt
           sarif-file: ${{ runner.temp }}/gate.sarif
           contracts-file: ${{ runner.temp }}/gate.jsonl
+      # Threat: a trust policy that never fires - a blocklisted package must
+      # fail the step even with fail-on none (a blocklist needs no lookups).
+      - name: Write a blocklist policy
+        run: |
+          printf 'version: 1\nblocklist: ["PyPI:django"]\n' > "$RUNNER_TEMP/policy.yml"
+      - id: policy
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          policy: ${{ runner.temp }}/policy.yml
+          sarif-file: ${{ runner.temp }}/policy.sarif
+          contracts-file: ${{ runner.temp }}/policy.jsonl
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
           PASS_BREACHED: ${{ steps.pass.outputs.threshold-breached }}
           PASS_COVERAGE: ${{ steps.pass.outputs.inspection-coverage }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
+          POLICY_OUTCOME: ${{ steps.policy.outcome }}
+          POLICY_BREACHED: ${{ steps.policy.outputs.threshold-breached }}
         run: |
           set -euo pipefail
           test "$PASS_BREACHED" = false
+          test "$POLICY_OUTCOME" = failure
+          test "$POLICY_BREACHED" = true
           # No --github-repo in this run: contract 2.1 says NOT_APPLICABLE (#109).
           test "$PASS_COVERAGE" = NOT_APPLICABLE
           test "$GATE_OUTCOME" = failure

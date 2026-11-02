@@ -376,8 +376,12 @@ _ATTEST_TRUST_LOOKUPS_PER_DEP = 4
 _ATTEST_TRUST_MAX_LOOKUPS = 2000
 
 
-def _attest_trust(deps, private_names):
-    """{dependency index: 2.2 trust_assurance block}; each dependency checked once."""
+def _attest_trust(deps, private_names, base_keys=None):
+    """{dependency index: 2.2 trust_assurance block}; each dependency checked once.
+
+    With ``base_keys`` (the dependencies of the base files), only dependencies
+    added or changed since the base are checked; the others get no block.
+    """
     from core import agent_tools
     from core.evidence_contract import trust_assurance_block
 
@@ -387,6 +391,14 @@ def _attest_trust(deps, private_names):
         for i, dep in enumerate(deps)
         if agent_tools._refused_entry(dep) is None
     ]
+    if base_keys is not None:
+        before = len({key for _, _, key in eligible})
+        eligible = [e for e in eligible if e[2] not in base_keys]
+        _echo(
+            f"trust: {len({key for _, _, key in eligible})} of {before} dependencies are "
+            "added or changed since the base",
+            err=True,
+        )
     unique = {key for _, _, key in eligible}
     lookups = agent_tools.Lookups(
         cache_dir=agent_tools.default_cache_dir(),
@@ -444,20 +456,33 @@ def _load_policy(path):
     return loaded
 
 
-def _policy_violations(deps, loaded, lockfile=None, blocks=None):
-    """Every policy violation across the run's dependencies, deterministically."""
+def _policy_violations(deps, loaded, lockfile=None, blocks=None, base_keys=None):
+    """Every policy violation across the run's dependencies, deterministically.
+
+    With ``base_keys``, trust conditions apply to added or changed
+    dependencies only; the blocklist always applies to every dependency.
+    """
     from core import agent_tools
     from core import trust_policy as _policy
 
     if loaded is None:
         return []
     if loaded.needs_trust and blocks is None:
-        blocks = _attest_trust(deps, None)
+        blocks = _attest_trust(deps, None, base_keys)
     digests: dict[Any, Any] = {}
     if loaded.needs_digests and lockfile:
         from core.lockfile_reader import lockfile_digests
 
         locked = lockfile_digests(lockfile)
+        if base_keys is not None:
+            locked = {
+                key: value
+                for key, value in locked.items()
+                if agent_tools._dependency_key(
+                    {"kind": "package", "ecosystem": key[0], "package": key[1], "version": key[2]}
+                )
+                not in base_keys
+            }
         lookups = agent_tools.Lookups(
             cache_dir=agent_tools.default_cache_dir(),
             budget=min(_ATTEST_TRUST_MAX_LOOKUPS, len(locked) + 10),
@@ -475,6 +500,23 @@ def _policy_violations(deps, loaded, lockfile=None, blocks=None):
             records.append({"check": "digest_integrity", **digests[key]})
         violations += _policy.evaluate(loaded, dep, records)
     return violations
+
+
+def _base_keys(base_files):
+    """Dependency keys of the base copies of the run's files, or None without any."""
+    from core import agent_tools
+
+    paths = [p for p in base_files if p]
+    if not paths:
+        return None
+    keys = set()
+    for path in paths:
+        try:
+            deps, _, _ = agent_tools._read_dependency_file(path)
+        except (ValueError, OSError, UnicodeDecodeError) as e:
+            raise click.ClickException(f"{path}: cannot read the base file: {e}") from e
+        keys |= {agent_tools._dependency_key(d) for d in deps}
+    return keys
 
 
 def _report_violations(violations) -> bool:
@@ -2363,6 +2405,19 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     help="With --trust: private-name list (default: .openpulse/private-packages.txt if "
     "present)",
 )
+@click.option(
+    "--base-manifest",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="The base copy of --manifest (e.g. the pull request's base branch): trust checks "
+    "run only for dependencies added or changed since it",
+)
+@click.option(
+    "--base-lockfile",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="The base copy of --lockfile, as --base-manifest",
+)
 @_policy_option
 def attest(
     watchlist,
@@ -2387,6 +2442,8 @@ def attest(
     trust=False,
     private_names=None,
     policy_path=None,
+    base_manifest=None,
+    base_lockfile=None,
 ):
     """Emit one evidence-contract document per dependency × event pair.
 
@@ -2549,9 +2606,10 @@ def attest(
         coverage_override = {"status": run_status, "reasons": run_reasons}
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
     loaded_policy = _load_policy(policy_path)
-    trust_blocks = _attest_trust(deps, private_names) if trust else {}
+    base_keys = _base_keys([base_manifest, base_lockfile])
+    trust_blocks = _attest_trust(deps, private_names, base_keys) if trust else {}
     violations = _policy_violations(
-        deps, loaded_policy, lockfile, trust_blocks if trust else None
+        deps, loaded_policy, lockfile, trust_blocks if trust else None, base_keys
     )
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
