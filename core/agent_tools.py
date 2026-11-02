@@ -632,6 +632,15 @@ def _provenance(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
         return provenance.not_performed("budget")
 
 
+def _lookalike(dep: dict[str, Any]) -> dict[str, Any]:
+    """T-A2: does the name resemble a reference name? Local data only; never a verdict input."""
+    from core import lookalike
+
+    if dep["kind"] != "package":
+        return lookalike.check(None, "")
+    return lookalike.check(dep.get("ecosystem"), str(dep["package"]))
+
+
 def _registry_existence(dep: dict[str, Any], lookups: Lookups | None) -> list[dict[str, Any]]:
     """T-M1: does the package (and version) exist in its registry? Never a verdict input."""
     from core import registry_existence
@@ -763,6 +772,7 @@ def _assess(
         # Track T (T-M1): additive, separately labelled, never read by the verdict.
         answer["registry_existence"] = _registry_existence(dep, lookups)
         answer["provenance"] = _provenance(dep, lookups)
+        answer["lookalike"] = _lookalike(dep)
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer

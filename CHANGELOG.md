@@ -6,6 +6,16 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Lookalike-name indicators in `dependency_status` (track T, T-A2, v0.12.0 item U4).** A PyPI or npm name is compared with the curated catalog and a pinned popular-name list. Every rule that fires is named, with the reference it matched:
+  - `separator`: equal once `-`, `_` and `.` are removed;
+  - `edit_distance`: within 1 edit, or 2 for names of 10+ characters, where a swap counts as one;
+  - `confusable`: equal under the UTS #39 skeleton restricted to ASCII;
+  - `scope`: npm `@x/name` where `name` is a reference.
+  - **Outcomes:** `SUSPICIOUS_INCONCLUSIVE` is an indicator, never a typosquat verdict. A reference name is `VERIFIED_RELATIONSHIP`. Nothing firing is `MISSING_EVIDENCE`, not evidence of authenticity. Local data only: no network, no budget, never part of a verdict.
+  - **Reference data (owner-approved sources),** each built and pinned by the new `scripts/refresh_reference_names.py` and listed in the new `NOTICE`:
+    - `npm-high-impact` 1.13.0 (MIT, 17,335 names), checked against npm's sha512 integrity and read as text, never executed;
+    - the ASCII mappings of UTS #39 `confusables.txt` 18.0.0 (Unicode License v3), pinned by sha256.
+  - **PyPI's popular list:** a dated BigQuery query over the CC BY 4.0 download dataset, printed by the tool for a maintainer with a Google Cloud account to run. Until then, PyPI names are compared with the curated catalog only, and answers show the empty list.
 - **PyPI provenance in `dependency_status` (track T, T-B1, v0.12.0 item U3).** For a PyPI package with a version, the new `provenance` field verifies the release's PEP 740 attestations from PyPI's Integrity API, for up to 4 files (wheels first), each against the file's sha256. Verification uses `pypi-attestations` (Sigstore), never cryptography of our own.
   - **Repository cross-check:** for curated packages, the attestation's publisher is compared with the catalog's GitHub repository; a different repository is `VERIFIED_FAILURE` (starjacking).
   - **Other outcomes:** an attestation that doesn't verify is `VERIFIED_FAILURE`. No published provenance is `MISSING_EVIDENCE`, never a failure, because most packages publish none. `VERIFIED_RELATIONSHIP` says where and how the files were built, never that they are benign (Ultralytics' first malicious releases carried valid provenance).
