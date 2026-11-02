@@ -15,7 +15,7 @@ research-team commitments, not a commercial service level.
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| latest 0.11.x release | ✅ |
+| the latest release | ✅ |
 | older releases | ❌ (upgrade to the latest release) |
 
 ## Reporting a vulnerability
@@ -75,13 +75,26 @@ What to expect:
   history between two anchors (`docs/KEYED_INTEGRITY.md`).
 - **Unsigned contracts.** Evidence-contract documents are not signed. Their
   `signature` fields are always `null` in v1.
-- **No package-trust checks.** OpenPulse does not detect malicious
-  packages. It does not verify artifact signatures or provenance (Sigstore,
-  SLSA, PEP 740), does not check that a package exists in its registry, and
-  does not flag lookalike names or manipulated reputation. An answer
-  without findings is not a statement that a package is safe. MCP answers
-  are advice to the agent, not a security boundary. These checks are
-  planned as track T in `docs/ROADMAP.md`.
+- **Package-trust checks are evidence, not a safety verdict.** Since
+  v0.12.0 (track T), OpenPulse checks PyPI and npm packages for published
+  malicious-package records (OSV `MAL-`), registry existence, PEP 740
+  provenance, lockfile digests, repository linkage, dependency confusion
+  and lookalike names, and since v0.16.0 reports reputation indicators.
+  It does not detect malicious code itself, and an answer without
+  findings is not a statement that a package is safe: there is no SAFE
+  status. MCP answers are advice to the agent, not a security boundary;
+  enforcement comes from a trust policy (`docs/TRUST_POLICY.md`) in
+  `openpulse gate`, `check` or the GitHub Action.
+- **Limits of the gate.** `openpulse gate` judges only the files it is
+  given and only exactly pinned PyPI and npm entries (others are listed
+  as not checked). A prohibited check that could not run fails the gate
+  unless the policy says `unchecked: pass`; in `check` and `attest` it is
+  reported, not failed. A pre-commit hook can be skipped locally, so run
+  the gate in CI as a required check.
+- **Local history must stay local.** Observation history, the detection
+  ledger and webhook delivery state are refused when git tracks them:
+  state committed to the repository could be forged by anyone who can
+  commit.
 
 ## Hardening already in place
 

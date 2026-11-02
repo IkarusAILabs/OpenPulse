@@ -8,7 +8,7 @@ import pytest
 from click.testing import CliRunner
 
 from cli.main import cli
-from core.trust_policy import Policy, PolicyError, evaluate, load, parse
+from core.trust_policy import Policy, PolicyError, applies, evaluate, load, parse, unchecked
 
 ROOT = Path(__file__).resolve().parents[1]
 EVENT = str(ROOT / "data/fixtures/django-eol/event.json")
@@ -239,3 +239,62 @@ def test_experimental_conditions_warn(monkeypatch, tmp_path):
     )
     result = _check("--policy", policy)
     assert "unconfirmed_repository is experimental" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Unchecked: a prohibited check that applied but did not run
+# ---------------------------------------------------------------------------
+
+
+def test_unchecked_defaults_to_fail_and_only_takes_fail_or_pass():
+    assert _policy("confirmed_malicious").unchecked == "fail"
+    doc = {"version": 1, "prohibit": ["confirmed_malicious"], "unchecked": "pass"}
+    assert parse(doc).unchecked == "pass"
+    with pytest.raises(PolicyError, match="unchecked must be fail or pass"):
+        parse({**doc, "unchecked": "ignore"})
+
+
+def test_a_check_that_did_not_run_is_unchecked_and_one_that_ran_is_not():
+    policy = _policy("confirmed_malicious", "not_found_in_registry")
+    down = [
+        _record("malicious", "NOT_PERFORMED", "OSV gave no usable answer"),
+        _record("registry_existence", "VERIFIED_RELATIONSHIP"),
+    ]
+    (only,) = unchecked(policy, DJANGO, down)
+    assert only["condition"] == "unchecked confirmed_malicious"
+    assert only["statement"] == "OSV gave no usable answer"
+    assert unchecked(policy, DJANGO, []) and len(unchecked(policy, DJANGO, [])) == 2
+    ran = [
+        _record("malicious", "MISSING_EVIDENCE"),
+        _record("registry_existence", "VERIFIED_FAILURE"),
+    ]
+    assert unchecked(policy, DJANGO, ran) == []
+
+
+@pytest.mark.parametrize(
+    ("check", "dep", "private", "expected"),
+    [
+        ("provenance", {"ecosystem": "npm", "version": "1.0.0"}, False, False),
+        ("provenance", {"ecosystem": "PyPI", "version": None}, False, False),
+        ("provenance", {"ecosystem": "PyPI", "version": "1.0"}, False, True),
+        ("registry_existence", {"ecosystem": "PyPI", "version": "1.0"}, True, False),
+        ("dependency_confusion", {"ecosystem": "PyPI", "version": "1.0"}, False, False),
+        ("dependency_confusion", {"ecosystem": "PyPI", "version": "1.0"}, True, True),
+        ("malicious", {"ecosystem": "npm", "version": None}, True, True),
+        ("publisher_change", {"ecosystem": "npm", "version": None}, False, False),
+    ],
+)
+def test_checks_that_do_not_apply_are_never_unchecked(check, dep, private, expected):
+    assert applies(check, dep, private) is expected
+
+
+def test_unchecked_respects_the_package_scope():
+    policy = parse(
+        {
+            "version": 1,
+            "prohibit": [{"condition": "missing_provenance", "packages": ["PyPI:acme-*"]}],
+        }
+    )
+    assert unchecked(policy, DJANGO, []) == []
+    acme = {**DJANGO, "package": "acme-core"}
+    assert [v["condition"] for v in unchecked(policy, acme, [])] == ["unchecked missing_provenance"]

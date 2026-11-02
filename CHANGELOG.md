@@ -32,6 +32,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **`openpulse gate` fails closed (security review P1-1, P1-2).**
+  - **A file it cannot read** (a malformed `package-lock.json`, a broken `pyproject.toml`, any named file that is not a dependency file) now exits 2. It used to be skipped with exit 0, so a file pip or npm would still consume could pass the gate unchecked.
+  - **A prohibited check that did not run** (a source unreachable or rate-limited, a spent lookup budget) now fails the gate as `PROHIBITED unchecked <condition>`. It used to pass, so an OSV outage or a change with many dependencies switched off `confirmed_malicious`. Checks that do not apply (npm has no PyPI provenance, private names skip the public checks) never count. The policy key `unchecked: pass` restores the old behaviour; `check` and `attest` print the count and do not fail on it.
+  - **Entries it does not check are listed:** lines that are not exactly pinned packages (`flask>=2`, a requirements file of bare names) are printed as not checked instead of being skipped silently.
+- **Local history committed to the repository is refused (security review P1-3).** `check`, `digest`, `warnings`, `report`, `observe` and `sweep` exit 2 when git tracks the observation store, the detection ledger or the webhook delivery state: state from the repository could move lead-time claims or mark alerts as already delivered. Untrack it, or point `--store`, `--ledger` or `--delivery-state` elsewhere.
+- **`SECURITY.md` and the roadmap describe the current product (security review P1-4).** `SECURITY.md` no longer says there are no package-trust checks or that 0.11.x is the supported release; the track T roadmap section is marked active with what each release implemented.
 - **GitHub pages are no longer read as repositories.** A project URL such as `https://github.com/sponsors/<user>` (a Funding link) was parsed as the repository `sponsors/<user>`; GitHub's reserved paths (`sponsors`, `orgs`, `marketplace` and others) are now rejected. This affects `repository_linkage`, which could look up such a page as the claimed repository, and the reputation recorder, which now ranks claims like the checks do.
 
 ## 0.15.0 "Pre-Install Gates" — 2026-11-02
