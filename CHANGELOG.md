@@ -2,6 +2,15 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **The organic reputation set, measured first (track T Phase 2, T-C; v0.16.0 item Q1).** The reputation indicators (publisher change, moved repository, young repository claiming popularity) are measured on real, legitimate packages before they ship.
+  - **Recorder:** `benchmarks/record_reputation.py` records 60 npm packages (a fixed-stride sample of the pinned high-impact list) and 80 PyPI packages (the curated catalog and OpenPulse's own locked dependencies), each with its latest 10 releases and its GitHub repository, into `benchmarks/fixtures/reputation/organic-<date>.json`.
+  - **What is stored:** who published each release (npm accounts only as hashes; the trusted-publishing provider; PyPI's provenance publisher), whether it carries attestations, and the repository's answered name, age, stars and flags. Every upstream string is validated first; no account name or e-mail is stored.
+  - **Baseline:** `benchmarks/trust.py` reports the raw signal rates on the set (see [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md)): the upper bounds each indicator rule has to improve on.
+
 ## 0.15.0 "Pre-Install Gates" — 2026-11-02
 
 Track T Phase 4 (T-E2): the v0.14 trust policy now also applies where dependencies enter, before anything is installed. The same policy that fails CI fails a commit and a pre-install CI step, with no model involved.

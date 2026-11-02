@@ -22,6 +22,9 @@ What is measured, following the evaluation plan in ``docs/ROADMAP.md``
   popular-name list and the curated catalog. How often does a real
   popular package look like another real popular package?
 - **Echo checks**: hostile names and upstream text never reach a record.
+- **Organic reputation set** (v0.16.0 Q1): recorded real packages and their
+  repositories (``benchmarks/reputation_set.py``), with the raw signal rates
+  the reputation indicators are measured against.
 
 Synthetic detection and false-positive rates measure OpenPulse's logic on
 cases built for it: they show the checks do what they claim, not how often
@@ -43,6 +46,7 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from benchmarks import reputation_set  # noqa: E402
 from core import digest_integrity, lookalike  # noqa: E402
 from core.agent_tools import Lookups, trust_checks  # noqa: E402
 from core.provenance import NotVerified  # noqa: E402
@@ -661,6 +665,7 @@ def measure(sample: int) -> dict[str, Any]:
         "degraded": run_degraded(),
         "echo": run_echo(),
         "organic_lookalike": run_organic(sample),
+        "organic_reputation": reputation_set.baseline(),
     }
 
 
@@ -772,6 +777,10 @@ def render(results: dict[str, Any]) -> str:
         "PyPI's references are the curated catalog only until a popular-name list is "
         "approved (decision 9), so its sample is small.",
         "",
+    ]
+    lines += _render_reputation(results["organic_reputation"])
+    lines += [
+        "",
         "## What a policy can prohibit, and how well it is measured",
         "",
         "| Condition | Check and status | Synthetic false positives | Organic false "
@@ -810,6 +819,60 @@ def render(results: dict[str, Any]) -> str:
         "",
     ]
     return "\n".join(lines)
+
+
+def _render_reputation(rep: dict[str, Any]) -> list[str]:
+    npm, pypi, repos = rep["npm"], rep["PyPI"], rep["repositories"]
+    n = rep["releases_per_package"]
+    return [
+        "## Organic reputation set (v0.16.0 Q1)",
+        "",
+        f"Real, legitimate packages recorded {rep['recorded_at'][:10]} by "
+        "`benchmarks/record_reputation.py`, with their latest "
+        f"{n} releases and their GitHub repositories. The reputation indicators (Q2-Q4) are "
+        "measured on this set before they ship. The rates below are **raw signals before any "
+        "rule**: the upper bounds an indicator rule has to improve on, not indicator rates.",
+        "",
+        f"- npm: {rep['selection']['npm']}.",
+        f"- PyPI: {rep['selection']['PyPI']}.",
+        "",
+        "| Signal | npm | PyPI |",
+        "|---|---:|---:|",
+        f"| Packages recorded | {npm['recorded']}/{npm['packages']} | "
+        f"{pypi['recorded']}/{pypi['packages']} |",
+        f"| Releases recorded | {npm['releases']} | {pypi['releases']} |",
+        f"| Releases with attestations | {_pct(npm['releases_attested'])} | "
+        f"{_pct(pypi['releases_attested'])} |",
+        f"| npm releases published through trusted publishing | "
+        f"{_pct(npm['releases_trusted_publisher'])} | n/a |",
+        f"| Latest release from an account no earlier recorded release used | "
+        f"{npm['latest_from_new_account']} ({_pct(npm['latest_from_new_account_rate'])}) | "
+        "n/a |",
+        "| ...of which not a switch to trusted publishing | "
+        f"{npm['latest_from_new_account_not_trusted_publishing']} "
+        f"({_pct(npm['latest_from_new_account_not_trusted_publishing_rate'])}) | n/a |",
+        f"| Latest attested release names another publisher than the previous attested one | "
+        f"n/a | {pypi['latest_attested_publisher_changed']}/"
+        f"{pypi['packages_with_two_attested_releases']} "
+        f"({_pct(pypi['latest_attested_publisher_changed_rate'])}) |",
+        "| Attestations stop at the latest release, after attested ones | n/a | "
+        f"{pypi['attestations_stopped_at_latest']}/{pypi['packages_with_attestations']} "
+        f"({_pct(pypi['attestations_stopped_at_latest_rate'])}) |",
+        "",
+        "| Repository signal | Count |",
+        "|---|---:|",
+        f"| Claimed GitHub repositories answered | {repos['answered']}/{repos['repositories']} |",
+        f"| Answered under another name (transferred or renamed) | {repos['moved']} "
+        f"({_pct(repos['moved_rate'])}) |",
+        f"| Archived | {repos['archived']} |",
+        f"| Created less than a year before recording | {repos['younger_than_a_year']} "
+        f"({_pct(repos['younger_than_a_year_rate'])}) |",
+        f"| Median stars | {repos['median_stars']} |",
+        "",
+        "PyPI's set is the curated catalog and OpenPulse's own locked dependencies until a "
+        "popular-name list is approved (decision 9). npm account names are stored only as "
+        "hashes.",
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
