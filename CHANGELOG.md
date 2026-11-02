@@ -4,6 +4,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Upgrade notes
+
+- **`dependency_status` no longer repeats `registry_existence`, `provenance` and `lookalike` at the top level (v0.14.0 item Y6).** They were deprecated in v0.13.0. Read them from `trust.checks`, where they have been since v0.13.0 with the same values. The `deprecated` field is gone too. Nothing else in the answer changes, and verdicts are unchanged.
+
 ### Security
 
 - **A lockfile hash edited in place no longer passes the pull-request gate (v0.14.0 item Y5).** With `--base-lockfile` (the Action's `trust: pull-request`), the digest check ran only for entries with a new name or version. A pull request that kept an entry's name and version but changed its hash, swapping the artifact, was never checked. Digests are now checked for every entry whose locked digests differ from the base. Found by the new bypass tests.

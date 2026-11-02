@@ -176,24 +176,19 @@ def test_dependency_status_carries_provenance_and_never_changes_the_verdict():
         fetch=_no_data, fetch_json=net.json, fetch_provenance=net.provenance, verify=ok_verify()
     )
     out = dependency_status(package="demo-pkg", version="1.0", ecosystem="PyPI", lookups=lookups)
-    assert out["provenance"]["status"] == "VERIFIED_RELATIONSHIP"
+    assert out["trust"]["checks"]["provenance"]["status"] == "VERIFIED_RELATIONSHIP"
     absent = Net(provenance_status=404)
     lookups2 = Lookups(fetch=_no_data, fetch_json=absent.json, fetch_provenance=absent.provenance)
     out2 = dependency_status(package="demo-pkg", version="1.0", ecosystem="PyPI", lookups=lookups2)
-    assert out2["provenance"]["status"] == "MISSING_EVIDENCE"
+    assert out2["trust"]["checks"]["provenance"]["status"] == "MISSING_EVIDENCE"
     assert out["verdict"] == out2["verdict"]
 
 
 def test_dependency_status_offline_and_non_pypi_are_not_performed():
-    assert (
-        dependency_status(package="django", version="4.2", ecosystem="PyPI", live=False)[
-            "provenance"
-        ]["status"]
-        == "NOT_PERFORMED"
-    )
-    assert dependency_status(image="postgres:13", live=False)["provenance"]["status"] == (
-        "NOT_PERFORMED"
-    )
+    offline = dependency_status(package="django", version="4.2", ecosystem="PyPI", live=False)
+    image = dependency_status(image="postgres:13", live=False)
+    assert offline["trust"]["checks"]["provenance"]["status"] == "NOT_PERFORMED"
+    assert image["trust"]["checks"]["provenance"]["status"] == "NOT_PERFORMED"
 
 
 def test_the_default_provenance_fetch_is_offline_in_tests():

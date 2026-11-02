@@ -8,7 +8,6 @@ import anyio
 import pytest
 
 from core.agent_tools import (
-    DEPRECATED_TRUST_FIELDS,
     MAX_INTENT_CHARS,
     Lookups,
     dependency_status,
@@ -72,15 +71,12 @@ def test_new_checks_live_only_in_the_block():
         assert field not in out
 
 
-def test_v012_fields_are_kept_and_marked_deprecated():
+def test_the_v012_top_level_fields_are_gone():
+    """Deprecated in v0.13.0, removed in v0.14.0: trust.checks is the only place."""
     out = dependency_status("left-pad", "1.3.0", "npm", lookups=_lookups())
-    for field in DEPRECATED_TRUST_FIELDS:
-        assert out[field] == out["trust"]["checks"][field]
-    assert out["deprecated"] == {
-        "fields": ["registry_existence", "provenance", "lookalike"],
-        "use": "trust.checks",
-        "removed_in": "0.14.0",
-    }
+    for field in ("registry_existence", "provenance", "lookalike", "deprecated"):
+        assert field not in out
+    assert {"registry_existence", "provenance", "lookalike"} <= set(out["trust"]["checks"])
 
 
 def test_the_block_never_changes_the_verdict():

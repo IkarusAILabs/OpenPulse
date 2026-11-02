@@ -114,10 +114,10 @@ def test_records_say_which_references_were_used():
 def test_dependency_status_carries_lookalike_and_never_changes_the_verdict():
     real = dependency_status(package="django", version="4.2", ecosystem="PyPI", live=False)
     near = dependency_status(package="djnago", version="4.2", ecosystem="PyPI", live=False)
-    assert real["lookalike"]["status"] == "VERIFIED_RELATIONSHIP"
-    assert near["lookalike"]["status"] == "SUSPICIOUS_INCONCLUSIVE"
+    assert real["trust"]["checks"]["lookalike"]["status"] == "VERIFIED_RELATIONSHIP"
+    assert near["trust"]["checks"]["lookalike"]["status"] == "SUSPICIOUS_INCONCLUSIVE"
     image = dependency_status(image="postgres:13", live=False)
-    assert image["lookalike"]["status"] == "NOT_PERFORMED"
+    assert image["trust"]["checks"]["lookalike"]["status"] == "NOT_PERFORMED"
     assert near["verdict"]["affected"] is False  # lookalike never makes a verdict
 
 

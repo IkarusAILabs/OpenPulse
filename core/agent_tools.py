@@ -928,21 +928,12 @@ def _assess(
     if existence:
         # Track T: one trust block, additive, never read by the verdict (T-D).
         checks = trust_checks(dep, lookups, private_names)
+        # The v0.12 top-level registry_existence, provenance and lookalike were
+        # removed in v0.14.0 (deprecated in v0.13.0): trust.checks holds them.
         answer["trust"] = _trust_block(checks, evaluation, selection_context)
-        # v0.12 top-level fields, kept one minor release (deprecated in v0.13.0).
-        for field in DEPRECATED_TRUST_FIELDS:
-            answer[field] = checks[field]
-        answer["deprecated"] = {
-            "fields": list(DEPRECATED_TRUST_FIELDS),
-            "use": "trust.checks",
-            "removed_in": "0.14.0",
-        }
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer
-
-
-DEPRECATED_TRUST_FIELDS = ("registry_existence", "provenance", "lookalike")
 
 
 def trust_checks(

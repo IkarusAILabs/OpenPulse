@@ -107,9 +107,9 @@ def test_a_private_package_skips_public_existence_and_provenance():
     out = dependency_status(
         "acme-billing", "1.0", "PyPI", lookups=_lookups(Registry()), private_names=NAMES
     )
-    assert [r["status"] for r in out["registry_existence"]] == ["NOT_PERFORMED"]
-    assert "private-name list" in out["registry_existence"][0]["statement"]
-    assert out["provenance"]["status"] == "NOT_PERFORMED"
+    assert [r["status"] for r in out["trust"]["checks"]["registry_existence"]] == ["NOT_PERFORMED"]
+    assert "private-name list" in out["trust"]["checks"]["registry_existence"][0]["statement"]
+    assert out["trust"]["checks"]["provenance"]["status"] == "NOT_PERFORMED"
     assert out["trust"]["checks"]["malicious"]["status"] == "MISSING_EVIDENCE"  # OSV is still asked
 
 
