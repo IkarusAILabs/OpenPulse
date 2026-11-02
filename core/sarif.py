@@ -13,6 +13,17 @@ Level mapping (per dependency x event contract):
 - RELATED / AFFECTS_PROJECT / UNKNOWN with a match -> ``note``
 - NOT_AFFECTED                      -> omitted
 
+Trust records (contract 2.2.0 ``trust_assurance``, v0.14.0 Y4) are reported
+once per file, dependency, check and status, under ``openpulse/trust/<check>``.
+They never make a verdict, and the level never encodes a risk score:
+
+- prohibited by the user's trust policy             -> ``error``
+- CONFIRMED_MALICIOUS or VERIFIED_FAILURE otherwise -> ``warning``
+- SUSPICIOUS_INCONCLUSIVE otherwise                 -> ``note``
+- MISSING_EVIDENCE, VERIFIED_RELATIONSHIP, NOT_PERFORMED -> omitted, unless
+  the policy prohibits them (``missing_provenance``); a blocklisted package
+  is an ``error`` under ``openpulse/trust/blocklisted``.
+
 Unknown stays unknown: a dependency that no event applies to at all
 (every contract UNKNOWN with no match method) is reported ONCE as a
 ``note`` under ``openpulse/no-applicable-evidence`` - never silently
@@ -37,6 +48,13 @@ INFORMATION_URI = "https://github.com/IkarusAILabs/OpenPulse"
 NO_EVIDENCE_RULE = "openpulse/no-applicable-evidence"
 
 _ERROR_IMPACTS = ("ACTION", "CRITICAL")
+TRUST_RULE_PREFIX = "openpulse/trust/"
+#: Trust statuses reported without a policy, and their level.
+_TRUST_LEVELS = {
+    "CONFIRMED_MALICIOUS": "warning",
+    "VERIFIED_FAILURE": "warning",
+    "SUSPICIOUS_INCONCLUSIVE": "note",
+}
 _LEVEL_ORDER = {"error": 0, "warning": 1, "note": 2}
 
 
@@ -141,6 +159,95 @@ def _unknown_result(label: str, uri: str, docs: list[dict[str, Any]]) -> dict[st
     }
 
 
+def trust_items(
+    entries: list[tuple[dict[str, Any], str]], violations: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
+    """Reportable trust records and policy violations, one per (file, dependency, check, status).
+
+    Shared by SARIF and DefectDojo so they never disagree. ``violations``
+    are policy violations carrying ``uri`` and ``label`` (the contract's
+    dependency label); each becomes a prohibited item, merged with the
+    matching trust record when there is one.
+    """
+    items: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for v in violations or []:
+        check = str(v.get("check") or "blocklisted")
+        status = str(v.get("status") or "PROHIBITED")
+        key = (str(v["uri"]), str(v["label"]), check, status)
+        items.setdefault(
+            key,
+            {
+                "uri": key[0],
+                "label": key[1],
+                "check": check,
+                "status": status,
+                "statement": str(v.get("statement") or ""),
+                "references": [],
+                "condition": v.get("condition"),
+                "prohibited": True,
+                "level": "error",
+            },
+        )
+    for doc, uri in entries:
+        block = doc.get("trust_assurance")
+        if not block:
+            continue
+        label = str(doc["affected_dependency"]["label"])
+        for record in block.get("checks") or []:
+            key = (uri, label, str(record["check"]), str(record["status"]))
+            if key in items:
+                items[key]["references"] = list(record.get("references") or [])
+                items[key]["statement"] = items[key]["statement"] or str(record["statement"])
+                continue
+            level = _TRUST_LEVELS.get(key[3])
+            if level is None:
+                continue
+            items[key] = {
+                "uri": uri,
+                "label": label,
+                "check": key[2],
+                "status": key[3],
+                "statement": str(record["statement"]),
+                "references": list(record.get("references") or []),
+                "condition": None,
+                "prohibited": False,
+                "level": level,
+            }
+    return sorted(
+        items.values(),
+        key=lambda i: (_LEVEL_ORDER[i["level"]], i["uri"], i["label"], i["check"], i["status"]),
+    )
+
+
+def _trust_result(item: dict[str, Any]) -> dict[str, Any]:
+    rule = TRUST_RULE_PREFIX + item["check"]
+    policy = f" Prohibited by the trust policy ({item['condition']})." if item["prohibited"] else ""
+    statement = item["statement"].rstrip(". ")
+    text = (
+        f"{item['label']}: trust check {item['check']} {item['status']}."
+        + (f" {statement}." if statement else "")
+        + f"{policy} Trust checks are never part of the verdict."
+    )
+    return {
+        "ruleId": rule,
+        "level": item["level"],
+        "message": {"text": text},
+        "locations": [_location(item["uri"])],
+        "partialFingerprints": {
+            "openpulseFinding/v1": _fingerprint(item["label"], rule, item["status"])
+        },
+        "properties": {
+            "dependency": item["label"],
+            "trust_check": item["check"],
+            "trust_status": item["status"],
+            "policy_condition": item["condition"],
+            "policy_prohibited": item["prohibited"],
+            "references": item["references"],
+            "used_in_verdict": False,
+        },
+    }
+
+
 def _results(entries: list[tuple[dict[str, Any], str]]) -> tuple[list[dict[str, Any]], int]:
     """(results, omitted NOT_AFFECTED count) in a deterministic order."""
     groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
@@ -183,6 +290,21 @@ _RULE_TEXT = {
 def _rules(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rules = []
     for rule_id in sorted({r["ruleId"] for r in results}):
+        if rule_id.startswith(TRUST_RULE_PREFIX):
+            check = rule_id[len(TRUST_RULE_PREFIX) :]
+            rules.append(
+                {
+                    "id": rule_id,
+                    "name": "Trust" + "".join(p.capitalize() for p in check.split("_")),
+                    "shortDescription": {
+                        "text": f"Trust check {check.replace('_', ' ')} (not a verdict; "
+                        "error only when the trust policy prohibits it)"
+                    },
+                    "helpUri": INFORMATION_URI + "/blob/main/docs/TRUST_POLICY.md",
+                    "properties": {"tags": ["dependency", "supply-chain", "openpulse", "trust"]},
+                }
+            )
+            continue
         name = rule_id.split("/", 1)[1]
         default = f"Upstream {name.replace('-', ' ')} event affects dependency"
         text = _RULE_TEXT.get(rule_id, default)
@@ -203,8 +325,12 @@ def build_sarif(
     *,
     tool_version: str,
     coverage: dict[str, Any] | None = None,
+    trust_violations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """(contract, artifact uri) pairs -> one SARIF 2.1.0 log (single run).
+
+    ``trust_violations`` are the run's trust policy violations (with ``uri``
+    and ``label``): they turn the matching trust results into errors.
 
     ``coverage`` is the run-level repository inspection block
     (``{"status", "reasons"}``); PARTIAL and FAILED are surfaced as a
@@ -213,6 +339,7 @@ def build_sarif(
     """
     pairs = list(entries)
     results, omitted = _results(pairs)
+    results += [_trust_result(item) for item in trust_items(pairs, trust_violations)]
     rules = _rules(results)
     index = {rule["id"]: i for i, rule in enumerate(rules)}
     for result in results:
@@ -253,6 +380,7 @@ def build_sarif(
                     "inspection_coverage": status,
                     "contracts": len(pairs),
                     "not_affected_omitted": omitted,
+                    "trust_policy_violations": len(trust_violations or []),
                 },
             }
         ],
@@ -267,7 +395,8 @@ def _md(text: Any) -> str:
 def render_summary(sarif: dict[str, Any]) -> str:
     """Markdown job summary (``$GITHUB_STEP_SUMMARY``) from a SARIF log."""
     run = sarif["runs"][0]
-    results = run["results"]
+    trust = [r for r in run["results"] if r["ruleId"].startswith(TRUST_RULE_PREFIX)]
+    results = [r for r in run["results"] if not r["ruleId"].startswith(TRUST_RULE_PREFIX)]
     props = run["properties"]
     counts = {level: sum(1 for r in results if r["level"] == level) for level in _LEVEL_ORDER}
     lines = [
@@ -300,6 +429,26 @@ def render_summary(sarif: dict[str, Any]) -> str:
             lines.append(
                 f"| {r['level']} | `{_md(uri)}` | `{_md(p['dependency'])}` | {p['relationship']} | "
                 f"{_md(p.get('impact', '-'))} | {_md(event)} | {evidence} | {contract} |"
+            )
+    if trust:
+        prohibited = sum(1 for r in trust if r["properties"]["policy_prohibited"])
+        lines += [
+            "",
+            "### Trust checks",
+            "",
+            f"{len(trust)} record(s) to review; {prohibited} prohibited by the trust policy. "
+            "Trust checks are never part of a verdict, and the level is not a risk score.",
+            "",
+            "| Level | File | Dependency | Check | Status | Policy |",
+            "|---|---|---|---|---|---|",
+        ]
+        for r in trust:
+            p = r["properties"]
+            uri = r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            policy = f"prohibited ({_md(p['policy_condition'])})" if p["policy_prohibited"] else "-"
+            lines.append(
+                f"| {r['level']} | `{_md(uri)}` | `{_md(p['dependency'])}` | "
+                f"{_md(p['trust_check'])} | {_md(p['trust_status'])} | {policy} |"
             )
     lines += [
         "",

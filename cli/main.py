@@ -498,7 +498,7 @@ def _policy_violations(deps, loaded, lockfile=None, blocks=None, base_keys=None)
         key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
         if key in digests:
             records.append({"check": "digest_integrity", **digests[key]})
-        violations += _policy.evaluate(loaded, dep, records)
+        violations += [dict(v, index=index) for v in _policy.evaluate(loaded, dep, records)]
     return violations
 
 
@@ -2615,6 +2615,7 @@ def attest(
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
+    labels: dict[int, str] = {}
     for index, (dep, uri) in enumerate(zip(deps, uris, strict=True)):
         for event in loaded_events:
             verdict = check_dependency(
@@ -2641,6 +2642,13 @@ def attest(
                 )
             lines.append(_json.dumps(doc, sort_keys=True))
             rendered.append((doc, uri))
+            labels[index] = str(doc["affected_dependency"]["label"])
+    # Violations, located like the contracts they concern (SARIF, DefectDojo).
+    located = [
+        dict(v, uri=uris[v["index"]], label=labels[v["index"]])
+        for v in violations
+        if v["index"] in labels
+    ]
     if sarif_path or summary_path:
         from core.sarif import build_sarif, render_summary
 
@@ -2648,6 +2656,7 @@ def attest(
             rendered,
             tool_version=openpulse_version(),
             coverage=coverage_override,
+            trust_violations=located,
         )
         if sarif_path:
             _Path(sarif_path).write_text(
@@ -2663,7 +2672,7 @@ def attest(
     if defectdojo_path:
         from core.defectdojo import build_findings
 
-        dojo = build_findings(rendered)
+        dojo = build_findings(rendered, located)
         _Path(defectdojo_path).write_text(
             _json.dumps(dojo, indent=2, sort_keys=True) + NL, encoding="utf-8"
         )

@@ -57,3 +57,19 @@ Each condition is one trust check reaching one status. The labels come from the 
 - **Silence never blocks:** `NOT_PERFORMED` (a source unreachable, a spent budget) and `MISSING_EVIDENCE` never fail a run by themselves. Only a scoped condition such as `missing_provenance` makes missing evidence fail.
 - **When it fails:** a violation prints `policy: PROHIBITED <condition>: <ecosystem>:<name>==<version>` with the check's fixed statement. The run exits 1 **after** every output is written (contracts, SARIF, DefectDojo, digest, webhook), alongside `--fail-on`.
 - **Model-free:** the same files and the same source answers give the same decision.
+
+## Where violations and trust records show up
+
+`openpulse attest --sarif` and `--defectdojo` (and the GitHub Action) report trust records and violations as their own results, never as verdicts. The level and the severity follow your policy, never an OpenPulse risk score:
+
+| Trust record | SARIF level | DefectDojo severity |
+|---|---|---|
+| Prohibited by your policy, or blocklisted | `error` | High |
+| CONFIRMED_MALICIOUS or VERIFIED_FAILURE, not prohibited | `warning` | Low |
+| SUSPICIOUS_INCONCLUSIVE, not prohibited | `note` | Info |
+| MISSING_EVIDENCE, VERIFIED_RELATIONSHIP, NOT_PERFORMED | omitted unless prohibited | omitted unless prohibited |
+
+- **Grouping:** each record appears once per file, dependency, check and status, under `openpulse/trust/<check>`, with the https references the record cites.
+- **Stable identities:** SARIF and DefectDojo share one identity per record, so re-imports deduplicate.
+- **Job summary:** it has its own *Trust checks* table.
+- **Without `--trust`:** trust records reach these outputs only through policy violations.
