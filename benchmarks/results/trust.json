@@ -177,6 +177,17 @@
     }
   },
   "organic_sample": 1000,
+  "organic_young_popular_repository": {
+    "false_positive_rate": 0.0081,
+    "flagged": 1,
+    "flagged_repositories": [
+      "pydantic/httpx2"
+    ],
+    "max_age_days": 180,
+    "min_stars": 1000,
+    "repositories": 123,
+    "younger_than_max_age": 1
+  },
   "python": "3.14.6",
   "synthetic": {
     "per_check": {

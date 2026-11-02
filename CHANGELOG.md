@@ -21,6 +21,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Another name:** `SUSPICIOUS_INCONCLUSIVE`, naming both and whether it was `renamed` (same owner) or `transferred`. **Same name** (case ignored): `VERIFIED_RELATIONSHIP`, meaning only that the claim is current. No claim, or GitHub does not know the repository: `MISSING_EVIDENCE`.
   - **Measured on the organic set:** 5 of 123 legitimate repositories (4.1%) were moved, all transferred to an organisation, so this is an indicator to scope, not a gate.
   - Not yet in the `trust` block or a policy: that is item Q5.
+- **`young_popular_repository`: many stars on a young repository? (threat T5; v0.16.0 item Q4).** `core/young_popular_repository.py` reads the creation date and star count of the repository a package claims (the same GitHub request as `repository_moved`).
+  - **Younger than 180 days with at least 1000 stars:** `SUSPICIOUS_INCONCLUSIVE`, with the age, the count and both thresholds. Anything else is `MISSING_EVIDENCE`: stars are inputs, never trust evidence, so no star count verifies anything.
+  - **Experimental:** the organic set holds one repository younger than 180 days, a legitimate project the rule flags (1 of 123, 0.8%). That is too few young repositories to measure a firing rate, so the indicator ships experimental.
+  - Not yet in the `trust` block or a policy: that is item Q5.
 
 ### Fixed
 

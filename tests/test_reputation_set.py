@@ -295,6 +295,26 @@ def test_baseline_counts_raw_signals():
     assert repos["younger_than_a_year"] == 1 and repos["median_stars"] == 20
 
 
+def test_young_popular_repository_is_aged_at_the_recording_time():
+    def repo(created, stars):
+        return {"status": 200, "full_name": "a/b", "created": created, "stars": stars}
+
+    doc = {
+        "recorded_at": "2026-11-02T00:00:00Z",
+        "repositories": {
+            "a/hit": repo("2026-09-01T00:00:00Z", 5000),
+            "a/few": repo("2026-09-01T00:00:00Z", 10),
+            "a/old": repo("2010-01-01T00:00:00Z", 90000),
+            "a/nodate": {"status": 200, "full_name": "a/nodate", "stars": 5000},
+            "sponsors/someone": repo("2026-09-01T00:00:00Z", 5000),
+            "gone/y": {"status": 404},
+        },
+    }
+    yp = reputation_set.young_popular_repository(doc)
+    assert (yp["repositories"], yp["younger_than_max_age"], yp["flagged"]) == (3, 2, 1)
+    assert yp["false_positive_rate"] == 0.3333
+
+
 # ---------------------------------------------------------------------------
 # The committed set
 # ---------------------------------------------------------------------------

@@ -96,6 +96,16 @@ The production `repository_moved` classification on every claimed GitHub reposit
 
 **Findings.** Every move in the set is a project transferred to an organisation, an ordinary event, so `repository_moved` is an indicator to scope, not a gate. 4 claims recorded on 2026-11-02 were GitHub pages (`sponsors/<user>` Funding links), not repositories; the parser now rejects them, and they are excluded here.
 
+## Organic control: young popular repository (v0.16.0 Q4)
+
+The production `young_popular_repository` rule (younger than 180 days, at least 1000 stars) on every claimed GitHub repository in the organic set, aged at the recording time. Every package is legitimate, so every repository flagged is a false positive.
+
+| Repositories | Younger than the age threshold | Flagged | False-positive rate | Flagged repositories |
+|---:|---:|---:|---:|---|
+| 123 | 1 | 1 | 0.8% | `pydantic/httpx2` |
+
+**Findings.** The set is drawn from established packages, so it holds 1 repository younger than the age threshold, and the rule flagged it: a legitimate project that launched to many stars. That is too few young repositories to measure a firing rate on the population the rule targets, so `young_popular_repository` ships experimental: an indicator to scope, never a gate, until a set of young legitimate repositories measures it.
+
 ## What a policy can prohibit, and how well it is measured
 
 | Condition | Check and status | Synthetic false positives | Organic false positives | Label |

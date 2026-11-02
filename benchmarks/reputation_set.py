@@ -235,3 +235,39 @@ def repository_moved(doc: dict[str, Any] | None = None) -> dict[str, Any]:
         "false_positive_rate": _ratio(flagged, answered),
         "moves": dict(sorted(moves.items())),
     }
+
+
+def young_popular_repository(doc: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The production ``young_popular_repository`` rule (v0.16.0 Q4) on every
+    recorded repository, aged at the recording time. Every package is
+    legitimate, so every repository flagged is a false positive. The rate is
+    only as informative as the number of young repositories in the set, which
+    is reported beside it.
+    """
+    from core import young_popular_repository as yp
+    from core.repository_linkage import github_repository
+
+    doc = doc or load()
+    now = _when(doc["recorded_at"])
+    judged = young = flagged = 0
+    fired: list[str] = []
+    for claimed, repo in sorted(doc["repositories"].items()):
+        if github_repository(claimed) is None or repo.get("status") != 200:
+            continue
+        if not repo.get("created") or not isinstance(repo.get("stars"), int):
+            continue
+        judged += 1
+        age = max(0, (now - _when(repo["created"])).days)
+        young += age < yp.MAX_AGE_DAYS
+        if yp.fires(age, repo["stars"]):
+            flagged += 1
+            fired.append(repo.get("full_name") or claimed)
+    return {
+        "max_age_days": yp.MAX_AGE_DAYS,
+        "min_stars": yp.MIN_STARS,
+        "repositories": judged,
+        "younger_than_max_age": young,
+        "flagged": flagged,
+        "false_positive_rate": _ratio(flagged, judged),
+        "flagged_repositories": fired,
+    }

@@ -668,6 +668,7 @@ def measure(sample: int) -> dict[str, Any]:
         "organic_reputation": reputation_set.baseline(),
         "organic_publisher_change": reputation_set.publisher_change(),
         "organic_repository_moved": reputation_set.repository_moved(),
+        "organic_young_popular_repository": reputation_set.young_popular_repository(),
     }
 
 
@@ -783,6 +784,7 @@ def render(results: dict[str, Any]) -> str:
     lines += _render_reputation(results["organic_reputation"])
     lines += _render_publisher_change(results["organic_publisher_change"])
     lines += _render_repository_moved(results["organic_repository_moved"])
+    lines += _render_young_popular(results["organic_young_popular_repository"])
     lines += [
         "",
         "## What a policy can prohibit, and how well it is measured",
@@ -951,6 +953,32 @@ def _render_repository_moved(rm: dict[str, Any]) -> list[str]:
         f"{rm['excluded_not_repositories']} claims recorded on 2026-11-02 were GitHub pages "
         "(`sponsors/<user>` Funding links), not repositories; the parser now rejects them, and "
         "they are excluded here.",
+    ]
+
+
+def _render_young_popular(yp: dict[str, Any]) -> list[str]:
+    fired = ", ".join(f"`{r}`" for r in yp["flagged_repositories"]) or "none"
+    return [
+        "",
+        "## Organic control: young popular repository (v0.16.0 Q4)",
+        "",
+        "The production `young_popular_repository` rule (younger than "
+        f"{yp['max_age_days']} days, at least {yp['min_stars']} stars) on every claimed GitHub "
+        "repository in the organic set, aged at the recording time. Every package is "
+        "legitimate, so every repository flagged is a false positive.",
+        "",
+        "| Repositories | Younger than the age threshold | Flagged | False-positive rate | "
+        "Flagged repositories |",
+        "|---:|---:|---:|---:|---|",
+        f"| {yp['repositories']} | {yp['younger_than_max_age']} | {yp['flagged']} | "
+        f"{_pct(yp['false_positive_rate'])} | {fired} |",
+        "",
+        "**Findings.** The set is drawn from established packages, so it holds "
+        f"{yp['younger_than_max_age']} repository younger than the age threshold, and the rule "
+        "flagged it: a legitimate project that launched to many stars. That is too few young "
+        "repositories to measure a firing rate on the population the rule targets, so "
+        "`young_popular_repository` ships experimental: an indicator to scope, never a gate, "
+        "until a set of young legitimate repositories measures it.",
     ]
 
 
