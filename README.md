@@ -56,7 +56,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.12.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.13.0
     with:
       manifest: requirements.txt
       fail-on: action   # fail only on ACTION/CRITICAL findings
@@ -69,7 +69,7 @@ Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](do
 AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.12.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.13.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -268,6 +268,17 @@ everything else. We do not compete on EOL record counts.
 - **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
 - **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract 2.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
 - **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+
+## What's new in v0.13
+
+v0.13.0 "Agent Trust Evidence" is track T Phase 3: trust evidence reaches agents in one place and goes into the evidence contract. Every check is evidence to review, never part of a verdict. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+- **Known-malicious packages.** OSV's malicious-package records (`MAL-`) are checked for any PyPI or npm name. A hit is `CONFIRMED_MALICIOUS`, always with the record cited.
+- **Dependency confusion.** List your internal names in `.openpulse/private-packages.txt`; OpenPulse reports which of them a public package also uses (`openpulse confusion`).
+- **Starjacking.** Repository linkage checks whether a package is really from the GitHub repository its registry metadata claims, using verified provenance or the repository's own manifest.
+- **One `trust` block for agents.** `dependency_status` gathers every check, counts it and lists what needs attention. Agents can say why they ask (`intent`, `name_source`); that is recorded and never used. **Upgrade note:** read `trust.checks`; the v0.12 top-level fields go in v0.14.0.
+- **Evidence contract 2.2.0.** `openpulse attest --trust` records the checks in each contract's `trust_assurance`, covered by the existing content hash. **Upgrade note:** validate against `schemas/evidence-contract/v2.2/`.
+- **Research recording.** `openpulse mcp --record DIR` keeps a local, opt-in log of what agents ask and are told.
 
 ## What's new in v0.12
 
