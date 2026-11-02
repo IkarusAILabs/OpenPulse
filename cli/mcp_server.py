@@ -97,7 +97,9 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         curated upstream changes (distribution, license, support) and OSV advisories,
         plus whether a PyPI or npm package and version exist in their registry
         (`registry_existence`: a name not found there may be hallucinated), and whether
-        OSV publishes a malicious-package record for it (`malicious`). A package on the
+        OSV publishes a malicious-package record for it (`malicious`), and whether it is
+        really from the GitHub repository its registry metadata claims
+        (`repository_linkage`). A package on the
         project's private-name list (.openpulse/private-packages.txt) is checked for a
         public package with the same name instead (`dependency_confusion`).
 
