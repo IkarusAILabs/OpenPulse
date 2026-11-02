@@ -80,7 +80,7 @@ Two inputs bring track T's trust checks into the job. Both are off by default, s
 
 | Input | Values | What it does |
 |---|---|---|
-| `trust` | `off` (default), `pull-request`, `all` | Trust checks with live lookups: known-malicious records, registry existence, provenance, repository linkage and lookalike names. `pull-request` checks only the dependencies a pull request adds or changes, compared with the base branch's copy of `manifest` and `lockfile`. `all` checks every dependency on every run. Results are recorded in each contract's `trust_assurance` (evidence contract 2.2.0) |
+| `trust` | `off` (default), `pull-request`, `all` | Trust checks with live lookups: known-malicious records, registry existence, provenance, repository linkage, lookalike names, and the reputation indicators (publisher change, moved repository, young repository with many stars). `pull-request` checks only the dependencies a pull request adds or changes, compared with the base branch's copy of `manifest` and `lockfile`. `all` checks every dependency on every run. Results are recorded in each contract's `trust_assurance` (evidence contract 2.3.0) |
 | `policy` | a path, or empty | A trust policy ([`docs/TRUST_POLICY.md`](TRUST_POLICY.md)). Empty uses `.openpulse/policy.yml` when the repository has one. A prohibited condition fails the step, even with `fail-on: none` |
 
 ```yaml

@@ -45,7 +45,7 @@ def test_non_repository_inputs_are_not_applicable(tmp_path, name):
     assert result.exit_code == 0, result.output
     assert docs
     for doc in docs:
-        assert doc["contract_version"] == "2.2.0"  # 2.2 keeps 2.1's coverage values
+        assert doc["contract_version"] == "2.3.0"  # 2.3 keeps 2.1's coverage values
         assert doc["inspection_coverage"] == {"status": "NOT_APPLICABLE", "reasons": []}
         assert validate_contract(doc) == []
         assert verify_content_hash(doc)

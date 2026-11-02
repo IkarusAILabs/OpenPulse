@@ -229,6 +229,7 @@ class Lookups:
         verify: Callable[[Any, str, str], list[dict[str, Any]]] | None = None,
         osv_query: Callable[[dict[str, Any]], tuple[int, Any]] | None = None,
         fetch_text: Callable[[str], tuple[int, str | None]] | None = None,
+        fetch_github: Callable[[str], tuple[int, Any]] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -245,6 +246,11 @@ class Lookups:
         self._verify = verify
         self._osv_query = osv_query
         self._fetch_text = fetch_text
+        self._fetch_github = fetch_github
+        #: GitHub repository answers (200 or 404) shared by repository_moved and
+        #: young_popular_repository, so the two checks make one request.
+        self._github: dict[str, tuple[float, tuple[int, Any]]] = {}
+        self._reputation: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
         self._linkage: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
         self._malicious: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
@@ -399,6 +405,43 @@ class Lookups:
         )
         if record["status"] != "NOT_PERFORMED":
             self._linkage[key] = (now, record)
+        return record
+
+    def _github_answer(self, url: str) -> tuple[int, Any]:
+        """One GitHub API answer per session; failures are never cached."""
+        from core import repository_moved
+
+        now = time.monotonic()
+        hit = self._github.get(url)
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        answer = (self._fetch_github or repository_moved.default_fetch_github)(url)
+        if answer[0] in (200, 404):
+            self._github[url] = (now, answer)
+        return answer
+
+    def reputation(
+        self, check: str, ecosystem: str, name: str, version: str | None
+    ) -> dict[str, Any]:
+        """A reputation indicator record (T-C, v0.16.0): ``publisher_change``,
+        ``repository_moved`` or ``young_popular_repository``. Cached per
+        session; NOT_PERFORMED never cached. Each check spends one lookup."""
+        module = _reputation_module(check)
+        key = (check, ecosystem, name, version or "")
+        hit = self._reputation.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        if check == "publisher_change":
+            seams = {"fetch_provenance": self._fetch_provenance}
+        else:
+            seams = {"fetch_github": self._github_answer}
+        record = module.check(ecosystem, name, version, fetch_json=self._fetch_json, **seams)
+        if record["status"] != "NOT_PERFORMED":
+            self._reputation[key] = (now, record)
         return record
 
     def _disk_path(self, slug: str) -> Path | None:
@@ -787,6 +830,40 @@ def _repository_linkage(
         return repository_linkage.not_performed("budget")
 
 
+#: The reputation indicators (track T Phase 2, T-C, v0.16.0 Q2-Q4), in trust-block order.
+REPUTATION_CHECKS = ("publisher_change", "repository_moved", "young_popular_repository")
+
+
+def _reputation_module(check: str) -> Any:
+    from core import publisher_change, repository_moved, young_popular_repository
+
+    return {
+        "publisher_change": publisher_change,
+        "repository_moved": repository_moved,
+        "young_popular_repository": young_popular_repository,
+    }[check]
+
+
+def _reputation(
+    check: str, dep: dict[str, Any], lookups: Lookups | None, private: bool = False
+) -> dict[str, Any]:
+    """T-C: one reputation indicator. Never a verdict input, never summed."""
+    from core import registry_existence
+
+    module = _reputation_module(check)
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem not in ("npm", "PyPI"):
+        return module.not_performed("unsupported")
+    if private:
+        return module.not_performed("private")
+    if lookups is None:
+        return module.not_performed("offline")
+    try:
+        return lookups.reputation(check, ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return module.not_performed("budget")
+
+
 def _lookalike(dep: dict[str, Any]) -> dict[str, Any]:
     """T-A2: does the name resemble a reference name? Local data only; never a verdict input."""
     from core import lookalike
@@ -947,7 +1024,8 @@ def trust_checks(
     means offline: every live check is NOT_PERFORMED. Never a verdict input.
     """
     checks: dict[str, Any] = {"malicious": _malicious(dep, lookups)}
-    if _is_private(dep, private_names):
+    private = _is_private(dep, private_names)
+    if private:
         # The public registry is not where a private package comes from (T-A3).
         checks["registry_existence"] = _registry_existence_private(dep)
         checks["provenance"] = _provenance_private()
@@ -958,6 +1036,8 @@ def trust_checks(
         checks["repository_linkage"] = _repository_linkage(dep, lookups, checks["provenance"])
     checks["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
     checks["lookalike"] = _lookalike(dep)
+    for check in REPUTATION_CHECKS:
+        checks[check] = _reputation(check, dep, lookups, private)
     return checks
 
 #: Where an agent says a package name came from (T-D); a closed vocabulary.
@@ -1234,6 +1314,7 @@ def _trust_checks(
             "provenance",
             "repository_linkage",
             "lookalike",
+            *REPUTATION_CHECKS,
         )
     }
     attention: list[dict[str, Any]] = []
@@ -1256,6 +1337,8 @@ def _trust_checks(
                 provenance = _provenance(dep, lookups)
                 records["provenance"] = [provenance]
                 records["repository_linkage"] = [_repository_linkage(dep, lookups, provenance)]
+                for check in REPUTATION_CHECKS:
+                    records[check] = [_reputation(check, dep, lookups)]
         else:
             capped += 1
         subject = {

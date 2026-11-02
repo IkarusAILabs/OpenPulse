@@ -1,16 +1,16 @@
 {
   "degraded": {
     "budget_spent": {
-      "cases": 28,
-      "cases_fully_unresolved": 28,
+      "cases": 34,
+      "cases_fully_unresolved": 34,
       "claims_without_evidence": 0,
-      "live_records": 140
+      "live_records": 272
     },
     "unreachable": {
-      "cases": 28,
-      "cases_fully_unresolved": 28,
+      "cases": 34,
+      "cases_fully_unresolved": 34,
       "claims_without_evidence": 0,
-      "live_records": 144
+      "live_records": 276
     }
   },
   "echo": {
@@ -246,6 +246,17 @@
         "negatives": 3,
         "positives": 1
       },
+      "publisher_change": {
+        "cases": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "exact": 3,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 2,
+        "positives": 1
+      },
       "registry_existence": {
         "cases": 6,
         "detected": 3,
@@ -267,6 +278,28 @@
         "false_positives": 0,
         "negatives": 4,
         "positives": 2
+      },
+      "repository_moved": {
+        "cases": 3,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "exact": 3,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 2,
+        "positives": 1
+      },
+      "young_popular_repository": {
+        "cases": 4,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "exact": 4,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 1
       }
     },
     "rows": [
@@ -522,6 +555,86 @@
         "case": "ml-5",
         "category": "malicious",
         "check": "malicious",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "rp-1",
+        "category": "reputation",
+        "check": "publisher_change",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "rp-1",
+        "category": "reputation",
+        "check": "repository_moved",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "rp-1",
+        "category": "reputation",
+        "check": "young_popular_repository",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "rp-2",
+        "category": "reputation",
+        "check": "publisher_change",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "rp-3",
+        "category": "reputation",
+        "check": "publisher_change",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "rp-4",
+        "category": "reputation",
+        "check": "repository_moved",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "rp-4",
+        "category": "reputation",
+        "check": "young_popular_repository",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "rp-5",
+        "category": "reputation",
+        "check": "repository_moved",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "rp-5",
+        "category": "reputation",
+        "check": "young_popular_repository",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "rp-6",
+        "category": "reputation",
+        "check": "young_popular_repository",
         "expected": "MISSING_EVIDENCE",
         "label": "negative",
         "observed": "MISSING_EVIDENCE"

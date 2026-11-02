@@ -16,15 +16,19 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **PyPI `publisher_changed`:** the provenance names another publisher than the latest earlier attested release's (within 3 releases); the record says which fields changed.
   - **PyPI `attestations_stopped`:** no provenance, after a release that had it.
   - **Measured on the organic set:** `new_account` flags 4.6% of legitimate npm releases (projects with several maintainers), `publisher_changed` 0.3% and `attestations_stopped` 0.4% of PyPI releases, `trusted_publishing_dropped` none. Same publisher as before is `VERIFIED_RELATIONSHIP` (continuity, not evidence of a benign release). npm accounts are compared as hashes, never named.
-  - Not yet in the `trust` block or a policy: that is item Q5.
 - **`repository_moved`: does the claimed repository answer under another name? (v0.16.0 item Q3).** `core/repository_moved.py` asks GitHub for the repository a package claims, following one redirect within `api.github.com` only.
   - **Another name:** `SUSPICIOUS_INCONCLUSIVE`, naming both and whether it was `renamed` (same owner) or `transferred`. **Same name** (case ignored): `VERIFIED_RELATIONSHIP`, meaning only that the claim is current. No claim, or GitHub does not know the repository: `MISSING_EVIDENCE`.
   - **Measured on the organic set:** 5 of 123 legitimate repositories (4.1%) were moved, all transferred to an organisation, so this is an indicator to scope, not a gate.
-  - Not yet in the `trust` block or a policy: that is item Q5.
 - **`young_popular_repository`: many stars on a young repository? (threat T5; v0.16.0 item Q4).** `core/young_popular_repository.py` reads the creation date and star count of the repository a package claims (the same GitHub request as `repository_moved`).
   - **Younger than 180 days with at least 1000 stars:** `SUSPICIOUS_INCONCLUSIVE`, with the age, the count and both thresholds. Anything else is `MISSING_EVIDENCE`: stars are inputs, never trust evidence, so no star count verifies anything.
   - **Experimental:** the organic set holds one repository younger than 180 days, a legitimate project the rule flags (1 of 123, 0.8%). That is too few young repositories to measure a firing rate, so the indicator ships experimental.
-  - Not yet in the `trust` block or a policy: that is item Q5.
+
+- **The reputation indicators in the trust results, evidence contract 2.3.0 and the trust policy (v0.16.0 item Q5).**
+  - **Trust block:** `dependency_status`, `check_dependency_file` and `openpulse trust` report `publisher_change`, `repository_moved` and `young_popular_repository` beside the existing checks, for PyPI and npm packages. A package on the private-name list gets `NOT_PERFORMED` for all three. Each spends one lookup from the session budget; `repository_moved` and `young_popular_repository` share one GitHub request. `attest --trust` allows 7 lookups per dependency (was 4).
+  - **Evidence contract 2.3.0:** additive. `trust_assurance` may name the three new checks; nothing else changes, and the 2.2 schema is published unchanged beside it. `openpulse attest` emits 2.3.0. See [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md).
+  - **Trust policy:** three new conditions, each requiring `packages`: `publisher_change` and `repository_moved` (indicators, with the organic rates measured), and `young_popular_repository` (experimental: a policy that uses it gets a warning). See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
+  - **SARIF and DefectDojo:** the indicators appear as `openpulse/trust/<check>` notes, or errors where the policy prohibits them, like the other trust checks.
+  - **Measurements:** synthetic cases for the three checks (no false positive on the negatives) and the degraded runs (no claim without evidence when sources are down or the budget is spent).
 
 ### Fixed
 

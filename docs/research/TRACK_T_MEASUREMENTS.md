@@ -19,15 +19,18 @@ These are the false-positive measurements that the owner accepted (decision 11, 
 | `lookalike` | 7 | 4/4 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `malicious` | 5 | 2/2 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `provenance` | 4 | 1/1 (100.0%) | 0/3 (0.0%) | 100.0% |
+| `publisher_change` | 3 | 1/1 (100.0%) | 0/2 (0.0%) | 100.0% |
 | `registry_existence` | 6 | 3/3 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `repository_linkage` | 6 | 2/2 (100.0%) | 0/4 (0.0%) | 100.0% |
+| `repository_moved` | 3 | 1/1 (100.0%) | 0/2 (0.0%) | 100.0% |
+| `young_popular_repository` | 4 | 1/1 (100.0%) | 0/3 (0.0%) | 100.0% |
 
 ## Degraded sources
 
 | Mode | Live records | Claims without evidence | Cases fully unresolved |
 |---|---:|---:|---:|
-| unreachable | 144 | 0 | 28/28 |
-| budget spent | 140 | 0 | 28/28 |
+| unreachable | 276 | 0 | 34/34 |
+| budget spent | 272 | 0 | 34/34 |
 
 ## Untrusted text
 
@@ -118,7 +121,10 @@ The production `young_popular_repository` rule (younger than 180 days, at least 
 | `lookalike_name` | `lookalike` SUSPICIOUS_INCONCLUSIVE | 0/3 | 18.8% (npm) | measured; indicator |
 | `public_private_name` | `dependency_confusion` SUSPICIOUS_INCONCLUSIVE | 0/2 | no organic set | experimental |
 | `unconfirmed_repository` | `repository_linkage` SUSPICIOUS_INCONCLUSIVE | 0/4 | no organic set | experimental |
+| `publisher_change` | `publisher_change` SUSPICIOUS_INCONCLUSIVE | 0/2 | 4.6% (npm releases), 0.7% (PyPI releases) | measured; indicator |
+| `repository_moved` | `repository_moved` SUSPICIOUS_INCONCLUSIVE | 0/2 | 4.1% (repositories) | measured; indicator |
+| `young_popular_repository` | `young_popular_repository` SUSPICIOUS_INCONCLUSIVE | 0/3 | 1/123 (1 young repository in the set) | experimental |
 
-**Labels.** *Measured*: a failed check or a cited record, with no false positive on the synthetic negatives; a policy may prohibit it. *Measured; indicator*: it fires on real legitimate names at the organic rate shown, so prohibit it only for a named scope. *Experimental*: no organic false-positive set exists yet; a policy that prohibits it is told so.
+**Labels.** *Measured*: a failed check or a cited record, with no false positive on the synthetic negatives; a policy may prohibit it. *Measured; indicator*: it fires on real legitimate names at the organic rate shown, so prohibit it only for a named scope. *Experimental*: no organic false-positive set exists yet, or the set holds too few cases to measure a rate; a policy that prohibits it is told so.
 
 **Caveat for `not_found_in_registry`.** It also fires for an internal package served by a private index when that name is not on the private-name list (`.openpulse/private-packages.txt`): list internal names before prohibiting it.

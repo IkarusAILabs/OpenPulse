@@ -84,15 +84,28 @@ COVERAGE_NOT_APPLICABLE = "NOT_APPLICABLE"
 #: dependency's track T records in a fixed shape (check, T-F1 status, fixed
 #: statement, checked_at, reference URIs) with a per-status summary and
 #: ``used_in_verdict: false``. Hash and the rest of the shape are 2.1's.
-#: ``openpulse attest`` emits 2.2.0.
+#: ``openpulse attest`` emitted 2.2.0 in v0.13-v0.15.
 CONTRACT_V2_2_VERSION = "2.2.0"
-TRUST_CHECKS = (
+
+#: 2.3.0 (v0.16.0, Q5, track T T-C): additive. ``trust_assurance.checks[].check``
+#: may also name the reputation indicators ``publisher_change``,
+#: ``repository_moved`` and ``young_popular_repository``. Hash and the rest of
+#: the shape are 2.2's; the 2.2 schema is published unchanged beside it.
+#: ``openpulse attest`` emits 2.3.0.
+CONTRACT_V2_3_VERSION = "2.3.0"
+TRUST_CHECKS_2_2 = (
     "malicious",
     "registry_existence",
     "provenance",
     "repository_linkage",
     "dependency_confusion",
     "lookalike",
+)
+TRUST_CHECKS = (
+    *TRUST_CHECKS_2_2,
+    "publisher_change",
+    "repository_moved",
+    "young_popular_repository",
 )
 TRUST_STATUSES = (
     "CONFIRMED_MALICIOUS",
@@ -121,6 +134,7 @@ SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 SCHEMA_V2_PATH = _SCHEMA_ROOT / "v2" / "schema.json"
 SCHEMA_V2_1_PATH = _SCHEMA_ROOT / "v2.1" / "schema.json"
 SCHEMA_V2_2_PATH = _SCHEMA_ROOT / "v2.2" / "schema.json"
+SCHEMA_V2_3_PATH = _SCHEMA_ROOT / "v2.3" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -142,8 +156,13 @@ def load_schema() -> dict[str, Any]:
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
+def load_v2_3_schema() -> dict[str, Any]:
+    """The 2.3 schema (``openpulse attest`` output)."""
+    return json.loads(SCHEMA_V2_3_PATH.read_text(encoding="utf-8"))
+
+
 def load_v2_2_schema() -> dict[str, Any]:
-    """The 2.2 schema (``openpulse attest`` output)."""
+    """The 2.2 schema (``openpulse attest`` output in v0.13-v0.15)."""
     return json.loads(SCHEMA_V2_2_PATH.read_text(encoding="utf-8"))
 
 
@@ -308,14 +327,15 @@ def build_contract(
     max_evidence_age: timedelta | None = None,
     trust_assurance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """(event, verdict[, finding]) -> one schema-valid 2.2.0 document.
+    """(event, verdict[, finding]) -> one schema-valid 2.3.0 document.
 
     The 1.2 document (``build_v1_contract``, same arguments), restamped
-    2.2.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    2.3.0, with ``provenance.content_hash_method`` and a JCS content hash.
     Pass ``inspection_coverage={"status": "NOT_APPLICABLE", "reasons": []}``
     when the run inspected no repository (2.1), and ``trust_assurance``
     from :func:`trust_assurance_block` when the run checked trust (2.2;
-    null otherwise). Every other value is the 1.2 builder's.
+    null otherwise; 2.3 adds the reputation check names). Every other value
+    is the 1.2 builder's.
     """
     doc = build_v1_contract(
         event,
@@ -325,8 +345,8 @@ def build_contract(
         as_of=as_of,
         max_evidence_age=max_evidence_age,
     )
-    doc["contract_version"] = CONTRACT_V2_2_VERSION
-    doc["provenance"]["contract_version"] = CONTRACT_V2_2_VERSION
+    doc["contract_version"] = CONTRACT_V2_3_VERSION
+    doc["provenance"]["contract_version"] = CONTRACT_V2_3_VERSION
     doc["trust_assurance"] = trust_assurance
     doc["provenance"]["content_hash_method"] = CONTENT_HASH_METHOD
     doc["provenance"]["content_hash"] = v2_content_hash(doc)
@@ -334,7 +354,7 @@ def build_contract(
 
 
 def trust_assurance_block(checks: dict[str, Any]) -> dict[str, Any]:
-    """Track T records (``core.agent_tools.trust_checks``) -> the 2.2 block.
+    """Track T records (``core.agent_tools.trust_checks``) -> the 2.3 block.
 
     Only the fixed fields cross into the contract: check, T-F1 status, the
     fixed-template statement (capped), ``checked_at`` and reference URIs
@@ -417,6 +437,7 @@ def verify_content_hash(doc: dict[str, Any]) -> bool:
 def validate_contract(doc: Any) -> list[str]:
     """Validate against the schema of the document's own contract_version."""
     loaders = {
+        CONTRACT_V2_3_VERSION: load_v2_3_schema,
         CONTRACT_V2_2_VERSION: load_v2_2_schema,
         CONTRACT_V2_1_VERSION: load_v2_1_schema,
         CONTRACT_V2_VERSION: load_v2_schema,

@@ -11,7 +11,8 @@ Writes ``benchmarks/results/trust.json`` and regenerates
 What is measured, following the evaluation plan in ``docs/ROADMAP.md``
 (track T), with the production checks and no network:
 
-- **Synthetic cases** (categories 1-5 and 7, plus known-malicious records):
+- **Synthetic cases** (categories 1-5 and 7, known-malicious records, and
+  the reputation indicators of v0.16.0):
   a stub world in the reserved ``opfx-`` namespace answers every registry,
   OSV and GitHub request. Each case has a ground-truth label per check:
   positive (the check should flag it) or negative (it should not).
@@ -39,6 +40,7 @@ import platform
 import re
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -54,7 +56,15 @@ from core.provenance import NotVerified  # noqa: E402
 RESULTS = ROOT / "benchmarks" / "results" / "trust.json"
 REPORT = ROOT / "docs" / "research" / "TRACK_T_MEASUREMENTS.md"
 FLAGGED = {"CONFIRMED_MALICIOUS", "VERIFIED_FAILURE", "SUSPICIOUS_INCONCLUSIVE"}
-LIVE_CHECKS = ("malicious", "registry_existence", "provenance", "repository_linkage")
+LIVE_CHECKS = (
+    "malicious",
+    "registry_existence",
+    "provenance",
+    "repository_linkage",
+    "publisher_change",
+    "repository_moved",
+    "young_popular_repository",
+)
 SHA_A, SHA_B = "a" * 64, "b" * 64
 _NO_DATA = {"endoflife": [], "osv": [], "github_meta": []}
 
@@ -94,6 +104,31 @@ WORLD: dict[tuple[str, str], dict[str, Any]] = {
         "versions": {"1.0.0": {"integrity": "sha512-" + "A" * 86 + "=="}},
         "repository": "opfx/left-pad",
         "manifest": "opfx-left-pad",
+        # (version, publishing account, trusted-publishing provider), oldest first
+        "releases": [("0.9.0", "alice", None), ("1.0.0", "alice", None)],
+    },
+    ("npm", "opfx-takeover"): {
+        "versions": {"1.1.0": {}},
+        "releases": [("1.0.0", "alice", None), ("1.1.0", "mallory", None)],
+    },
+    ("npm", "opfx-trusted"): {
+        "versions": {"1.1.0": {}},
+        "releases": [("1.0.0", "alice", None), ("1.1.0", "GitHub Actions", "github")],
+    },
+    ("npm", "opfx-moved"): {
+        "versions": {"1.0.0": {}},
+        "repository": "opfx/moved",
+        "manifest": "opfx-moved",
+    },
+    ("npm", "opfx-hyped"): {
+        "versions": {"1.0.0": {}},
+        "repository": "opfx/hyped",
+        "manifest": "opfx-hyped",
+    },
+    ("npm", "opfx-young-quiet"): {
+        "versions": {"1.0.0": {}},
+        "repository": "opfx/young-quiet",
+        "manifest": "opfx-young-quiet",
     },
     ("npm", "opfx-evil"): {"versions": {"1.0.0": {}}, "malicious": "MAL-2026-1001"},
     ("npm", "opfx-was-flagged"): {
@@ -109,6 +144,13 @@ WORLD: dict[tuple[str, str], dict[str, Any]] = {
     ("npm", "opfx-internal-billing"): {"versions": {"9.9.9": {}}},  # squatted private name
     ("PyPI", "opfx-internal-payroll"): {"versions": {"0.0.1": {}}},  # squatted private name
     ("PyPI", "opfx-stealer"): {"versions": {"0.1": {}}, "malicious": "MAL-2026-1003"},
+}
+#: GitHub repository answers: claimed name -> (answered name, age in days, stars).
+GITHUB: dict[str, tuple[str, int, int]] = {
+    "opfx/left-pad": ("opfx/left-pad", 4000, 900),
+    "opfx/moved": ("opfx-org/moved", 4000, 300),
+    "opfx/hyped": ("opfx/hyped", 30, 5000),
+    "opfx/young-quiet": ("opfx/young-quiet", 30, 12),
 }
 PRIVATE = frozenset(
     {
@@ -167,6 +209,8 @@ class Stub:
             if facts.get("repository"):
                 info["project_urls"]["Source"] = f"https://github.com/{facts['repository']}"
             return 200, {"info": info, "urls": urls}
+        if version is None and facts.get("releases"):
+            return 200, _packument(facts["releases"])
         version = version if version != "latest" else next(iter(facts["versions"]))
         doc: dict[str, Any] = {"dist": {}}
         integrity = facts["versions"].get(version, {}).get("integrity")
@@ -208,6 +252,21 @@ class Stub:
                 return 200, f'[project]\nname = "{facts["manifest"]}"\n'
         return 404, None
 
+    def github(self, url: str) -> tuple[int, Any]:
+        self.asked.append(url)
+        if self.down:
+            return 0, None
+        found = GITHUB.get(url.removeprefix("https://api.github.com/repos/"))
+        if found is None:
+            return 404, None
+        answered, age, stars = found
+        created = datetime.now(timezone.utc) - timedelta(days=age)
+        return 200, {
+            "full_name": answered,
+            "created_at": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "stargazers_count": stars,
+        }
+
     def osv(self, body: dict[str, Any]) -> tuple[int, Any]:
         self.asked.append(json.dumps(body))
         if self.down:
@@ -232,6 +291,18 @@ class Stub:
         return None
 
 
+def _packument(releases: list[tuple[str, str, str | None]]) -> dict[str, Any]:
+    """An npm package document: who published each release, and when."""
+    doc: dict[str, Any] = {"time": {}, "versions": {}}
+    for day, (version, account, trusted) in enumerate(releases, 1):
+        doc["time"][version] = f"2026-01-{day:02d}T00:00:00.000Z"
+        user: dict[str, Any] = {"name": account}
+        if trusted:
+            user["trustedPublisher"] = {"id": trusted}
+        doc["versions"][version] = {"_npmUser": user}
+    return doc
+
+
 def _lookups(stub: Stub, budget: int = 200) -> Lookups:
     return Lookups(
         fetch=lambda _slug: _NO_DATA,
@@ -241,6 +312,7 @@ def _lookups(stub: Stub, budget: int = 200) -> Lookups:
         verify=stub.verify,
         fetch_text=stub.text,
         osv_query=stub.osv,
+        fetch_github=stub.github,
         budget=budget,
     )
 
@@ -435,6 +507,53 @@ CASES: list[dict[str, Any]] = [
         "category": "malicious",
         "dep": ("PyPI", "opfx-honest", "1.0"),
         "expect": {"malicious": ("MISSING_EVIDENCE", N)},
+    },
+    # 8. Reputation indicators (v0.16.0 Q2-Q4)
+    {
+        "id": "rp-1",
+        "category": "reputation",
+        "dep": ("npm", "opfx-left-pad", "1.0.0"),
+        "expect": {
+            "publisher_change": ("VERIFIED_RELATIONSHIP", N),
+            "repository_moved": ("VERIFIED_RELATIONSHIP", N),
+            "young_popular_repository": ("MISSING_EVIDENCE", N),
+        },
+    },
+    {
+        "id": "rp-2",
+        "category": "reputation",
+        "dep": ("npm", "opfx-takeover", "1.1.0"),
+        "expect": {"publisher_change": ("SUSPICIOUS_INCONCLUSIVE", P)},
+    },
+    {
+        "id": "rp-3",
+        "category": "reputation",
+        "dep": ("npm", "opfx-trusted", "1.1.0"),
+        "expect": {"publisher_change": ("MISSING_EVIDENCE", N)},
+    },
+    {
+        "id": "rp-4",
+        "category": "reputation",
+        "dep": ("npm", "opfx-moved", "1.0.0"),
+        "expect": {
+            "repository_moved": ("SUSPICIOUS_INCONCLUSIVE", P),
+            "young_popular_repository": ("MISSING_EVIDENCE", N),
+        },
+    },
+    {
+        "id": "rp-5",
+        "category": "reputation",
+        "dep": ("npm", "opfx-hyped", "1.0.0"),
+        "expect": {
+            "repository_moved": ("VERIFIED_RELATIONSHIP", N),
+            "young_popular_repository": ("SUSPICIOUS_INCONCLUSIVE", P),
+        },
+    },
+    {
+        "id": "rp-6",
+        "category": "reputation",
+        "dep": ("npm", "opfx-young-quiet", "1.0.0"),
+        "expect": {"young_popular_repository": ("MISSING_EVIDENCE", N)},
     },
 ]
 
@@ -676,7 +795,8 @@ def measure(sample: int) -> dict[str, Any]:
 # The report
 # ---------------------------------------------------------------------------
 
-#: Conditions a v0.14 policy (Y2) can prohibit, and what measures them.
+#: Conditions a policy can prohibit (v0.14 Y2; reputation indicators v0.16 Q5),
+#: and what measures them.
 CONDITIONS = [
     ("confirmed_malicious", "malicious", "CONFIRMED_MALICIOUS", None),
     ("not_found_in_registry", "registry_existence", "VERIFIED_FAILURE", None),
@@ -686,6 +806,14 @@ CONDITIONS = [
     ("lookalike_name", "lookalike", "SUSPICIOUS_INCONCLUSIVE", "organic"),
     ("public_private_name", "dependency_confusion", "SUSPICIOUS_INCONCLUSIVE", "none"),
     ("unconfirmed_repository", "repository_linkage", "SUSPICIOUS_INCONCLUSIVE", "none"),
+    ("publisher_change", "publisher_change", "SUSPICIOUS_INCONCLUSIVE", "publisher_change"),
+    ("repository_moved", "repository_moved", "SUSPICIOUS_INCONCLUSIVE", "repository_moved"),
+    (
+        "young_popular_repository",
+        "young_popular_repository",
+        "SUSPICIOUS_INCONCLUSIVE",
+        "young_popular_repository",
+    ),
 ]
 
 
@@ -805,6 +933,26 @@ def render(results: dict[str, Any]) -> str:
         elif organic == "none":
             organic_text = "no organic set"
             label = "experimental"
+        elif organic == "publisher_change":
+            pc = results["organic_publisher_change"]
+            organic_text = (
+                f"{_pct(pc['npm']['false_positive_rate'])} (npm releases), "
+                f"{_pct(pc['PyPI']['false_positive_rate'])} (PyPI releases)"
+            )
+            label = "measured; indicator"
+        elif organic == "repository_moved":
+            organic_text = (
+                f"{_pct(results['organic_repository_moved']['false_positive_rate'])} "
+                "(repositories)"
+            )
+            label = "measured; indicator"
+        elif organic == "young_popular_repository":
+            yp = results["organic_young_popular_repository"]
+            organic_text = (
+                f"{yp['flagged']}/{yp['repositories']} "
+                f"({yp['younger_than_max_age']} young repository in the set)"
+            )
+            label = "experimental"
         else:
             organic_text = "not applicable (cited record or failed check)"
             label = "measured"
@@ -816,8 +964,8 @@ def render(results: dict[str, Any]) -> str:
         "**Labels.** *Measured*: a failed check or a cited record, with no false positive on "
         "the synthetic negatives; a policy may prohibit it. *Measured; indicator*: it fires on "
         "real legitimate names at the organic rate shown, so prohibit it only for a named "
-        "scope. *Experimental*: no organic false-positive set exists yet; a policy that "
-        "prohibits it is told so.",
+        "scope. *Experimental*: no organic false-positive set exists yet, or the set holds too "
+        "few cases to measure a rate; a policy that prohibits it is told so.",
         "",
         "**Caveat for `not_found_in_registry`.** It also fires for an internal package served "
         "by a private index when that name is not on the private-name list "

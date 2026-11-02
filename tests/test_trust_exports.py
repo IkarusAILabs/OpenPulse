@@ -203,3 +203,27 @@ def test_attest_without_a_policy_reports_trust_as_warnings(tmp_path, monkeypatch
     assert result.exit_code == 0, result.output
     levels = {r["level"] for r in _trust(sarif) if r["ruleId"] == "openpulse/trust/malicious"}
     assert levels == {"warning"}
+
+
+def test_reputation_indicators_are_notes_and_errors_only_when_prohibited():
+    """v0.16.0 Q5: the indicators flow through like any trust check."""
+    event = OSSEvent(**json.loads(EVENT.read_text(encoding="utf-8")))
+    verdict = check_dependency(DJANGO, [event])
+    moved = {
+        "status": "SUSPICIOUS_INCONCLUSIVE",
+        "statement": "the claimed repository answers under another name (transferred)",
+        "evidence": {"url": "https://github.com/acme-org/widget"},
+    }
+    young = {"status": "MISSING_EVIDENCE", "statement": "no indicator to report", "evidence": {}}
+    block = trust_assurance_block({"repository_moved": moved, "young_popular_repository": young})
+    docs = [(build_contract(event, verdict, trust_assurance=block), URI)]
+    trust = {r["ruleId"]: r for r in _trust(build_sarif(docs, tool_version="0.16.0"))}
+    assert set(trust) == {"openpulse/trust/repository_moved"}
+    result = trust["openpulse/trust/repository_moved"]
+    assert result["level"] == "note"
+    assert result["properties"]["references"] == ["https://github.com/acme-org/widget"]
+    prohibited = [_violation("repository_moved", "repository_moved", "SUSPICIOUS_INCONCLUSIVE")]
+    sarif = build_sarif(docs, tool_version="0.16.0", trust_violations=prohibited)
+    assert _trust(sarif)[0]["level"] == "error"
+    findings = build_findings(docs, prohibited)["findings"]
+    assert any(f["vuln_id_from_tool"] == "openpulse/trust/repository_moved" for f in findings)

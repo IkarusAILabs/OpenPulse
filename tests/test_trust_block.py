@@ -23,6 +23,9 @@ CHECKS = {
     "repository_linkage",
     "dependency_confusion",
     "lookalike",
+    "publisher_change",
+    "repository_moved",
+    "young_popular_repository",
 }
 
 

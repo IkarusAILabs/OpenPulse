@@ -66,6 +66,9 @@ def test_the_block_has_a_fixed_shape_and_a_summary():
         "repository_linkage",
         "dependency_confusion",
         "lookalike",
+        "publisher_change",
+        "repository_moved",
+        "young_popular_repository",
     }
     for record in block["checks"]:
         assert set(record) == {"check", "status", "statement", "checked_at", "references"}
@@ -104,7 +107,7 @@ def test_untrusted_record_fields_are_bounded():
 
 def test_without_trust_the_block_is_null_and_the_document_valid(event):
     doc = _doc(event)
-    assert doc["contract_version"] == "2.2.0" and doc["trust_assurance"] is None
+    assert doc["contract_version"] == "2.3.0" and doc["trust_assurance"] is None
     assert validate_contract(doc) == [] and verify_content_hash(doc)
 
 

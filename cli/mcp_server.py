@@ -130,9 +130,10 @@ def build_server(
         verdict: a malicious-package record (`malicious`), whether the package and
         version exist in their registry (`registry_existence`: a name not found may be
         hallucinated), PyPI provenance, whether it is from the repository it claims
-        (`repository_linkage`), lookalike names, and, for names on the project's
-        private-name list, a public package with the same name (`dependency_confusion`).
-        Review everything under `trust.attention`.
+        (`repository_linkage`), lookalike names, reputation indicators (a new
+        publisher, a moved repository, a young repository with many stars), and, for
+        names on the project's private-name list, a public package with the same name
+        (`dependency_confusion`). Review everything under `trust.attention`.
 
         Give either `package` (+ `ecosystem` such as PyPI, npm, Maven, Go, crates.io,
         and an exact `version`) or a container `image` ref such as `postgres:13`.
@@ -176,8 +177,8 @@ def build_server(
         `base_path` is an earlier copy of the same file (for example the version
         before your edit): the PyPI and npm dependencies added or changed since then
         get trust checks in `trust` (known-malicious records, registry existence,
-        provenance, lookalike names, and dependency confusion for names on the
-        project's private-name list).
+        provenance, repository linkage, lookalike names, reputation indicators, and
+        dependency confusion for names on the project's private-name list).
         `trust_all` runs them on every dependency instead. Trust checks are never part
         of the verdict; review anything listed under `trust.attention`."""
         return answered(
