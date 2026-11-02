@@ -106,6 +106,7 @@ How `trust: pull-request` works:
 - **Unreadable base:** if a base copy can't be read for any other reason, the action warns and checks **every** dependency. A failure never narrows the checks.
 - **Other events:** without a base commit (on `push` or `schedule`), trust checks are skipped with a notice. Use `trust: all` there.
 - **Blocklist:** the policy's blocklist always applies to every dependency, since it needs no lookups.
+- **Gate settings from the base branch:** the action also reads the base branch's copy of the policy (`.openpulse/policy.yml`, or the `policy` path) and of `.openpulse/private-packages.txt`, and uses them when they exist, so a pull request cannot weaken its own gate. If they can't be read, the action warns and uses the pull request's copies. Make the OpenPulse job a required status check so that removing the step blocks the merge. See *Bypass routes* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
 - **`threshold-breached`:** this output is `true` when either `fail-on` or the policy failed the step. The log names each violation (`policy: PROHIBITED <condition>: <dependency>`).
 
 ## Pinning

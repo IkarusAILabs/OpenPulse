@@ -4,7 +4,16 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Security
+
+- **A lockfile hash edited in place no longer passes the pull-request gate (v0.14.0 item Y5).** With `--base-lockfile` (the Action's `trust: pull-request`), the digest check ran only for entries with a new name or version. A pull request that kept an entry's name and version but changed its hash, swapping the artifact, was never checked. Digests are now checked for every entry whose locked digests differ from the base. Found by the new bypass tests.
+- **A pull request can no longer weaken its own trust gate in the Action (v0.14.0 item Y5).** With `trust: pull-request`, the action used the pull request's own `.openpulse/policy.yml` and `.openpulse/private-packages.txt`, so a pull request could delete its prohibitions or list a malicious name as private. The action now uses the base branch's copies when they exist. A policy the pull request adds is still used, because there was nothing to weaken. If the base copies can't be read, the action warns and uses the pull request's.
+
 ### Added
+
+- **Gate bypass tests (track T evaluation category 8, v0.14.0 item Y5).** `tests/test_gate_bypass.py` pins each route around the trust gate. `docs/TRUST_POLICY.md`, "Bypass routes", lists each route as covered or not, with what to do instead.
+  - **Covered:** lockfile-only additions, hashes edited in place, respelled blocklisted names, an agent ignoring the MCP warning, and a pull request weakening its own policy.
+  - **Not covered:** removing the workflow step (use a required status check), unpinned entries, version-pinned blocklist entries, sources that don't answer, installs outside the gated files, and internal names missing from the private-name list.
 
 - **Trust records in SARIF, the job summary and DefectDojo (track T, T-E1, v0.14.0 item Y4).** This answers an open question from the Phase 0 trust design: how T-F1 statuses map onto these outputs without implying a risk score.
   - **Where they appear:** `attest --sarif` and `--defectdojo` (and the GitHub Action) report trust records from contract 2.2.0 `trust_assurance`, plus trust policy violations, as their own results under `openpulse/trust/<check>`. Each appears once per file, dependency, check and status, with the https references it cites.

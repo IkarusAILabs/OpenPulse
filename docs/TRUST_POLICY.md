@@ -73,3 +73,21 @@ Each condition is one trust check reaching one status. The labels come from the 
 - **Stable identities:** SARIF and DefectDojo share one identity per record, so re-imports deduplicate.
 - **Job summary:** it has its own *Trust checks* table.
 - **Without `--trust`:** trust records reach these outputs only through policy violations.
+
+## Bypass routes
+
+A gate is only as good as the routes around it. Each route below is pinned by a test in `tests/test_gate_bypass.py` (track T evaluation category 8, v0.14.0 Y5), so a change in what the gate covers cannot pass unnoticed.
+
+| Route | Covered? | How, or what to do instead |
+|---|---|---|
+| A dependency added only to the lockfile | Yes | `--lockfile` with `--base-lockfile` (the Action's `trust: pull-request`) checks every added or changed entry |
+| A lockfile hash edited in place (same name and version, another artifact) | Yes | With `--base-lockfile`, digests are checked for every entry whose locked digests changed, not only for new versions |
+| A blocklisted name respelled (`Evil_Pkg` for `evil-pkg`) | Yes | PyPI names compare in normalized form |
+| An agent that ignores the MCP warning | Yes | CI evaluates the files again, with no model involved |
+| A pull request that weakens its own policy or private-name list | Yes, in the Action with `trust: pull-request` | The Action uses the **base branch's** `.openpulse/policy.yml` (or the `policy` path) and `.openpulse/private-packages.txt` when they exist. A policy the pull request adds is used as is. With `trust: off` or `all`, the policy comes from the checked-out tree: protect `.openpulse/` with CODEOWNERS |
+| A pull request that removes or edits the workflow step | No (outside OpenPulse) | Make the OpenPulse job a **required status check** with branch protection. A job that never runs then blocks the merge |
+| An unpinned entry (`evil-pkg>=1.0`) | No | Unpinned entries are skipped, never guessed. Pin dependencies, or gate on the lockfile |
+| A blocklist entry pinned to one version | No, by design | `PyPI:flask==3.0.0` matches that version only. Use `PyPI:flask` to block every version |
+| A source that does not answer (offline, rate-limited) | No, by design | `NOT_PERFORMED` never blocks: silence is not evidence. The step log and `trust_assurance` record it |
+| A dependency installed outside the files (`pip install x` in a build script) | No | The gate sees only its inputs. Install from the lockfile you gate, e.g. `pip install --require-hashes -r requirements.lock` |
+| An internal package missing from the private-name list | Partly | `not_found_in_registry` fires, but the public checks describe someone else's package. List internal names before prohibiting it |
