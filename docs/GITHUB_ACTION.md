@@ -20,6 +20,17 @@ The action needs no install step and no secrets. It runs on Linux, macOS and Win
 | RELATED, AFFECTS_PROJECT, UNKNOWN | `note` | never |
 | NOT_AFFECTED | omitted (counted in the summary) | never |
 
+**Trust checks** (`trust` input, v0.14.0) are separate results under `openpulse/trust/<check>`, one per file, dependency, check and status. They are never verdicts, and the level is never a risk score:
+
+| Trust record | SARIF level |
+|---|---|
+| Prohibited by the trust policy (including a blocklisted package) | `error`, and the step fails |
+| CONFIRMED_MALICIOUS or VERIFIED_FAILURE, not prohibited | `warning` |
+| SUSPICIOUS_INCONCLUSIVE, not prohibited | `note` |
+| MISSING_EVIDENCE, VERIFIED_RELATIONSHIP, NOT_PERFORMED | omitted, unless the policy prohibits them |
+
+The job summary lists them in their own *Trust checks* table.
+
 Every result carries the evidence URLs and the `provenance.content_hash` of the contract it renders. You can recompute the hash from the contract's content.
 
 **Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is `PARTIAL` or `FAILED`, you get a warning annotation and the SARIF carries a tool notification. Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.

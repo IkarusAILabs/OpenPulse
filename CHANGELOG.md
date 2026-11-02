@@ -6,6 +6,18 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **Trust records in SARIF, the job summary and DefectDojo (track T, T-E1, v0.14.0 item Y4).** This answers an open question from the Phase 0 trust design: how T-F1 statuses map onto these outputs without implying a risk score.
+  - **Where they appear:** `attest --sarif` and `--defectdojo` (and the GitHub Action) report trust records from contract 2.2.0 `trust_assurance`, plus trust policy violations, as their own results under `openpulse/trust/<check>`. Each appears once per file, dependency, check and status, with the https references it cites.
+  - **Levels follow your policy, not a score:**
+    - prohibited by your policy (including the blocklist): SARIF `error`, DefectDojo High;
+    - otherwise CONFIRMED_MALICIOUS or VERIFIED_FAILURE: `warning`, Low;
+    - otherwise SUSPICIOUS_INCONCLUSIVE: `note`, Info;
+    - other statuses are omitted unless prohibited.
+
+    No `security-severity` is emitted.
+  - **Job summary:** a separate *Trust checks* table.
+  - **Consistency:** SARIF and DefectDojo share one item list and one identity per record. Verdict results are unchanged (tested).
+
 - **The GitHub Action checks trust on pull requests (track T, T-E1, v0.14.0 item Y3).** New action inputs, both off by default so existing workflows stay offline and unchanged:
   - **`trust`:** `off`, `pull-request` or `all`. With `pull-request`, the action reads the base branch's copy of `manifest` and `lockfile` through the GitHub contents API with `github-token`. The token is in the environment of that one step only. Trust checks then run only for the dependencies the pull request adds or changes.
     - **New files:** a file the pull request adds counts entirely as added.
