@@ -408,6 +408,85 @@ def _attest_trust(deps, private_names):
     return out
 
 
+def _policy_option(func):
+    """--policy: trust conditions that fail the run (T-E1)."""
+    return click.option(
+        "--policy",
+        "policy_path",
+        type=click.Path(dir_okay=False),
+        default=None,
+        help="Trust policy: prohibited conditions fail the run, with no model involved "
+        "(default: .openpulse/policy.yml if present; see docs/TRUST_POLICY.md)",
+    )(func)
+
+
+def _load_policy(path):
+    """An explicit policy must exist; the default one is used only when present."""
+    from core import trust_policy as _policy
+
+    if path is None:
+        if not _policy.DEFAULT_POLICY.is_file():
+            return None
+        path = str(_policy.DEFAULT_POLICY)
+    elif not os.path.isfile(path):
+        raise click.ClickException(f"{path}: policy file not found")
+    try:
+        loaded = _policy.load(path)
+    except (ValueError, UnicodeDecodeError) as e:
+        raise click.ClickException(str(e)) from e
+    _echo(f"policy: {path}", err=True)
+    for condition in loaded.experimental:
+        _echo(
+            f"policy: {condition} is experimental (no organic false-positive measurement; "
+            "docs/research/TRACK_T_MEASUREMENTS.md)",
+            err=True,
+        )
+    return loaded
+
+
+def _policy_violations(deps, loaded, lockfile=None, blocks=None):
+    """Every policy violation across the run's dependencies, deterministically."""
+    from core import agent_tools
+    from core import trust_policy as _policy
+
+    if loaded is None:
+        return []
+    if loaded.needs_trust and blocks is None:
+        blocks = _attest_trust(deps, None)
+    digests: dict[Any, Any] = {}
+    if loaded.needs_digests and lockfile:
+        from core.lockfile_reader import lockfile_digests
+
+        locked = lockfile_digests(lockfile)
+        lookups = agent_tools.Lookups(
+            cache_dir=agent_tools.default_cache_dir(),
+            budget=min(_ATTEST_TRUST_MAX_LOOKUPS, len(locked) + 10),
+        )
+        for key, values in locked.items():
+            try:
+                digests[key] = lookups.digest_integrity(*key, values)
+            except agent_tools.BudgetExhausted:
+                break
+    violations = []
+    for index, dep in enumerate(deps):
+        records = list((blocks or {}).get(index, {}).get("checks", []))
+        key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
+        if key in digests:
+            records.append({"check": "digest_integrity", **digests[key]})
+        violations += _policy.evaluate(loaded, dep, records)
+    return violations
+
+
+def _report_violations(violations) -> bool:
+    """Print each violation; True when the run must fail."""
+    for v in violations:
+        detail = f" - {v['statement']}" if v.get("statement") else ""
+        _echo(f"policy: PROHIBITED {v['condition']}: {v['dependency']}{detail}", err=True)
+    if violations:
+        _echo(f"policy: {len(violations)} violation(s): gate failed", err=True)
+    return bool(violations)
+
+
 def _private_name_list(path):
     """An explicit list must exist; the default one is used only when present."""
     from core import dependency_confusion
@@ -1627,6 +1706,7 @@ def _load_check_inputs(
     help="Sign webhook posts with the secret on the first line of PATH "
     "(or set OPENPULSE_WEBHOOK_SECRET); receivers verify X-OpenPulse-Signature",
 )
+@_policy_option
 @_history_key_option
 def check(
     watchlist,
@@ -1654,6 +1734,7 @@ def check(
     as_of=None,
     history_key_file=None,
     history_previous_keys_file=None,
+    policy_path=None,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -1692,6 +1773,7 @@ def check(
         )
         for dep in deps
     ]
+    violations = _policy_violations(deps, _load_policy(policy_path), lockfile)
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
     # Acquisition is best-effort BY DESIGN: the ledger is an
@@ -1781,6 +1863,8 @@ def check(
         from core.risk.check import fail_on_threshold
 
         threshold = fail_on or ("action" if strict else "")
+        if _report_violations(violations):
+            raise SystemExit(1)
         if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
         if coverage_blocked:
@@ -1819,6 +1903,8 @@ def check(
 
     # Same gate as the digest branch: --fail-on must not depend on
     # the presentation (it was silently ignored here before).
+    if _report_violations(violations):
+        raise SystemExit(1)
     if fail_on and fail_on_threshold(results, fail_on):
         raise SystemExit(1)
     if strict and strict_affected(results):
@@ -2277,6 +2363,7 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     help="With --trust: private-name list (default: .openpulse/private-packages.txt if "
     "present)",
 )
+@_policy_option
 def attest(
     watchlist,
     sbom,
@@ -2299,6 +2386,7 @@ def attest(
     as_of=None,
     trust=False,
     private_names=None,
+    policy_path=None,
 ):
     """Emit one evidence-contract document per dependency × event pair.
 
@@ -2460,7 +2548,11 @@ def attest(
             _echo(f"   - {reason}", err=True)
         coverage_override = {"status": run_status, "reasons": run_reasons}
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    loaded_policy = _load_policy(policy_path)
     trust_blocks = _attest_trust(deps, private_names) if trust else {}
+    violations = _policy_violations(
+        deps, loaded_policy, lockfile, trust_blocks if trust else None
+    )
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
@@ -2524,6 +2616,8 @@ def attest(
     else:
         for line in lines:
             click.echo(line)
+    if _report_violations(violations):
+        raise SystemExit(1)
     if fail_on:
         from core.risk.check import fail_on_threshold
 
