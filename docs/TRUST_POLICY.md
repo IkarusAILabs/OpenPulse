@@ -76,6 +76,18 @@ openpulse gate package-lock.json --base-ref HEAD                     # pre-commi
 - **Files a hook may pass:** deleted files and files that are not dependency files are skipped with a note.
 - **First commit:** in a repository with no commits yet, `--base-ref HEAD` treats every file as new. Any other unknown ref is still a usage error.
 
+### In CI, before install
+
+Gate the files before the step that installs them. With the GitHub Action, set its `gate` input (see *Before install* in [`docs/GITHUB_ACTION.md`](GITHUB_ACTION.md)). It reads the base copies and the base branch's policy through the API, so a shallow checkout is enough. Elsewhere, run the CLI from its own environment with the full history of the base branch:
+
+```bash
+git fetch --no-tags origin "$BASE_BRANCH"     # e.g. main; a shallow clone lacks it
+openpulse gate requirements.txt poetry.lock --base-ref "origin/$BASE_BRANCH"
+pip install --require-hashes -r requirements.txt
+```
+
+Install OpenPulse apart from the project (a separate virtual environment or `pipx`), so the gate runs before any project dependency is installed. The CLI reads the policy from the checked-out tree; protect `.openpulse/` with CODEOWNERS, or use the Action, which reads the base branch's.
+
 ### Pre-commit hook
 
 The repository ships a [pre-commit](https://pre-commit.com) hook, `openpulse-gate` (v0.15.0 item Z2). Add it to your `.pre-commit-config.yaml`:

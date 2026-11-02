@@ -152,6 +152,23 @@ jobs:
           policy: ${{ runner.temp }}/policy.yml
           sarif-file: ${{ runner.temp }}/policy.sarif
           contracts-file: ${{ runner.temp }}/policy.jsonl
+      # Threat: a pre-install gate that never fires (v0.15.0 Z3) - the gate
+      # input runs only `openpulse gate`. A blocklist needs no lookups, so the
+      # pass and the block are both deterministic.
+      - name: Write a gate policy that blocks nothing in the fixtures
+        run: |
+          printf 'version: 1\nblocklist: ["PyPI:evil-pkg"]\n' > "$RUNNER_TEMP/gate-pass.yml"
+      - id: gate-pass
+        uses: ./
+        with:
+          gate: data/fixtures/manifests/requirements.txt data/fixtures/lockfiles/poetry.lock
+          policy: ${{ runner.temp }}/gate-pass.yml
+      - id: gate-block
+        continue-on-error: true
+        uses: ./
+        with:
+          gate: data/fixtures/manifests/requirements.txt
+          policy: ${{ runner.temp }}/policy.yml
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
@@ -160,8 +177,18 @@ jobs:
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           POLICY_OUTCOME: ${{ steps.policy.outcome }}
           POLICY_BREACHED: ${{ steps.policy.outputs.threshold-breached }}
+          GATE_PASS_OUTCOME: ${{ steps.gate-pass.outcome }}
+          GATE_PASS_BREACHED: ${{ steps.gate-pass.outputs.threshold-breached }}
+          GATE_PASS_SARIF: ${{ steps.gate-pass.outputs.sarif-file }}
+          GATE_BLOCK_OUTCOME: ${{ steps.gate-block.outcome }}
+          GATE_BLOCK_BREACHED: ${{ steps.gate-block.outputs.threshold-breached }}
         run: |
           set -euo pipefail
+          test "$GATE_PASS_OUTCOME" = success
+          test "$GATE_PASS_BREACHED" = false
+          test -z "$GATE_PASS_SARIF"
+          test "$GATE_BLOCK_OUTCOME" = failure
+          test "$GATE_BLOCK_BREACHED" = true
           test "$PASS_BREACHED" = false
           test "$POLICY_OUTCOME" = failure
           test "$POLICY_BREACHED" = true
