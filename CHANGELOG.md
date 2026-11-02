@@ -18,6 +18,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Dogfood:** CI runs the gate input on every push, once passing and once blocked by the blocklist.
   - **CLI without the Action:** `docs/TRUST_POLICY.md`, "In CI, before install".
 
+- **Pre-install bypass routes pinned by tests (v0.15.0 item Z4).** `tests/test_gate_bypass.py` now also covers the routes around the hook and the CI gate:
+  - **Covered:** `git commit --no-verify` is caught by the CI gate, which compares with the base branch.
+  - **Documented limits:** dependency files outside the hook's name pattern, a lockfile regenerated after the gate, and an install from a file the gate was not given.
+  - Each is listed with what to do instead in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Bypass routes".
+
 ### Changed
 
 - **`openpulse gate`: a missing or invalid policy file is a usage error (exit 2),** not a violation (exit 1).

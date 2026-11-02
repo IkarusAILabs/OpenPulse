@@ -1,4 +1,5 @@
-"""Gate bypass routes (track T evaluation category 8, v0.14.0 item Y5).
+"""Gate bypass routes (track T evaluation category 8, v0.14.0 item Y5;
+pre-install routes v0.15.0 item Z4).
 
 Each test is one route an attacker or a careless agent could take past the
 trust gate. A route the gate covers asserts that it fails the run; a route
@@ -9,8 +10,12 @@ silently. The routes and their status are listed in docs/TRUST_POLICY.md,
 
 from __future__ import annotations
 
+import re
+import shutil
+import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -179,3 +184,76 @@ def test_limit_a_dependency_outside_the_files_is_invisible(tmp_path):
     head = _write(tmp_path / "requirements.txt", "django==4.2\n")
     policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
     assert _attest("--manifest", head, "--policy", policy).exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Pre-install routes (v0.15.0 item Z4): around the pre-commit hook and the
+# CI gate before install
+# ---------------------------------------------------------------------------
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+
+def _hook_files() -> str:
+    hooks = yaml.safe_load((ROOT / ".pre-commit-hooks.yaml").read_text(encoding="utf-8"))
+    return next(h for h in hooks if h["id"] == "openpulse-gate")["files"]
+
+
+def _gate(*args):
+    return CliRunner().invoke(cli, ["gate", *args])
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_commit_made_with_no_verify_is_caught_by_the_ci_gate(tmp_path, monkeypatch):
+    """`git commit --no-verify` skips the hook; the CI gate compares with the base."""
+    monkeypatch.setattr("core.malicious.default_query", _osv_flags("evil-pkg"))
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.email", "bypass@example.invalid")
+    _git(tmp_path, "config", "user.name", "bypass test")
+    _git(tmp_path, "config", "commit.gpgsign", "false")
+    _write(tmp_path / "requirements.txt", "django==4.2\n")
+    _git(tmp_path, "add", "requirements.txt")
+    _git(tmp_path, "commit", "-q", "-m", "base")
+    _git(tmp_path, "branch", "base")
+    _write(tmp_path / "requirements.txt", "django==4.2\nevil-pkg==1.0\n")
+    _git(tmp_path, "commit", "-q", "--no-verify", "-am", "skip the hook")
+    policy = _policy(tmp_path, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    monkeypatch.chdir(tmp_path)
+    # The hook's comparison (HEAD) now sees nothing new; the CI gate's (the base) does.
+    assert _gate("requirements.txt", "--base-ref", "HEAD", "--policy", policy).exit_code == 0
+    result = _gate("requirements.txt", "--base-ref", "base", "--policy", policy)
+    assert result.exit_code == 1
+    assert "PROHIBITED confirmed_malicious: PyPI:evil-pkg==1.0" in result.output
+
+
+def test_the_hook_selects_every_requirements_variant_at_the_top_of_a_directory():
+    for name in ("requirements.txt", "requirements-dev.txt", "api/requirements_test.txt"):
+        assert re.search(_hook_files(), name), name
+
+
+def test_limit_the_hook_misses_dependency_files_with_other_names():
+    """Names outside the hook's pattern are not gated at commit: widen `files:`."""
+    for name in ("requirements/base.txt", "constraints.txt", "deps/prod.txt"):
+        assert not re.search(_hook_files(), name), name
+
+
+def test_limit_a_lockfile_regenerated_after_the_gate_is_not_the_gated_one(tmp_path):
+    """The gate judges the file as it is when the gate runs, nothing later."""
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    lock = tmp_path / "poetry.lock"
+    _write(lock, _poetry(("django", "4.2", SHA_GOOD)))
+    assert _gate(str(lock), "--policy", policy).exit_code == 0
+    # A later `poetry lock` / `npm install` rewrites the file the install reads.
+    _write(lock, _poetry(("django", "4.2", SHA_GOOD), ("evil-pkg", "1.0", SHA_EVIL)))
+    assert _gate(str(lock), "--policy", policy).exit_code == 1  # only a re-run sees it
+
+
+def test_limit_an_install_from_an_ungated_file_is_invisible(tmp_path):
+    """Gating requirements.txt says nothing about `pip install -r requirements-dev.txt`."""
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    gated = _write(tmp_path / "requirements.txt", "django==4.2\n")
+    ungated = _write(tmp_path / "requirements-dev.txt", "evil-pkg==1.0\n")
+    assert _gate(gated, "--policy", policy).exit_code == 0
+    assert _gate(gated, ungated, "--policy", policy).exit_code == 1  # gate every file

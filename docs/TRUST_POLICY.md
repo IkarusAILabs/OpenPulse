@@ -124,7 +124,7 @@ repos:
 
 ## Bypass routes
 
-A gate is only as good as the routes around it. Each route below is pinned by a test in `tests/test_gate_bypass.py` (track T evaluation category 8, v0.14.0 Y5), so a change in what the gate covers cannot pass unnoticed.
+A gate is only as good as the routes around it. Each route below is pinned by a test in `tests/test_gate_bypass.py` (track T evaluation category 8: v0.14.0 Y5, and the pre-install routes v0.15.0 Z4), so a change in what the gate covers cannot pass unnoticed.
 
 | Route | Covered? | How, or what to do instead |
 |---|---|---|
@@ -138,4 +138,8 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | A blocklist entry pinned to one version | No, by design | `PyPI:flask==3.0.0` matches that version only. Use `PyPI:flask` to block every version |
 | A source that does not answer (offline, rate-limited) | No, by design | `NOT_PERFORMED` never blocks: silence is not evidence. The step log and `trust_assurance` record it |
 | A dependency installed outside the files (`pip install x` in a build script) | No | The gate sees only its inputs. Install from the lockfile you gate, e.g. `pip install --require-hashes -r requirements.lock` |
+| `git commit --no-verify` (or a hook never installed) | Yes, in CI | The hook is a convenience, not a boundary: every hook can be skipped locally. The CI gate compares with the base branch, so the skipped commit's additions are still checked. Run it as a required status check |
+| A dependency file the hook's pattern does not name (`requirements/base.txt`, `constraints.txt`) | No, at commit | The hook selects `requirements*.txt` and the standard manifest and lockfile names. Widen it with `files:` in your `.pre-commit-config.yaml`, and list every file in the CI gate |
+| A lockfile regenerated after the gate (`poetry lock`, `npm install` in a later step) | No | The gate judges the file as it is when it runs. Install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`), or run the gate again after any step that rewrites it |
+| An install from a file the gate was not given (`pip install -r requirements-dev.txt`) | No | The gate sees only its inputs. Name every file you install from in the `gate` input or the `openpulse gate` command |
 | An internal package missing from the private-name list | Partly | `not_found_in_registry` fires, but the public checks describe someone else's package. List internal names before prohibiting it |
