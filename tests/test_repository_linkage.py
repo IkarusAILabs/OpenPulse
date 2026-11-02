@@ -223,14 +223,14 @@ def test_dependency_status_carries_linkage_and_never_changes_the_verdict():
     bad = Net(files={f"{RAW}/o/fastlib/HEAD/package.json": _package_json("other")})
     ok = dependency_status("fastlib", "1.0.0", "npm", lookups=_lookups(good))
     odd = dependency_status("fastlib", "1.0.0", "npm", lookups=_lookups(bad))
-    assert ok["repository_linkage"]["status"] == "VERIFIED_RELATIONSHIP"
-    assert odd["repository_linkage"]["status"] == "SUSPICIOUS_INCONCLUSIVE"
+    assert ok["trust"]["checks"]["repository_linkage"]["status"] == "VERIFIED_RELATIONSHIP"
+    assert odd["trust"]["checks"]["repository_linkage"]["status"] == "SUSPICIOUS_INCONCLUSIVE"
     assert ok["verdict"] == odd["verdict"]
 
 
 def test_offline_budget_and_private_names():
     offline = dependency_status("fastlib", "1.0.0", "npm", live=False)
-    assert offline["repository_linkage"]["status"] == "NOT_PERFORMED"
+    assert offline["trust"]["checks"]["repository_linkage"]["status"] == "NOT_PERFORMED"
     private = dependency_status(
         "fastlib",
         "1.0.0",
@@ -238,7 +238,7 @@ def test_offline_budget_and_private_names():
         lookups=_lookups(Net()),
         private_names=frozenset({("npm", "fastlib")}),
     )
-    assert "private-name list" in private["repository_linkage"]["statement"]
+    assert "private-name list" in private["trust"]["checks"]["repository_linkage"]["statement"]
 
 
 def test_cached_per_session():

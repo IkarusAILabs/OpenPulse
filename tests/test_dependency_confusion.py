@@ -86,7 +86,7 @@ def test_a_public_package_with_a_private_name_is_suspicious():
     out = dependency_status(
         "acme-billing", "1.0", "PyPI", lookups=_lookups(registry), private_names=NAMES
     )
-    record = out["dependency_confusion"]
+    record = out["trust"]["checks"]["dependency_confusion"]
     assert record["status"] == "SUSPICIOUS_INCONCLUSIVE"
     assert "if you did not publish it" in record["statement"]
     # The public registry is asked about the name only, never the private version.
@@ -97,7 +97,7 @@ def test_an_unclaimed_private_name_is_missing_evidence_and_says_so():
     out = dependency_status(
         "@acme/ui-kit", "2.0.0", "npm", lookups=_lookups(Registry()), private_names=NAMES
     )
-    record = out["dependency_confusion"]
+    record = out["trust"]["checks"]["dependency_confusion"]
     assert record["status"] == "MISSING_EVIDENCE"
     assert "anyone can still register it" in record["statement"]
 
@@ -110,7 +110,7 @@ def test_a_private_package_skips_public_existence_and_provenance():
     assert [r["status"] for r in out["registry_existence"]] == ["NOT_PERFORMED"]
     assert "private-name list" in out["registry_existence"][0]["statement"]
     assert out["provenance"]["status"] == "NOT_PERFORMED"
-    assert out["malicious"]["status"] == "MISSING_EVIDENCE"  # OSV is still asked
+    assert out["trust"]["checks"]["malicious"]["status"] == "MISSING_EVIDENCE"  # OSV is still asked
 
 
 @pytest.mark.parametrize(
@@ -120,8 +120,8 @@ def test_unlisted_or_no_list_is_not_performed(names, why):
     out = dependency_status(
         "requests", "2.32.3", "PyPI", lookups=_lookups(Registry()), private_names=names
     )
-    assert out["dependency_confusion"]["status"] == "NOT_PERFORMED"
-    assert why in out["dependency_confusion"]["statement"]
+    assert out["trust"]["checks"]["dependency_confusion"]["status"] == "NOT_PERFORMED"
+    assert why in out["trust"]["checks"]["dependency_confusion"]["statement"]
 
 
 def test_registry_trouble_offline_and_budget_are_not_performed():
@@ -137,7 +137,7 @@ def test_registry_trouble_offline_and_budget_are_not_performed():
         private_names=NAMES,
     )
     for out in (trouble, offline, spent):
-        assert out["dependency_confusion"]["status"] == "NOT_PERFORMED"
+        assert out["trust"]["checks"]["dependency_confusion"]["status"] == "NOT_PERFORMED"
 
 
 def test_confusion_never_changes_the_verdict():

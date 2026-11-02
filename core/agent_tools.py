@@ -819,6 +819,7 @@ def _assess(
     evaluation: Evaluation,
     existence: bool = False,
     private_names: frozenset[tuple[str, str]] | None = None,
+    selection_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from core.risk.check import check_dependency
     from core.verdict_meaning import DIRECT_SCOPE, scope_completeness, verdict_meaning
@@ -925,25 +926,99 @@ def _assess(
         "note": evaluation.note,
     }
     if existence:
-        # Track T (T-M1): additive, separately labelled, never read by the verdict.
+        # Track T: one trust block, additive, never read by the verdict (T-D).
+        checks: dict[str, Any] = {"malicious": _malicious(dep, lookups)}
         if _is_private(dep, private_names):
             # The public registry is not where a private package comes from (T-A3).
-            answer["registry_existence"] = _registry_existence_private(dep)
-            answer["provenance"] = _provenance_private()
+            checks["registry_existence"] = _registry_existence_private(dep)
+            checks["provenance"] = _provenance_private()
+            checks["repository_linkage"] = _repository_linkage_private()
         else:
-            answer["registry_existence"] = _registry_existence(dep, lookups)
-            answer["provenance"] = _provenance(dep, lookups)
-        answer["lookalike"] = _lookalike(dep)
-        answer["malicious"] = _malicious(dep, lookups)
-        answer["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
-        answer["repository_linkage"] = (
-            _repository_linkage_private()
-            if _is_private(dep, private_names)
-            else _repository_linkage(dep, lookups, answer["provenance"])
-        )
+            checks["registry_existence"] = _registry_existence(dep, lookups)
+            checks["provenance"] = _provenance(dep, lookups)
+            checks["repository_linkage"] = _repository_linkage(
+                dep, lookups, checks["provenance"]
+            )
+        checks["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
+        checks["lookalike"] = _lookalike(dep)
+        answer["trust"] = _trust_block(checks, evaluation, selection_context)
+        # v0.12 top-level fields, kept one minor release (deprecated in v0.13.0).
+        for field in DEPRECATED_TRUST_FIELDS:
+            answer[field] = checks[field]
+        answer["deprecated"] = {
+            "fields": list(DEPRECATED_TRUST_FIELDS),
+            "use": "trust.checks",
+            "removed_in": "0.14.0",
+        }
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer
+
+
+DEPRECATED_TRUST_FIELDS = ("registry_existence", "provenance", "lookalike")
+
+#: Where an agent says a package name came from (T-D); a closed vocabulary.
+NAME_SOURCES = (
+    "user_request",
+    "existing_code",
+    "documentation",
+    "search_result",
+    "model_suggestion",
+    "other",
+)
+MAX_INTENT_CHARS = 280
+
+
+def selection_context(intent: str | None, name_source: str | None) -> dict[str, Any] | None:
+    """An agent's stated reason for choosing a package, labelled and bounded (T-D).
+
+    Recorded for the agent and for M8 research, never used in any status or
+    verdict. ``name_source`` outside :data:`NAME_SOURCES` becomes
+    ``unrecognized`` and is not echoed; ``intent`` is stripped of control,
+    bidi and zero-width characters and capped (T-F3).
+    """
+    from collectors.errors import strip_unsafe
+
+    text = " ".join(strip_unsafe(intent or "").split())
+    source = (name_source or "").strip().lower()
+    if not text and not source:
+        return None
+    return {
+        "supplied_by": "agent",
+        "used_in_status": False,
+        "name_source": (source if source in NAME_SOURCES else "unrecognized") if source else None,
+        "intent": text[:MAX_INTENT_CHARS] or None,
+        "intent_truncated": len(text) > MAX_INTENT_CHARS,
+    }
+
+
+def _trust_block(
+    checks: dict[str, Any], evaluation: Evaluation, context: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Every track T record for one dependency, counted, with what needs attention."""
+    summary = dict.fromkeys(_TRUST_STATUSES, 0)
+    attention = []
+    for check, found in checks.items():
+        for record in found if isinstance(found, list) else [found]:
+            summary[record["status"]] += 1
+            if record["status"] in _ATTENTION:
+                attention.append(
+                    {"check": check, "status": record["status"], "statement": record["statement"]}
+                )
+    replay = evaluation.context.get("mode") != CURRENT
+    return {
+        "checks": checks,
+        "summary": summary,
+        "attention": attention,
+        "selection_context": context,
+        "time_frame": (
+            "live lookups at each record's checked_at, not as of the replay date"
+            if replay
+            else "live lookups at each record's checked_at"
+        ),
+        "note": "trust checks are indicators and checks, never part of any verdict; no status "
+        "means safe, and MISSING_EVIDENCE is not evidence of authenticity",
+    }
 
 
 def dependency_status(
@@ -959,6 +1034,8 @@ def dependency_status(
     as_of: datetime | None = None,
     max_evidence_age_days: int | None = None,
     private_names: frozenset[tuple[str, str]] | None = None,
+    intent: str | None = None,
+    name_source: str | None = None,
 ) -> dict[str, Any]:
     """Evidence for one dependency: EOL/EOS, curated upstream changes
     (distribution, license, support) and OSV advisories for its version,
@@ -972,6 +1049,9 @@ def dependency_status(
     ``private_names`` is the user's private-name list
     (:func:`core.dependency_confusion.load`): a listed package gets a
     ``dependency_confusion`` record instead of public-registry checks.
+
+    ``intent`` and ``name_source`` are the agent's own account of why it
+    asks (:func:`selection_context`): recorded in ``trust``, never used.
     """
     evaluation = Evaluation(
         mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
@@ -987,6 +1067,7 @@ def dependency_status(
         evaluation,
         existence=True,
         private_names=private_names,
+        selection_context=selection_context(intent, name_source),
     )
 
 
