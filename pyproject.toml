@@ -36,7 +36,7 @@ packages = [
 package-dir = {"openpulse_data" = "data", "openpulse_schemas" = "schemas"}
 
 [tool.setuptools.package-data]
-openpulse_data = ["*.yaml", "fixtures/*/event.json"]
+openpulse_data = ["*.yaml", "fixtures/*/event.json", "reference/*.json"]
 openpulse_schemas = ["evidence-contract/*/schema.json"]
 
 [project.optional-dependencies]

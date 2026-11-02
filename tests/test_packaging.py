@@ -34,6 +34,8 @@ def test_runtime_data_is_declared_as_package_data():
         ("openpulse_schemas", "evidence-contract/v1.2/schema.json"),
         ("openpulse_schemas", "evidence-contract/v2/schema.json"),
         ("openpulse_schemas", "evidence-contract/v2.1/schema.json"),
+        ("openpulse_data", "reference/npm-high-impact-1.13.0.json"),
+        ("openpulse_data", "reference/uts39-confusables-ascii-18.0.0.json"),
     ):
         root = Path(_SETUPTOOLS["package-dir"][pkg])
         assert any(path == root / glob for g in data_globs[pkg] for path in root.glob(g)), glob
