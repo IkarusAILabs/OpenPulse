@@ -1,0 +1,452 @@
+{
+  "degraded": {
+    "budget_spent": {
+      "cases": 28,
+      "cases_fully_unresolved": 28,
+      "claims_without_evidence": 0,
+      "live_records": 140
+    },
+    "unreachable": {
+      "cases": 28,
+      "cases_fully_unresolved": 28,
+      "claims_without_evidence": 0,
+      "live_records": 144
+    }
+  },
+  "echo": {
+    "echoed": 0,
+    "hostile_names": 4,
+    "refused_before_any_request": 4,
+    "upstream_instruction_echoed": false
+  },
+  "openpulse_version": "0.13.0",
+  "organic_lookalike": {
+    "PyPI": {
+      "by_rule": {},
+      "false_positive_rate": 0.0,
+      "false_positive_rate_without_scope": 0.0,
+      "flagged": 0,
+      "ms_per_name": 0.0,
+      "reference_names": 19,
+      "references": [
+        {
+          "names": 19,
+          "source": "OpenPulse curated catalog",
+          "version": null
+        },
+        {
+          "names": 0,
+          "source": "popular-name list",
+          "version": null
+        }
+      ],
+      "sampled": 19
+    },
+    "npm": {
+      "by_rule": {
+        "edit_distance": 90,
+        "scope": 102,
+        "separator": 7
+      },
+      "false_positive_rate": 0.188,
+      "false_positive_rate_without_scope": 0.097,
+      "flagged": 188,
+      "ms_per_name": 46.3,
+      "reference_names": 17336,
+      "references": [
+        {
+          "names": 11,
+          "source": "OpenPulse curated catalog",
+          "version": null
+        },
+        {
+          "names": 17335,
+          "source": "https://www.npmjs.com/package/npm-high-impact/v/1.13.0",
+          "version": "1.13.0"
+        }
+      ],
+      "sampled": 1000
+    }
+  },
+  "organic_sample": 1000,
+  "python": "3.14.6",
+  "synthetic": {
+    "per_check": {
+      "dependency_confusion": {
+        "cases": 4,
+        "detected": 2,
+        "detection_rate": 1.0,
+        "exact": 4,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 2,
+        "positives": 2
+      },
+      "digest_integrity": {
+        "cases": 5,
+        "detected": 2,
+        "detection_rate": 1.0,
+        "exact": 5,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 2
+      },
+      "lookalike": {
+        "cases": 7,
+        "detected": 4,
+        "detection_rate": 1.0,
+        "exact": 7,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 4
+      },
+      "malicious": {
+        "cases": 5,
+        "detected": 2,
+        "detection_rate": 1.0,
+        "exact": 5,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 2
+      },
+      "provenance": {
+        "cases": 4,
+        "detected": 1,
+        "detection_rate": 1.0,
+        "exact": 4,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 1
+      },
+      "registry_existence": {
+        "cases": 6,
+        "detected": 3,
+        "detection_rate": 1.0,
+        "exact": 6,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 3,
+        "positives": 3
+      },
+      "repository_linkage": {
+        "cases": 6,
+        "detected": 2,
+        "detection_rate": 1.0,
+        "exact": 6,
+        "exact_rate": 1.0,
+        "false_positive_rate": 0.0,
+        "false_positives": 0,
+        "negatives": 4,
+        "positives": 2
+      }
+    },
+    "rows": [
+      {
+        "case": "ex-1",
+        "category": "existence",
+        "check": "registry_existence",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "ex-2",
+        "category": "existence",
+        "check": "registry_existence",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "ex-3",
+        "category": "existence",
+        "check": "registry_existence",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "ex-4",
+        "category": "existence",
+        "check": "registry_existence",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "ex-5",
+        "category": "existence",
+        "check": "registry_existence",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "la-1",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "la-2",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "la-3",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "la-4",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "la-5",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "la-6",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "la-7",
+        "category": "lookalike",
+        "check": "lookalike",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "dc-1",
+        "category": "dependency_confusion",
+        "check": "dependency_confusion",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "dc-2",
+        "category": "dependency_confusion",
+        "check": "dependency_confusion",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "dc-2",
+        "category": "dependency_confusion",
+        "check": "registry_existence",
+        "expected": "NOT_PERFORMED",
+        "label": "negative",
+        "observed": "NOT_PERFORMED"
+      },
+      {
+        "case": "dc-3",
+        "category": "dependency_confusion",
+        "check": "dependency_confusion",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "dc-4",
+        "category": "dependency_confusion",
+        "check": "dependency_confusion",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "pv-1",
+        "category": "provenance",
+        "check": "provenance",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "pv-1",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "pv-2",
+        "category": "provenance",
+        "check": "provenance",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "pv-2",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "pv-3",
+        "category": "provenance",
+        "check": "provenance",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "pv-4",
+        "category": "provenance",
+        "check": "provenance",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "pv-4",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "pv-5",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "SUSPICIOUS_INCONCLUSIVE",
+        "label": "positive",
+        "observed": "SUSPICIOUS_INCONCLUSIVE"
+      },
+      {
+        "case": "pv-6",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "pv-7",
+        "category": "provenance",
+        "check": "repository_linkage",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "ml-1",
+        "category": "malicious",
+        "check": "malicious",
+        "expected": "CONFIRMED_MALICIOUS",
+        "label": "positive",
+        "observed": "CONFIRMED_MALICIOUS"
+      },
+      {
+        "case": "ml-2",
+        "category": "malicious",
+        "check": "malicious",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "ml-3",
+        "category": "malicious",
+        "check": "malicious",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "ml-4",
+        "category": "malicious",
+        "check": "malicious",
+        "expected": "CONFIRMED_MALICIOUS",
+        "label": "positive",
+        "observed": "CONFIRMED_MALICIOUS"
+      },
+      {
+        "case": "ml-5",
+        "category": "malicious",
+        "check": "malicious",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "dg-1",
+        "category": "digest_integrity",
+        "check": "digest_integrity",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "dg-2",
+        "category": "digest_integrity",
+        "check": "digest_integrity",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      },
+      {
+        "case": "dg-3",
+        "category": "digest_integrity",
+        "check": "digest_integrity",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "dg-4",
+        "category": "digest_integrity",
+        "check": "digest_integrity",
+        "expected": "VERIFIED_RELATIONSHIP",
+        "label": "negative",
+        "observed": "VERIFIED_RELATIONSHIP"
+      },
+      {
+        "case": "dg-5",
+        "category": "digest_integrity",
+        "check": "digest_integrity",
+        "expected": "VERIFIED_FAILURE",
+        "label": "positive",
+        "observed": "VERIFIED_FAILURE"
+      }
+    ]
+  }
+}

@@ -2,6 +2,18 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Track T measurements (v0.14.0 item Y1).** `python benchmarks/trust.py` measures every trust check offline and writes `benchmarks/results/trust.json` and `docs/research/TRACK_T_MEASUREMENTS.md`. The owner accepted these measurements as the false-positive prerequisite for policy gates (T-E1, decision 11). They are not the registered study.
+  - **Synthetic cases:** 33 cases with 37 labelled expectations, from the roadmap's evaluation plan (existence, lookalike, dependency confusion, provenance and repository linkage, digest integrity, known-malicious records). They run against a stub world in the reserved `opfx-` namespace. Every case gets its expected status, with no false positives on the synthetic negatives; that shows the checks do what they claim, not how often real attacks are caught.
+  - **Degraded sources:** with every source unreachable, or the budget spent, no live check claims anything (0 of 284 records).
+  - **Untrusted text:** hostile names are refused before any request and never echoed. An instruction in an OSV summary never reaches a record.
+  - **Organic control (the informative number):** leave-one-out lookalike over 1000 real popular npm names. 18.8% look like another popular name; 9.7% without the `scope` rule, which fires on legitimate `@types/<name>`-style packages. So lookalike stays an indicator: a policy should prohibit it only for a named scope.
+  - **Labels per policy condition:** each condition a policy can prohibit is labelled *measured*, *measured; indicator* or *experimental* (no organic set yet: dependency confusion, unconfirmed repository linkage).
+  - Tests run a quick sample and check that the committed report matches the committed results.
+
 ## 0.13.0 "Agent Trust Evidence" — 2026-11-02
 
 Track T Phase 3: trust evidence reaches agents in one place and goes into the evidence contract, with three new checks that each hold or fail against a cited source.
