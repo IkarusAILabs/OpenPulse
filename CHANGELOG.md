@@ -2,7 +2,18 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## 0.12.0 "Trusted Inputs" — 2026-11-02
+## Unreleased
+
+### Added
+
+- **Known-malicious records in `dependency_status` (v0.13.0 item X1).** For any PyPI or npm package, catalogued or not, the new `malicious` field asks OSV whether it publishes a malicious-package record (`MAL-`, the OpenSSF malicious-packages feed) for that package and version.
+  - **`CONFIRMED_MALICIOUS`** cites each record by id and osv.dev URL (10 at most, with a total). This is the first check that can return this status, and only from a cited record, never from OpenPulse's own indicators. A record listed only under an alias counts; a withdrawn record does not.
+  - **`MISSING_EVIDENCE`:** no such record. The feed covers reported packages only, so this is not evidence of safety. There is no "verified" outcome.
+  - **`NOT_PERFORMED`:** OSV gave no usable answer, paged its answer without a record on the first page, offline, or a spent budget.
+  - **Trust checks:** `check_dependency_file` runs it too, on added dependencies or with `trust_all`, and lists a hit under `trust.attention`. So does `openpulse trust`.
+  - **Bounds:** one budgeted lookup per package, cached per session (failures never cached), and a capped response. Record ids are validated before they appear, and no advisory text is echoed. Never part of a verdict (tested).
+
+ — 2026-11-02
 
 Track T Phase 1: for PyPI and npm, MCP answers now carry checks on whether a dependency can be trusted, so an AI coding agent sees them before it adds or changes one.
 - **Registry digests:** locked digests are compared with what the registry publishes.
