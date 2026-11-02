@@ -456,11 +456,16 @@ def _load_policy(path):
     return loaded
 
 
-def _policy_violations(deps, loaded, lockfile=None, blocks=None, base_keys=None):
+def _policy_violations(
+    deps, loaded, lockfile=None, blocks=None, base_keys=None, base_lockfile=None
+):
     """Every policy violation across the run's dependencies, deterministically.
 
     With ``base_keys``, trust conditions apply to added or changed
     dependencies only; the blocklist always applies to every dependency.
+    With ``base_lockfile``, digests are checked for every lockfile entry
+    whose locked digests differ from the base, including an existing entry
+    whose hash was edited in place (same name and version).
     """
     from core import agent_tools
     from core import trust_policy as _policy
@@ -474,7 +479,14 @@ def _policy_violations(deps, loaded, lockfile=None, blocks=None, base_keys=None)
         from core.lockfile_reader import lockfile_digests
 
         locked = lockfile_digests(lockfile)
-        if base_keys is not None:
+        if base_lockfile:
+            before = lockfile_digests(base_lockfile)
+            locked = {
+                key: value
+                for key, value in locked.items()
+                if _digest_set(before.get(key)) != _digest_set(value)
+            }
+        elif base_keys is not None:
             locked = {
                 key: value
                 for key, value in locked.items()
@@ -500,6 +512,11 @@ def _policy_violations(deps, loaded, lockfile=None, blocks=None, base_keys=None)
             records.append({"check": "digest_integrity", **digests[key]})
         violations += [dict(v, index=index) for v in _policy.evaluate(loaded, dep, records)]
     return violations
+
+
+def _digest_set(locked):
+    """Locked digests as a comparable value, independent of order."""
+    return {name: sorted(values) for name, values in (locked or {}).items()}
 
 
 def _base_keys(base_files):
@@ -2609,7 +2626,7 @@ def attest(
     base_keys = _base_keys([base_manifest, base_lockfile])
     trust_blocks = _attest_trust(deps, private_names, base_keys) if trust else {}
     violations = _policy_violations(
-        deps, loaded_policy, lockfile, trust_blocks if trust else None, base_keys
+        deps, loaded_policy, lockfile, trust_blocks if trust else None, base_keys, base_lockfile
     )
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.

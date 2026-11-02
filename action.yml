@@ -183,6 +183,9 @@ runs:
 
         # Trust checks; on a pull request only for what it adds or changes.
         trust=()
+        base_policy=""
+        base_private=""
+        settings_unavailable=false
         case "$IN_TRUST" in
           off|'') ;;
           all) trust=(--trust) ;;
@@ -191,38 +194,56 @@ runs:
               echo "::notice title=OpenPulse trust::trust pull-request: no base commit on a $GITHUB_EVENT_NAME event, trust checks skipped"
             else
               trust=(--trust)
+              roles=()
               files=()
-              [ -n "$IN_MANIFEST" ] && files+=("$IN_MANIFEST")
-              [ -n "$IN_LOCKFILE" ] && files+=("$IN_LOCKFILE")
-              if [ "${#files[@]}" -gt 0 ]; then
-                basedir="$RUNNER_TEMP/openpulse-base"
-                rm -rf -- "$basedir"
-                fetched="$(GITHUB_TOKEN="$IN_TOKEN" "$OPENPULSE_BIN/python" \
-                  "$ACTION_ROOT/scripts/action_base_files.py" \
-                  "$GITHUB_REPOSITORY" "$IN_BASE_SHA" "$basedir" "${files[@]}")"
-                base=()
-                unavailable=false
-                while IFS=$'\t' read -r status path file; do
-                  case "$status" in
-                    found)
-                      if [ "$path" = "$IN_MANIFEST" ]; then base+=(--base-manifest "$file")
-                      else base+=(--base-lockfile "$file"); fi ;;
-                    unavailable) unavailable=true ;;
-                  esac
-                done <<< "$fetched"
-                if [ "$unavailable" = true ]; then
-                  # A failure never narrows the checks: check every dependency.
-                  echo "::warning title=OpenPulse trust::could not read a base file; checking every dependency"
-                elif [ "${#base[@]}" -gt 0 ]; then
-                  trust+=("${base[@]}")
-                fi
+              [ -n "$IN_MANIFEST" ] && { roles+=(manifest); files+=("$IN_MANIFEST"); }
+              [ -n "$IN_LOCKFILE" ] && { roles+=(lockfile); files+=("$IN_LOCKFILE"); }
+              # Threat: a pull request weakening its own gate - the policy and
+              # the private-name list come from the base branch when it has them.
+              roles+=(policy private)
+              files+=("${IN_POLICY:-.openpulse/policy.yml}" ".openpulse/private-packages.txt")
+              basedir="$RUNNER_TEMP/openpulse-base"
+              rm -rf -- "$basedir"
+              fetched="$(GITHUB_TOKEN="$IN_TOKEN" "$OPENPULSE_BIN/python" \
+                "$ACTION_ROOT/scripts/action_base_files.py" \
+                "$GITHUB_REPOSITORY" "$IN_BASE_SHA" "$basedir" "${files[@]}")"
+              base=()
+              unavailable=false
+              i=0
+              while IFS=$'\t' read -r status path file; do
+                [ -n "$status" ] || continue
+                role="${roles[$i]}"
+                i=$((i + 1))
+                case "$role:$status" in
+                  manifest:found) base+=(--base-manifest "$file") ;;
+                  lockfile:found) base+=(--base-lockfile "$file") ;;
+                  policy:found) base_policy="$file" ;;
+                  private:found) base_private="$file" ;;
+                  manifest:unavailable|lockfile:unavailable) unavailable=true ;;
+                  policy:unavailable|private:unavailable) settings_unavailable=true ;;
+                esac
+              done <<< "$fetched"
+              if [ "$unavailable" = true ]; then
+                # A failure never narrows the checks: check every dependency.
+                echo "::warning title=OpenPulse trust::could not read a base file; checking every dependency"
+              elif [ "${#base[@]}" -gt 0 ]; then
+                trust+=("${base[@]}")
               fi
+              if [ "$settings_unavailable" = true ]; then
+                echo "::warning title=OpenPulse trust::could not read the base branch's policy or private-name list; using this pull request's copy"
+              fi
+              [ -n "$base_private" ] && trust+=(--private-names "$base_private")
             fi ;;
           *) echo "::error title=OpenPulse::unknown trust '$IN_TRUST' (off, pull-request, all)"; exit 2 ;;
         esac
         unset IN_TOKEN
         policy=()
-        [ -n "$IN_POLICY" ] && policy=(--policy "$IN_POLICY")
+        if [ -n "$base_policy" ]; then
+          echo "OpenPulse: using the base branch's trust policy"
+          policy=(--policy "$base_policy")
+        elif [ -n "$IN_POLICY" ]; then
+          policy=(--policy "$IN_POLICY")
+        fi
 
         gate=()
         case "$IN_FAIL_ON" in
