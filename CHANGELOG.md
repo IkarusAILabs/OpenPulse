@@ -6,6 +6,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Added
 
+- **The GitHub Action checks trust on pull requests (track T, T-E1, v0.14.0 item Y3).** New action inputs, both off by default so existing workflows stay offline and unchanged:
+  - **`trust`:** `off`, `pull-request` or `all`. With `pull-request`, the action reads the base branch's copy of `manifest` and `lockfile` through the GitHub contents API with `github-token`. The token is in the environment of that one step only. Trust checks then run only for the dependencies the pull request adds or changes.
+    - **New files:** a file the pull request adds counts entirely as added.
+    - **Unreadable base:** if a base copy can't be read, every dependency is checked; a failure never narrows the checks.
+  - **`policy`:** a trust policy file (default `.openpulse/policy.yml` when present). A violation fails the step even with `fail-on: none`.
+  - **CLI:** `openpulse attest --base-manifest PATH --base-lockfile PATH` does the same from the command line. Trust checks and the policy's trust conditions apply to added or changed dependencies, and the blocklist to all of them.
+  - **CI:** the action job now dogfoods a blocklist policy that must fail the step.
+
 - **Trust policy: prohibited conditions fail the run (track T, T-E1, v0.14.0 item Y2).** `.openpulse/policy.yml` (or `--policy PATH`) is read by `openpulse check` and `openpulse attest` and evaluated without any model. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
   - **`prohibit`:** for any package, `confirmed_malicious`, `not_found_in_registry`, `digest_mismatch`, `provenance_failure` and `repository_mismatch`. For named packages only, `missing_provenance`, `lookalike_name`, `public_private_name` and `unconfirmed_repository`. A policy that names an indicator without packages is refused, because the Y1 measurements show lookalike fires on 18.8% of real popular npm names. Conditions with no organic false-positive set warn that they are experimental.
   - **`blocklist`:** `ECOSYSTEM:NAME[==VERSION]` patterns; no lookups needed.
