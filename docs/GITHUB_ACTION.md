@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.13.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.14.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -114,7 +114,7 @@ How `trust: pull-request` works:
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.13.0
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.14.0
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -146,7 +146,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.13.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.14.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -179,7 +179,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.13.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.14.0
         with:
           upload-sarif: 'true'
           fail-on: none            # report, do not fail the scheduled run

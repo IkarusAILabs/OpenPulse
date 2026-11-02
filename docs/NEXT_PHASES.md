@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.14 released):** v0.14.0 "Enforced Trust" is released (Phase 8, Y1–Y6: #287–#292). T-E1's exit is met: prohibited conditions fail CI with no model involved, and the bypass tests pass with the uncovered routes documented. Two pull-request bypasses found by Y5 were fixed. Still open: the PyPI popular-name list (decision 9). Next in track T: T-E2 pre-installation controls (P2) and Phase 2's T-C reputation indicators (need labelled data).
 - **Update 2026-11-02 (v0.14 plan, owner-approved):** v0.14.0 "Enforced Trust" is Phase 8 below: track T Phase 4's T-E1 (a policy file evaluated without any model, the Action on pull requests, trust in SARIF), preceded by a measurement harness whose false-positive results the owner accepted as Phase 4's prerequisite, and the scheduled removal of the deprecated v0.12 fields.
 - **Update 2026-11-02 (v0.13 released):** v0.13.0 "Agent Trust Evidence" is released (Phase 7, X1–X6: #279–#284). Track T Phase 3's exit is met: agent answers carry the trust block and contract 2.2.0 is published beside 2.1. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2 (T-C, needs a measured false-positive rate) and Phase 4 (T-E1 enforcement).
 - **Update 2026-11-02 (v0.13 plan, owner-approved):** v0.13.0 "Agent Trust Evidence" is Phase 7 below: track T Phase 3 (the `trust` block for agents, the T-F2 contract block, M8 recording) with three checks that hold or fail rather than score: known-malicious records, dependency confusion against the user's own list, and repository linkage.
@@ -257,7 +258,7 @@ Goal: track T Phase 3's exit from `docs/ROADMAP.md`, "agent answers carry the tr
 
 **Not in v0.13.0:** T-C reputation indicators (Phase 2 needs a measured false-positive rate first); T-E1 policy enforcement and the Action's pull-request trust step (Phase 4, after those results); T-B2 npm provenance (no verifier yet); the PyPI popular-name list (owner decision 9).
 
-## Phase 8 — v0.14.0 "Enforced Trust" (track T Phase 4, T-E1; approved 2026-11-02)
+## Phase 8 — v0.14.0 "Enforced Trust" (track T Phase 4, T-E1; approved 2026-11-02) — DONE, released 2026-11-02
 
 Goal: track T Phase 4's exit from `docs/ROADMAP.md`, "prohibited conditions block in CI without any model involved; bypass tests pass", for T-E1. Phase 4 depends on "the false-positive results of the evaluation": the owner approved (2026-11-02, decision 11) that Y1's measurements on synthetic and organic sets meet that dependency for T-E1, with the separately registered study (RQ1–RQ5) still to come. Fail closed only for conditions the user's policy prohibits; nothing new blocks without a policy.
 
