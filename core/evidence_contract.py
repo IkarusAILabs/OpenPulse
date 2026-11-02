@@ -79,6 +79,32 @@ CONTENT_HASH_METHOD = "jcs-sha256"
 CONTRACT_V2_1_VERSION = "2.1.0"
 COVERAGE_NOT_APPLICABLE = "NOT_APPLICABLE"
 
+#: 2.2.0 (v0.13.0, X5, track T T-F2): additive. A required top-level
+#: ``trust_assurance``: null when the run did not check trust, otherwise the
+#: dependency's track T records in a fixed shape (check, T-F1 status, fixed
+#: statement, checked_at, reference URIs) with a per-status summary and
+#: ``used_in_verdict: false``. Hash and the rest of the shape are 2.1's.
+#: ``openpulse attest`` emits 2.2.0.
+CONTRACT_V2_2_VERSION = "2.2.0"
+TRUST_CHECKS = (
+    "malicious",
+    "registry_existence",
+    "provenance",
+    "repository_linkage",
+    "dependency_confusion",
+    "lookalike",
+)
+TRUST_STATUSES = (
+    "CONFIRMED_MALICIOUS",
+    "VERIFIED_FAILURE",
+    "SUSPICIOUS_INCONCLUSIVE",
+    "MISSING_EVIDENCE",
+    "VERIFIED_RELATIONSHIP",
+    "NOT_PERFORMED",
+)
+MAX_TRUST_STATEMENT = 500
+MAX_TRUST_REFERENCES = 10
+
 #: Fields outside the v2 content hash: the hash itself, the build time,
 #: and the signature family a later signature will cover.
 _V2_UNHASHED_TOP = ("signature", "signing_key_id", "trust_root")
@@ -94,6 +120,7 @@ SCHEMA_V1_1_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
 SCHEMA_V2_PATH = _SCHEMA_ROOT / "v2" / "schema.json"
 SCHEMA_V2_1_PATH = _SCHEMA_ROOT / "v2.1" / "schema.json"
+SCHEMA_V2_2_PATH = _SCHEMA_ROOT / "v2.2" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -115,8 +142,13 @@ def load_schema() -> dict[str, Any]:
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
+def load_v2_2_schema() -> dict[str, Any]:
+    """The 2.2 schema (``openpulse attest`` output)."""
+    return json.loads(SCHEMA_V2_2_PATH.read_text(encoding="utf-8"))
+
+
 def load_v2_1_schema() -> dict[str, Any]:
-    """The 2.1 schema (``openpulse attest`` output)."""
+    """The 2.1 schema (``openpulse attest`` output up to v0.12)."""
     return json.loads(SCHEMA_V2_1_PATH.read_text(encoding="utf-8"))
 
 
@@ -274,14 +306,16 @@ def build_contract(
     *,
     as_of: datetime | None = None,
     max_evidence_age: timedelta | None = None,
+    trust_assurance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """(event, verdict[, finding]) -> one schema-valid 2.1.0 document.
+    """(event, verdict[, finding]) -> one schema-valid 2.2.0 document.
 
     The 1.2 document (``build_v1_contract``, same arguments), restamped
-    2.1.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    2.2.0, with ``provenance.content_hash_method`` and a JCS content hash.
     Pass ``inspection_coverage={"status": "NOT_APPLICABLE", "reasons": []}``
-    when the run inspected no repository (2.1).
-    Every value is the 1.2 builder's; only the version and hash differ.
+    when the run inspected no repository (2.1), and ``trust_assurance``
+    from :func:`trust_assurance_block` when the run checked trust (2.2;
+    null otherwise). Every other value is the 1.2 builder's.
     """
     doc = build_v1_contract(
         event,
@@ -291,11 +325,59 @@ def build_contract(
         as_of=as_of,
         max_evidence_age=max_evidence_age,
     )
-    doc["contract_version"] = CONTRACT_V2_1_VERSION
-    doc["provenance"]["contract_version"] = CONTRACT_V2_1_VERSION
+    doc["contract_version"] = CONTRACT_V2_2_VERSION
+    doc["provenance"]["contract_version"] = CONTRACT_V2_2_VERSION
+    doc["trust_assurance"] = trust_assurance
     doc["provenance"]["content_hash_method"] = CONTENT_HASH_METHOD
     doc["provenance"]["content_hash"] = v2_content_hash(doc)
     return doc
+
+
+def trust_assurance_block(checks: dict[str, Any]) -> dict[str, Any]:
+    """Track T records (``core.agent_tools.trust_checks``) -> the 2.2 block.
+
+    Only the fixed fields cross into the contract: check, T-F1 status, the
+    fixed-template statement (capped), ``checked_at`` and reference URIs
+    taken from validated evidence. Free-form evidence stays out, so the
+    public shape does not move with each check's internals.
+    """
+    records: list[dict[str, Any]] = []
+    for check in TRUST_CHECKS:
+        found = checks.get(check)
+        if found is None:
+            continue
+        for record in found if isinstance(found, list) else [found]:
+            checked_at = record.get("checked_at")
+            records.append(
+                {
+                    "check": check,
+                    "status": record["status"],
+                    "statement": str(record["statement"])[:MAX_TRUST_STATEMENT],
+                    "checked_at": checked_at if _is_datetime(str(checked_at or "")) else None,
+                    "references": _trust_references(record),
+                }
+            )
+    summary = dict.fromkeys(TRUST_STATUSES, 0)
+    for record in records:
+        summary[record["status"]] += 1
+    return {"checks": records, "summary": summary, "used_in_verdict": False}
+
+
+def _trust_references(record: dict[str, Any]) -> list[str]:
+    """https URIs a record cites: its source, OSV records, the claimed repository."""
+    evidence = record.get("evidence") or {}
+    candidates = [
+        record.get("source"),
+        evidence.get("source"),
+        evidence.get("url"),
+        *(r.get("url") for r in evidence.get("records") or [] if isinstance(r, dict)),
+    ]
+    found: list[str] = []
+    for value in candidates:
+        if isinstance(value, str) and value.startswith("https://") and _is_uri(value):
+            if value not in found:
+                found.append(value)
+    return found[:MAX_TRUST_REFERENCES]
 
 
 def v2_content_hash(doc: dict[str, Any]) -> str:
@@ -335,6 +417,7 @@ def verify_content_hash(doc: dict[str, Any]) -> bool:
 def validate_contract(doc: Any) -> list[str]:
     """Validate against the schema of the document's own contract_version."""
     loaders = {
+        CONTRACT_V2_2_VERSION: load_v2_2_schema,
         CONTRACT_V2_1_VERSION: load_v2_1_schema,
         CONTRACT_V2_VERSION: load_v2_schema,
         "1.2.0": load_schema,

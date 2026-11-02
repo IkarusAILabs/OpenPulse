@@ -6,9 +6,18 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- **`openpulse attest` emits evidence contract 2.2.0 (v0.13.0 item X5).** It is 2.1 plus one required field, `trust_assurance`, which is null unless you pass `--trust`. Validate against `schemas/evidence-contract/v2.2/schema.json`; a 2.1 validator rejects the new field. The hash rule is unchanged. The 2.1 schema stays published byte-for-byte.
 - **`dependency_status` gathers its trust checks into one `trust` block (v0.13.0 item X4).** Read them from `trust.checks`. The v0.12.0 top-level fields `registry_existence`, `provenance` and `lookalike` are still there with the same values, listed under `deprecated`, and are removed in v0.14.0. The checks added in v0.13.0 (`malicious`, `dependency_confusion`, `repository_linkage`) are only in `trust.checks`. File checks keep their own `trust` block unchanged. Verdicts are unchanged.
 
 ### Added
+
+- **Evidence contract 2.2.0 with `trust_assurance` (track T, T-F2, v0.13.0 item X5).** `openpulse attest --trust` checks each PyPI and npm dependency once per run and records it in every contract for that dependency:
+  - **The checks:** malicious records, registry existence, provenance, repository linkage, dependency confusion and lookalike.
+  - **Record shape:** each record is fixed: check, T-F1 status, a fixed statement, `checked_at` and the https URIs it cites. A summary counts every status, and `used_in_verdict` is always `false`. Free-form evidence stays out, so the public shape is stable.
+  - **Hash:** the JCS content hash covers the block, so `verify.mjs` checks it with no change.
+  - **Budget:** at most 4 lookups per dependency and 2000 per run. `--private-names` names the private-name list (default `.openpulse/private-packages.txt` when present).
+  - **Never part of a verdict:** assessments are identical with and without `--trust` (tested).
+  - **Schema:** `schemas/evidence-contract/v2.2/` is derived from 2.1, which stays untouched, and its bytes are now pinned by a test.
 
 - **One trust block, and the agent's reasons (track T, T-D, v0.13.0 item X4).** `dependency_status` answers carry `trust`:
   - `checks`: every trust record (`malicious`, `registry_existence`, `provenance`, `repository_linkage`, `dependency_confusion`, `lookalike`);

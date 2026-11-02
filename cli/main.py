@@ -360,6 +360,44 @@ def mcp_command(root, offline):
     run(root=root, live=not offline)
 
 
+#: Live lookups per dependency for `attest --trust` (malicious, existence,
+#: provenance, linkage), and the most one run may make.
+_ATTEST_TRUST_LOOKUPS_PER_DEP = 4
+_ATTEST_TRUST_MAX_LOOKUPS = 2000
+
+
+def _attest_trust(deps, private_names):
+    """{dependency index: 2.2 trust_assurance block}; each dependency checked once."""
+    from core import agent_tools
+    from core.evidence_contract import trust_assurance_block
+
+    names = _private_name_list(private_names)
+    eligible = [
+        (i, dep, agent_tools._dependency_key(dep))
+        for i, dep in enumerate(deps)
+        if agent_tools._refused_entry(dep) is None
+    ]
+    unique = {key for _, _, key in eligible}
+    lookups = agent_tools.Lookups(
+        cache_dir=agent_tools.default_cache_dir(),
+        budget=min(
+            _ATTEST_TRUST_MAX_LOOKUPS, _ATTEST_TRUST_LOOKUPS_PER_DEP * len(unique) + 10
+        ),
+    )
+    blocks: dict[Any, Any] = {}
+    out: dict[int, Any] = {}
+    for index, dep, key in eligible:
+        if key not in blocks:
+            blocks[key] = trust_assurance_block(agent_tools.trust_checks(dep, lookups, names))
+        out[index] = blocks[key]
+    _echo(
+        f"trust: {len(blocks)} dependencies checked, {lookups.used} of {lookups.budget} "
+        "lookups used",
+        err=True,
+    )
+    return out
+
+
 def _private_name_list(path):
     """An explicit list must exist; the default one is used only when present."""
     from core import dependency_confusion
@@ -2214,6 +2252,21 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     help="Exit 1 after writing every output when the same threshold `check --fail-on` "
     "uses is breached, or when repository inspection coverage is FAILED",
 )
+@click.option(
+    "--trust",
+    "trust",
+    is_flag=True,
+    help="Also check trust for PyPI and npm dependencies (live lookups) and record it in "
+    "each contract's trust_assurance (2.2.0); never part of a verdict",
+)
+@click.option(
+    "--private-names",
+    "private_names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="With --trust: private-name list (default: .openpulse/private-packages.txt if "
+    "present)",
+)
 def attest(
     watchlist,
     sbom,
@@ -2234,8 +2287,10 @@ def attest(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    trust=False,
+    private_names=None,
 ):
-    """Emit one evidence-contract v1 document per dependency × event pair.
+    """Emit one evidence-contract document per dependency × event pair.
 
     JSONL: one schema-valid contract per line, so stdout stays
     pipeable; progress chatter goes to stderr. Each document is
@@ -2395,11 +2450,12 @@ def attest(
             _echo(f"   - {reason}", err=True)
         coverage_override = {"status": run_status, "reasons": run_reasons}
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    trust_blocks = _attest_trust(deps, private_names) if trust else {}
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
-    for dep, uri in zip(deps, uris, strict=True):
+    for index, (dep, uri) in enumerate(zip(deps, uris, strict=True)):
         for event in loaded_events:
             verdict = check_dependency(
                 dep,
@@ -2414,6 +2470,7 @@ def attest(
                 inspection_coverage=coverage_override,
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
+                trust_assurance=trust_blocks.get(index),
             )
             problems = validate_contract(doc)
             if problems:

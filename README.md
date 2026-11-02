@@ -490,7 +490,7 @@ tests/              # 740+ offline tests (no network in CI)
 | `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
 | `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
 | `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
-| `docs/EVIDENCE_CONTRACT.md` | Evidence contract 2.1 (and 1.0 / 1.1 / 1.2 / 2.0) — machine-readable dependency verdicts |
+| `docs/EVIDENCE_CONTRACT.md` | Evidence contract 2.2 (and 1.0 / 1.1 / 1.2 / 2.0 / 2.1) — machine-readable dependency verdicts |
 | `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.10: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
 | `CHANGELOG.md` | What changed in each release |
 | `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
