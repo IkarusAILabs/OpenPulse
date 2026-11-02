@@ -10,6 +10,13 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - **Recorder:** `benchmarks/record_reputation.py` records 60 npm packages (a fixed-stride sample of the pinned high-impact list) and 80 PyPI packages (the curated catalog and OpenPulse's own locked dependencies), each with its latest 10 releases and its GitHub repository, into `benchmarks/fixtures/reputation/organic-<date>.json`.
   - **What is stored:** who published each release (npm accounts only as hashes; the trusted-publishing provider; PyPI's provenance publisher), whether it carries attestations, and the repository's answered name, age, stars and flags. Every upstream string is validated first; no account name or e-mail is stored.
   - **Baseline:** `benchmarks/trust.py` reports the raw signal rates on the set (see [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md)): the upper bounds each indicator rule has to improve on.
+- **`publisher_change`: was this release published by someone the earlier ones were not? (threat T6; v0.16.0 item Q2).** `core/publisher_change.py` compares one release with the releases before it and names each rule that fires, as `SUSPICIOUS_INCONCLUSIVE` (an indicator, never a takeover verdict):
+  - **npm `new_account`:** the publishing account published none of the previous 9 releases, and the release was not published through trusted publishing (which uses one shared service account).
+  - **npm `trusted_publishing_dropped`:** an earlier release used trusted publishing, this one did not.
+  - **PyPI `publisher_changed`:** the provenance names another publisher than the latest earlier attested release's (within 3 releases); the record says which fields changed.
+  - **PyPI `attestations_stopped`:** no provenance, after a release that had it.
+  - **Measured on the organic set:** `new_account` flags 4.6% of legitimate npm releases (projects with several maintainers), `publisher_changed` 0.3% and `attestations_stopped` 0.4% of PyPI releases, `trusted_publishing_dropped` none. Same publisher as before is `VERIFIED_RELATIONSHIP` (continuity, not evidence of a benign release). npm accounts are compared as hashes, never named.
+  - Not yet in the `trust` block or a policy: that is item Q5.
 
 ## 0.15.0 "Pre-Install Gates" — 2026-11-02
 

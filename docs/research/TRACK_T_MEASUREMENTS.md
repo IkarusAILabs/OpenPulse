@@ -40,8 +40,8 @@ Leave-one-out: each sampled reference name is checked against all the others.
 
 | Ecosystem | Reference names | Sampled | Flagged | False-positive rate | Without `scope` | Names flagged per rule | ms per name |
 |---|---:|---:|---:|---:|---:|---|---:|
-| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 165.0 |
-| PyPI | 19 | 19 | 0 | 0.0% | 0.0% | none | 0.2 |
+| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 46.4 |
+| PyPI | 19 | 19 | 0 | 0.0% | 0.0% | none | 0.0 |
 
 **Finding.** The `scope` rule (npm `@x/name` where `name` is a reference) fires on legitimate scoped packages such as `@types/<name>` and a project's own scope, so it carries most of the organic false positives. The rate without it is the one to use for the other three rules.
 
@@ -74,6 +74,17 @@ Real, legitimate packages recorded 2026-11-02 by `benchmarks/record_reputation.p
 | Median stars | 1367 |
 
 PyPI's set is the curated catalog and OpenPulse's own locked dependencies until a popular-name list is approved (decision 9). npm account names are stored only as hashes.
+
+## Organic control: publisher change (v0.16.0 Q2)
+
+The production `publisher_change` rules on every recorded release, each compared with the recorded releases before it (npm: up to 9; PyPI: up to 3). Every release is legitimate, so every flag is a false positive of the rule that fired.
+
+| Ecosystem | Releases compared | Flagged | False-positive rate | Rules (releases, packages) | Latest release flagged |
+|---|---:|---:|---:|---|---:|
+| npm | 480 | 22 | 4.6% | `new_account` 22 (4.6%, 13 pkg) | 0 (0.0%) |
+| PyPI | 697 | 5 | 0.7% | `attestations_stopped` 3 (0.4%, 3 pkg), `publisher_changed` 2 (0.3%, 2 pkg) | 1 (1.2%) |
+
+**Findings.** `new_account` carries the npm false positives: projects with several maintainers publish from different accounts, so it is an indicator to scope, not a gate. Switches to npm trusted publishing are not flagged (one shared service account publishes for every project), which is why the rule excludes them. On PyPI, `publisher_changed` fired on: repository 1, workflow 1 (changed fields; a renamed workflow in the same repository and a repository transfer both occur legitimately). Rules that fired on no organic release: `trusted_publishing_dropped`.
 
 ## What a policy can prohibit, and how well it is measured
 

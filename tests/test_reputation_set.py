@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from benchmarks import record_reputation as rec  # noqa: E402
 from benchmarks import reputation_set  # noqa: E402
+from core import publisher_change  # noqa: E402
 
 HASH = re.compile(r"sha256:[0-9a-f]{16}")
 
@@ -65,7 +66,9 @@ def test_npm_releases_are_the_latest_by_time_with_hashed_accounts():
     latest = out["releases"][-1]
     assert latest["trusted_publisher"] == "github" and latest["attested"] is True
     assert all(HASH.fullmatch(r["publisher"]) for r in out["releases"])
-    assert out["releases"][0]["publisher"] == rec.account_hash("Alice")  # case-insensitive
+    assert out["releases"][0]["publisher"] == publisher_change.account_key(
+        "Alice"
+    )  # case-insensitive
     text = json.dumps(out)
     assert "alice" not in text and "example.invalid" not in text
 
