@@ -26,7 +26,7 @@
       "false_positive_rate": 0.0,
       "false_positive_rate_without_scope": 0.0,
       "flagged": 0,
-      "ms_per_name": 0.2,
+      "ms_per_name": 0.0,
       "reference_names": 19,
       "references": [
         {
@@ -51,7 +51,7 @@
       "false_positive_rate": 0.188,
       "false_positive_rate_without_scope": 0.097,
       "flagged": 188,
-      "ms_per_name": 165.0,
+      "ms_per_name": 46.4,
       "reference_names": 17336,
       "references": [
         {
@@ -66,6 +66,56 @@
         }
       ],
       "sampled": 1000
+    }
+  },
+  "organic_publisher_change": {
+    "PyPI": {
+      "by_rule": {
+        "attestations_stopped": {
+          "packages": 3,
+          "rate": 0.0043,
+          "releases": 3
+        },
+        "publisher_changed": {
+          "packages": 2,
+          "rate": 0.0029,
+          "releases": 2
+        }
+      },
+      "false_positive_rate": 0.0072,
+      "flagged": 5,
+      "latest_release_flagged": 1,
+      "latest_release_rate": 0.0125,
+      "publisher_changed_fields": {
+        "repository": 1,
+        "workflow": 1
+      },
+      "releases_compared": 697,
+      "statuses": {
+        "MISSING_EVIDENCE": 411,
+        "SUSPICIOUS_INCONCLUSIVE": 5,
+        "VERIFIED_RELATIONSHIP": 281
+      }
+    },
+    "npm": {
+      "by_rule": {
+        "new_account": {
+          "packages": 13,
+          "rate": 0.0458,
+          "releases": 22
+        }
+      },
+      "false_positive_rate": 0.0458,
+      "flagged": 22,
+      "latest_release_flagged": 0,
+      "latest_release_rate": 0.0,
+      "publisher_changed_fields": {},
+      "releases_compared": 480,
+      "statuses": {
+        "MISSING_EVIDENCE": 7,
+        "SUSPICIOUS_INCONCLUSIVE": 22,
+        "VERIFIED_RELATIONSHIP": 451
+      }
     }
   },
   "organic_reputation": {

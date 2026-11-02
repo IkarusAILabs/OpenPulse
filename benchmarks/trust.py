@@ -666,6 +666,7 @@ def measure(sample: int) -> dict[str, Any]:
         "echo": run_echo(),
         "organic_lookalike": run_organic(sample),
         "organic_reputation": reputation_set.baseline(),
+        "organic_publisher_change": reputation_set.publisher_change(),
     }
 
 
@@ -779,6 +780,7 @@ def render(results: dict[str, Any]) -> str:
         "",
     ]
     lines += _render_reputation(results["organic_reputation"])
+    lines += _render_publisher_change(results["organic_publisher_change"])
     lines += [
         "",
         "## What a policy can prohibit, and how well it is measured",
@@ -873,6 +875,57 @@ def _render_reputation(rep: dict[str, Any]) -> list[str]:
         "popular-name list is approved (decision 9). npm account names are stored only as "
         "hashes.",
     ]
+
+
+def _render_publisher_change(pc: dict[str, Any]) -> list[str]:
+    from core import publisher_change
+
+    lines = [
+        "",
+        "## Organic control: publisher change (v0.16.0 Q2)",
+        "",
+        "The production `publisher_change` rules on every recorded release, each compared with "
+        f"the recorded releases before it (npm: up to {publisher_change.NPM_WINDOW}; PyPI: up "
+        f"to {publisher_change.PYPI_WINDOW}). Every release is legitimate, so every flag is a "
+        "false positive of the rule that fired.",
+        "",
+        "| Ecosystem | Releases compared | Flagged | False-positive rate | Rules (releases, "
+        "packages) | Latest release flagged |",
+        "|---|---:|---:|---:|---|---:|",
+    ]
+    for eco in ("npm", "PyPI"):
+        o = pc[eco]
+        rules = (
+            ", ".join(
+                f"`{k}` {v['releases']} ({_pct(v['rate'])}, {v['packages']} pkg)"
+                for k, v in o["by_rule"].items()
+            )
+            or "none"
+        )
+        lines.append(
+            f"| {eco} | {o['releases_compared']} | {o['flagged']} | "
+            f"{_pct(o['false_positive_rate'])} | {rules} | {o['latest_release_flagged']} "
+            f"({_pct(o['latest_release_rate'])}) |"
+        )
+    fields = ", ".join(f"{k} {v}" for k, v in pc["PyPI"]["publisher_changed_fields"].items())
+    unfired = [
+        r
+        for r in publisher_change.RULES
+        if r not in pc["npm"]["by_rule"] and r not in pc["PyPI"]["by_rule"]
+    ]
+    lines += [
+        "",
+        "**Findings.** `new_account` carries the npm false positives: projects with several "
+        "maintainers publish from different accounts, so it is an indicator to scope, not a "
+        "gate. Switches to npm trusted publishing are not flagged (one shared service account "
+        "publishes for every project), which is why the rule excludes them. On PyPI, "
+        f"`publisher_changed` fired on: {fields or 'nothing'} (changed fields; a renamed "
+        "workflow in the same repository and a repository transfer both occur legitimately). "
+        "Rules that fired on no organic release: "
+        + (", ".join(f"`{r}`" for r in unfired) or "none")
+        + ".",
+    ]
+    return lines
 
 
 def main(argv: list[str] | None = None) -> int:

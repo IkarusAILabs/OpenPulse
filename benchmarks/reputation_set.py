@@ -134,3 +134,62 @@ def baseline(doc: dict[str, Any] | None = None) -> dict[str, Any]:
         "PyPI": _pypi([p for p in packages if p["ecosystem"] == "PyPI"]),
         "repositories": _repositories(doc["repositories"], doc["recorded_at"]),
     }
+
+
+def publisher_change(doc: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The production publisher-change rules (v0.16.0 Q2) on every recorded release.
+
+    Each release is compared with the recorded releases before it, within the
+    check's window (npm ``NPM_WINDOW``, PyPI ``PYPI_WINDOW``). Every legitimate
+    release a rule flags is a false positive of that rule.
+    """
+    from core import publisher_change as pc
+
+    doc = doc or load()
+    out: dict[str, Any] = {}
+    for ecosystem, rules, window in (
+        ("npm", pc.npm_rules, pc.NPM_WINDOW),
+        ("PyPI", pc.pypi_rules, pc.PYPI_WINDOW),
+    ):
+        compared = 0
+        statuses: dict[str, int] = {}
+        fired: dict[str, int] = {}
+        packages: dict[str, set[str]] = {}
+        changed: dict[str, int] = {}
+        latest = latest_compared = 0
+        for p in doc["packages"]:
+            if p["ecosystem"] != ecosystem or p.get("status") != 200:
+                continue
+            releases = p.get("releases") or []
+            for i in range(1, len(releases)):
+                status, names, _why = rules(releases[i], releases[max(0, i - window) : i])
+                compared += 1
+                statuses[status] = statuses.get(status, 0) + 1
+                for rule in names:
+                    fired[rule] = fired.get(rule, 0) + 1
+                    packages.setdefault(rule, set()).add(p["name"])
+                if "publisher_changed" in names:
+                    earlier = [e for e in releases[max(0, i - window) : i] if e.get("attested")]
+                    for field in pc.changed_fields(releases[i], earlier[-1]):
+                        changed[field] = changed.get(field, 0) + 1
+                if i == len(releases) - 1:
+                    latest_compared += 1
+                    latest += bool(names)
+        out[ecosystem] = {
+            "releases_compared": compared,
+            "statuses": dict(sorted(statuses.items())),
+            "flagged": statuses.get("SUSPICIOUS_INCONCLUSIVE", 0),
+            "false_positive_rate": _ratio(statuses.get("SUSPICIOUS_INCONCLUSIVE", 0), compared),
+            "by_rule": {
+                rule: {
+                    "releases": count,
+                    "rate": _ratio(count, compared),
+                    "packages": len(packages[rule]),
+                }
+                for rule, count in sorted(fired.items())
+            },
+            "publisher_changed_fields": dict(sorted(changed.items())),
+            "latest_release_flagged": latest,
+            "latest_release_rate": _ratio(latest, latest_compared),
+        }
+    return out

@@ -16,7 +16,8 @@ What is recorded, and nothing more:
   list. PyPI: the curated catalog's PyPI packages and OpenPulse's own locked
   dependencies (``requirements*.lock``): there is no approved popular-name
   list yet (decision 9).
-- **Releases.** The latest ``RELEASES`` per package by publication time:
+- **Releases.** The latest ``RELEASES`` per package by publication time,
+  parsed by ``core.publisher_change`` so the set and the check agree:
   version, time, and who published it. npm: the publishing account
   (``_npmUser``), stored only as a hash because the indicators compare
   accounts, never name them; the trusted-publishing provider when npm
@@ -36,7 +37,6 @@ else is recorded as null.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -51,13 +51,13 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from core import publisher_change  # noqa: E402
+
 FIXTURES = ROOT / "benchmarks" / "fixtures" / "reputation"
 RELEASES = 10
 NPM_SAMPLE = 60
 MAX_BYTES = 64 * 1024 * 1024
-_VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+_-]{0,63}")
 _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?")
-_TRUSTED = re.compile(r"[a-z][a-z0-9-]{0,19}")
 _LOCK_LINE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==", re.MULTILINE)
 
 #: url -> (http status, decoded JSON or None); GitHub redirects are followed.
@@ -87,11 +87,6 @@ def http_fetch(url: str) -> tuple[int, Any]:
         return 200, response.json()
     except ValueError:
         return 0, None
-
-
-def account_hash(name: str) -> str:
-    """A stable pseudonym: the indicators compare accounts, they never name them."""
-    return "sha256:" + hashlib.sha256(f"npm-user:{name.strip().lower()}".encode()).hexdigest()[:16]
 
 
 def _time(value: Any) -> str | None:
@@ -147,29 +142,7 @@ def record_npm(name: str, fetch: Fetch) -> dict[str, Any]:
     if status != 200 or not isinstance(doc, dict):
         return out
     times = doc.get("time") if isinstance(doc.get("time"), dict) else {}
-    versions = doc.get("versions") if isinstance(doc.get("versions"), dict) else {}
-    dated = sorted(
-        (t, v)
-        for v, t in ((v, _time(times.get(v))) for v in versions)
-        if t and _VERSION.fullmatch(v)
-    )
-    releases = []
-    for published, version in dated[-RELEASES:]:
-        meta = versions.get(version) if isinstance(versions.get(version), dict) else {}
-        user = meta.get("_npmUser") if isinstance(meta.get("_npmUser"), dict) else {}
-        account = str(user.get("name") or "")
-        dist = meta.get("dist") if isinstance(meta.get("dist"), dict) else {}
-        trusted = user.get("trustedPublisher")
-        trusted_id = str(trusted.get("id") or "") if isinstance(trusted, dict) else ""
-        releases.append(
-            {
-                "version": version,
-                "published": published,
-                "publisher": account_hash(account) if account else None,
-                "trusted_publisher": trusted_id if _TRUSTED.fullmatch(trusted_id) else None,
-                "attested": bool(dist.get("attestations")),
-            }
-        )
+    releases = publisher_change.npm_releases(doc)[-RELEASES:]
     out.update(
         created=_time(times.get("created")),
         repository=_repository(doc.get("repository")),
@@ -178,23 +151,7 @@ def record_npm(name: str, fetch: Fetch) -> dict[str, Any]:
     return out
 
 
-def _pypi_publishers(provenance: Any) -> list[dict[str, Any]]:
-    from core.provenance import _publisher
-
-    bundles = provenance.get("attestation_bundles") if isinstance(provenance, dict) else None
-    found: list[dict[str, Any]] = []
-    for bundle in bundles if isinstance(bundles, list) else []:
-        raw = bundle.get("publisher") if isinstance(bundle, dict) else None
-        if isinstance(raw, dict):
-            publisher = _publisher(raw)
-            if publisher not in found:
-                found.append(publisher)
-    return found
-
-
 def record_pypi(name: str, fetch: Fetch) -> dict[str, Any]:
-    from core.provenance import _FILENAME
-
     status, doc = fetch(f"https://pypi.org/pypi/{quote(name)}/json")
     out: dict[str, Any] = {"ecosystem": "PyPI", "name": name, "status": status}
     if status != 200 or not isinstance(doc, dict):
@@ -204,31 +161,21 @@ def record_pypi(name: str, fetch: Fetch) -> dict[str, Any]:
     repository = next(
         (r for r in (_repository(u) for u in [*urls.values(), info.get("home_page")]) if r), None
     )
-    project = re.sub(r"[-_.]+", "-", name).lower()
-    dated = []
-    raw_releases = doc.get("releases") if isinstance(doc.get("releases"), dict) else {}
-    for version, files in raw_releases.items():
-        files = [f for f in files or [] if isinstance(f, dict) and not f.get("yanked")]
-        names = [str(f.get("filename") or "") for f in files]
-        names = [n for n in names if _FILENAME.fullmatch(n)]
-        times = sorted(t for t in (_time(f.get("upload_time_iso_8601")) for f in files) if t)
-        if names and times and _VERSION.fullmatch(version):
-            wheel = next((n for n in names if n.endswith(".whl")), names[0])
-            dated.append((times[0], version, wheel))
+    dated = publisher_change.pypi_releases(doc)
     releases = []
-    for published, version, filename in sorted(dated)[-RELEASES:]:
-        url = f"https://pypi.org/integrity/{project}/{quote(version)}/{quote(filename)}/provenance"
-        p_status, provenance = fetch(url)
+    for published, version, filename in dated[-RELEASES:]:
+        p_status, provenance = fetch(publisher_change.provenance_url(name, version, filename))
+        attested = p_status == 200 and provenance is not None
         releases.append(
             {
                 "version": version,
                 "published": published,
-                "attested": True if p_status == 200 else False if p_status == 404 else None,
-                "publishers": _pypi_publishers(provenance) if p_status == 200 else [],
+                "attested": True if attested else False if p_status == 404 else None,
+                "publishers": publisher_change.pypi_publishers(provenance) if attested else [],
             }
         )
     out.update(
-        created=sorted(dated)[0][0] if dated else None, repository=repository, releases=releases
+        created=dated[0][0] if dated else None, repository=repository, releases=releases
     )
     return out
 
