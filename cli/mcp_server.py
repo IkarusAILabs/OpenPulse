@@ -89,7 +89,8 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
         """Evidence for ONE dependency: end-of-life / end-of-support for its version,
         curated upstream changes (distribution, license, support) and OSV advisories,
         plus whether a PyPI or npm package and version exist in their registry
-        (`registry_existence`: a name not found there may be hallucinated).
+        (`registry_existence`: a name not found there may be hallucinated), and whether
+        OSV publishes a malicious-package record for it (`malicious`).
 
         Give either `package` (+ `ecosystem` such as PyPI, npm, Maven, Go, crates.io,
         and an exact `version`) or a container `image` ref such as `postgres:13`.
@@ -116,7 +117,8 @@ def build_server(root: str | Path = ".", live: bool = True, lookups: Any = None)
 
         `base_path` is an earlier copy of the same file (for example the version
         before your edit): the PyPI and npm dependencies added or changed since then
-        get trust checks in `trust` (registry existence, provenance, lookalike names).
+        get trust checks in `trust` (known-malicious records, registry existence,
+        provenance, lookalike names).
         `trust_all` runs them on every dependency instead. Trust checks are never part
         of the verdict; review anything listed under `trust.attention`."""
         return _answer(

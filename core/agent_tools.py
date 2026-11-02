@@ -227,6 +227,7 @@ class Lookups:
         fetch_json: Callable[[str], tuple[int, Any]] | None = None,
         fetch_provenance: Callable[[str], tuple[int, Any]] | None = None,
         verify: Callable[[Any, str, str], list[dict[str, Any]]] | None = None,
+        osv_query: Callable[[dict[str, Any]], tuple[int, Any]] | None = None,
     ):
         self._fetch = fetch
         self._ttl = ttl
@@ -241,6 +242,8 @@ class Lookups:
         self._fetch_json = fetch_json
         self._fetch_provenance = fetch_provenance
         self._verify = verify
+        self._osv_query = osv_query
+        self._malicious: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
@@ -345,6 +348,23 @@ class Lookups:
         )
         if record["status"] != "NOT_PERFORMED":
             self._provenance[key] = (now, record)
+        return record
+
+    def malicious(self, ecosystem: str, name: str, version: str | None) -> dict[str, Any]:
+        """Malicious-package record (X1), cached per session; NOT_PERFORMED never cached."""
+        from core import malicious
+
+        key = (ecosystem, name, version or "")
+        hit = self._malicious.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = malicious.check(ecosystem, name, version, query=self._osv_query)
+        if record["status"] != "NOT_PERFORMED":
+            self._malicious[key] = (now, record)
         return record
 
     def _disk_path(self, slug: str) -> Path | None:
@@ -632,6 +652,21 @@ def _provenance(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
         return provenance.not_performed("budget")
 
 
+def _malicious(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
+    """X1: does OSV publish a malicious-package record? Never a verdict input."""
+    from core import malicious, registry_existence
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return malicious.not_performed("unsupported")
+    if lookups is None:
+        return malicious.not_performed("offline")
+    try:
+        return lookups.malicious(ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return malicious.not_performed("budget")
+
+
 def _lookalike(dep: dict[str, Any]) -> dict[str, Any]:
     """T-A2: does the name resemble a reference name? Local data only; never a verdict input."""
     from core import lookalike
@@ -773,6 +808,7 @@ def _assess(
         answer["registry_existence"] = _registry_existence(dep, lookups)
         answer["provenance"] = _provenance(dep, lookups)
         answer["lookalike"] = _lookalike(dep)
+        answer["malicious"] = _malicious(dep, lookups)
         if lookups is not None:
             answer["lookups"] = lookups.status()
     return answer
@@ -938,19 +974,19 @@ def _trust_checks(
 ) -> dict[str, Any]:
     """Track T trust checks (U5) on the given dependencies; never a verdict input.
 
-    PyPI and npm packages get registry existence (T-M1), provenance (T-B1,
-    PyPI) and lookalike indicators (T-A2). The live checks run for at most
-    MAX_LIVE_PROJECTS packages (the W4 per-file bound) within the session
-    budget; the rest are counted as capped. Lookalike is local data, so every
-    package gets it. Counts per check and status, with every record that
-    needs attention (CONFIRMED_MALICIOUS, VERIFIED_FAILURE,
+    PyPI and npm packages get malicious-package records (X1), registry
+    existence (T-M1), provenance (T-B1, PyPI) and lookalike indicators (T-A2).
+    The live checks run for at most MAX_LIVE_PROJECTS packages (the W4
+    per-file bound) within the session budget; the rest are counted as
+    capped. Lookalike is local data, so every package gets it. Counts per
+    check and status, with every record that needs attention (CONFIRMED_MALICIOUS, VERIFIED_FAILURE,
     SUSPICIOUS_INCONCLUSIVE) listed in full.
     """
     from core import registry_existence
 
     counts = {
         check: dict.fromkeys(_TRUST_STATUSES, 0)
-        for check in ("registry_existence", "provenance", "lookalike")
+        for check in ("malicious", "registry_existence", "provenance", "lookalike")
     }
     attention: list[dict[str, Any]] = []
     checked = capped = unsupported = 0
@@ -964,6 +1000,7 @@ def _trust_checks(
         records = {"lookalike": [_lookalike(dep)]}
         if lookups is None or checked < MAX_LIVE_PROJECTS:
             checked += lookups is not None
+            records["malicious"] = [_malicious(dep, lookups)]
             records["registry_existence"] = _registry_existence(dep, lookups)
             records["provenance"] = [_provenance(dep, lookups)]
         else:
