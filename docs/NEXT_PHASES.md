@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-02 (v0.13 plan, owner-approved):** v0.13.0 "Agent Trust Evidence" is Phase 7 below: track T Phase 3 (the `trust` block for agents, the T-F2 contract block, M8 recording) with three checks that hold or fail rather than score: known-malicious records, dependency confusion against the user's own list, and repository linkage.
 - **Update 2026-11-02 (v0.12 released):** v0.12.0 "Trusted Inputs" is released (Phase 6, U1–U5: #260–#264, #272–#276). The Action part of U5 moved to T-E1. Still open: the PyPI popular-name list for lookalike indicators (an owner-run BigQuery query, or another approved source).
 - **Update 2026-11-01 (v0.12 plan):** v0.12.0 "Trusted Inputs" is Phase 6 below: track T Phase 1 (untrusted-text fixes, digest integrity, PyPI provenance, lookalike indicators, trust checks on added dependencies).
 - **Update 2026-11-01 (v0.11 released):** v0.11.0 "Early Warning Operations" is released (Phase 5, W1–W5), together with track T's first milestone T-M1 (#257).
@@ -234,6 +235,26 @@ Goal: track T Phase 1's exit from `docs/ROADMAP.md`, "PyPI and npm answers carry
 
 **Not in v0.12.0:** T-B2 npm provenance (sigstore-python cannot verify npm bundles yet, Phase 0 section 2); T-C reputation indicators (Phase 2); the T-F2 contract block (Phase 3).
 
+## Phase 7 — v0.13.0 "Agent Trust Evidence" (track T Phase 3; approved 2026-11-02)
+
+Goal: track T Phase 3's exit from `docs/ROADMAP.md`, "agent answers carry the trust block; the contract minor is published beside the previous one", plus the Phase 2 checks that need no false-positive study because each one holds or fails against a cited source. Every record uses T-F1 and T-F3. No verdict changes.
+
+| # | Item | Track T | Size | Depends on |
+|---|---|---|---|---|
+| X1 | Known-malicious records: OSV `MAL-` entries for any PyPI or npm name (not only catalogued ones). CONFIRMED_MALICIOUS only with the cited record; otherwise MISSING_EVIDENCE, never "safe". Within the W4 budget | T-F1 | M | — |
+| X2 | Dependency confusion: the user lists private names; OpenPulse reports which exist publicly (reuses T-A1). Nothing is inferred about unlisted names | T-A3 | S | — |
+| X3 | Repository linkage: does the repository named in registry metadata name the package back, or does verified provenance bind the artifact to it (starjacking, T4) | T-A4 | M | — |
+| X4 | One `trust` block in `dependency_status` gathering the T-A, T-B and X1–X3 records; optional caller-supplied `selection_context`, recorded verbatim, labelled agent-supplied and never used in a status. The separate v0.12 fields stay one minor release, marked deprecated | T-D | S–M | X1–X3 |
+| X5 | Evidence contract 2.2.0: an additive `trust_assurance` block in a sibling schema directory, emitted by `openpulse attest`; hash rule unchanged, 2.1 untouched | T-F2 | M | X4 |
+| X6 | `openpulse mcp --record DIR`: opt-in, local-only JSONL of questions and answers, the data source for RQ1 and RQ4 | M8 | S–M | — |
+
+**Exit:**
+- `dependency_status` answers carry one `trust` block with every T-F1 record, and `attest` emits contract 2.2.0 that validates beside 2.1.
+- CONFIRMED_MALICIOUS appears only with a cited record (tested with stub OSV answers).
+- No verdict changes (tested).
+
+**Not in v0.13.0:** T-C reputation indicators (Phase 2 needs a measured false-positive rate first); T-E1 policy enforcement and the Action's pull-request trust step (Phase 4, after those results); T-B2 npm provenance (no verifier yet); the PyPI popular-name list (owner decision 9).
+
 ## Phase 4 — Release supply chain (alongside Phases 2–3)
 
 | # | Item | Issue | Size | Depends on |
@@ -266,6 +287,8 @@ These compete for reviewer time, not for the same files:
 | 6 | Which projects get `official_domains` first | B1 scope |
 | 7 | Publish `ikarus-openpulse` to PyPI from the V1 workflow (needs the owner to register a Trusted Publisher on PyPI) — open; until then V1 attaches signed artifacts to the GitHub release only | V1's PyPI step |
 | 8 | Evidence contract 2.1.0: `NOT_APPLICABLE` coverage status — **decided 2026-11-01: approved** | V3 |
+| 9 | PyPI popular-name list for lookalike indicators: run the dated BigQuery query (CC BY 4.0), or approve another source — open | U4's PyPI reference |
+| 10 | v0.13.0 scope, including the additive evidence contract 2.2.0 (`trust_assurance`) — **decided 2026-11-02: approved** | X1–X6 |
 
 ## Risks
 
