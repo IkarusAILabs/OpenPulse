@@ -2,7 +2,22 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.16.0 "Reputation Evidence" — 2026-11-03
+
+Track T Phase 2 (T-C): three reputation indicators, each measured on a recorded set of real, legitimate packages before it shipped, and each reported on its own, never summed and never a verdict.
+- **`publisher_change`:** a release published by an npm account, or a PyPI provenance publisher, that the earlier releases did not use, or without the trusted publishing or attestations they had.
+- **`repository_moved`:** the claimed repository answers on GitHub under another name (renamed or transferred).
+- **`young_popular_repository`:** a repository younger than 180 days with at least 1000 stars (experimental: too few young repositories to measure a rate).
+- **Where they appear:** the `trust` block, evidence contract 2.3.0 (additive; 2.2 unchanged beside it), the trust policy (scoped to named packages), SARIF and DefectDojo.
+
+The release also closes a security review: the gate fails closed, history committed to the repository is refused, and `--github-repo` no longer reports COMPLETE coverage after skipping files it cannot read. Verdicts and the frozen evaluation are unchanged. **Upgrade notes** below cover the stricter gate, refused tracked state and contract 2.3.0.
+
+### Upgrade notes
+
+- **`openpulse gate` fails closed.** A named file it cannot read exits 2 (it was skipped with exit 0). A check your policy prohibits that could not run (a source down, a spent lookup budget) fails the gate as `PROHIBITED unchecked <condition>`. To keep the old behaviour for unreachable sources, set `unchecked: pass` in `.openpulse/policy.yml`. Nothing changes without a policy except unreadable files.
+- **Tracked local history is refused.** `check`, `digest`, `warnings`, `report`, `observe` and `sweep` exit 2 when git tracks the observation store, the detection ledger or the webhook delivery state. Untrack the file, or point `--store`, `--ledger` or `--delivery-state` outside the repository.
+- **`openpulse attest` emits evidence contract 2.3.0.** A consumer that accepts exactly 2.2.0 rejects it; validate against `schemas/evidence-contract/v2.3/schema.json`. Documents without the three new check names are otherwise identical to 2.2.
+- **`--github-repo` may now read PARTIAL where it read COMPLETE.** Dependency files OpenPulse cannot read (`yarn.lock`, `uv.lock`, `requirements-dev.txt`, ...) are listed as not inspected. `check --fail-on-partial` therefore fails on such a repository; `--fail-on` and `--strict` still fail only on FAILED coverage.
 
 ### Added
 

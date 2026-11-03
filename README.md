@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.15.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.16.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.15.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.16.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -204,7 +204,7 @@ The full list, including what an attacker with write access to local history can
 
 ## What's new
 
-**On `main`, in the next release (v0.16.0 "Reputation Evidence"):**
+**v0.16.0 "Reputation Evidence":**
 
 - **Reputation indicators:** `publisher_change`, `repository_moved` and `young_popular_repository`, each measured on a recorded set of legitimate packages first, in the trust block, the policy, SARIF and DefectDojo.
 - **Evidence contract 2.3.0:** `trust_assurance` may name the three new checks; 2.2 is published unchanged beside it.

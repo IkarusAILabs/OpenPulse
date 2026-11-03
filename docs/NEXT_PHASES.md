@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-03 (v0.16 released):** v0.16.0 "Reputation Evidence" is released (Phase 10, Q1–Q6: #301–#307, #311). T-C's indicators that need no star history ship measured, or experimental where the organic set could not measure them (`young_popular_repository`), and none is a verdict. Q6's adversarial cases found and fixed one over-strong status (npm trusted publishing read as publisher continuity). Also in the release: the security review fixes (#306) and Phase 12's S1 defect fix (#310). Next: decisions 13–16 (v0.17–v0.19 scopes).
 - **Update 2026-11-02 (v0.16 plan, owner-approved):** v0.16.0 "Reputation Evidence" is Phase 10 below: track T Phase 2's T-C, the transparent reputation indicators that need no star history (a publisher change, a moved repository, a young repository claiming popularity), each measured on recorded organic projects before it ships. It needs evidence contract 2.3.0 for the new check names. Approved by the owner 2026-11-02 (decision 12).
 - **Update 2026-11-02 (v0.15 released):** v0.15.0 "Pre-Install Gates" is released (Phase 9, Z1–Z4: #295–#298). T-E2's exit is met: the policy that fails CI also fails a commit and a pre-install CI step, with no model involved, and the pre-install bypass routes are tested and documented. Track T Phase 4 (T-E1, T-E2) is complete. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2's T-C reputation indicators (need labelled data).
 - **Update 2026-11-02 (v0.15 plan):** v0.15.0 "Pre-Install Gates" is Phase 9 below: track T Phase 4's T-E2, the trust policy enforced where dependencies enter (a pre-commit hook on dependency files, and a CI step before `pip install` or `npm ci`), through one new `openpulse gate` command. Started on the owner's "continue building next steps" (2026-11-02); scope open to change.
@@ -296,7 +297,7 @@ Goal: T-E2 from `docs/ROADMAP.md`: the T-E1 trust policy enforced at the existin
 
 **Not in v0.15.0:** a registry proxy or firewall (out of scope by design); T-C reputation indicators (need labelled data); the PyPI popular-name list (decision 9).
 
-## Phase 10 — v0.16.0 "Reputation Evidence" (track T Phase 2, T-C; approved 2026-11-02)
+## Phase 10 — v0.16.0 "Reputation Evidence" (track T Phase 2, T-C; approved 2026-11-02) — DONE, released 2026-11-03
 
 Goal: T-C from `docs/ROADMAP.md`, limited to the indicators that need no star history. Each indicator has a written rule, its inputs and its source. Indicators are reported one by one and never summed into a score. None is a verdict or changes one, and the absence of an indicator is never evidence of authenticity. Each ships with a firing rate measured on recorded organic projects, or is labelled experimental. Builds on T-B1 provenance, T-A4 repository linkage and the v0.14 measurement harness (`benchmarks/trust.py`).
 
