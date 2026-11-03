@@ -371,8 +371,8 @@ Goal: the two track T items that needed data or a study, done by an AI assistant
 |---|---|---|---|---|
 | TR1 | **Star-history recorder.** `benchmarks/record_star_history.py`: weekly star counts from GitHub's star-history endpoint (the stargazer listings are closed to third parties since 2026), for the organic set (committed) and a fixed-seed sample of StarScout's flagged repositories (local only) | S | — | DONE (this change) |
 | TR2 | **Study protocol.** `docs/research/TRACK_T_STUDY_PROTOCOL.md`: questions, hypotheses, data, calibration and freezing, metrics, stopping rule, ethics. Part A (measurement) now; Part B (agents, enforcement) registered separately | S | — | DRAFT (this change) |
-| TR3 | **Young organic set.** A recorder for repositories of packages first published in the last 12 months, without malicious records, so false positives are measured where the indicators matter | S | TR1 | NEXT |
-| TR4 | **Calibration.** Split the organic set, compute SH1–SH3 thresholds on the calibration half, write them into the protocol | S | TR1, TR3 | after TR3 |
+| TR3 | **Young organic set.** `benchmarks/record_young_set.py`: GitHub repositories created in the last 12 months with ≥ 50 stars, kept only when the PyPI or npm package of the same name claims them back, with no OSV malicious record and no StarScout flag; 500 recorded (`stars-young-2026-11-03.json`). The StarScout positives are recorded locally too | S | TR1 | DONE |
+| TR4 | **Calibration.** Split the organic set, compute SH1–SH3 thresholds on the calibration half, write them into the protocol | S | TR1, TR3 | NEXT |
 | TR5 | **Registration** of Part A by the responsible author (decision 17), and the freeze tag | — | TR4 | owner |
 | TR6 | **The run:** positives, held-out organic, OSV-malicious packages; results in `docs/research/` with every bias of §4 reported | M | TR5 | after TR5 |
 | TR7 | **Ship or drop** each SH indicator from the measured rates: a `star_burst` trust check (experimental or indicator), or a recorded negative result | M | TR6 | after TR6 |

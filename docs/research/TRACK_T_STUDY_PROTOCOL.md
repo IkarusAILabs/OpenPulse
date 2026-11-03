@@ -56,8 +56,8 @@ All sources are pinned by date and SHA-256 at the freeze. **No package contents 
 | Set | Source | Labels from | Committed? |
 |---|---|---|---|
 | Organic repositories | The repositories of the organic reputation set (`benchmarks/fixtures/reputation/organic-*.json`), star histories recorded by `record_star_history.py` | Their selection: popular, curated or depended-on projects (Q1) | Yes |
-| Organic young repositories | Repositories of packages first published on npm or PyPI in the 12 months before the freeze, a fixed-seed sample of 500, excluding any with an OSV malicious record | Absence of a malicious record (residual risk stated) | Yes |
-| Fake-star positives | StarScout (He et al., "Six Million (Suspected) Fake Stars in GitHub", ICSE 2026), `data/250101/fake_stars_{clustered,low_activity}_repos.csv` at commit `7994d8e4cd3bd6e724e513c14e9d696ded23048f`; a fixed-seed sample of 1000 (seed `20261103`) | StarScout's detection (heuristic, per method) | **No**: local only (§8) |
+| Organic young repositories | `benchmarks/record_young_set.py`: GitHub repositories created in the 12 calendar months ending 30 days before recording, with ≥ 50 stars (Python, JavaScript, TypeScript; not forks, not archived), kept only when the PyPI or npm package of the same name claims exactly that repository, has no OSV `MAL-` record, and StarScout did not flag it; a fixed-seed sample of 500 | Two-way registry linkage, no malicious record, not flagged (residual risk stated) | Yes |
+| Fake-star positives | StarScout (He et al., "Six Million (Suspected) Fake Stars in GitHub", ICSE 2026), `data/250101/fake_stars_{clustered,low_activity}_repos.csv` at commit `7994d8e4cd3bd6e724e513c14e9d696ded23048f` (SHA-256 clustered `02aeaf16bb1d4bef1069717dd50bc6595055d124d5573436d60b3aaaeddb52d4`, low activity `bd9d12344d205d27fd933070e98a3db2101b3678ae602974350eabe4656debee`); a fixed-seed sample of 1000 (seed `20261103`) | StarScout's detection (heuristic, per method) | **No**: local only (§8) |
 | Malicious packages | OSV `PyPI/all.zip` and `npm/all.zip`, `MAL-` records only, snapshot at the freeze; the Datadog malicious-software-packages dataset's **manifest** (names only) as a second source | OSV / OpenSSF malicious-packages and Datadog | Names and versions only |
 
 **Star history.** Third-party stargazer listings (`/stargazers`, and GraphQL `starredAt`) return nothing since GitHub's 2026 restriction (verified 2026-11-03: 404 with a token, 401 without, empty GraphQL edges). The study uses the star-history endpoint (`GET /repos/{owner}/{repo}/stargazers/history`, API 2026-03-10): weekly counts with a per-day breakdown, newest first, no stargazer.
@@ -68,9 +68,21 @@ All sources are pinned by date and SHA-256 at the freeze. **No package contents 
 - **Label noise.** StarScout's authors say flagged repositories may be false positives. Results are stated as agreement with StarScout, never as accuracy.
 - **Organic is not proven benign.** It is popular or depended-on, which makes a fake-star campaign unlikely, not impossible.
 
+### What has been read so far (2026-11-03)
+
+The three sets are recorded. Before archiving, only **availability** has been looked at, never an indicator value:
+
+| Set | Recorded | Histories read | Not available |
+|---|---|---|---|
+| Organic (`stars-organic-2026-11-03.json`) | 123 | 123 | 0 |
+| Organic young (`stars-young-2026-11-03.json`) | 500 of 706 kept from 6,976 candidates (6,267 not linked both ways, 3 with an OSV `MAL-` record) | 500 | 0 |
+| StarScout positives (local) | 1,000 (668 flagged by `clustered`, 353 by `low_activity`, 21 by both) | 366 (96 `clustered`, 290 `low_activity`) | 634: 627 deleted (404), 7 blocked (403) |
+
+History totals match GitHub's star counts (organic median ratio 1.000; young within 1%). Survival among the positives differs by StarScout method (82% of `low_activity` repositories still answer, 14% of `clustered` ones), so the surviving positive set leans to the less circular method (§4): of the 366, 270 were flagged by `low_activity` alone. Rate-limited answers were waited out and retried, so no repository is unavailable because of the rate limit.
+
 ## 5. Calibration and freezing
 
-1. The organic repositories are split 50/50 with seed `20261103` into **calibration** and **held-out** halves.
+1. The organic repositories (both organic sets, pooled) are split 50/50 with seed `20261103`, within each set, into **calibration** and **held-out** halves. False-positive rates are reported for the pooled held-out half and for the young held-out half on its own.
 2. On the calibration half only, each SH threshold is set to the smallest value at which at most 1% of eligible repositories fire.
 3. The thresholds are computed **before archiving** and archived with the protocol. The positives and the held-out half are read only after the archive date.
 4. The frozen thresholds are applied once to the held-out organic half (H-A2) and the positives (H-A1).
