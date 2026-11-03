@@ -33,7 +33,7 @@ AI coding agents add and upgrade dependencies faster than anyone reviews them, a
 | *Is this package what it claims to be?* | Trust evidence for PyPI and npm packages: published malicious-package records, registry existence, lockfile digests, build provenance, repository linkage, dependency confusion, lookalike names, and reputation indicators | AI agents ([MCP](docs/MCP.md)), `openpulse trust` |
 | *Should this change be allowed in?* | A deterministic trust policy that fails pre-commit, CI and `check`/`attest` runs on the conditions you prohibit, and fails closed when it cannot check | `openpulse gate`, pre-commit hook, [GitHub Action](docs/GITHUB_ACTION.md), [policy](docs/TRUST_POLICY.md) |
 | *Something changed upstream. Does it affect us?* | Applicability verdicts for your exact versions and images against curated, evidence-gated upstream events: end of life and support, distribution, licence, ownership and breaking changes, plus OSV advisories | `openpulse check`, `attest`, `digest`, `warnings`, the Action |
-| *What is happening in the projects we depend on?* | Monthly intelligence and lifecycle reports over a 107-project catalog, with registry observation and discovery | `openpulse report`, `lifecycle-report`, `observe`, `sweep`, `discover` |
+| *What is happening in the projects we depend on?* | Monthly intelligence and lifecycle reports over a 107-project catalog, with registry observation and discovery, published each month at [openpulse.ikaruslabs.net](https://openpulse.ikaruslabs.net/) | `openpulse report`, `lifecycle-report`, `observe`, `sweep`, `discover` |
 | *How do we prove what we checked?* | Evidence contracts (JSON Schema, content-hashed) and SARIF, DefectDojo and Dependency-Track exports built from them | [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md), [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) |
 
 What makes the evidence usable:
@@ -270,7 +270,7 @@ Verdict commands bound evidence age: a NOT_AFFECTED needs evidence fetched withi
 
 <img width="1552" height="832" alt="OpenPulse report summary" src="https://github.com/user-attachments/assets/a1bcbf0d-c842-4c84-9060-5e4095fb2ba5" />
 
-OpenPulse publishes a monthly intelligence briefing and a lifecycle posture report over its catalog ([`reports/`](reports/): September to November 2026). They read like security intelligence, not database exports: ranked findings with evidence confidence, scope, timing and a recommended investigation, never claims about your environment without your dependency list. `report --metadata-out` writes a machine-readable sidecar for web frontends.
+OpenPulse publishes a monthly intelligence briefing and a lifecycle posture report over its catalog. Each edition is published at **[openpulse.ikaruslabs.net](https://openpulse.ikaruslabs.net/)**, and the reports `openpulse report` generated are kept in [`reports/`](reports/) (September to November 2026). The site presents the output of this research instrument: it is not a service, and the limits in [Research status](#research-status) and [Known limits](#known-limits) apply to it. They read like security intelligence, not database exports: ranked findings with evidence confidence, scope, timing and a recommended investigation, never claims about your environment without your dependency list. `report --metadata-out` writes a machine-readable sidecar for web frontends.
 
 ## Repo layout
 

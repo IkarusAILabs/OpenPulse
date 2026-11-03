@@ -217,6 +217,8 @@ traces to an evidence URL or named collector output.
 
 ## Monthly report (`reports/generate.py`)
 
+Each month's edition is published at [openpulse.ikaruslabs.net](https://openpulse.ikaruslabs.net/); the generated reports are kept in [`reports/`](../reports/).
+
 `collect_project` turns one raw bundle into pulse + findings;
 `build_report` ranks them into a decision-support briefing —
 Executive Summary, Top Changes (deterministic evidence-aware rank:
