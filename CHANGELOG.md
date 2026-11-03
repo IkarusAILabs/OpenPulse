@@ -12,6 +12,11 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - every violation and unchecked check, as condition, check, status and dependency label, never a statement.
 
   Each file is hashed before and after it is read; a file that changed in between fails the gate (exit 2). A receipt is an integrity record within one pipeline run, not a signature. See "Gate receipts" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). Verifying it before install is item G2.
+
+## 0.16.1 — 2026-11-03
+
+A patch for one crash. Nothing else changes; no upgrade notes.
+
 ### Fixed
 
 - **`openpulse gate` no longer crashes when a private-name list is in use.** Since v0.15.0 the gate loaded `.openpulse/private-packages.txt` (or `--private-names`) and then passed the loaded names where a file path was expected, so any gate whose policy needs trust checks died with a `TypeError` (exit 1) instead of gating. The GitHub Action passes the base branch's list whenever it has one, so every Action gate in such a repository failed this way. `attest` now also tells the policy which dependencies are private, so they are no longer counted as unchecked. Regression tests in `tests/test_gate_command.py`.

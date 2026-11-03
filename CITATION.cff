@@ -15,7 +15,7 @@ authors:
   - given-names: Mehmet
     family-names: Kış
     affiliation: "Ikarus AI Labs, Cambridge, United Kingdom"
-version: 0.16.0
+version: 0.16.1
 date-released: 2026-11-03
 license: Apache-2.0
 repository-code: "https://github.com/IkarusAILabs/OpenPulse"
