@@ -14,3 +14,6 @@ evaluation/comparators/npm/node_modules/
 evaluation/comparators/go/bridge
 evaluation/comparators/go/bridge.exe
 evaluation/comparators/maven/lib/
+
+# Local-only research data (third-party labels not to be republished)
+benchmarks/fixtures/reputation/local/

@@ -94,6 +94,8 @@ T-A2 compares a candidate name with a pinned, hashed snapshot of popular names p
 - The widely quoted "400 pages / 40 000 stars" cap on the old endpoint is **unconfirmed** in GitHub's docs.
 - GraphQL is no cheaper path, and whether `stargazers { starredAt }` is also restricted is **unconfirmed**.
 
+**Verified 2026-11-03:** `GET /repos/{owner}/{repo}/stargazers` returns 404 with a token and 401 without, and GraphQL `stargazers { starredAt }` returns no edges, for third-party repositories. The star-history endpoint answers with or without a token (weekly buckets, newest first, per-day breakdown). The recorder is `benchmarks/record_star_history.py`; the study, `docs/research/TRACK_T_STUDY_PROTOCOL.md`.
+
 **Consequence for T-C:** the star-burst indicator must be built on the new star-history endpoint, run on demand with a token, and state NOT_PERFORMED when the endpoint refuses. A design that reads individual stargazers is no longer possible.
 
 ## 4. Design note: T-F1 status vocabulary
