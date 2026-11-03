@@ -21,8 +21,8 @@ It is separate from TR-2026-01 and its registration (`evaluation/REGISTRATION.md
 ## 1. Questions
 
 - **Q-A (RQ3, star history).** Can a weekly star-history indicator flag repositories that StarScout identified as running fake-star campaigns, at a false-positive rate on organic projects of at most 1%?
-- **Q-B (RQ3, package metadata).** How often do OpenPulse's existing package-level indicators (lookalike name, publisher change, moved repository, young popular repository, registry existence) fire on packages that OSV lists as malicious, compared with organic packages?
-- **Q-C (RQ2).** For what share of a realistic dependency set can provenance be verified today, and how often does the check end in missing evidence?
+- **Q-B (RQ3, package metadata).** How often do OpenPulse's existing package-level indicators (lookalike name, publisher change, moved repository, young popular repository) fire on packages that OSV lists as malicious, compared with organic packages, and how often is a malicious package's registry metadata still there to judge?
+- **Q-C (RQ2).** For what share of a realistic dependency set does the latest release publish provenance (npm provenance, or a PyPI PEP 740 attestation), and for what share can it not be told?
 
 ## 2. Hypotheses
 
@@ -30,7 +30,7 @@ Set before any held-out data is read. Each is tested once.
 
 - **H-A1.** At the threshold calibrated in §5, at least one of SH1–SH3 (§3) flags ≥ 50% of the StarScout sample whose history is available, with the lower 95% Wilson bound reported.
 - **H-A2.** The same indicator flags ≤ 1% of the held-out organic repositories (upper 95% Wilson bound reported).
-- **H-B1.** On OSV-malicious packages, the share flagged by `lookalike` is higher than on organic packages (difference with a 95% interval).
+- **H-B1.** On npm, the share of OSV-malicious package names flagged by `lookalike` is higher than the share of young organic package names flagged (Newcombe 95% interval of the difference excludes 0). npm only, because OpenPulse has a popular-name reference for npm (17,336 names) and none yet for PyPI (19 curated names; decision 9); PyPI is reported descriptively.
 - **Q-C** is descriptive and has no hypothesis.
 
 A hypothesis that fails is reported as failed, with the same prominence.
@@ -60,7 +60,8 @@ All sources are pinned by date and SHA-256 at the freeze. **No package contents 
 | Organic repositories | The repositories of the organic reputation set (`benchmarks/fixtures/reputation/organic-*.json`), star histories recorded by `record_star_history.py` | Their selection: popular, curated or depended-on projects (Q1) | Yes |
 | Organic young repositories | `benchmarks/record_young_set.py`: GitHub repositories created in the 12 calendar months ending 30 days before recording, with ≥ 50 stars (Python, JavaScript, TypeScript; not forks, not archived), kept only when the PyPI or npm package of the same name claims exactly that repository, has no OSV `MAL-` record, and StarScout did not flag it; a fixed-seed sample of 500 | Two-way registry linkage, no malicious record, not flagged (residual risk stated) | Yes |
 | Fake-star positives | StarScout (He et al., "Six Million (Suspected) Fake Stars in GitHub", ICSE 2026), `data/250101/fake_stars_{clustered,low_activity}_repos.csv` at commit `7994d8e4cd3bd6e724e513c14e9d696ded23048f` (SHA-256 clustered `02aeaf16bb1d4bef1069717dd50bc6595055d124d5573436d60b3aaaeddb52d4`, low activity `bd9d12344d205d27fd933070e98a3db2101b3678ae602974350eabe4656debee`); a fixed-seed sample of 1000 (seed `20261103`) | StarScout's detection (heuristic, per method) | **No**: local only (§8) |
-| Malicious packages | OSV `PyPI/all.zip` and `npm/all.zip`, `MAL-` records only, snapshot at the freeze; the Datadog malicious-software-packages dataset's **manifest** (names only) as a second source | OSV / OpenSSF malicious-packages and Datadog | Names and versions only |
+| Malicious packages | OSV `npm/all.zip` and `PyPI/all.zip` of 2026-11-03 (SHA-256 npm `7055c2e29668b6369a693cbdc25841c7e33e39e0d58ab88252023c25ac14c1a0`, PyPI `6ede48e9a6ed51549cca2bd615e15ba2647432f8d1f3776af10c00da5d9fcaf3`), `MAL-` records only, withdrawn records excluded: 222,726 npm and 11,953 PyPI names. `track_t_study.py frame` drew, with seed `20261103`, 5,000 names per ecosystem for `lookalike` and 500 per ecosystem for the registry recording (`malicious-frame-2026-11-03.json`) | OSV / OpenSSF malicious-packages | Names only (the samples) |
+| Organic packages (Q-B, Q-C) | The young organic set's linked packages (354 npm, 146 PyPI; the H-B1 comparison) and the organic reputation set's packages (`organic-2026-11-02.json`, popular; reported beside it) | Their selection | Yes |
 
 **Star history.** Third-party stargazer listings (`/stargazers`, and GraphQL `starredAt`) return nothing since GitHub's 2026 restriction (verified 2026-11-03: 404 with a token, 401 without, empty GraphQL edges). The study uses the star-history endpoint (`GET /repos/{owner}/{repo}/stargazers/history`, API 2026-03-10): weekly counts with a per-day breakdown, newest first, no stargazer.
 
@@ -108,11 +109,12 @@ These are strict: organic young projects often gain most of their stars in a lau
 - Firing rate per indicator on each set, with 95% Wilson intervals.
 - For positives: recall against StarScout, per StarScout method and overall.
 - Unresolved rate: repositories or packages whose evidence could not be read (deleted, 404, rate-limited, invalid series), per set.
-- Q-C: share of a dependency set with verified provenance, missing provenance, and not checked, per ecosystem.
+- Q-B: `lookalike` firing rate per set and ecosystem (SUSPICIOUS_INCONCLUSIVE over names checked; NOT_PERFORMED names counted apart); for the 500-per-ecosystem samples, the share whose registry metadata still answers, and the `publisher_change`, `repository_moved` and `young_popular_repository` rates on those that do, each with its production rule (`benchmarks/reputation_set.py`).
+- Q-C: per set and ecosystem, the share of packages whose latest recorded release publishes provenance, publishes none, cannot be told, or was not checked (registry did not answer). Presence of provenance, not its verification.
 
 ## 7. Stopping rule
 
-One run on the frozen data. If GitHub's rate limit interrupts recording, recording resumes until the sample is complete or 7 days pass; the remainder is reported as unresolved. No resampling to improve a result.
+One run on the frozen data: `python benchmarks/track_t_study.py run --registered <registration id>`. The command refuses while any field above reads "to fill at archiving" or the protocol does not name that id, and refuses again once `benchmarks/results/track-t-part-a.json` exists. It also refuses if either organic star fixture changed since calibration (SHA-256). It writes the aggregates to that file and the results page to `docs/research/TRACK_T_PART_A_RESULTS.md`; no positive repository is named in either. If GitHub's rate limit interrupts recording, recording resumes until the sample is complete or 7 days pass; the remainder is reported as unresolved. No resampling to improve a result.
 
 ## 8. Ethics and data handling
 
