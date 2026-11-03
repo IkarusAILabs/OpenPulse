@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.16.1 — 2026-11-03
+
+A patch for one crash. Nothing else changes; no upgrade notes.
 
 ### Fixed
 
