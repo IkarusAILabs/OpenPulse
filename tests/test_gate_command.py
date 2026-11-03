@@ -136,6 +136,38 @@ def test_explicit_base_files_work_without_git(repo, monkeypatch, tmp_path_factor
     assert result.exit_code == 1
 
 
+@pytest.mark.parametrize("explicit", [False, True])
+def test_a_private_name_list_is_used_not_crashed_on(repo, monkeypatch, explicit):
+    """Regression: the gate passed the loaded names where a path was expected,
+    so any run with a private-name list (the Action passes the base branch's)
+    died with a TypeError instead of gating."""
+    osv = _osv()
+    monkeypatch.setattr("core.malicious.default_query", osv)
+    names = repo / ".openpulse" / "private-packages.txt"
+    names.parent.mkdir()
+    names.write_text("PyPI:acme-internal\n", encoding="utf-8")
+    (repo / "requirements.txt").write_text(
+        "django==4.2\nacme-internal==1.0\nflask==3.0.3\n", encoding="utf-8"
+    )
+    policy = _policy(repo, {"version": 1, "prohibit": ["confirmed_malicious"]})
+    extra = ["--private-names", str(names)] if explicit else []
+    result = _gate("requirements.txt", "--base-ref", "HEAD", "--policy", policy, *extra)
+    assert not isinstance(result.exception, TypeError), result.exception
+    assert result.exit_code == 0, result.output
+    # Known-malicious records cover private names too (a public package with a
+    # private name is the confusion attack); the public-only checks do not
+    # apply to it, so nothing is left unchecked.
+    assert sorted(osv.asked) == ["acme-internal", "flask"]
+    assert "unchecked" not in result.output
+
+
+def test_a_loaded_private_name_list_is_passed_through():
+    from cli.main import _private_name_list
+
+    names = frozenset({("PyPI", "acme-internal")})
+    assert _private_name_list(names) is names
+
+
 # ---------------------------------------------------------------------------
 # Files a hook may pass, and usage errors
 # ---------------------------------------------------------------------------

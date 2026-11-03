@@ -634,9 +634,15 @@ def _report_violations(violations) -> bool:
 
 
 def _private_name_list(path):
-    """An explicit list must exist; the default one is used only when present."""
+    """An explicit list must exist; the default one is used only when present.
+
+    A list already loaded (a set of names) is returned as it is, so callers
+    can load once and pass the names on.
+    """
     from core import dependency_confusion
 
+    if isinstance(path, (set, frozenset)):
+        return path
     if path is None:
         default = dependency_confusion.DEFAULT_LIST
         return dependency_confusion.load(default)[0] if default.is_file() else None
@@ -2955,9 +2961,16 @@ def attest(
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
     loaded_policy = _load_policy(policy_path)
     base_keys = _base_keys([base_manifest, base_lockfile])
-    trust_blocks = _attest_trust(deps, private_names, base_keys) if trust else {}
+    names = _private_name_list(private_names) if loaded_policy or trust else None
+    trust_blocks = _attest_trust(deps, names, base_keys) if trust else {}
     violations = _policy_violations(
-        deps, loaded_policy, lockfile, trust_blocks if trust else None, base_keys, base_lockfile
+        deps,
+        loaded_policy,
+        lockfile,
+        trust_blocks if trust else None,
+        base_keys,
+        base_lockfile,
+        private_names=names,
     )
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
