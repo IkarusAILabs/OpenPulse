@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-03 (v0.17 plan, owner-approved):** the owner asked to plan and start the next versions (2026-11-03). Decisions 13, 14 and 16 are approved, so v0.17.0 "Gate-to-Install Integrity" (Phase 11) is ACTIVE and v0.18.0 and v0.19.0 follow in that order. Build order for v0.17: G1 receipts, G3 digests in the gate, G2 verification, G4 generated files, G5 end-to-end install tests, G6 docs. Decision 15's scope is approved; whether `--fail-on` fails on PARTIAL coverage by default stays open until S4 is built. Writing G1's tests found a gate crash on `main` since v0.15.0 (a private-name list passed as loaded names where a path was expected), fixed separately as a v0.16.1 candidate.
 - **Update 2026-11-03 (v0.16 released):** v0.16.0 "Reputation Evidence" is released (Phase 10, Q1–Q6: #301–#307, #311). T-C's indicators that need no star history ship measured, or experimental where the organic set could not measure them (`young_popular_repository`), and none is a verdict. Q6's adversarial cases found and fixed one over-strong status (npm trusted publishing read as publisher continuity). Also in the release: the security review fixes (#306) and Phase 12's S1 defect fix (#310). Next: decisions 13–16 (v0.17–v0.19 scopes).
 - **Update 2026-11-02 (v0.16 plan, owner-approved):** v0.16.0 "Reputation Evidence" is Phase 10 below: track T Phase 2's T-C, the transparent reputation indicators that need no star history (a publisher change, a moved repository, a young repository claiming popularity), each measured on recorded organic projects before it ships. It needs evidence contract 2.3.0 for the new check names. Approved by the owner 2026-11-02 (decision 12).
 - **Update 2026-11-02 (v0.15 released):** v0.15.0 "Pre-Install Gates" is released (Phase 9, Z1–Z4: #295–#298). T-E2's exit is met: the policy that fails CI also fails a commit and a pre-install CI step, with no model involved, and the pre-install bypass routes are tested and documented. Track T Phase 4 (T-E1, T-E2) is complete. Still open: the PyPI popular-name list (decision 9). Next in track T: Phase 2's T-C reputation indicators (need labelled data).
@@ -316,7 +317,7 @@ Goal: T-C from `docs/ROADMAP.md`, limited to the indicators that need no star hi
 
 **Not in v0.16.0:** star-history bursts and stars inconsistent with downloads or dependents (GitHub's API budget makes them on-demand only, and they need labelled data; LATER); any statistical or ML detection (needs the evaluation plan's labelled data); a registry proxy; the PyPI popular-name list (decision 9).
 
-## Phase 11 — v0.17.0 "Gate-to-Install Integrity" (track T Phase 4, T-E2; proposed 2026-11-02, needs decision 13)
+## Phase 11 — v0.17.0 "Gate-to-Install Integrity" (track T Phase 4, T-E2; approved 2026-11-03) — ACTIVE
 
 Goal: prove that what `openpulse gate` checked is what gets installed. Today the gate judges files as they are when it runs and records nothing about them. A file changed between the gate and the install step, or a lockfile regenerated after the gate, is installed unchecked: `docs/TRUST_POLICY.md` lists both routes as not covered. In-place lockfile hash edits are caught only when the policy prohibits `digest_mismatch`.
 
@@ -333,7 +334,7 @@ Goal: prove that what `openpulse gate` checked is what gets installed. Today the
 
 **Not in v0.17.0:** signing receipts (they are integrity records within one pipeline run; a signed, portable receipt waits for the contract signature work); intercepting installers (a pip or npm plugin); a registry proxy.
 
-## Phase 12 — v0.18.0 "Inspection Coverage Assurance" (M5/M6; proposed 2026-11-02, needs decision 15)
+## Phase 12 — v0.18.0 "Inspection Coverage Assurance" (M5/M6; approved 2026-11-03; the `--fail-on` default in decision 15 still open) — NEXT
 
 Goal: repository-wide coverage that never overstates itself. `--github-repo` reports COMPLETE, PARTIAL or FAILED, but discovery recognises only exact file names: a repository whose dependencies are in `requirements-dev.txt`, `yarn.lock`, `pnpm-lock.yaml`, `uv.lock`, `Pipfile.lock` or a bare `package.json` is not told about them, and can be reported COMPLETE. That breaks the standing rule "unknown stays unknown" (Rules for every phase), so S1 is a defect fix and can ship earlier as a patch.
 
@@ -347,7 +348,7 @@ Goal: repository-wide coverage that never overstates itself. `--github-repo` rep
 
 **Exit:** a repository's coverage is COMPLETE only when every dependency file in it was read; anything else is PARTIAL with each uninspected file and category named, and no output reads as all-clear over a PARTIAL run.
 
-## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; proposed 2026-11-02, needs decision 16)
+## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; approved 2026-11-03) — LATER
 
 Goal: show that an evidence contract means the same thing outside OpenPulse. `conformance/evidence-contract/verify.mjs` already recomputes the content hash with no OpenPulse code, but it accepts any `2.x` version string, does not validate the schema, and says nothing about the document's outcomes.
 
@@ -399,10 +400,10 @@ These compete for reviewer time, not for the same files:
 | 10 | v0.13.0 scope, including the additive evidence contract 2.2.0 (`trust_assurance`) — **decided 2026-11-02: approved** | X1–X6 |
 | 11 | v0.14.0 scope, and that Y1's synthetic and organic false-positive measurements meet track T Phase 4's "false-positive results" dependency for T-E1 (the registered study still to come) — **decided 2026-11-02: approved** | Y1–Y6 |
 | 12 | v0.16.0 scope (Phase 10), including the additive evidence contract 2.3.0 for the three new check names — **decided 2026-11-02: approved** | Q1–Q6 |
-| 13 | v0.17.0 scope (Phase 11): gate receipts and verification before install — open | G1–G6 |
-| 14 | `openpulse gate` checks changed lockfile digests whatever the policy says (G3), so a hash edit cannot pass a policy that forgot `digest_mismatch` — open | G3 |
-| 15 | v0.18.0 scope (Phase 12), including evidence contract 2.4.0 for the recorded discovery scope, and whether `--fail-on` fails on PARTIAL coverage by default (a gate-semantics change) — open. S1 is a defect fix and can ship first as a patch | S1–S5 |
-| 16 | v0.19.0 scope (Phase 13), including the consumer's one runtime dependency (`jsonschema`) — open | P1–P5 |
+| 13 | v0.17.0 scope (Phase 11): gate receipts and verification before install — **decided 2026-11-03: approved** | G1–G6 |
+| 14 | `openpulse gate` checks changed lockfile digests whatever the policy says (G3), so a hash edit cannot pass a policy that forgot `digest_mismatch` — **decided 2026-11-03: approved** | G3 |
+| 15 | v0.18.0 scope (Phase 12), including evidence contract 2.4.0 for the recorded discovery scope, and whether `--fail-on` fails on PARTIAL coverage by default (a gate-semantics change) — **scope approved 2026-11-03**; the `--fail-on` default stays open until S4. S1 shipped in v0.16.0 | S1–S5 |
+| 16 | v0.19.0 scope (Phase 13), including the consumer's one runtime dependency (`jsonschema`) — **decided 2026-11-03: approved** | P1–P5 |
 
 ## Risks
 
