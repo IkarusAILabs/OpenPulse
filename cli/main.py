@@ -755,8 +755,16 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
     default=None,
     help="Private-name list (default: .openpulse/private-packages.txt if present)",
 )
+@click.option(
+    "--receipt",
+    "receipt_out",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Write a receipt of what was gated (file, policy and private-list SHA-256s, the "
+    "decision, violations), whatever the outcome; verify it right before install",
+)
 @_policy_option
-def gate_command(paths, base_ref, base_paths, private_names, policy_path):
+def gate_command(paths, base_ref, base_paths, private_names, policy_path, receipt_out):
     """Pre-install trust gate (track T, T-E2): the trust policy on dependency files.
 
     Run it before `pip install` or `npm ci`, or as a pre-commit hook. Exit 0
@@ -767,12 +775,16 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
     unless the policy says `unchecked: pass`. Entries that are not exactly
     pinned packages are listed as not checked. Without a policy there is
     nothing to enforce, so it passes. No events are needed: this checks
-    trust, not upstream changes.
+    trust, not upstream changes. With --receipt, the SHA-256 of every file
+    it judged is recorded, so the install step can prove it installs the
+    same bytes.
     """
     import tempfile
     from pathlib import Path as _Path
 
-    from core import agent_tools
+    from core import agent_tools, gate_receipt
+    from core import dependency_confusion as _confusion
+    from core import trust_policy as _trust_policy
 
     if base_ref and base_paths:
         raise click.UsageError("use --base-ref or --base, not both")
@@ -784,24 +796,81 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
         raise
     except click.ClickException as e:  # a missing or invalid policy is not a violation
         raise click.UsageError(e.message) from e
-    if loaded is None:
-        _echo("gate: no trust policy (.openpulse/policy.yml): nothing is prohibited, passed")
-        return
-    names = _private_name_list(private_names)
+    names = _private_name_list(private_names) if loaded is not None else None
+    files: list[dict[str, Any]] = []
     violations: list[dict[str, Any]] = []
     unreadable: list[str] = []
     checked = added = 0
+
+    def finish(decision: str) -> None:
+        if not receipt_out:
+            return
+        if policy_path is not None:
+            policy_file = policy_path
+        elif _trust_policy.DEFAULT_POLICY.is_file():
+            policy_file = str(_trust_policy.DEFAULT_POLICY)
+        else:
+            policy_file = None
+        if private_names is not None or loaded is None:
+            names_file = private_names
+        elif _confusion.DEFAULT_LIST.is_file():
+            names_file = str(_confusion.DEFAULT_LIST)
+        else:
+            names_file = None
+        receipt = gate_receipt.build(
+            files=files,
+            decision=decision,
+            version=openpulse_version(),
+            policy=policy_file,
+            private_names=names_file,
+            base_ref=base_ref,
+            base_files=list(base_paths) or None,
+            dependencies=checked,
+            added=added if (base_ref or base_paths) else None,
+            violations=violations,
+        )
+        try:
+            gate_receipt.write(receipt, receipt_out)
+        except OSError as e:
+            _echo(f"gate: cannot write the receipt {receipt_out}: {e}", err=True)
+            raise SystemExit(2) from e
+        _echo(f"gate: receipt {receipt_out} ({decision})", err=True)
+
+    if loaded is None:
+        for path in paths:
+            present = _Path(path).is_file()
+            files.append(
+                {
+                    "path": gate_receipt.receipt_path(path),
+                    "sha256": gate_receipt.sha256_file(path) if present else None,
+                    "status": "gated" if present else "missing",
+                }
+            )
+        finish("passed")
+        _echo("gate: no trust policy (.openpulse/policy.yml): nothing is prohibited, passed")
+        return
     with tempfile.TemporaryDirectory(prefix="openpulse-gate-") as scratch:
         for index, path in enumerate(paths):
+            entry = {"path": gate_receipt.receipt_path(path), "sha256": None, "status": "missing"}
+            files.append(entry)
             if not _Path(path).is_file():
                 _echo(f"gate: {path}: not present (deleted?), skipped", err=True)
                 continue
+            entry["sha256"] = gate_receipt.sha256_file(path)
             try:
                 deps, skipped, kind = agent_tools._read_dependency_file(path)
             except ValueError as e:
                 _echo(f"gate: {path}: cannot be read as a dependency file: {e}", err=True)
+                entry["status"] = "unreadable"
                 unreadable.append(path)
                 continue
+            if gate_receipt.sha256_file(path) != entry["sha256"]:
+                # What was judged is not what the receipt would name: fail closed.
+                _echo(f"gate: {path}: changed while it was being gated", err=True)
+                entry["status"] = "unreadable"
+                unreadable.append(path)
+                continue
+            entry["status"] = "gated"
             if kind == "images":
                 # The image-list fallback: no exact pins, so no package to check.
                 # A requirements file of unpinned names lands here too.
@@ -845,6 +914,7 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
                 fail_unchecked=True,
             )
     if _report_violations(violations):
+        finish("failed")
         raise SystemExit(1)
     if unreadable:
         _echo(
@@ -852,7 +922,9 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path):
             "them was checked; fix or remove them, or leave them out of the gate",
             err=True,
         )
+        finish("error")
         raise SystemExit(2)
+    finish("passed")
     scope = "added or changed" if (base_ref or base_paths) else "checked"
     _echo(f"gate: passed ({checked} dependencies, {added} {scope}, no violation)")
 
