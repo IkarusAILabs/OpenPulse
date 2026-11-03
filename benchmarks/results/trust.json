@@ -1,16 +1,16 @@
 {
   "degraded": {
     "budget_spent": {
-      "cases": 34,
-      "cases_fully_unresolved": 34,
+      "cases": 35,
+      "cases_fully_unresolved": 35,
       "claims_without_evidence": 0,
-      "live_records": 272
+      "live_records": 280
     },
     "unreachable": {
-      "cases": 34,
-      "cases_fully_unresolved": 34,
+      "cases": 35,
+      "cases_fully_unresolved": 35,
       "claims_without_evidence": 0,
-      "live_records": 276
+      "live_records": 284
     }
   },
   "echo": {
@@ -51,7 +51,7 @@
       "false_positive_rate": 0.188,
       "false_positive_rate_without_scope": 0.097,
       "flagged": 188,
-      "ms_per_name": 44.6,
+      "ms_per_name": 47.8,
       "reference_names": 17336,
       "references": [
         {
@@ -112,9 +112,9 @@
       "publisher_changed_fields": {},
       "releases_compared": 480,
       "statuses": {
-        "MISSING_EVIDENCE": 7,
+        "MISSING_EVIDENCE": 112,
         "SUSPICIOUS_INCONCLUSIVE": 22,
-        "VERIFIED_RELATIONSHIP": 451
+        "VERIFIED_RELATIONSHIP": 346
       }
     }
   },
@@ -247,14 +247,14 @@
         "positives": 1
       },
       "publisher_change": {
-        "cases": 3,
+        "cases": 4,
         "detected": 1,
         "detection_rate": 1.0,
-        "exact": 3,
+        "exact": 4,
         "exact_rate": 1.0,
         "false_positive_rate": 0.0,
         "false_positives": 0,
-        "negatives": 2,
+        "negatives": 3,
         "positives": 1
       },
       "registry_existence": {
@@ -593,6 +593,14 @@
       },
       {
         "case": "rp-3",
+        "category": "reputation",
+        "check": "publisher_change",
+        "expected": "MISSING_EVIDENCE",
+        "label": "negative",
+        "observed": "MISSING_EVIDENCE"
+      },
+      {
+        "case": "rp-3b",
         "category": "reputation",
         "check": "publisher_change",
         "expected": "MISSING_EVIDENCE",

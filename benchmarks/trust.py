@@ -115,6 +115,10 @@ WORLD: dict[tuple[str, str], dict[str, Any]] = {
         "versions": {"1.1.0": {}},
         "releases": [("1.0.0", "alice", None), ("1.1.0", "GitHub Actions", "github")],
     },
+    ("npm", "opfx-trusted-moved"): {
+        "versions": {"1.1.0": {}},
+        "releases": [("1.0.0", "GitHub Actions", "github"), ("1.1.0", "GitHub Actions", "github")],
+    },
     ("npm", "opfx-moved"): {
         "versions": {"1.0.0": {}},
         "repository": "opfx/moved",
@@ -532,6 +536,13 @@ CASES: list[dict[str, Any]] = [
         "expect": {"publisher_change": ("MISSING_EVIDENCE", N)},
     },
     {
+        "id": "rp-3b",
+        "category": "reputation",
+        "dep": ("npm", "opfx-trusted-moved", "1.1.0"),
+        # The shared trusted-publishing account is no continuity (Q6).
+        "expect": {"publisher_change": ("MISSING_EVIDENCE", N)},
+    },
+    {
         "id": "rp-4",
         "category": "reputation",
         "dep": ("npm", "opfx-moved", "1.0.0"),
@@ -942,8 +953,7 @@ def render(results: dict[str, Any]) -> str:
             label = "measured; indicator"
         elif organic == "repository_moved":
             organic_text = (
-                f"{_pct(results['organic_repository_moved']['false_positive_rate'])} "
-                "(repositories)"
+                f"{_pct(results['organic_repository_moved']['false_positive_rate'])} (repositories)"
             )
             label = "measured; indicator"
         elif organic == "young_popular_repository":

@@ -26,8 +26,12 @@ a takeover verdict. Each rule's firing rate on legitimate releases is
 measured on the organic reputation set (``benchmarks/reputation_set.py``,
 ``docs/research/TRACK_T_MEASUREMENTS.md``). A release published the same way
 as an earlier one is VERIFIED_RELATIONSHIP: continuity of the publisher,
-not evidence that the release is benign. No earlier release or no
-publisher evidence to compare is MISSING_EVIDENCE. Unsupported, invalid,
+not evidence that the release is benign. An npm release published through
+trusted publishing never is: its account is the one shared service account,
+and npm's metadata names no repository or workflow to compare, so a
+trusted-publishing configuration moved to another repository would read as
+continuity. No earlier release or no publisher evidence to compare is
+MISSING_EVIDENCE. Unsupported, invalid,
 unreachable or budget-limited is NOT_PERFORMED.
 
 PyPI publishers are compared as PyPI's Integrity API serves them (PyPI
@@ -91,6 +95,11 @@ _WHY = {
     "trusted_publishing_started": (
         "this release was published through trusted publishing and the earlier ones were "
         "not; that switch is common and is not an indicator"
+    ),
+    "trusted_publishing": (
+        "this release was published through trusted publishing, whose one shared service "
+        "account publishes for every project, and npm's metadata names no repository or "
+        "workflow to compare"
     ),
     "no_attestations": "neither this release nor the release before it publishes provenance",
     "first_attested": "this is the first attested release in the window compared",
@@ -202,11 +211,14 @@ def npm_rules(target: dict[str, Any], earlier: list[dict[str, Any]]) -> tuple[st
         fired.append("new_account")
     if fired:
         return SUSPICIOUS_INCONCLUSIVE, fired, ""
+    if target.get("trusted_publisher"):
+        # The shared service account is not a publisher: matching it is not continuity.
+        if any(e.get("trusted_publisher") for e in earlier):
+            return MISSING_EVIDENCE, [], "trusted_publishing"
+        return MISSING_EVIDENCE, [], "trusted_publishing_started"
     if publisher in accounts:
         return VERIFIED_RELATIONSHIP, [], "account"
-    if not publisher:
-        return MISSING_EVIDENCE, [], "no_publisher"
-    return MISSING_EVIDENCE, [], "trusted_publishing_started"
+    return MISSING_EVIDENCE, [], "no_publisher"
 
 
 def _publisher_set(release: dict[str, Any]) -> set[tuple[Any, ...]]:
