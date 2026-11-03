@@ -123,6 +123,26 @@ SUPPORTED_INVENTORIES = {
     "inventory.yaml",
 }
 
+# Dependency files OpenPulse recognises but cannot read. Discovery lists
+# each one as a skip reason so coverage degrades to PARTIAL instead of a
+# repository built on them reading COMPLETE (unknown stays unknown).
+UNSUPPORTED_DEPENDENCY_FILES = {
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "uv.lock",
+    "Pipfile",
+    "Pipfile.lock",
+    "bun.lock",
+    "bun.lockb",
+    "gradle.lockfile",
+    "environment.yml",
+    "environment.yaml",
+    "setup.py",
+    "setup.cfg",
+}
+
+UNSUPPORTED_REASON = "dependency file not supported; its dependencies were not inspected"
+
 # Files that indicate a project root (for monorepo detection)
 PROJECT_ROOT_INDICATORS = (
     SUPPORTED_MANIFESTS | SUPPORTED_LOCKFILES | SUPPORTED_SBOMS | SUPPORTED_INVENTORIES
@@ -491,6 +511,31 @@ def _is_dependency_file(filename: str) -> tuple[bool, str | None]:
     return False, None
 
 
+def _unsupported_reason(path: str, npm_lock_dirs: set[str]) -> str | None:
+    """Why a recognised but unreadable dependency file was not inspected.
+
+    Returns None for files that are not dependency files. ``package.json``
+    is read through the ``package-lock.json`` beside it, so it is only
+    reported when that lockfile is absent. Requirements variants
+    (``requirements-dev.txt``, ``requirements/*.txt``, ``constraints*.txt``)
+    are not parsed yet and are reported rather than dropped.
+    """
+    directory, _, filename = path.rpartition("/")
+    if filename in UNSUPPORTED_DEPENDENCY_FILES:
+        return f"{path}: {UNSUPPORTED_REASON}"
+    if filename == "package.json":
+        if directory in npm_lock_dirs:
+            return None
+        return f"{path}: {UNSUPPORTED_REASON} (no package-lock.json beside it)"
+    if filename.endswith(".txt") and filename != "requirements.txt":
+        if (
+            filename.startswith(("requirements", "constraints"))
+            or directory.rpartition("/")[2] == "requirements"
+        ):
+            return f"{path}: {UNSUPPORTED_REASON}"
+    return None
+
+
 def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
 
@@ -515,8 +560,9 @@ def discover_dependency_files(
     Each returned file is ``{path, type, size, sha}`` where ``sha`` is
     the git blob id taken from the pinned tree - the exact object the
     content fetch must return. Every dropped file (oversize, cap, unsafe
-    path) is recorded as a skip reason so coverage can degrade to
-    PARTIAL instead of silently shrinking the inspected set.
+    path, recognised but unsupported format) is recorded as a skip reason
+    so coverage can degrade to PARTIAL instead of silently shrinking the
+    inspected set.
     """
     tree = _get_repo_tree(repo, token, revision)
     if tree and isinstance(tree[0], dict) and tree[0].get("error"):
@@ -537,6 +583,11 @@ def discover_dependency_files(
     files: list[dict[str, Any]] = []
     skip_reasons: list[str] = []
     total_size = 0
+    npm_lock_dirs = {
+        e.get("path", "").rpartition("/")[0]
+        for e in entries
+        if e.get("type") == "blob" and e.get("path", "").rpartition("/")[2] == "package-lock.json"
+    }
 
     for entry in entries:
         if entry.get("type") != "blob":
@@ -553,6 +604,9 @@ def discover_dependency_files(
         filename = parts[-1]
         is_supported, file_type = _is_dependency_file(filename)
         if not is_supported:
+            reason = _unsupported_reason(path, npm_lock_dirs)
+            if reason is not None:
+                skip_reasons.append(reason)
             continue
 
         if not _safe_repo_path(path):
