@@ -2,6 +2,17 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Gate receipts (v0.17.0 item G1).** `openpulse gate --receipt PATH` writes what the gate judged, whatever the outcome:
+  - the SHA-256 of every named file (with its status: gated, unreadable or missing), of the policy and of the private-name list;
+  - the base it compared with, the OpenPulse version, and the decision with its exit code;
+  - every violation and unchecked check, as condition, check, status and dependency label, never a statement.
+
+  Each file is hashed before and after it is read; a file that changed in between fails the gate (exit 2). A receipt is an integrity record within one pipeline run, not a signature. See "Gate receipts" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). Verifying it before install is item G2.
+
 ## 0.16.0 "Reputation Evidence" — 2026-11-03
 
 Track T Phase 2 (T-C): three reputation indicators, each measured on a recorded set of real, legitimate packages before it shipped, and each reported on its own, never summed and never a verdict.

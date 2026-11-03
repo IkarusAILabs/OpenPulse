@@ -84,6 +84,32 @@ openpulse gate package-lock.json --base-ref HEAD                     # pre-commi
 - **Files it cannot read fail closed:** a named file that is not a readable dependency file (a malformed `package-lock.json`, a broken `pyproject.toml`, a README) exits 2: nothing in it was checked, so it is never a pass. Deleted files are skipped with a note.
 - **Entries it does not check are listed:** lines that are not exactly pinned PyPI or npm packages (`flask>=2`, a bare `requests`) are printed as not checked. The lockfile pins them: gate the lockfile too.
 - **First commit:** in a repository with no commits yet, `--base-ref HEAD` treats every file as new. Any other unknown ref is still a usage error.
+- **Receipt:** `--receipt PATH` writes what was gated, whatever the outcome (v0.17.0 item G1). See below.
+
+### Gate receipts
+
+The gate judges files as they are when it runs. `--receipt receipt.json` records that judgement, so the install step can show it installs the same bytes:
+
+```bash
+openpulse gate requirements.txt poetry.lock --base-ref origin/main --receipt gate-receipt.json
+```
+
+A receipt is a JSON document (`receipt_version` `1.0`) with a fixed set of fields:
+
+| Field | Meaning |
+|---|---|
+| `tool` | `openpulse` and its version |
+| `created_at` | when the gate ran (UTC) |
+| `decision`, `exit_code` | `passed` (0), `failed` (1) or `error` (2) |
+| `files` | every named file: `path` (normalised, forward slashes), `sha256`, and `status` `gated`, `unreadable` or `missing` |
+| `policy`, `private_names` | path and SHA-256 of the policy and private-name list used, or `null` |
+| `base` | `{"ref": ...}`, `{"files": [{path, sha256}]}`, or `null` without a base |
+| `counts` | dependencies read, added or changed (`null` without a base), violations, unchecked checks |
+| `violations` | each violation's `condition`, `check`, `status` and `dependency` label |
+
+- **Hashed once, judged once:** each file is hashed before it is read and again after. A file that changed in between is an error (exit 2), so a receipt never names bytes the gate did not judge.
+- **No upstream text:** violations carry the condition, the check, the status and the dependency label from your own file, never a statement (statements can quote advisory records).
+- **Not a signature:** anyone who can write the files can write a receipt. It is an integrity record within one pipeline run: keep it in the job's workspace and verify it right before install. Verification before install (`--verify-receipt`) is v0.17.0 item G2.
 
 ### In CI, before install
 
