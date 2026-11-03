@@ -583,6 +583,113 @@ class TestGitHubRepositoryIntegration:
         assert inspection.errors
 
 
+class TestUnsupportedDependencyFiles:
+    """S1: a recognised file OpenPulse cannot read is never dropped silently."""
+
+    def _inspect(self, monkeypatch, paths, blobs=None):
+        from core import github_reader
+
+        tree = [
+            {"type": "blob", "path": p, "size": 20, "sha": f"sha-{i}"} for i, p in enumerate(paths)
+        ]
+        contents = blobs or {}
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "abc123"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: tree,
+        )
+        by_sha = {f"sha-{i}": contents[p] for i, p in enumerate(paths) if p in contents}
+        monkeypatch.setattr(
+            github_reader,
+            "_get_blob_content",
+            lambda repo, blob_sha, token, timeout=30.0: (by_sha.get(blob_sha), None),
+        )
+        return inspect_github_repo("owner/repo")
+
+    def test_reported_case_is_partial_not_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "yarn.lock", "uv.lock", "requirements-dev.txt"],
+            blobs={"requirements.txt": "requests==2.32.0\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        for name in ("yarn.lock", "uv.lock", "requirements-dev.txt"):
+            assert any(
+                r.startswith(f"{name}: dependency file not supported")
+                for r in inspection.coverage_reasons
+            ), name
+        assert [d["package"] for d in inspection.dependencies] == ["requests"]
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "uv.lock",
+            "Pipfile",
+            "Pipfile.lock",
+            "bun.lock",
+            "bun.lockb",
+            "gradle.lockfile",
+            "environment.yml",
+            "setup.py",
+            "setup.cfg",
+            "requirements-dev.txt",
+            "constraints.txt",
+            "requirements/base.txt",
+            "services/api/package.json",
+        ],
+    )
+    def test_only_unsupported_file_is_partial(self, monkeypatch, path):
+        inspection = self._inspect(monkeypatch, [path])
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.dependencies == []
+        assert inspection.coverage_reasons
+        assert inspection.coverage_reasons[0].startswith(f"{path}: dependency file not supported")
+
+    def test_package_json_beside_package_lock_is_covered(self, monkeypatch):
+        lock = (
+            '{"lockfileVersion": 3, "packages": {"": {}, '
+            '"node_modules/left-pad": {"version": "1.3.0"}}}'
+        )
+        inspection = self._inspect(
+            monkeypatch,
+            ["web/package.json", "web/package-lock.json"],
+            blobs={"web/package-lock.json": lock},
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert not inspection.coverage_reasons
+
+    def test_package_lock_elsewhere_does_not_cover_package_json(self, monkeypatch):
+        inspection = self._inspect(monkeypatch, ["package-lock.json", "web/package.json"])
+
+        assert any(r.startswith("web/package.json:") for r in inspection.coverage_reasons)
+        assert inspection.coverage != COVERAGE_COMPLETE
+
+    def test_unrelated_and_vendored_files_stay_quiet(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            [
+                "README.md",
+                "docs/notes.txt",
+                "node_modules/x/yarn.lock",
+                ".venv/lib/setup.py",
+            ],
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert not inspection.coverage_reasons
+
+
 class TestPathSafety:
     def test_accepts_normal_paths(self):
         assert _safe_repo_path("requirements.txt")
