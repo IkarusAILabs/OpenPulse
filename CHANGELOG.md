@@ -2,6 +2,12 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Fixed
+
+- **`openpulse gate` no longer crashes when a private-name list is in use.** Since v0.15.0 the gate loaded `.openpulse/private-packages.txt` (or `--private-names`) and then passed the loaded names where a file path was expected, so any gate whose policy needs trust checks died with a `TypeError` (exit 1) instead of gating. The GitHub Action passes the base branch's list whenever it has one, so every Action gate in such a repository failed this way. `attest` now also tells the policy which dependencies are private, so they are no longer counted as unchecked. Regression tests in `tests/test_gate_command.py`.
+
 ## 0.16.0 "Reputation Evidence" — 2026-11-03
 
 Track T Phase 2 (T-C): three reputation indicators, each measured on a recorded set of real, legitimate packages before it shipped, and each reported on its own, never summed and never a verdict.
