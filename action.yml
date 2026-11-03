@@ -1,6 +1,6 @@
 name: OpenPulse dependency intelligence
 # Marketplace limit: the description must stay under 125 characters.
-description: Evidence-first EOL, license and registry change alerts for your dependencies, as SARIF and a job summary.
+description: Evidence-first dependency trust gates and upstream change alerts (EOL, licence, registry), as SARIF and a job summary.
 author: IkarusAILabs
 branding:
   icon: activity

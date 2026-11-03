@@ -1,54 +1,89 @@
-# OpenPulse — Software Ecosystem Intelligence
+# OpenPulse — Evidence for Dependency Decisions
 
 [![ci](https://github.com/IkarusAILabs/OpenPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/IkarusAILabs/OpenPulse/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)
 
-> **Watch what can change underneath your software.**
+> **Know why you trust your dependencies, and know when they change underneath you.**
 >
-> OpenPulse is an evidence-first intelligence system that discovers meaningful changes in the open-source software ecosystem, establishes their identity and applicability, and produces machine-readable evidence about their potential impact on software dependencies.
->
-> From *"What is happening in open source?"* to *"What is happening to MY software?"*
+> OpenPulse produces cited, machine-readable evidence for the two moments a dependency decision is made: **before** a package comes in (is it what it claims to be?), and **after** it is in (did something change upstream that affects us?). It answers where those decisions happen: in AI coding agents, in pre-commit and CI gates, and in the tools security teams already use.
 
-OpenPulse is the **Software Ecosystem Evidence Plane** of the [Ikarus AI Labs research programme](https://ikaruslabs.net/research) on Evidence-Based Assurance for AI-Mediated Software Change — not an EOL monitor, not an AI security product.
+OpenPulse is the **Software Ecosystem Evidence Plane** of the [Ikarus AI Labs research programme](https://ikaruslabs.net/research) on Evidence-Based Assurance for AI-Mediated Software Change.
 
 ## Research status
 
 OpenPulse is **academic research software**. It is developed by [Ikarus AI Labs](https://ikaruslabs.net), a non-profit research initiative based in Cambridge, UK. It is one of three research instruments in the programme [Evidence-Based Assurance for AI-Mediated Software Change](https://ikaruslabs.net/research), alongside [SafeAI](https://github.com/IkarusAILabs/SafeAI) and HaltAI ([project page](https://ikaruslabs.net/openpulse)).
 
-- **What it is.** A working implementation built to study one question: what evidence should exist before a dependency is reported as affected, or as not affected? The technical report [TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf) describes its decision model and an audit of release v0.8.0.
+- **What it is.** A working implementation built to study one question: what evidence should exist before a dependency is reported as affected, as not affected, or as trustworthy enough to add? The technical report [TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf) describes its decision model and an audit of release v0.8.0.
 - **What it is not.** It is not a commercial product or a certified security control.
-  - Evidence and coverage remain bounded. The report lists the open defects and limitations.
+  - Evidence and coverage remain bounded. The report and [Known limits](#known-limits) list them.
   - Nothing beyond the Apache-2.0 licence is offered: no warranty and no service level.
-  - Review a verdict before acting on it. *Related* does not mean affected, and *unknown* does not mean not affected.
+  - Review a verdict before acting on it. *Related* does not mean affected, *unknown* does not mean not affected, and no finding does not mean safe.
 - **How to read its claims.** The programme separates what is *established* (backed by published or reproducible evidence) from what is *observed* in the current implementation and what is still a *hypothesis*. The report's retrospective study is exploratory. Its prospective, independently labelled evaluation has not yet been run.
 - **Collaboration.** We welcome independent replication, annotation and evaluation. The evaluation protocol is open ([`evaluation/REGISTRATION.md`](evaluation/REGISTRATION.md)). Contact us through [ikaruslabs.net](https://ikaruslabs.net).
 
 <img width="1024" height="1024" alt="OpenPulse" src="https://github.com/user-attachments/assets/f7e4b9c9-6f7c-49fa-8950-a5d1594829b7" />
 
-Most security tools tell you when your dependencies have a vulnerability.
-OpenPulse watches for something different: **what can change underneath your software.**
-We monitor the open-source ecosystem for end-of-life, support and license changes, registry and distribution changes, ownership changes, breaking changes and other supply-chain signals — then map those changes to the dependencies you actually use.
-So instead of another giant list of things happening in open source, OpenPulse answers:
+## What OpenPulse offers
 
-> *"Something changed upstream. Does it affect us?"* — with evidence.
+AI coding agents add and upgrade dependencies faster than anyone reviews them, and most of what can go wrong with a dependency never becomes a CVE: a name an agent invented and an attacker registered, a lockfile hash swapped for another artifact, a release published by someone new, an image catalog moved behind a subscription, a release line that reached end of life. OpenPulse turns those into evidence a person, a pipeline or an agent can act on.
 
-## Know Your Agent. Know Your Dependencies.
-
-OpenPulse is part of the [Ikarus AI Labs](https://ikaruslabs.net) research programme. SafeAI and OpenPulse are intentionally separate instruments — combined-model claims stay out of this repo until the joint experiment runs:
-
-| Question | Project | Answer |
+| Your question | What OpenPulse gives you | Where |
 |---|---|---|
-| What can this AI agent do? | [SafeAI](https://github.com/IkarusAILabs/SafeAI) — **KYA, Know Your Agent** | Agent capabilities, prompt risks, tool permissions |
-| What does the software it creates depend on? | **OpenPulse — KYD, Know Your Dependencies** | Upstream change intelligence mapped to your dependencies |
+| *Is this package what it claims to be?* | Trust evidence for PyPI and npm packages: published malicious-package records, registry existence, lockfile digests, build provenance, repository linkage, dependency confusion, lookalike names, and reputation indicators | AI agents ([MCP](docs/MCP.md)), `openpulse trust` |
+| *Should this change be allowed in?* | A deterministic trust policy that fails pre-commit, CI and `check`/`attest` runs on the conditions you prohibit, and fails closed when it cannot check | `openpulse gate`, pre-commit hook, [GitHub Action](docs/GITHUB_ACTION.md), [policy](docs/TRUST_POLICY.md) |
+| *Something changed upstream. Does it affect us?* | Applicability verdicts for your exact versions and images against curated, evidence-gated upstream events: end of life and support, distribution, licence, ownership and breaking changes, plus OSV advisories | `openpulse check`, `attest`, `digest`, `warnings`, the Action |
+| *What is happening in the projects we depend on?* | Monthly intelligence and lifecycle reports over a 107-project catalog, with registry observation and discovery | `openpulse report`, `lifecycle-report`, `observe`, `sweep`, `discover` |
+| *How do we prove what we checked?* | Evidence contracts (JSON Schema, content-hashed) and SARIF, DefectDojo and Dependency-Track exports built from them | [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md), [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) |
 
-AI can introduce dependencies faster than humans can review them. OpenPulse helps you understand what those dependencies depend on — and what happens when the ecosystem underneath them changes. **AI writes code fast. OpenPulse watches what that code depends on.**
+What makes the evidence usable:
 
-The agents can now ask OpenPulse themselves: [`openpulse mcp`](docs/MCP.md) is an MCP server, so Claude Code, Cursor or Copilot can check whether a dependency is end-of-life, changed upstream or affected by advisories *before* adding it.
+- **Evidence, not scores.** Every result cites its sources and states one status from a closed vocabulary. There is no risk score and no SAFE status. Indicators are reported one by one and never summed.
+- **Unknown stays unknown.** A source that did not answer, a spent lookup budget, or an unreadable file is reported as not established, never as clean. The pre-install gate fails closed on it.
+- **Measured before it ships.** Every trust indicator's false-positive rate on real, legitimate packages is measured and published ([`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md)). An indicator that fires on legitimate packages can only be prohibited for packages you name; one without a measured rate is labelled experimental.
+- **Honest verdicts.** `RELATED ≠ AFFECTED`, `AFFECTS_PROJECT ≠ AFFECTS_VERSION`, `UNKNOWN ≠ NOT_AFFECTED`. A NOT_AFFECTED needs a complete scope, a resolved identity and evidence fetched within 90 days.
+- **No model in the decision path.** Verdicts, trust statuses and policy decisions are deterministic code. Upstream text is never passed to an agent as instructions.
 
-## Use it in GitHub Actions
+## Get started
 
-Run OpenPulse on every pull request that touches a dependency file, and weekly to catch upstream changes no PR triggered. You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
+**For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
+
+```bash
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.15.0"
+claude mcp add openpulse -- openpulse mcp      # Claude Code
+```
+
+> **Install name:** OpenPulse is distributed as **`ikarus-openpulse`**. The name `openpulse` on PyPI belongs to an unrelated project (OpenQASM's pulse AST), so never `pip install openpulse`. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as shown. The command you run is still `openpulse`.
+
+| Tool | Answers |
+|---|---|
+| `dependency_status` | For one package version or image: end of life or support, curated upstream changes, OSV advisories for *this* version, and a `trust` block with every trust check |
+| `check_dependency_file` | The same verdicts for every pinned entry of a manifest, lockfile, SBOM or image list, with trust checks for the dependencies a change adds (`base_path`) or for all of them |
+| `project_lifecycle` | Which release lines of a project are still supported, so the agent can pick one |
+
+Every tool is read-only, file checks are confined to the project root, and every answer lists what it could not establish. An MCP answer is advice to the agent, not a security boundary: enforce with a policy (below). Setup for each client: [docs/MCP.md](docs/MCP.md).
+
+**Before install: a trust policy and a gate.** Write `.openpulse/policy.yml`:
+
+```yaml
+version: 1
+prohibit:
+  - confirmed_malicious              # an OSV MAL- record, cited
+  - not_found_in_registry            # a name nobody published (or an agent invented)
+  - digest_mismatch                  # a locked artifact the registry does not serve
+  - condition: lookalike_name        # indicators must name the packages they apply to
+    packages: ["npm:@acme/*"]
+blocklist:
+  - "npm:event-stream"
+```
+
+```bash
+openpulse gate requirements.txt poetry.lock --base-ref origin/main   # CI, before pip install
+```
+
+Only dependencies added or changed since the ref are checked; the blocklist covers everything. Exit 0 passes, 1 is a violation, 2 is a usage error or a file it cannot read. A prohibited check that could not run fails the gate unless the policy says `unchecked: pass`. The same gate runs as a pre-commit hook (add the `openpulse-gate` hook from this repository to your `.pre-commit-config.yaml`) and as the GitHub Action's `gate` input, which reads the policy from the base branch so a pull request cannot weaken its own gate. Conditions, labels and bypass routes: [docs/TRUST_POLICY.md](docs/TRUST_POLICY.md).
+
+**In GitHub Actions.** Run OpenPulse on every pull request that touches a dependency file, and weekly to catch upstream changes no pull request triggered. You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
 
 ```yaml
 permissions:
@@ -59,502 +94,256 @@ steps:
   - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.15.0
     with:
       manifest: requirements.txt
-      fail-on: action   # fail only on ACTION/CRITICAL findings
+      fail-on: action        # fail only on ACTION/CRITICAL upstream findings
+      trust: pull-request    # trust-check what the pull request adds or changes
 ```
 
 Inputs, permissions, SARIF levels and full workflows: [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
-## Use it from AI coding agents (MCP)
-
-AI agents add and upgrade dependencies faster than anyone reviews them. `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server that lets Claude Code, Cursor, Copilot and other MCP clients ask OpenPulse **before** they change a dependency.
+**Upstream change checks from the command line.**
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.15.0"
-claude mcp add openpulse -- openpulse mcp      # Claude Code
+pip install -e ".[dev]"
+openpulse demo-bitnami                     # the reference case, offline
+openpulse check --lockfile poetry.lock --event data/fixtures/django-eol/event.json
+openpulse trust requirements.txt --base base-requirements.txt
 ```
 
-> **Install name:** OpenPulse is distributed as **`ikarus-openpulse`**. The name `openpulse` on PyPI belongs to an unrelated project (OpenQASM's pulse AST), so never `pip install openpulse`. Until `ikarus-openpulse` is published on PyPI, install from the pinned release tag as shown. The command you run is still `openpulse`.
+More commands are in the [Command reference](#command-reference).
 
-Other clients take the usual JSON entry:
+## Trust evidence: before a dependency comes in
 
-```json
-{ "mcpServers": { "openpulse": { "command": "openpulse", "args": ["mcp"] } } }
-```
+Track T of the [roadmap](docs/ROADMAP.md), *AI Dependency Trust Assurance*. Each check is evidence to review and never part of an upstream-change verdict. They run for PyPI and npm packages.
 
-| Tool | Answers |
-|---|---|
-| `dependency_status` | Is this package version or image end-of-life or end-of-support? Is it hit by a curated upstream change (distribution, license, support model)? Which OSV advisories affect *this* version? |
-| `check_dependency_file` | The same, for every pinned entry of a manifest, lockfile, SBOM or image list in the project |
-| `project_lifecycle` | Which release lines of a project are still supported, so the agent can pick one |
+| Check | Question | Strongest result | Measured on legitimate packages |
+|---|---|---|---|
+| `malicious` | Does OSV publish a malicious-package (`MAL-`) record for it? | CONFIRMED_MALICIOUS, with the record cited | cited record |
+| `registry_existence` | Do the package and version exist in their registry? (A name an agent invented does not.) | VERIFIED_FAILURE | failed check |
+| `digest_integrity` | Is each hash a lockfile pins one the registry publishes? | VERIFIED_FAILURE | failed check |
+| `provenance` | Do the PyPI release's PEP 740 attestations verify (Sigstore), and from which repository? | VERIFIED_FAILURE | failed check |
+| `repository_linkage` | Is the package from the GitHub repository its metadata claims (starjacking)? | VERIFIED_FAILURE, or an indicator | failed check; indicator experimental |
+| `dependency_confusion` | Does a public package carry one of your private names? | indicator | experimental |
+| `lookalike` | Does the name resemble a popular one (separator, edit distance, confusable, scope)? | indicator | 18.8% of popular npm names |
+| `publisher_change` | Was this release published by an account or provenance publisher the earlier releases did not use? | indicator | 4.6% of npm releases, 0.7% of PyPI releases |
+| `repository_moved` | Does the claimed repository now answer under another name? | indicator | 4.1% of repositories |
+| `young_popular_repository` | Is the repository younger than 180 days with at least 1000 stars? | indicator | experimental |
 
-Every answer cites its sources and lists what it could **not** establish. UNKNOWN never means safe, and the agent and its human make the decision.
+An indicator (SUSPICIOUS_INCONCLUSIVE) is never a verdict: legitimate projects change maintainers, move to organisations and launch to many stars. `publisher_change`, `repository_moved` and `young_popular_repository` are on `main` and ship in v0.16.0. Rates and method: [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md).
 
-How the server is limited:
+Where the evidence goes:
 
-- Every tool is read-only.
-- File checks are confined to the project root (`--root`).
-- Lookups go only to endoflife.date, OSV and the GitHub API, and are cached per session.
-- `--offline` restricts it to the bundled curated events.
+- **Agents:** the `trust` block in `dependency_status` and `check_dependency_file`, with what needs attention listed first.
+- **People:** `openpulse trust FILE [--base EARLIER]` (report-only) and `openpulse confusion` for your private names.
+- **Gates:** the trust policy in `openpulse gate`, `check --policy`, `attest --policy` and the Action.
+- **Records:** `attest --trust` writes each dependency's checks into the evidence contract's `trust_assurance` (contract 2.3.0), covered by its content hash, and into SARIF and DefectDojo.
 
-The SDK and its dependencies are an optional extra with its own audited lock (`requirements-mcp.lock`).
+## Upstream change intelligence: after it is in
 
-Setup for Claude Code, Cursor, VS Code/Copilot, Claude Desktop and Windsurf, the tool reference, an example answer and troubleshooting: [docs/MCP.md](docs/MCP.md).
+<img width="1024" height="1024" alt="The problem we solve" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
 
-## Send findings to DefectDojo
-
-Security teams already triage in DefectDojo, so OpenPulse findings can go there directly. `attest --defectdojo` writes DefectDojo's **Generic Findings Import** format, built from the same evidence contracts as the JSONL and SARIF outputs.
-
-```bash
-openpulse attest --lockfile poetry.lock --event data/fixtures/django-eol/event.json   --defectdojo openpulse-defectdojo.json
-```
-
-```bash
-curl -sS -X POST "$DEFECTDOJO_URL/api/v2/import-scan/" -H "Authorization: Token $DEFECTDOJO_TOKEN" -F scan_type="Generic Findings Import" -F engagement="$ENGAGEMENT_ID" -F file=@openpulse-defectdojo.json
-```
-
-In the UI, open the engagement and choose **Import Scan Results** with scan type *Generic Findings Import*.
-
-| Contract | DefectDojo severity |
-|---|---|
-| Affected, CRITICAL impact | Critical |
-| Affected, ACTION impact | High |
-| Affected, REVIEW impact | Medium |
-| Affected, WATCH or INFORMATIONAL impact | Low |
-| RELATED, or a dependency no event applies to | Info |
-| NOT_AFFECTED | not exported |
-
-Each finding includes:
-
-- the evidence URLs, the recommendation, and what could not be established;
-- the hash of the evidence contract it came from;
-- a stable `unique_id_from_tool`, so re-imports deduplicate instead of piling up.
-
-## Send findings to Dependency-Track
-
-Dependency-Track only tracks vulnerabilities, so OpenPulse findings go in as **INTERNAL vulnerabilities**, one per OpenPulse event (`OPENPULSE-<event id>`), assigned to the affected components of your DT project:
-
-```bash
-openpulse attest --sbom bom.json --event data/fixtures/django-eol/event.json --output contracts.jsonl
-openpulse dependency-track --contracts contracts.jsonl --dry-run
-```
-
-```bash
-OPENPULSE_DTRACK_API_KEY=... openpulse dependency-track --contracts contracts.jsonl --url https://dtrack.example --project-name my-app --project-version 1.4.0
-```
-
-- **What is pushed:** only *affected* pairs. RELATED and UNKNOWN pairs stay in the JSONL, SARIF and DefectDojo outputs, because DT treats anything assigned as vulnerable.
-- **Matching:** components are matched by group, name and version inside the project. Dependencies that aren't components of the project are reported, never guessed onto a different component.
-- **Re-runs:** pushing again reuses existing vulnerabilities, so nothing duplicates.
-- **Credentials:** the API key is read only from `OPENPULSE_DTRACK_API_KEY`, never from the command line. It needs the `VULNERABILITY_MANAGEMENT` and `PORTFOLIO_MANAGEMENT` permissions.
-- **Transport:** HTTPS is required unless you pass `--allow-http`, and redirects are never followed.
-
-## The problem we solve
-
-<img width="1024" height="1024" alt="The problem we solve 2" src="https://github.com/user-attachments/assets/be884e68-0482-4954-aba1-907286d258c6" />
-
-In July 2025, Bitnami announced that effective **28 August 2025** its public `docker.io/bitnami` catalog would stop publishing versioned images: existing tags move to an unmaintained `bitnamilegacy` archive, the mainline goes `latest`-only community tier, and production use requires a Bitnami Secure Images subscription. Miss that one announcement and CI/CD pipelines, Helm releases, and production pulls break — with no CVE ever filed, so no scanner fires.
-
-Bitnami is the pattern, not the exception:
+In July 2025, Bitnami announced that from **28 August 2025** its public `docker.io/bitnami` catalog would stop publishing versioned images: existing tags moved to an unmaintained `bitnamilegacy` archive, and production use needed a subscription. Pipelines, Helm releases and production pulls broke, and no CVE was ever filed, so no scanner fired.
 
 | Signal | Example | Covered by traditional SCA? |
 |---|---|---|
 | CVE | Critical vulnerability | ✅ |
-| EOL / EOS | `Node.js 18` unmaintained, support window ends | ⚠️ partial |
-| License change | OSS → restrictive/commercial | ⚠️ partial |
-| Distribution change | Registry/image deleted, tags moved | ❌ |
-| Support change | Community → paid subscription | ❌ |
-| Ownership / maintainer change | Project acquired, maintainer leaves | ❌ |
-| Repo health collapse | Activity dies, releases stop | ⚠️ partial |
-| Breaking roadmap | Major incompatible release | ⚠️ partial |
-| AI selection risk | Coding agent picks an obsolete package | ❌ |
+| End of life or support | A release line stops receiving fixes | ⚠️ partial |
+| Licence change | Open source to restrictive or commercial | ⚠️ partial |
+| Distribution change | Registry or image deleted, tags moved | ❌ |
+| Support model change | Community to paid subscription | ❌ |
+| Ownership or maintainer change | Project transferred, maintainer leaves | ❌ |
+| Breaking change | Major incompatible release | ⚠️ partial |
 
-Every row above is a production incident waiting for a team that only watches CVEs.
+How OpenPulse answers *"does it affect us?"*:
 
-## Intelligence, not aggregation
+- **Evidence-gated events.** Every event carries source URLs, announcement and effective dates, and a confidence level (`CONFIRMED`, `CORROBORATED`, `EMERGING`, `UNVERIFIED`). A source counts as official only when its host is on the project's allowlist, and sources sharing a registrable domain count once. `UNVERIFIED` can never produce an `ACTION`.
+- **Identity before impact.** `docker.io/bitnami/redis` and `docker.io/redis` are different projects, so a Bitnami distribution event alerts Bitnami users without false-alarming upstream Redis users. Untrusted identity mappings cap the verdict.
+- **Your exact versions.** Watchlists, CycloneDX and SPDX SBOMs, image lists, `package-lock.json`, `poetry.lock` and `Cargo.lock`, `requirements.txt`, `pyproject.toml`, `pom.xml`, `go.mod`, `Cargo.toml`, and whole GitHub repositories (commit- and blob-pinned, with stated inspection coverage) all go through one verdict engine.
+- **Early warning.** `digest` and `warnings` list upcoming deadlines; scheduled `check --webhook` posts each new alert once, with retries and signed posts ([`docs/SCHEDULED_CHECKS.md`](docs/SCHEDULED_CHECKS.md)). A detection ledger records when OpenPulse first saw each change, so lead time can be measured. With a history key the ledger is tamper-evident ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
+- **Discovery.** `openpulse discover` probes the repositories and images your files name, and `observe` and `sweep` diff registry observations, turning moves, archives and removed tags into events.
 
-A report item should demonstrate intelligence, not repeat news. Not:
-
-> Redis — EOL approaching.
-
-But:
-
-> **Redis 7.x — support lifecycle change detected**
-> Evidence: official lifecycle information ·
-> Potential impact: organisations running affected versions ·
-> Recommended attention: migration planning
-
-That is the bar for every OpenPulse event: **what changed, the evidence, who may be affected, and what to investigate.**
-
-## One instrument, progressively more specific
-
-<img width="1024" height="1024" alt="What is changing in MY dependencies2" src="https://github.com/user-attachments/assets/c2930ba2-0866-4de4-b6b5-b028014b8026" />
-
-
-| Level | Question | OpenPulse answer | Status |
-|---|---|---|---|
-| Public | "What is happening in OSS?" | Monthly OSS Dependency Risk Report — first edition: [September 2026](reports/2026-09-openpulse.md) (100 projects, every item sourced) | ✅ Published |
-| Projects | "What is changing in the OSS projects I care about?" | OSS Dependency Intelligence — this repo | 🔨 In development |
-| Dependencies | "What is changing in MY dependencies?" | Dependency Early Warning — watchlist + impact matching (`openpulse check`, [scheduled runs](docs/SCHEDULED_CHECKS.md)) | Early preview |
-| AI-mediated | "What dependencies is AI introducing?" | Know Your Dependencies: agents ask OpenPulse before they change a dependency ([`openpulse mcp`](docs/MCP.md)) | Early preview |
-
-## The metric that matters: Early Warning Lead Time
-
-Repositories monitored is a vanity metric. The one this research cares about is:
-
-> **Early Warning Lead Time** — time between OpenPulse detecting a material upstream change and that change producing an observable impact on a user's environment.
-
-"Detecting" means first trustworthy detection (`first_detected_at`), never the latest re-observation; unknown first detection means no lead-time claim. The goal: *"We identified an upstream change 47 days before it affected a user's pipeline."* We will not publish an average until independently measured incidents make it defensible — until then, verified case studies (Bitnami first).
-
-## What OpenPulse does
-
-```
-Upstream world                      OpenPulse engine                    You
-GitHub releases ─┐                    ┌───────────────┐
-OSV / NVD / CVE ─┼─ collectors ─────▶ │ Change Analyst │── findings ──┐
-CISA KEV ────────┤   (7 sources)      │ Security Analyst│             ▼
-endoflife.date ──┤                    │ Evidence Analyst│── gate ─▶ OSSEvent ─▶ are YOU affected?
-Docker Hub ──────┘                    │ Report Analyst │   (confidence + impact + evidence)
-                                      └───────────────┘
-```
-
-<img width="1024" height="1024" alt="EarlyWarningLeadTime1" src="https://github.com/user-attachments/assets/04ebb832-2ae7-4e59-8e34-dba9ec0552dd" />
-
-Principles that make it different:
-
-- **Evidence-first.** Every event carries source URLs, announcement/effective dates, and a confidence level (`CONFIRMED` / `CORROBORATED` / `EMERGING` / `UNVERIFIED`). No black boxes.
-- **No mystery scores.** Instead of `Risk: 72`, you see per-facet signals — activity, security, lifecycle, support, license, distribution, popularity.
-- **Impact attribution.** `docker.io/bitnami/redis` and `docker.io/redis` resolve to *different* canonical projects, so a Bitnami distribution event alerts Bitnami users without false-alarming upstream Redis users.
-- **Honest verdicts.** `RELATED ≠ AFFECTED`, `AFFECTS_PROJECT ≠ AFFECTS_VERSION`, `UNKNOWN ≠ NOT_AFFECTED` — same project never means affected, and cleared dependencies say `NOT_AFFECTED`, not "no match".
-- **Analysts, not one giant agent.** Four small, deterministic, testable analysts. The evidence gate has veto power.
+**The metric that matters: Early Warning Lead Time**, the time between OpenPulse first detecting a material upstream change and that change affecting a user. "Detecting" means first trustworthy detection, never the latest re-observation. Verified cases are in [`docs/LEAD_TIME_CASES.md`](docs/LEAD_TIME_CASES.md), each with its dates and how to reproduce it. No average is published: a forward detection lead has not yet been independently measured, and the Bitnami case is recorded as an announcement lead, not a detection.
 
 ## What OpenPulse is not
 
-| Existing category | Asks | OpenPulse instead asks |
+| Existing category | Asks | OpenPulse instead |
 |---|---|---|
-| Lifecycle database (endoflife.date) | When does software reach EOL? | What is changing upstream, and does it affect what I depend on? |
-| Vulnerability database (OSV/NVD) | Is this package vulnerable? | Same question, plus: is the match identity-strong or keyword-only? |
-| SCA / scanners | What dependency risks exist in my code? | What changed upstream since we last looked? |
-| Dependency updater | Should I upgrade? | What breaks if I don't — and by when? |
-
-endoflife.date is one of our sources, not our definition: lifecycle data
-enters as raw signals, gets correlated into stories, and is gated like
-everything else. We do not compete on EOL record counts.
+| Malicious-code scanners | Does this package's code behave maliciously? | Does not analyse code. It cites published malicious-package records and checks identity, integrity, provenance and reputation evidence, each with its status |
+| Vulnerability databases (OSV, NVD) | Is this package vulnerable? | Uses them as sources, and says whether the match is identity-strong or keyword-only |
+| Lifecycle databases (endoflife.date) | When does software reach end of life? | Uses it as one source; asks what changed upstream and whether it affects your exact versions |
+| SCA scanners and dependency updaters | What risks exist in my code? Should I upgrade? | Asks what changed upstream since you last looked, what breaks if you don't act, and by when |
+| Repository scorecards | How healthy is this project? | Reports individual, cited indicators with measured false-positive rates; never a score |
 
 ## Who it's for
 
-- **Software security teams / AppSec** — extend vulnerability management beyond CVEs: EOL software, exploited-in-the-wild (CISA KEV) correlation, license and support-model drift, with evidence you can paste into a risk register.
-- **Platform / DevOps engineers** — early warning before registry deletions, tag removals, and chart breakages hit pipelines. The Bitnami case is the reference implementation.
-- **Engineering leaders** — useful lead time before an upstream change becomes a production problem, ranked by action-worthiness instead of CVE counts.
-- **Researchers** — an inspectable decision model, an executable oracle, frozen study data and an open evaluation protocol to replicate, criticise or extend ([TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf), [`evaluation/`](evaluation/)).
-- **Contributors** — a clean, typed Python codebase where every collector and analyst is a pure, tested function. See [Contributing](#contributing).
+- **Teams using AI coding agents:** agents check a dependency before adding it, and a policy gate holds whatever the agent decided to the same rules.
+- **AppSec and supply-chain security:** trust evidence and gates before install, evidence beyond CVEs after, delivered into SARIF, DefectDojo and Dependency-Track.
+- **Platform and DevOps engineers:** early warning before registry deletions, tag removals and support changes hit pipelines. The Bitnami case is the reference implementation.
+- **Researchers:** an inspectable decision model, an executable oracle, frozen study data, published measurements and an open evaluation protocol to replicate, criticise or extend ([TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf), [`evaluation/`](evaluation/)).
+- **Contributors:** a typed Python codebase where every collector, check and analyst is a pure, tested function. See [Contributing](#contributing).
+
+## Known limits
+
+- **Ecosystems.** Trust checks cover PyPI and npm. Upstream-change verdicts cover the formats listed above; Maven, Go and Cargo entries get verdicts but no trust checks.
+- **Exact pins only.** Unpinned entries (`flask>=2`) are never range-guessed: they are listed as not checked. Gate the lockfile.
+- **Curated events.** Upstream-change verdicts are as good as the events supplied: seven curated reference events ship in `data/fixtures/`, plus what `discover` and `sweep` find. The catalog covers 107 projects.
+- **Live sources.** Checks depend on OSV, the registries and the GitHub API. Without `GITHUB_TOKEN`, GitHub allows 60 requests an hour, so GitHub-backed checks may be not performed on large runs; the gate then fails unless the policy says `unchecked: pass`.
+- **Advice versus enforcement.** MCP answers are advice an agent can ignore; only a policy in a gate or CI enforces. A pre-commit hook can be skipped locally, so run the gate in CI as a required check.
+- **Distribution.** Not yet on PyPI: install from a pinned release tag. Releases are built and attested in CI (`gh attestation verify <file> --repo IkarusAILabs/OpenPulse`).
+
+The full list, including what an attacker with write access to local history can do: [`SECURITY.md`](SECURITY.md).
 
 ## Status — working today
 
-- **7 collectors**: GitHub releases, OSV, NVD, MITRE CVE, CISA KEV, endoflife.date, Docker Hub registries. All degrade gracefully (errors become data, never crashes).
-- **4 analysts**: Change, Security, Evidence, Report — plus an evidence gate (`UNVERIFIED` can never emit `ACTION`).
-- **Change engine**: digest-aware registry observations with a
-  tamper-evident (keyed) local history: hash-chained records, frozen
-  sealed records and per-repo locks; with a history key the history is
-  MACed, rollback and downgrade are refused, and `openpulse anchor` /
-  `verify` catch deletions against a checkpoint kept outside the store
-  (without a key the history is corruption-detecting only),
-  observation diffs (`openpulse observe`), catalog sweep with
-  first-detection tracking (`openpulse sweep`, `report --with-sweep`).
-- **Entity resolution**: canonical catalog with PURL builders,
-  Bitnami-namespace rules, and identity trust (VERIFIED /
-  REVIEW_REQUIRED / UNVERIFIED — untrusted mappings cap verdicts at
-  EMERGING).
-- **AI coding agents (MCP)**: `openpulse mcp` gives Claude Code, Cursor, Copilot and other MCP clients three read-only tools (`dependency_status`, `check_dependency_file`, `project_lifecycle`) backed by live endoflife.date, OSV and GitHub lookups and the same verdict engine as `check` ([docs/MCP.md](docs/MCP.md)).
-- **Security-team tools**: `attest --defectdojo` writes DefectDojo Generic Findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track as INTERNAL vulnerabilities. Both are built from the same evidence contracts as SARIF.
-- **CLI**: validate events, run analysts live or offline, observe registries, sweep the catalog, render per-project Pulse, generate monthly reports, check watchlists, CycloneDX or SPDX SBOMs, npm/poetry/Cargo lockfiles, requirements/pyproject/pom/go.mod/Cargo manifests (namespaced Maven POMs included), and GitHub repositories (`--github-repo`, commit- and blob-SHA-pinned, with COMPLETE/PARTIAL/FAILED inspection coverage; manifests, lockfiles, SBOMs and image lists found in the repo are all read) with digest + webhook delivery, show upcoming deadlines (`openpulse digest`, `openpulse warnings`), emit evidence-contract 2.1 documents (`openpulse attest`), and replay the Bitnami case end to end. Webhook delivery enforces an SSRF policy (https by default; `--webhook-allow-http` opts in) and never prints the webhook URL path; pass the URL as `OPENPULSE_WEBHOOK_URL` and tokens as `GITHUB_TOKEN` to keep them out of the process list.
-- **740+ offline tests** (count reported by CI), `ruff` clean, CI green (Linux + Windows, incl. CodeQL + pip-audit, lock-drift check, deterministic SBOM, secret tripwire).
+- **Trust checks:** the ten checks above, a trust policy, `openpulse gate`, a pre-commit hook and the Action's `gate` and `trust` inputs, with bypass routes tested and documented.
+- **Verdict engine:** identity resolution over a 107-project catalog with PURL builders and identity trust (VERIFIED, REVIEW_REQUIRED, UNVERIFIED), release-line-aware matching, bounded evidence age and stated meaning for every verdict.
+- **Collectors:** GitHub, OSV, NVD, MITRE CVE, CISA KEV, endoflife.date and Docker Hub, plus PyPI, npm and the GitHub API for trust checks. Errors become data, never crashes; every response is size-capped while it streams.
+- **Analysts:** Change, Security, Evidence and Report, behind an evidence gate with veto power.
+- **History:** hash-chained registry observations and a detection ledger, MACed with a history key, with anchors kept outside the store. History committed to the repository is refused.
+- **Outputs:** evidence contract 2.3.0 (older versions still validate), SARIF 2.1.0, Markdown summaries, DefectDojo, Dependency-Track, signed webhooks, and monthly and lifecycle reports.
+- **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
-## What's new in v0.15
+## What's new
 
-v0.15.0 "Pre-Install Gates" applies the v0.14 trust policy where dependencies enter, before anything is installed. Nothing new blocks unless your policy says so. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+**On `main`, in the next release (v0.16.0 "Reputation Evidence"):**
 
-- **`openpulse gate`.** `openpulse gate requirements.txt poetry.lock --base-ref origin/main` applies the policy to dependency files alone. Only what changed since the ref is trust-checked; the blocklist covers everything. Exit 0 pass, 1 violation, 2 usage error ([`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md)).
-- **Pre-commit hook.** Add `openpulse-gate` from this repository to `.pre-commit-config.yaml`, and a commit is checked for the dependencies it adds or changes.
-- **Before install in CI.** The Action's `gate` input runs before `pip install` or `npm ci`, reading the base branch's files and policy, so a pull request cannot weaken its own gate ([`docs/GITHUB_ACTION.md`](docs/GITHUB_ACTION.md)).
-- **Bypass routes.** `git commit --no-verify` is caught by the CI gate; the routes no gate can cover are tested and documented with what to do instead.
+- **Reputation indicators:** `publisher_change`, `repository_moved` and `young_popular_repository`, each measured on a recorded set of legitimate packages first, in the trust block, the policy, SARIF and DefectDojo.
+- **Evidence contract 2.3.0:** `trust_assurance` may name the three new checks; 2.2 is published unchanged beside it.
+- **The gate fails closed:** a file it cannot read exits 2, and a prohibited check that could not run fails the gate (`unchecked: pass` opts out). Entries it does not check are listed.
+- **Local history must be local:** a store, ledger or delivery state that git tracks is refused.
 
-## What's new in v0.14
+**v0.15.0 "Pre-Install Gates":** `openpulse gate`, the pre-commit hook and the Action's `gate` input apply the trust policy before anything is installed.
 
-v0.14.0 "Enforced Trust" turns trust evidence into CI gates that do not depend on an agent: an agent can skip or ignore an advisory answer, but not a failing check. Nothing new blocks unless your policy says so. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
+Every release, with upgrade notes: [`CHANGELOG.md`](CHANGELOG.md).
 
-- **Trust policy.** `.openpulse/policy.yml` lists the conditions that fail `check`, `attest` and the GitHub Action: a confirmed-malicious record, a name missing from the registry, a digest or provenance failure, a repository mismatch, and a blocklist. Indicators such as lookalike names must name the packages they apply to ([`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md)).
-- **Measured first.** `benchmarks/trust.py` measures every check offline. Lookalike names fire on 18.8% of real popular npm names, which is why they are an indicator, not a block ([`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md)).
-- **Pull requests.** With `trust: pull-request`, the Action checks only what a pull request adds or changes, and reads the policy from the base branch so a pull request cannot weaken its own gate.
-- **SARIF and DefectDojo.** Trust results are listed separately from verdicts; `error` and High mean your policy prohibits it, never a risk score.
-- **Bypass routes.** Each way around the gate is tested and documented, with what to do for the ones it cannot cover.
-- **Upgrade note.** `dependency_status` no longer repeats `registry_existence`, `provenance` and `lookalike` at the top level: read `trust.checks`.
-
-## What's new in v0.13
-
-v0.13.0 "Agent Trust Evidence" is track T Phase 3: trust evidence reaches agents in one place and goes into the evidence contract. Every check is evidence to review, never part of a verdict. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Known-malicious packages.** OSV's malicious-package records (`MAL-`) are checked for any PyPI or npm name. A hit is `CONFIRMED_MALICIOUS`, always with the record cited.
-- **Dependency confusion.** List your internal names in `.openpulse/private-packages.txt`; OpenPulse reports which of them a public package also uses (`openpulse confusion`).
-- **Starjacking.** Repository linkage checks whether a package is really from the GitHub repository its registry metadata claims, using verified provenance or the repository's own manifest.
-- **One `trust` block for agents.** `dependency_status` gathers every check, counts it and lists what needs attention. Agents can say why they ask (`intent`, `name_source`); that is recorded and never used. **Upgrade note:** read `trust.checks`; the v0.12 top-level fields go in v0.14.0.
-- **Evidence contract 2.2.0.** `openpulse attest --trust` records the checks in each contract's `trust_assurance`, covered by the existing content hash. **Upgrade note:** validate against `schemas/evidence-contract/v2.2/`.
-- **Research recording.** `openpulse mcp --record DIR` keeps a local, opt-in log of what agents ask and are told.
-
-## What's new in v0.12
-
-v0.12.0 "Trusted Inputs" is track T Phase 1: an AI coding agent can check whether a dependency is trustworthy before adding it. Every check is evidence to review, never part of a verdict. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Digest integrity.** For `package-lock.json` and `poetry.lock`, each locked digest is compared with what npm or PyPI publishes. A mismatch means the locked artifact is not the one the registry serves.
-- **PyPI provenance.** PEP 740 attestations are verified with Sigstore through the optional, hash-locked `[provenance]` extra. For curated projects, the publisher is checked against the known repository.
-- **Lookalike names.** A PyPI or npm name that resembles a popular one is flagged, naming the rule (separator, edit distance, confusable, scope) and the name it matched. This is an indicator, never a typosquat verdict.
-- **Check what a change adds.** `check_dependency_file` with `base_path`, or `openpulse trust FILE --base EARLIER`, runs these checks only on dependencies added or changed since the base.
-- **Untrusted text stays out.** Identifiers are validated against registry grammars, and file text is never echoed to an agent.
-
-## What's new in v0.11
-
-**v0.11.1 (patch):**
-- Whole-catalog reports get every project's NVD answer: requests are paced, retried, and use `NVD_API_KEY` if set.
-- A source that fails is named in the report as "unknown, not absent".
-- The MCP tools refuse and never echo non-identifier input.
-
-
-v0.11.0 "Early Warning Operations" makes scheduled alerts dependable and adds the first track T check for AI coding agents. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Webhook change: please read before upgrading.** A scheduled `check --webhook` posts each alert once, not the whole digest every run. Failed posts are retried with backoff and dead-lettered after 5 failed runs. State lives in `.openpulse/deliveries`; cache it in CI like the ledger ([`docs/SCHEDULED_CHECKS.md`](docs/SCHEDULED_CHECKS.md)). `--delivery-state ''` restores the old behaviour.
-- **Signed webhooks.** With `OPENPULSE_WEBHOOK_SECRET`, every post carries an HMAC signature and timestamp. A receiver verifies them with a stdlib-only function that rejects replays older than 5 minutes.
-- **Deadline gate.** `warnings --fail-on critical` fails a CI job on a CRITICAL or OVERDUE deadline.
-- **Does this package exist?** `dependency_status` reports whether a PyPI or npm package and version exist in their registry. A name an agent invented shows up as not found, never as an UNKNOWN. This is the first item of track T, AI dependency trust ([`docs/research/TRACK_T_PHASE0.md`](docs/research/TRACK_T_PHASE0.md)).
-- **MCP limits stated.** Every answer reports its lookup budget, and lookups the budget or a per-file cap skipped are named. `project_lifecycle` caches across sessions.
-
-## What's new in v0.10
-
-v0.10.0 "Verified Releases & Safe Gates" makes releases verifiable and closes the places where an unread input could pass for a clean one. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Gate change: please read before upgrading.** `--fail-on`, in the CLI and the Action's `fail-on`, now fails when a `--github-repo` scan FAILED: a gate never passes on a repository OpenPulse could not read. PARTIAL still fails only `--fail-on-partial`.
-- **Evidence contract 2.1.0.** Runs that inspect no repository (watchlist, SBOM, lockfile, manifest, images) say `NOT_APPLICABLE` coverage instead of `COMPLETE`. Validate against `schemas/evidence-contract/v2.1/schema.json`.
-- **Coverage in every body.** `digest`, `warnings` and the `check --webhook` message say when a repository was not fully read.
-- **Attested releases.** A tag builds the sdist, wheel, SBOM and `SHA256SUMS` with hash-locked tools and signs build provenance for each file. Check a download with `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
-- **Hardening.**
-  - Webhooks connect only to the address that passed the SSRF check (DNS-pinned, with IPv4-mapped, 6to4 and NAT64 forms unwrapped).
-  - `--github-token-file` takes one validated line and warns when other users can read it.
-  - CI drops the job token after checkout, its guard now catches every way pytest can quietly skip tests, and the secret tripwire skips only its own file and virtualenvs.
-
-## What's new in v0.9
-
-v0.9.0 "Anchored Trust" makes the local history tamper-evident and stops trusting what a source says about itself. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Output change: please read before upgrading.** Lead times and sweep first-detection dates are published only from history that verifies under a history key. Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), none are published and the output says so. Create a key with `openpulse history-key generate` and keep it outside `.openpulse/` ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
-- **Tamper-evident history.** A history key MACs every observation and ledger entry, and keys rotate with handover records. Rollback and downgrade are refused until `openpulse observe --rebaseline --reason "..."` accepts them. `openpulse anchor` and `openpulse verify` catch deletions against a checkpoint kept outside the store.
-- **Derived authority and independence.** A source is `official` only when its https host is on the project's allowlist (`data/official_domains.yaml`). Sources whose URLs share a registrable domain count as one, so a renamed copy cannot corroborate itself.
-- **Clock trust.** Detection-ledger stamps outside five minutes of the wall clock, or earlier than the entry, are refused.
-- **Evidence contract 2.0.0.** `openpulse attest` emits 2.0.0: the 1.2 shape, with `content_hash` over RFC 8785 (JCS) canonical JSON so any consumer can recompute it ([`conformance/evidence-contract/verify.mjs`](conformance/evidence-contract/verify.mjs)). Validate against `schemas/evidence-contract/v2/schema.json`.
-
-## What's new in v0.8
-
-v0.8.0 is the release that the technical report [TR-2026-01](papers/tr-2026-01/OpenPulse-TR-2026-01.pdf) describes. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Verdict change: please read before upgrading.** An audit of the verdict engine against a written specification found sixteen defects, thirteen of which could clear an affected dependency or show it as cleared. Fifteen are fixed; one (D16, untrusted identity mappings) is open. A NOT_AFFECTED now needs a scope declared complete *with a recorded basis*, a resolved identity, and evidence fetched within 90 days. Otherwise the answer is RELATED, never a clearance. Uncatalogued packages and images are therefore RELATED more often than before.
-- **Bounded evidence age.** `check`, `attest`, `digest`, `warnings` and the MCP tools apply a 90-day bound by default. Pipelines that replay old fixtures should pass `--replay`.
-- **Evidence contract 1.2.0.** Every verdict states what it does and does not assert (`verdict_meaning`), along with its scope's completeness and evaluation frame.
-
-## What's new in v0.7
-
-v0.7.0 "Channels" brings OpenPulse to where dependency decisions are made, and v0.7.1 hardens how it fetches and installs. Full notes: [`CHANGELOG.md`](CHANGELOG.md).
-
-- **Verdict change: please read before upgrading.** End-of-life events are scoped to release lines (`4.2`, `13`), and versions used to be compared for equality. So `django==4.2.11` or `postgres:13.5` inside an end-of-life cycle was reported NOT_AFFECTED. They are now AFFECTED (#133). CI gates using `--fail-on` (or the Action's `fail-on`) may start failing on lockfiles that used to pass. That is the intended verdict.
-- **AI coding agents.** `openpulse mcp` lets Claude Code, Cursor, Copilot and other MCP clients check a dependency *before* they add it ([docs/MCP.md](docs/MCP.md)).
-- **Security-team tools.** `attest --defectdojo` writes DefectDojo findings, and `openpulse dependency-track` pushes affected findings into Dependency-Track.
-- **Install name.** OpenPulse is distributed as **`ikarus-openpulse`**, because `openpulse` on PyPI is an unrelated project. If you installed it as `openpulse` from git before, run `pip uninstall openpulse` first.
-- **v0.7.1 hardening.**
-  - Every collector response is size-capped while it streams, so a gzip bomb or an oversized reply can't exhaust a run.
-  - Every install in CI and in the GitHub Action is hash-checked against a complete lock, so a tampered or re-uploaded package fails the install.
-- **Since v0.9.0.** The local history is tamper-evident when you set a history key and keep `openpulse anchor` checkpoints outside the store; without a key it stays corruption-detecting ([`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md)).
-
-## Quickstart
+## Command reference
 
 ```bash
 pip install -e ".[dev]"
 
-# 1. Validate the Bitnami reference event (CONFIRMED/ACTION, 3 official evidences)
+# Trust evidence and gates (PyPI and npm)
+openpulse trust requirements.txt --base base-requirements.txt      # report-only
+openpulse confusion .openpulse/private-packages.txt                # your private names, publicly?
+openpulse gate requirements.txt poetry.lock --base-ref origin/main # the policy, before install
+
+# Upstream change verdicts for your dependencies
 openpulse validate --event data/fixtures/bitnami/event.json --strict
-
-# 2. Replay the north-star scenario offline:
-#    Bitnami event -> evidence gate -> which sample dependencies are affected -> report
-openpulse demo-bitnami
-
-# 3. Run live analysts against a real project (network; degrades gracefully)
-openpulse analyze --project redis
-openpulse analyze --project bitnami
-
-# 4. Record a registry observation and diff it against history
-openpulse observe --namespace bitnami --repo redis
-
-# 5. Generate the monthly report (offline bundles or live collectors)
-openpulse report --month 2026-09 --raw-bundle-dir path/to/bundles
-
-# 6. Check your watchlist against an event (Early Warning preview)
+openpulse demo-bitnami                                             # offline reference case
 openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
-
-   # or feed a CycloneDX SBOM (composable with a watchlist)
 openpulse check --sbom data/fixtures/sbom/cyclonedx.json --event data/fixtures/bitnami/event.json
-
-   # SPDX 2.x SBOMs work the same way, and compose with both
 openpulse check --spdx data/fixtures/sbom/spdx.json --event data/fixtures/bitnami/event.json
-
-   # container image inventories compose too (one ref per line, or a YAML list)
 openpulse check --images data/fixtures/images/inventory_sample.txt --event data/fixtures/bitnami/event.json
-
-   # lockfiles too: package-lock.json, poetry.lock or Cargo.lock (pinned entries only,
-   # unpinned/workspace entries are skipped with reasons, never range-guessed)
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json
-
-    # emit one evidence-contract (2.1) JSON document per dependency x event pair (JSONL)
-openpulse attest --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json
-
-    # same contracts as SARIF 2.1.0 (GitHub Code Scanning) + a Markdown summary;
-    # the GitHub Action (action.yml, docs/GITHUB_ACTION.md) wraps this
-openpulse attest --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json --output contracts.jsonl --sarif openpulse.sarif --summary summary.md
-
-    # verdict commands bound evidence age: a NOT_AFFECTED needs evidence fetched
-    # within 90 days (--max-evidence-age-days, --as-of); --replay re-evaluates
-    # recorded evidence with no bound and says so
+openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
+openpulse check --github-repo owner/repo --event data/fixtures/bitnami/event.json   # GITHUB_TOKEN for private repos
 openpulse check --lockfile data/fixtures/lockfiles/poetry.lock --event data/fixtures/django-eol/event.json --replay
 
-    # and package manifests: requirements.txt, pyproject.toml, pom.xml, go.mod or Cargo.toml
-    # (pinned entries only; ranges/property refs/non-registry sources are skipped with reasons)
-openpulse check --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json
+# Evidence contracts and exports
+openpulse attest --manifest data/fixtures/manifests/requirements.txt --event data/fixtures/django-eol/event.json \
+  --output contracts.jsonl --sarif openpulse.sarif --summary summary.md --trust
+openpulse attest --lockfile poetry.lock --event data/fixtures/django-eol/event.json --defectdojo dojo.json
+openpulse dependency-track --contracts contracts.jsonl --dry-run
 
-# 7. Check a whole GitHub repository (public; for private repositories,
-#    prefer GITHUB_TOKEN or a token file so the credential is not exposed in argv)
-openpulse check --github-repo owner/repo --event data/fixtures/bitnami/event.json
-chmod 600 ~/.config/openpulse/github-token   # OpenPulse warns when other users can read it
-openpulse check --github-repo owner/private-repo --github-token-file ~/.config/openpulse/github-token --event data/fixtures/bitnami/event.json
-
-# 8. Upcoming deadlines for your dependencies (90-day window; `check --ledger` records first detection)
+# Early warning
 openpulse warnings --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
 openpulse digest   --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/django-eol/event.json
+OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/... \
+  openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json --digest
 
-# 9. Post new alerts to Slack-style webhooks (URL via env var, never argv);
-#    each alert is posted once, failures are retried (docs/SCHEDULED_CHECKS.md)
-OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/...   openpulse check --watchlist data/fixtures/watchlist_sample.yaml --event data/fixtures/bitnami/event.json --digest
-
-# 10. Discover changes in what your dependencies name (repositories moved or archived),
-#     then check offline against the events it writes
+# Discovery, observation and reports
 openpulse discover --manifest go.mod --images images.txt --out .openpulse/discovered
-openpulse check --manifest go.mod --event .openpulse/discovered/<event>.json
+openpulse observe --namespace bitnami --repo redis
+openpulse analyze --project redis
+openpulse report --month 2026-09 --raw-bundle-dir path/to/bundles
+openpulse lifecycle-report --month 2026-09
 
-# 11. Run the test suite
+# Local history integrity
+openpulse history-key generate
+openpulse anchor --out anchors/latest.json
+openpulse verify --anchor anchors/latest.json
+
 pytest -q
 ```
 
-Expected `demo-bitnami` result: 🚨 on every `bitnami*` ref, ✅ on upstream `redis` / `postgres` / `nginx` — the distinction traditional tooling doesn't make.
+Verdict commands bound evidence age: a NOT_AFFECTED needs evidence fetched within 90 days (`--max-evidence-age-days`, `--as-of`); `--replay` re-evaluates recorded evidence with no bound and says so. Expected `demo-bitnami` result: 🚨 on every `bitnami*` ref, ✅ on upstream `redis`, `postgres` and `nginx`.
 
-## Outputs — what you get
+## Reports
 
-Every month OpenPulse produces two decision-support briefings (see
-`reports/` for real examples). They read like security intelligence,
-not database exports: ranked findings with evidence confidence,
-scope, timing, and a recommended investigation — never raw CVE/EOL
-dumps, never claims about your environment without a watchlist.
+<img width="1552" height="832" alt="OpenPulse report summary" src="https://github.com/user-attachments/assets/a1bcbf0d-c842-4c84-9060-5e4095fb2ba5" />
 
-![October 2026 monthly intelligence briefing]
-<img width="1552" height="832" alt="OpenPulse_Report_Summary" src="https://github.com/user-attachments/assets/a1bcbf0d-c842-4c84-9060-5e4095fb2ba5" />
-
-**Monthly intelligence** (`openpulse report --month YYYY-MM [--with-sweep]`):
-
-- Executive Summary — material changes, attention items, upcoming
-  warnings, non-lifecycle discoveries, evidence confidence, data gaps.
-- Top Changes — deterministic evidence-aware ranking (non-lifecycle
-  first, never raw counts). Every card shows announcement, effective,
-  first-detected and last-verified dates, freshness status, evidence
-  confidence, scope, and a recommended investigation.
-- Discovery of the Month — the strongest non-lifecycle story, broken
-  out as WHAT / WHY / HOW DETECTED / AFFECTED / NOT AFFECTED /
-  EVIDENCE / ANNOUNCED / DETECTION / WARNING WINDOW.
-- Changes Requiring Attention, Upcoming Changes (detection lead
-  times from first trustworthy detection only), Changes by Category,
-  Evidence Quality, What OpenPulse Watches, Methodology.
-- What OpenPulse Added This Month — value demonstrated from the
-  report's own data, ending in the public → watchlist → impact →
-  warning progression.
-- For Your Environment (public/customer boundary) and an appendix
-  with historical findings, every current finding, sources, and gaps.
-- Machine-readable companion: `report --metadata-out` writes a
-  `.meta.json` sidecar (report ID, period, version, freshness policy,
-  coverage, status/category counts) for web frontends.
-
-**Lifecycle posture** (`openpulse lifecycle-report --month YYYY-MM`):
-
-- Executive Summary, Upcoming Deadlines table (soonest first),
-  Recently Ended, Coverage Gaps (NO-DATA is a limitation, never OK),
-  Top Planning Items, and the full coverage matrix as an appendix.
+OpenPulse publishes a monthly intelligence briefing and a lifecycle posture report over its catalog ([`reports/`](reports/): September to November 2026). They read like security intelligence, not database exports: ranked findings with evidence confidence, scope, timing and a recommended investigation, never claims about your environment without your dependency list. `report --metadata-out` writes a machine-readable sidecar for web frontends.
 
 ## Repo layout
 
 ```
-core/schema/        # v0.5.0 Intelligence Schema — the source of truth
-core/entities/      # catalog + resolve() — canonical Project <-> Package/Artifact
-core/evidence/      # policy + provenance + independence — the gate with veto power
-core/observations/  # RegistryObservation + local history store + diffs
-core/risk/          # match.py — event-vs-dependency impact matching
-core/pulse.py       # compute_pulse() — findings/events to 7 facets
-collectors/         # github, osv, nvd, cve, kev, endoflife, registries (+base)
-analyzers/          # change_analyst, security_analyst, evidence_analyst, report_analyst
-cli/                # openpulse CLI (validate, pulse, analyze, observe, report, check, attest, mcp, dependency-track, ...)
-cli/mcp_server.py   # `openpulse mcp` - MCP server over the official SDK (optional extra)
-core/agent_tools.py # SDK-free engine behind the MCP tools
-core/sarif.py, core/defectdojo.py, core/dtrack.py  # SARIF / DefectDojo / Dependency-Track outputs
-reports/            # generate.py — monthly ranked markdown reports
-data/               # canonical_projects.yaml, openpulse100 seed, bitnami fixture
-docs/               # METHODOLOGY, ROADMAP, ANALYSTS, ARCHITECTURE_REVIEW, ...
-tests/              # 740+ offline tests (no network in CI)
+core/schema/        # Intelligence Schema 0.7.0, the source of truth for events
+core/entities/      # catalog + resolve(): canonical project <-> package/artifact
+core/evidence/      # policy, provenance, independence: the gate with veto power
+core/risk/          # event-vs-dependency impact matching
+core/agent_tools.py # the engine behind the MCP tools, including the trust checks
+core/*.py           # trust checks (malicious, registry_existence, provenance, ...),
+                    # trust_policy, evidence_contract, sarif, defectdojo, dtrack
+core/observations/  # registry observations, history store, diffs, sweep
+collectors/         # github, osv, nvd, cve, kev, endoflife, registries
+analyzers/          # change, security, evidence and report analysts
+cli/                # the openpulse CLI and the MCP server (cli/mcp_server.py)
+benchmarks/         # trust-check measurements and the organic reputation set
+reports/            # monthly report generator and published reports
+schemas/            # evidence-contract JSON Schemas, every version
+data/               # catalog, seed, official domains, reference fixtures
+tests/              # offline tests (no network in CI)
 ```
 
 ## Docs
 
 | Doc | Content |
 |---|---|
-| `docs/METHODOLOGY.md` | Sources, evidence rules, confidence levels, limitations |
-| `docs/ROADMAP.md` | Research track R, M1–M9 milestones, track T (AI Dependency Trust Assurance, planned), principles, metrics |
-| `docs/ANALYSTS.md` | The four analysts and their rules |
-| `docs/ARCHITECTURE_REVIEW.md` | Architecture & security assessment, finding matrix, migration plan |
-| `docs/BITNAMI_VALIDATION.md` | The Phase-3 acceptance gate |
-| `docs/MCP.md` | OpenPulse for AI coding agents: setup per client, tools, example answer, security model |
-| `docs/GITHUB_ACTION.md` | The GitHub Action: inputs, permissions, SARIF levels, workflows |
-| `docs/EVIDENCE_CONTRACT.md` | Evidence contract 2.2 (and 1.0 / 1.1 / 1.2 / 2.0 / 2.1) — machine-readable dependency verdicts |
-| `docs/NEXT_PHASES.md` | Implementation plan v0.7 → v0.10: release and distribution, hardening, Anchored Trust, M6 operations, supply chain |
-| `CHANGELOG.md` | What changed in each release |
-| `SECURITY.md` | How to report a vulnerability, supported versions, known limitations |
+| [`docs/MCP.md`](docs/MCP.md) | OpenPulse for AI coding agents: setup per client, tools, the trust block, security model |
+| [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md) | Trust policy, `openpulse gate`, pre-commit, bypass routes |
+| [`docs/GITHUB_ACTION.md`](docs/GITHUB_ACTION.md) | The GitHub Action: inputs, permissions, SARIF levels, workflows |
+| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | DefectDojo and Dependency-Track |
+| [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md) | Evidence contract 2.3 and every earlier version |
+| [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md) | How each trust check is measured, with false-positive rates |
+| [`docs/SCHEDULED_CHECKS.md`](docs/SCHEDULED_CHECKS.md) | Scheduled checks, the detection ledger, webhook delivery |
+| [`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md) | History keys, anchors and what they protect against |
+| [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Sources, evidence rules, confidence levels, limitations |
+| [`docs/ANALYSTS.md`](docs/ANALYSTS.md) | The four analysts and their rules |
+| [`docs/LEAD_TIME_CASES.md`](docs/LEAD_TIME_CASES.md) | Verified lead-time cases, never averaged |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Research track R, track T, milestones M1–M9, principles, metrics |
+| [`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md) | The release-by-release implementation plan |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each release, with upgrade notes |
+| [`SECURITY.md`](SECURITY.md) | Reporting a vulnerability, supported versions, known limitations |
 
 ## Roadmap
 
-M1 Trusted Evidence ✅ done (maintenance) → M2 Upstream Discovery ✅ acceptance met (5 verified cases; 5 live-replayed) → M3 Report Product ✅ briefing + metadata live → M4 Benchmark 🔨 11 of 10–15 formalized → M5 Dependency Context ✅ (watchlist, SBOM, image inventory, lockfile, manifest and GitHub-repo inputs on one verdict engine) → M6 Early Warning 🔨 (ledger, digest, warnings, webhook and persistent delivery state with dedup/retry shipped; CI/PR integration next) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research). Full sequence, layers, principles, metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md); P0–P3 backlog: [`docs/research/BACKLOG.md`](docs/research/BACKLOG.md).
+Two tracks share one evidence model:
 
-Planned, not available: **AI Dependency Trust Assurance — Know Why You Trust Your Dependencies** (ROADMAP track T). It is a separate future study that would add evidence on package identity and impersonation, artifact provenance (Sigstore, SLSA, PEP 740), and reputation integrity to the MCP tools and CI policy. None of it ships today. OpenPulse does not detect malware, verify provenance, or score reputation, and an MCP answer is advice to the agent, not a security boundary.
+- **Upstream change intelligence:** M1 Trusted Evidence ✅ → M2 Upstream Discovery ✅ → M3 Report Product ✅ → M4 Benchmark 🔨 (11 formalized scenarios) → M5 Dependency Context ✅ → M6 Early Warning 🔨 (ledger, digest, warnings, signed webhook delivery with retries, and the GitHub Action shipped) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research).
+- **Track T, AI Dependency Trust Assurance:** identity and integrity checks (v0.12), agent trust evidence and contract 2.2 (v0.13), trust policy and measurements (v0.14), pre-install gates (v0.15), reputation indicators and contract 2.3 (v0.16, on `main`). The research questions, such as whether trust evidence changes what agents and people choose, remain open.
 
-Deliberately *not* on the roadmap: becoming an EOL database, another
-generic SCA, collector-count vanity, AI reasoning in the trusted
-decision path. They don't prove the core hypothesis.
+Full sequence, principles and metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md).
+
+Deliberately *not* on the roadmap: becoming an EOL database, a generic SCA or a malware scanner, risk scores, collector-count vanity, and AI reasoning in the trusted decision path.
 
 ## Contributing
 
 Evidence-first means contributions are easy to review:
 
-1. **Add a collector** — subclass `collectors/base.py:9`, add `parse_*` pure functions, offline fixture tests. Network failures must return `error` dicts, never raise.
-2. **Add an analyst rule** — extend the relevant `analyzers/*_analyst.py`, document the rule in `docs/ANALYSTS.md`, cover it with tests.
-3. **Add a project** — append to `data/canonical_projects.yaml` (lowercase, tag-free aliases; tests enforce hygiene and reject alias/docker-image collisions).
-4. Every event needs: source URL + fetch date + confidence. `UNVERIFIED` can never be `ACTION`.
+1. **Add a collector:** subclass `collectors/base.py`, add pure `parse_*` functions and offline fixture tests. Network failures must return `error` dicts, never raise.
+2. **Add an analyst rule:** extend the relevant `analyzers/*_analyst.py`, document the rule in `docs/ANALYSTS.md`, cover it with tests.
+3. **Add a project:** append to `data/canonical_projects.yaml` (lowercase, tag-free aliases; tests enforce hygiene and reject alias and image collisions).
+4. **Add a trust check:** a fixed-template statement, a closed status, injected network seams with offline defaults, and a measurement in `benchmarks/trust.py` before it can be prohibited.
+5. Every event needs a source URL, a fetch date and a confidence. `UNVERIFIED` can never be `ACTION`.
 
 ```bash
 ruff check .   # must pass
 pytest -q      # must pass (offline)
 ```
 
-Good first issues are labeled [`good first issue`](https://github.com/IkarusAILabs/OpenPulse/labels/good%20first%20issue).
+Good first issues are labelled [`good first issue`](https://github.com/IkarusAILabs/OpenPulse/labels/good%20first%20issue).
 
 ## Security
 
-Found a vulnerability, including an input that makes OpenPulse confidently wrong? Please report it privately through GitHub's **Report a vulnerability** button (Security tab). Do not open a public issue. Scope, response times and known limitations: [`SECURITY.md`](SECURITY.md).
+Found a vulnerability, including an input that makes OpenPulse confidently wrong or a way past the gate? Please report it privately through GitHub's **Report a vulnerability** button (Security tab). Do not open a public issue. Scope, response times and known limitations: [`SECURITY.md`](SECURITY.md).
 
 ## Contributors
 
