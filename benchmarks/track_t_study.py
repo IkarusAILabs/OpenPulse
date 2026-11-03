@@ -25,6 +25,7 @@ it writes the split (names only) and the thresholds to
 Two more commands (protocol §4, §6, items TR6):
 
     python benchmarks/track_t_study.py frame --osv DIR
+    python benchmarks/track_t_study.py package [--draft]
     GITHUB_TOKEN=... python benchmarks/track_t_study.py run --registered ID
 
 - ``frame`` pins Q-B's sampling frame from every package named by a
@@ -39,6 +40,11 @@ Two more commands (protocol §4, §6, items TR6):
   organic half and the positives, runs ``lookalike`` on the frame, records
   registry metadata for the malicious sample and the young set's packages,
   and writes aggregates only: no positive is ever named.
+- ``package`` builds the archive for registration (``dist/*.zip``): the
+  protocol, the analysis code, the production rules it applies and every
+  committed input, with a manifest of SHA-256s, the commit and its tags. It
+  refuses while a protocol field is unfilled, a file differs from the
+  commit, or the commit has no tag; ``--draft`` builds a review copy anyway.
 """
 
 from __future__ import annotations
@@ -570,11 +576,156 @@ def run(registration: str, fetch: Any = None, log=print) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# The archive (protocol header, item TR5)
+# ---------------------------------------------------------------------------
+
+#: Every file the run reads or runs, archived as it is at the freeze.
+BUNDLE = (
+    "docs/research/TRACK_T_STUDY_PROTOCOL.md",
+    "docs/research/TRACK_T_REGISTRATION.md",
+    "benchmarks/track_t_study.py",
+    "benchmarks/record_star_history.py",
+    "benchmarks/record_young_set.py",
+    "benchmarks/record_reputation.py",
+    "benchmarks/reputation_set.py",
+    "core/lookalike.py",
+    "core/publisher_change.py",
+    "core/repository_moved.py",
+    "core/young_popular_repository.py",
+    "data/reference/npm-high-impact-1.13.0.json",
+    "data/reference/uts39-confusables-ascii-18.0.0.json",
+    "benchmarks/fixtures/reputation/stars-organic-2026-11-03.json",
+    "benchmarks/fixtures/reputation/stars-young-2026-11-03.json",
+    "benchmarks/fixtures/reputation/star-calibration-2026-11-03.json",
+    "benchmarks/fixtures/reputation/malicious-frame-2026-11-03.json",
+    "benchmarks/fixtures/reputation/organic-2026-11-02.json",
+    "tests/test_track_t_study.py",
+)
+#: Inputs pinned by hash but not archived (protocol §4, §8).
+STARSCOUT = {
+    "repository": "https://github.com/hehao98/StarScout",
+    "commit": "7994d8e4cd3bd6e724e513c14e9d696ded23048f",
+    "sha256": {
+        "data/250101/fake_stars_clustered_repos.csv": (
+            "02aeaf16bb1d4bef1069717dd50bc6595055d124d5573436d60b3aaaeddb52d4"
+        ),
+        "data/250101/fake_stars_low_activity_repos.csv": (
+            "bd9d12344d205d27fd933070e98a3db2101b3678ae602974350eabe4656debee"
+        ),
+    },
+}
+PACKAGE_DIR = ROOT / "dist"
+
+
+def _git(*args: str) -> str:
+    import subprocess
+
+    done = subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True, encoding="utf-8"
+    )
+    return done.stdout.strip()
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def package_problems(protocol_text: str, dirty: list[str], tags: list[str]) -> list[str]:
+    """Why a bundle is not yet fit to archive (empty when it is)."""
+    problems = []
+    if UNFILLED in protocol_text:
+        problems.append(f"the protocol still has fields marked '{UNFILLED}'")
+    if dirty:
+        problems.append("files differ from the commit: " + ", ".join(dirty))
+    if not tags:
+        problems.append("the commit has no tag (the freeze tag)")
+    return problems
+
+
+def manifest(draft: bool, problems: list[str]) -> dict[str, Any]:
+    commit = _git("rev-parse", "HEAD")
+    frame_doc = json.loads((FIXTURES / "malicious-frame-2026-11-03.json").read_text("utf-8"))
+    positives = LOCAL / POSITIVES
+    return {
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": "DRAFT, not for archiving" if draft else "for archiving",
+        "problems": problems,
+        "repository": "https://github.com/IkarusAILabs/OpenPulse",
+        "commit": commit,
+        "tags": _git("tag", "--points-at", "HEAD").split(),
+        "files": [
+            {"path": p, "sha256": _sha256(ROOT / p), "bytes": (ROOT / p).stat().st_size}
+            for p in BUNDLE
+        ],
+        "not_archived": {
+            "starscout_positives": {
+                "path": f"benchmarks/fixtures/reputation/local/{POSITIVES}",
+                "sha256": _sha256(positives) if positives.is_file() else None,
+                "why": "StarScout's authors ask that flagged repositories not be named (§8)",
+            },
+            "starscout_source": STARSCOUT,
+            "osv_archives_sha256": {
+                eco: frame_doc[eco]["archive_sha256"] for eco in ("npm", "PyPI")
+            },
+        },
+    }
+
+
+def readme(doc: dict[str, Any]) -> str:
+    return "\n".join(
+        [
+            "# Track T study, Part A: archived protocol and inputs",
+            "",
+            f"**{doc['status']}.** Built {doc['created_at']} from "
+            f"{doc['repository']} at commit `{doc['commit']}`"
+            + (f" (tag {', '.join(doc['tags'])})." if doc["tags"] else "."),
+            "",
+            "- `docs/research/TRACK_T_STUDY_PROTOCOL.md`: the registered protocol.",
+            "- `MANIFEST.json`: SHA-256 of every archived file, and of the inputs that are "
+            "pinned but not archived (StarScout's flagged repositories, kept private as its "
+            "authors ask; OSV's archives, which change daily).",
+            "- The rest: the analysis code, the production rules it applies, and the "
+            "recorded organic data, calibration and malicious-package sample.",
+            "",
+            "The thresholds were computed on the organic calibration half before archiving. "
+            "The held-out half, the StarScout positives and every malicious-package outcome "
+            "are read only by the single run after archiving:",
+            "",
+            "    python benchmarks/track_t_study.py run --registered <this record's DOI>",
+            "",
+            "Author-run with AI assistance; not an independent evaluation (protocol header).",
+            "",
+        ]
+        + ([f"Not yet fit to archive: {p}." for p in doc["problems"]] if doc["problems"] else [])
+    )
+
+
+def package(draft: bool) -> Path:
+    paths = list(BUNDLE)
+    dirty = [line[3:] for line in _git("status", "--porcelain", "--", *paths).splitlines()]
+    tags = _git("tag", "--points-at", "HEAD").split()
+    problems = package_problems(PROTOCOL.read_text(encoding="utf-8"), dirty, tags)
+    if problems and not draft:
+        raise SystemExit("not packaged: " + "; ".join(problems) + " (or use --draft to review)")
+    doc = manifest(draft, problems)
+    name = f"track-t-part-a-{doc['commit'][:12]}" + ("-DRAFT" if draft else "")
+    out = PACKAGE_DIR / f"{name}.zip"
+    PACKAGE_DIR.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in paths:
+            z.write(ROOT / p, f"{name}/{p}")
+        z.writestr(f"{name}/MANIFEST.json", json.dumps(doc, indent=1, sort_keys=True) + "\n")
+        z.writestr(f"{name}/README.md", readme(doc))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["calibrate", "frame", "run"])
+    parser.add_argument("command", choices=["calibrate", "frame", "run", "package"])
     parser.add_argument("--osv", type=Path, help="frame: directory with npm-all.zip, PyPI-all.zip")
     parser.add_argument("--registered", default="", help="run: the protocol's registration id")
+    parser.add_argument("--draft", action="store_true", help="package: build a review copy")
     args = parser.parse_args(argv)
     if args.command == "frame":
         if args.osv is None:
@@ -591,6 +742,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {out.relative_to(ROOT)}")
         for eco in ("npm", "PyPI"):
             print(eco, doc[eco]["records"], "records", doc[eco]["names"], "names")
+        return 0
+    if args.command == "package":
+        out = package(args.draft)
+        print(f"wrote {out.relative_to(ROOT)}  sha256 {_sha256(out)}")
         return 0
     if args.command == "run":
         results = run(args.registered)

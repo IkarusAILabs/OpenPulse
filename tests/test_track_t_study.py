@@ -312,3 +312,32 @@ def test_the_whole_run_on_synthetic_files(tmp_path, monkeypatch):
     assert sorted(p.name for p in fixtures.glob("packages-*.json"))[0].startswith("packages-")
     text = study.render(results)
     assert "p/a" not in text and "p/gone" not in json.dumps(results)
+
+
+def test_packaging_waits_for_a_filled_protocol_a_clean_tree_and_a_tag():
+    draft = "| Responsible author | **to fill at archiving** |"
+    problems = study.package_problems(draft, ["benchmarks/track_t_study.py"], [])
+    assert len(problems) == 3
+    assert study.package_problems("filled", [], ["track-t-part-a-freeze"]) == []
+
+
+def test_every_bundled_file_exists():
+    missing = [p for p in study.BUNDLE if not (study.ROOT / p).is_file()]
+    assert missing == []
+
+
+def test_a_draft_package_lists_hashes_and_never_holds_the_positives(tmp_path, monkeypatch):
+    import json
+    import zipfile
+
+    monkeypatch.setattr(study, "PACKAGE_DIR", tmp_path)
+    out = study.package(draft=True)
+    with zipfile.ZipFile(out) as z:
+        names = z.namelist()
+        top = names[0].split("/", 1)[0]
+        doc = json.loads(z.read(f"{top}/MANIFEST.json"))
+        readme = z.read(f"{top}/README.md").decode("utf-8")
+    assert top.endswith("-DRAFT") and doc["status"].startswith("DRAFT")
+    assert {f["path"] for f in doc["files"]} == set(study.BUNDLE)
+    assert not any("local/" in n or "positives" in n for n in names)
+    assert len(doc["commit"]) == 40 and "not an independent evaluation" in readme

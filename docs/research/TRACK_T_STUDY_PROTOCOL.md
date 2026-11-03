@@ -15,7 +15,7 @@ It is separate from TR-2026-01 and its registration (`evaluation/REGISTRATION.md
 | Responsible author | **to fill at archiving** (a person; an AI cannot be the accountable author) |
 | Registry and identifier | **to fill at archiving** (OSF Registries or Zenodo DOI) |
 | Archive date | **to fill at archiving** |
-| Implementation freeze | **to fill at archiving**: tag and full commit of the OpenPulse measured |
+| Implementation freeze | **to fill at archiving**: the freeze tag (its full commit and every file's SHA-256 are in the archive's `MANIFEST.json`, built by `track_t_study.py package`) |
 | Analysis code | `benchmarks/record_star_history.py`, `benchmarks/record_young_set.py`, `benchmarks/record_reputation.py`, and the study script `benchmarks/track_t_study.py` |
 
 ## 1. Questions
