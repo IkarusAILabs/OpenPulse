@@ -32,6 +32,13 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Fixed
 
+- **`publisher_change` no longer reads npm trusted publishing as continuity (v0.16.0 item Q6).** A release published through trusted publishing carries npm's one shared service account, so matching an earlier trusted release's account was reported `VERIFIED_RELATIONSHIP` even when the trusted-publishing configuration had moved to another repository (npm's metadata names no repository or workflow to compare). Such a release is now `MISSING_EVIDENCE` ("trusted_publishing"). Dropping back from trusted publishing to a token still fires `trusted_publishing_dropped`. New synthetic case rp-3b.
+- **End-to-end echo, degraded-run and adversarial identity tests for the reputation indicators (v0.16.0 item Q6).** `tests/test_reputation_adversarial.py` runs the indicators through the trust block, contract 2.3.0, SARIF, the summary and DefectDojo:
+  - hostile repository names, publisher accounts, provider ids and repository metadata reach no output;
+  - GitHub or registry trouble is `NOT_PERFORMED`, and a prohibited indicator that did not run is reported unchecked;
+  - a claimed GitHub page (`sponsors`, `orgs`, `marketplace`, `*.github.io`, gists) is no repository and GitHub is never asked about it;
+  - a claim of someone else's popular repository verifies only that the claim is current: stars are no indicator, and `repository_linkage` flags the name mismatch;
+  - a transfer to an unrelated owner is an indicator, never a verdict.
 - **`--github-repo` no longer drops dependency files it cannot read (track T Phase 12, S1).** Discovery recognised exact file names only, so a repository whose dependencies live in `yarn.lock`, `pnpm-lock.yaml`, `uv.lock`, `Pipfile`, `Pipfile.lock`, `bun.lock`/`bun.lockb`, `gradle.lockfile`, `environment.yml`, `setup.py`, `setup.cfg`, a requirements variant (`requirements-dev.txt`, `requirements/*.txt`, `constraints*.txt`) or a `package.json` with no `package-lock.json` beside it was inspected with no skip reason and could read **COMPLETE**. Each such file is now listed as "dependency file not supported; its dependencies were not inspected" and coverage is **PARTIAL**. Nothing new is parsed; files under `node_modules`, `vendor` and hidden directories stay out of scope as before.
 - **`openpulse gate` fails closed (security review P1-1, P1-2).**
   - **A file it cannot read** (a malformed `package-lock.json`, a broken `pyproject.toml`, any named file that is not a dependency file) now exits 2. It used to be skipped with exit 0, so a file pip or npm would still consume could pass the gate unchecked.

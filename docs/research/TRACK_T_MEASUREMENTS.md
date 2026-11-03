@@ -19,7 +19,7 @@ These are the false-positive measurements that the owner accepted (decision 11, 
 | `lookalike` | 7 | 4/4 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `malicious` | 5 | 2/2 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `provenance` | 4 | 1/1 (100.0%) | 0/3 (0.0%) | 100.0% |
-| `publisher_change` | 3 | 1/1 (100.0%) | 0/2 (0.0%) | 100.0% |
+| `publisher_change` | 4 | 1/1 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `registry_existence` | 6 | 3/3 (100.0%) | 0/3 (0.0%) | 100.0% |
 | `repository_linkage` | 6 | 2/2 (100.0%) | 0/4 (0.0%) | 100.0% |
 | `repository_moved` | 3 | 1/1 (100.0%) | 0/2 (0.0%) | 100.0% |
@@ -29,8 +29,8 @@ These are the false-positive measurements that the owner accepted (decision 11, 
 
 | Mode | Live records | Claims without evidence | Cases fully unresolved |
 |---|---:|---:|---:|
-| unreachable | 276 | 0 | 34/34 |
-| budget spent | 272 | 0 | 34/34 |
+| unreachable | 284 | 0 | 35/35 |
+| budget spent | 280 | 0 | 35/35 |
 
 ## Untrusted text
 
@@ -43,7 +43,7 @@ Leave-one-out: each sampled reference name is checked against all the others.
 
 | Ecosystem | Reference names | Sampled | Flagged | False-positive rate | Without `scope` | Names flagged per rule | ms per name |
 |---|---:|---:|---:|---:|---:|---|---:|
-| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 44.6 |
+| npm | 17336 | 1000 | 188 | 18.8% | 9.7% | edit_distance 90, scope 102, separator 7 | 47.8 |
 | PyPI | 19 | 19 | 0 | 0.0% | 0.0% | none | 0.0 |
 
 **Finding.** The `scope` rule (npm `@x/name` where `name` is a reference) fires on legitimate scoped packages such as `@types/<name>` and a project's own scope, so it carries most of the organic false positives. The rate without it is the one to use for the other three rules.
@@ -121,7 +121,7 @@ The production `young_popular_repository` rule (younger than 180 days, at least 
 | `lookalike_name` | `lookalike` SUSPICIOUS_INCONCLUSIVE | 0/3 | 18.8% (npm) | measured; indicator |
 | `public_private_name` | `dependency_confusion` SUSPICIOUS_INCONCLUSIVE | 0/2 | no organic set | experimental |
 | `unconfirmed_repository` | `repository_linkage` SUSPICIOUS_INCONCLUSIVE | 0/4 | no organic set | experimental |
-| `publisher_change` | `publisher_change` SUSPICIOUS_INCONCLUSIVE | 0/2 | 4.6% (npm releases), 0.7% (PyPI releases) | measured; indicator |
+| `publisher_change` | `publisher_change` SUSPICIOUS_INCONCLUSIVE | 0/3 | 4.6% (npm releases), 0.7% (PyPI releases) | measured; indicator |
 | `repository_moved` | `repository_moved` SUSPICIOUS_INCONCLUSIVE | 0/2 | 4.1% (repositories) | measured; indicator |
 | `young_popular_repository` | `young_popular_repository` SUSPICIOUS_INCONCLUSIVE | 0/3 | 1/123 (1 young repository in the set) | experimental |
 
