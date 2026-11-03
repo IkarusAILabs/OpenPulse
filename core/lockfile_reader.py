@@ -48,6 +48,12 @@ def _name_from_lock_path(key: str) -> str:
     return key.rsplit("node_modules/", 1)[1]
 
 
+def _npm_package_name(path: str, entry: dict[str, Any]) -> str:
+    """Aliases use an install-path name different from their registry identity."""
+    name = entry.get("name")
+    return name if isinstance(name, str) and name else _name_from_lock_path(path)
+
+
 def load_package_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed package-lock.json into pinned dep entries.
 
@@ -88,6 +94,7 @@ def load_package_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], li
             if entry.get("link"):
                 skipped.append(f"`{name}`: workspace link - no pinned registry version")
                 continue
+            name = _npm_package_name(str(key), entry)
             version = entry.get("version")
             if not isinstance(version, str) or not version:
                 skipped.append(f"`{name}`: no resolved version - skipped, never range-guessed")
@@ -288,7 +295,7 @@ def lockfile_digests(path: str) -> LockedDigests:
                     continue
                 version, integrity = entry.get("version"), entry.get("integrity")
                 if isinstance(version, str) and isinstance(integrity, str):
-                    name = _name_from_lock_path(str(key))
+                    name = _npm_package_name(str(key), entry)
                     out[("npm", name, version)] = {"integrity": integrity.split()}
         return out
     try:
