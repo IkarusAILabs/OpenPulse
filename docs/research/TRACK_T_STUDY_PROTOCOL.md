@@ -16,7 +16,7 @@ It is separate from TR-2026-01 and its registration (`evaluation/REGISTRATION.md
 | Registry and identifier | **to fill at archiving** (OSF Registries or Zenodo DOI) |
 | Archive date | **to fill at archiving** |
 | Implementation freeze | **to fill at archiving**: tag and full commit of the OpenPulse measured |
-| Analysis code | `benchmarks/record_star_history.py`, `benchmarks/record_reputation.py`, and the study script named at the freeze (§9) |
+| Analysis code | `benchmarks/record_star_history.py`, `benchmarks/record_young_set.py`, `benchmarks/record_reputation.py`, and the study script `benchmarks/track_t_study.py` |
 
 ## 1. Questions
 
@@ -43,9 +43,11 @@ A hypothesis that fails is reported as failed, with the same prominence.
 |---|---|---|
 | SH1 | Peak week share | stars in the busiest week ÷ all stars; only for repositories with ≥ 50 stars |
 | SH2 | Four-week concentration | stars in the busiest 4 consecutive weeks ÷ all stars; ≥ 50 stars |
-| SH3 | Daily spike | the busiest day's stars ÷ the median daily stars of the 8 weeks before it (with the median floored at 1); ≥ 50 stars |
+| SH3 | Daily spike | the busiest day's stars ÷ the median daily stars of the 56 days before it (with the median floored at 1); ≥ 50 stars |
 
-Each fires when its value reaches a threshold (§5). No indicator is combined with another into a score; each is reported on its own (track T rule).
+A repository is eligible only with at least 50 stars and a complete history (recorder status 200; a capped, incomplete or invalid series is not eligible). Weeks and days missing from the recorded series have no stars. SH2's four weeks are consecutive calendar weeks. When several days tie for busiest, SH3 uses the earliest.
+
+Each fires when its value is **strictly above** its threshold (§5). No indicator is combined with another into a score; each is reported on its own (track T rule).
 
 **Package metadata (existing, shipped in v0.12–v0.16):** `lookalike`, `publisher_change`, `repository_moved`, `young_popular_repository`, `registry_existence`, each with its production rule unchanged.
 
@@ -70,7 +72,7 @@ All sources are pinned by date and SHA-256 at the freeze. **No package contents 
 
 ### What has been read so far (2026-11-03)
 
-The three sets are recorded. Before archiving, only **availability** has been looked at, never an indicator value:
+The three sets are recorded. Before archiving, indicator values have been computed **only for the organic calibration half** (§5); for the held-out half and the positives only **availability** has been looked at:
 
 | Set | Recorded | Histories read | Not available |
 |---|---|---|---|
@@ -83,11 +85,23 @@ History totals match GitHub's star counts (organic median ratio 1.000; young wit
 ## 5. Calibration and freezing
 
 1. The organic repositories (both organic sets, pooled) are split 50/50 with seed `20261103`, within each set, into **calibration** and **held-out** halves. False-positive rates are reported for the pooled held-out half and for the young held-out half on its own.
-2. On the calibration half only, each SH threshold is set to the smallest value at which at most 1% of eligible repositories fire.
+2. On the pooled calibration half only, each SH threshold is the (k+1)-th largest eligible value, k = ⌊1% × eligible⌋: the smallest observed value that at most 1% of eligible calibration repositories exceed. The split is made from names before any value is computed.
 3. The thresholds are computed **before archiving** and archived with the protocol. The positives and the held-out half are read only after the archive date.
 4. The frozen thresholds are applied once to the held-out organic half (H-A2) and the positives (H-A1).
 
 The package-metadata indicators keep their production thresholds; nothing is tuned.
+
+### Calibration result (computed 2026-11-03, before archiving)
+
+`python benchmarks/track_t_study.py calibrate`, written to `benchmarks/fixtures/reputation/star-calibration-2026-11-03.json` with the split (names only) and the SHA-256 of both organic fixtures. Calibration half: 61 of 123 organic and 250 of 500 young repositories; 300 eligible (11 organic repositories have fewer than 50 stars). k = 3.
+
+| Indicator | Threshold (fires when strictly above) | Calibration repositories above it |
+|---|---|---|
+| SH1 peak week share | 0.7956 | 3 of 300 |
+| SH2 four-week concentration | 0.9921 | 3 of 300 |
+| SH3 daily spike | 2581 | 3 of 300 |
+
+These are strict: organic young projects often gain most of their stars in a launch week, so a 1% false-positive cap leaves only extreme bursts flagged. That makes H-A1 harder to meet; the thresholds stand as computed, and the result is reported whichever way it goes. No held-out organic repository and no positive was read to compute them (the script reads only calibration-half histories; `tests/test_track_t_study.py` checks this).
 
 ## 6. Metrics
 
