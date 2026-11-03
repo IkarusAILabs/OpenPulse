@@ -1,5 +1,7 @@
 # Methodology — how OpenPulse knows what it claims (schema v0.7.0)
 
+The monthly reports produced with this method are published at [openpulse.ikaruslabs.net](https://openpulse.ikaruslabs.net/) (generated reports: [`reports/`](../reports/)).
+
 ## Sources
 
 Upstream: GitHub releases + repo metadata, official blogs/changelogs.
