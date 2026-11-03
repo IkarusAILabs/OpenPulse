@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-03 (track T research):** the owner asked an AI assistant to take on the star-history indicators and track T's study. Started as "Track T research" below: TR1 (star-history recorder) and TR2 (draft protocol) are done. GitHub's stargazer listings and GraphQL `starredAt` are closed to third parties (verified 2026-11-03), so star history comes from the counts-only star-history endpoint. Labels come from StarScout and OSV, never from an AI. Decisions 17 and 18 are new. R-C stays with an independent team.
 - **Update 2026-11-03 (v0.17 plan, owner-approved):** the owner asked to plan and start the next versions (2026-11-03). Decisions 13, 14 and 16 are approved, so v0.17.0 "Gate-to-Install Integrity" (Phase 11) is ACTIVE and v0.18.0 and v0.19.0 follow in that order. Build order for v0.17: G1 receipts, G3 digests in the gate, G2 verification, G4 generated files, G5 end-to-end install tests, G6 docs. Decision 15's scope is approved; whether `--fail-on` fails on PARTIAL coverage by default stays open until S4 is built. Writing G1's tests found a gate crash on `main` since v0.15.0 (a private-name list passed as loaded names where a path was expected), fixed separately as a v0.16.1 candidate.
 - **Update 2026-11-03 (v0.16 released):** v0.16.0 "Reputation Evidence" is released (Phase 10, Q1–Q6: #301–#307, #311). T-C's indicators that need no star history ship measured, or experimental where the organic set could not measure them (`young_popular_repository`), and none is a verdict. Q6's adversarial cases found and fixed one over-strong status (npm trusted publishing read as publisher continuity). Also in the release: the security review fixes (#306) and Phase 12's S1 defect fix (#310). Next: decisions 13–16 (v0.17–v0.19 scopes).
 - **Update 2026-11-02 (v0.16 plan, owner-approved):** v0.16.0 "Reputation Evidence" is Phase 10 below: track T Phase 2's T-C, the transparent reputation indicators that need no star history (a publisher change, a moved repository, a young repository claiming popularity), each measured on recorded organic projects before it ships. It needs evidence contract 2.3.0 for the new check names. Approved by the owner 2026-11-02 (decision 12).
@@ -362,6 +363,23 @@ Goal: show that an evidence contract means the same thing outside OpenPulse. `co
 
 **Exit:** a third party can validate, verify and read any released OpenPulse contract without OpenPulse, and gets the same outcomes OpenPulse reported, including every unknown.
 
+## Track T research — star-history indicators and the track T study (author-run, AI-assisted; started 2026-11-03) — ACTIVE
+
+Goal: the two track T items that needed data or a study, done by an AI assistant where that is sound (owner, 2026-11-03). Independence is not claimed: labels come from published third-party records, thresholds are frozen on organic data before any positive is read, and the protocol is registered by a named author before the run. R-C (track R's held-out evaluation) stays with an independent human team; AI only prepares it.
+
+| # | Item | Size | Depends on | Status |
+|---|---|---|---|---|
+| TR1 | **Star-history recorder.** `benchmarks/record_star_history.py`: weekly star counts from GitHub's star-history endpoint (the stargazer listings are closed to third parties since 2026), for the organic set (committed) and a fixed-seed sample of StarScout's flagged repositories (local only) | S | — | DONE (this change) |
+| TR2 | **Study protocol.** `docs/research/TRACK_T_STUDY_PROTOCOL.md`: questions, hypotheses, data, calibration and freezing, metrics, stopping rule, ethics. Part A (measurement) now; Part B (agents, enforcement) registered separately | S | — | DRAFT (this change) |
+| TR3 | **Young organic set.** A recorder for repositories of packages first published in the last 12 months, without malicious records, so false positives are measured where the indicators matter | S | TR1 | NEXT |
+| TR4 | **Calibration.** Split the organic set, compute SH1–SH3 thresholds on the calibration half, write them into the protocol | S | TR1, TR3 | after TR3 |
+| TR5 | **Registration** of Part A by the responsible author (decision 17), and the freeze tag | — | TR4 | owner |
+| TR6 | **The run:** positives, held-out organic, OSV-malicious packages; results in `docs/research/` with every bias of §4 reported | M | TR5 | after TR5 |
+| TR7 | **Ship or drop** each SH indicator from the measured rates: a `star_burst` trust check (experimental or indicator), or a recorded negative result | M | TR6 | after TR6 |
+| TR8 | **R-C package for an external team:** packets, codebook and a one-command run, so the independent evaluation costs a team as little as possible. No AI labels count as R-C labels | M | — | LATER |
+
+**Exit:** each star-history indicator is either shipped with rates measured under a registered protocol, or dropped with the negative result published; and the track T study's Part A results are published with their limits.
+
 ## Phase 4 — Release supply chain (alongside Phases 2–3)
 
 | # | Item | Issue | Size | Depends on |
@@ -404,6 +422,8 @@ These compete for reviewer time, not for the same files:
 | 14 | `openpulse gate` checks changed lockfile digests whatever the policy says (G3), so a hash edit cannot pass a policy that forgot `digest_mismatch` — **decided 2026-11-03: approved** | G3 |
 | 15 | v0.18.0 scope (Phase 12), including evidence contract 2.4.0 for the recorded discovery scope, and whether `--fail-on` fails on PARTIAL coverage by default (a gate-semantics change) — **scope approved 2026-11-03**; the `--fail-on` default stays open until S4. S1 shipped in v0.16.0 | S1–S5 |
 | 16 | v0.19.0 scope (Phase 13), including the consumer's one runtime dependency (`jsonschema`) — **decided 2026-11-03: approved** | P1–P5 |
+| 17 | Approve the track T study protocol (Part A) and register it under your name on OSF or Zenodo before the held-out data is read; an AI cannot be the accountable author — open | TR5 |
+| 18 | Use StarScout's flagged-repository lists as fake-star labels, kept local (git-ignored) and published only as aggregates, as its authors ask — open | TR1's positives, TR6 |
 
 ## Risks
 
