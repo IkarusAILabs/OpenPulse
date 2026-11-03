@@ -132,6 +132,12 @@ def _walk_v1_dependencies(
             stack.append(iter(nested.items()))
 
 
+def _has_poetry_lock_version(doc: dict[str, Any]) -> bool:
+    """Poetry stores its marker in metadata; retain root-marker compatibility."""
+    metadata = doc.get("metadata")
+    return "lock-version" in doc or (isinstance(metadata, dict) and "lock-version" in metadata)
+
+
 def load_poetry_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed poetry.lock into pinned dep entries.
 
@@ -143,7 +149,7 @@ def load_poetry_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], lis
     """
     if not isinstance(doc, dict):
         raise ValueError("poetry.lock must be a mapping")
-    if "lock-version" not in doc:
+    if not _has_poetry_lock_version(doc):
         raise ValueError(
             "poetry.lock needs a `lock-version` marker (Poetry 1.1+); "
             "older formats are refused rather than guessed at"
@@ -230,7 +236,7 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
 
     Format is detected from unambiguous structural markers, never
     from the filename: JSON with an integer `lockfileVersion` is npm;
-    TOML with `lock-version` is poetry; TOML with an integer root
+    TOML with `metadata.lock-version` is poetry; TOML with an integer root
     `version` is Cargo. Anything else is refused with a clean error
     naming what was tried. Both branches share the SBOM-sized cap.
     """
@@ -252,7 +258,7 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
         toml_doc = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"lockfile is neither npm JSON nor valid TOML: {e}") from None
-    if "lock-version" in toml_doc:
+    if _has_poetry_lock_version(toml_doc):
         return (*load_poetry_lock_doc(toml_doc), "poetry")
     if isinstance(toml_doc.get("version"), int):
         return (*load_cargo_lock_doc(toml_doc), "cargo")
@@ -295,7 +301,7 @@ def lockfile_digests(path: str) -> LockedDigests:
         toml_doc = _toml_module().loads(data.decode("utf-8"))
     except Exception:  # not TOML, not UTF-8, or no tomllib (3.10): no digests
         return out
-    if "lock-version" not in toml_doc:
+    if not _has_poetry_lock_version(toml_doc):
         return out
     for entry in toml_doc.get("package") or []:
         if not isinstance(entry, dict):
