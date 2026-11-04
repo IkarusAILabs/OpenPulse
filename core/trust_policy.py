@@ -173,6 +173,38 @@ def parse(doc: Any, source: str = "") -> Policy:
     return Policy(rules=rules, blocklist=blocklist, source=source, unchecked=mode)
 
 
+#: Conditions ``openpulse gate`` enforces whatever the policy says (G3, decision 14):
+#: a lockfile hash edited in place must not pass a policy that forgot the rule.
+GATE_IMPLIED = ("digest_mismatch",)
+
+
+def with_gate_implied(policy: Policy) -> tuple[Policy, list[str]]:
+    """The policy as ``openpulse gate`` enforces it, and the conditions it added.
+
+    Each implied condition applies to every package. A scoped rule for it is
+    replaced, not kept beside the unscoped one, so a violation is never
+    reported twice. ``check`` and ``attest`` use the policy as written.
+    """
+    added = [
+        condition
+        for condition in GATE_IMPLIED
+        if not any(r.condition == condition and not r.packages for r in policy.rules)
+    ]
+    if not added:
+        return policy, []
+    rules = [r for r in policy.rules if r.condition not in added]
+    rules += [Rule(condition) for condition in added]
+    return (
+        Policy(
+            rules=rules,
+            blocklist=policy.blocklist,
+            source=policy.source,
+            unchecked=policy.unchecked,
+        ),
+        added,
+    )
+
+
 def load(path: str | Path) -> Policy:
     """Read and validate a policy file (bounded read, YAML safe_load)."""
     import yaml

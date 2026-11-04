@@ -2,7 +2,7 @@
 
 A trust policy makes chosen trust conditions fail `openpulse check` and `openpulse attest` (track T, T-E1, v0.14.0). It is evaluated deterministically, with no model involved. Advisory MCP answers are not a security boundary: an agent can skip the call or ignore the answer. A policy in CI does not depend on the agent.
 
-**Nothing blocks unless your policy names it.** Without a policy, gates behave exactly as before.
+**Nothing blocks unless your policy names it.** Without a policy, gates behave exactly as before. One exception: once a policy exists, `openpulse gate` also enforces `digest_mismatch` (v0.17.0, see *Before install*).
 
 ## The file
 
@@ -79,7 +79,8 @@ openpulse gate package-lock.json --base-ref HEAD                     # pre-commi
 - **The same evaluation as `check` and `attest`:**
   - the blocklist covers every dependency;
   - lockfile digests are checked for every entry whose hash changed;
-  - except that a prohibited check that did not run fails the gate (see above).
+  - except that a prohibited check that did not run fails the gate (see above);
+  - and except that the gate always enforces `digest_mismatch`, whatever the policy says (v0.17.0 item G3, decision 14). Every lockfile entry the change adds, or whose locked digests changed, is compared with the registry, and a digest the registry does not serve fails the gate. A policy without the rule gets it for every package (the gate prints `policy: digest_mismatch is implied by the gate`); a rule scoped to some packages is widened to all. A digest that could not be checked is unchecked, so it fails the gate unless the policy says `unchecked: pass`. `check` and `attest` still enforce the policy as written.
 - **Exit codes:** 0 when nothing prohibited is found, 1 on a violation, 2 on a usage error (an unknown ref, not a git repository, mismatched `--base`) or a named file it cannot read. Without a policy it passes and says so.
 - **Files it cannot read fail closed:** a named file that is not a readable dependency file (a malformed `package-lock.json`, a broken `pyproject.toml`, a README) exits 2: nothing in it was checked, so it is never a pass. Deleted files are skipped with a note.
 - **Entries it does not check are listed:** lines that are not exactly pinned PyPI or npm packages (`flask>=2`, a bare `requests`) are printed as not checked. The lockfile pins them: gate the lockfile too.
@@ -164,7 +165,7 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | Route | Covered? | How, or what to do instead |
 |---|---|---|
 | A dependency added only to the lockfile | Yes | `--lockfile` with `--base-lockfile` (the Action's `trust: pull-request`) checks every added or changed entry |
-| A lockfile hash edited in place (same name and version, another artifact) | Yes | With `--base-lockfile`, digests are checked for every entry whose locked digests changed, not only for new versions |
+| A lockfile hash edited in place (same name and version, another artifact) | Yes | `openpulse gate` checks the digests of every entry whose locked digests changed, whatever the policy says (v0.17.0). `check` and `attest` do with `--base-lockfile` when the policy prohibits `digest_mismatch` |
 | A blocklisted name respelled (`Evil_Pkg` for `evil-pkg`) | Yes | PyPI names compare in normalized form |
 | An agent that ignores the MCP warning | Yes | CI evaluates the files again, with no model involved |
 | A pull request that weakens its own policy or private-name list | Yes, in the Action with `trust: pull-request` | The Action uses the **base branch's** `.openpulse/policy.yml` (or the `policy` path) and `.openpulse/private-packages.txt` when they exist. A policy the pull request adds is used as is. With `trust: off` or `all`, the policy comes from the checked-out tree: protect `.openpulse/` with CODEOWNERS |
