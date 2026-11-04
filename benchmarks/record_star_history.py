@@ -61,6 +61,8 @@ MAX_PAGES = 100
 SAMPLE = 1000
 SEED = 20261103
 MAX_BYTES = 1024 * 1024
+RETRIES = 3
+MAX_WAIT = 3700.0  # one rate-limit window
 POSITIVE_FILES = {
     "fake_stars_clustered_repos.csv": "clustered",
     "fake_stars_low_activity_repos.csv": "low_activity",
@@ -82,9 +84,20 @@ def http_fetch(url: str) -> tuple[int, Any]:
     token = os.environ.get("GITHUB_TOKEN", "")
     if token:
         headers["authorization"] = f"Bearer {token}"
-    try:
-        response = http.get(url, max_bytes=MAX_BYTES, timeout=60, headers=headers)
-    except Exception:  # network trouble or an oversized body: no answer
+    for _attempt in range(RETRIES + 1):
+        try:
+            # A moved repository answers with a redirect within api.github.com;
+            # follow it, as record_reputation does, so its history is read where it is.
+            response = http.get(
+                url, max_bytes=MAX_BYTES, timeout=60, headers=headers, follow_redirects=True
+            )
+        except Exception:  # network trouble or an oversized body: no answer
+            return 0, None
+        wait = rate_limit_wait(response.status_code, response.headers, time.time())
+        if wait is None:
+            break
+        time.sleep(wait)  # a rate limit is not an answer about the repository
+    else:
         return 0, None
     if response.status_code != 200:
         return response.status_code, None
@@ -92,6 +105,22 @@ def http_fetch(url: str) -> tuple[int, Any]:
         return 200, response.json()
     except ValueError:
         return 0, None
+
+
+def rate_limit_wait(status: int, headers: Any, now: float) -> float | None:
+    """Seconds to wait before retrying a rate-limited answer, or None when the
+    answer is about the repository (a 403 for a blocked one stays a 403)."""
+    if status not in (403, 429):
+        return None
+    retry_after = str(headers.get("retry-after") or "")
+    if retry_after.isdigit():
+        return min(float(retry_after), MAX_WAIT)
+    if str(headers.get("x-ratelimit-remaining") or "") == "0":
+        reset = str(headers.get("x-ratelimit-reset") or "")
+        if reset.isdigit():
+            return min(max(float(reset) - now, 0.0) + 5.0, MAX_WAIT)
+        return MAX_WAIT
+    return None
 
 
 def _week(bucket: Any) -> list[int] | None:

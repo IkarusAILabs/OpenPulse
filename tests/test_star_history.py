@@ -145,3 +145,14 @@ def test_local_positives_are_never_committed():
 def test_the_default_fetch_is_offline_in_tests():
     """conftest blocks network; the recorder is only called with a stub here."""
     assert callable(rec.http_fetch)
+
+
+def test_rate_limits_are_waited_out_and_blocked_repositories_are_not():
+    wait = rec.rate_limit_wait
+    assert wait(200, {}, 0) is None
+    assert wait(403, {}, 0) is None  # blocked (e.g. a takedown): an answer
+    assert wait(404, {"x-ratelimit-remaining": "0"}, 0) is None
+    assert wait(429, {"retry-after": "30"}, 0) == 30
+    assert wait(403, {"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1000"}, 900) == 105
+    assert wait(403, {"x-ratelimit-remaining": "0"}, 0) == rec.MAX_WAIT
+    assert wait(403, {"retry-after": "999999"}, 0) == rec.MAX_WAIT
