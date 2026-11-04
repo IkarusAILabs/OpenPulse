@@ -13,6 +13,14 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
   Each file is hashed before and after it is read; a file that changed in between fails the gate (exit 2). A receipt is an integrity record within one pipeline run, not a signature. See "Gate receipts" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). Verifying it before install is item G2.
 
+### Changed
+
+- **`openpulse gate` always checks changed lockfile digests (v0.17.0 item G3, decision 14).** Once a policy exists, the gate enforces `digest_mismatch` for every package, whatever the policy says. A lockfile hash edited in place (same name and version, another artifact) can no longer pass a policy that forgot the rule. A scoped `digest_mismatch` rule is widened to every package in the gate. `check` and `attest` enforce the policy as written.
+
+### Upgrade notes
+
+- **A gate with a policy now asks the registry about changed lockfile entries**, even when the policy does not prohibit `digest_mismatch`. If PyPI or npm cannot be reached, that check is unchecked and fails the gate, as any prohibited check does. Set `unchecked: pass` in the policy to restore passing on unchecked checks. A gate without a policy is unchanged.
+
 ## 0.16.1 — 2026-11-03
 
 A patch for one crash. Nothing else changes; no upgrade notes.

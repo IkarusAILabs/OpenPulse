@@ -8,6 +8,7 @@ import pytest
 from click.testing import CliRunner
 
 from cli.main import cli
+from core import trust_policy as tp
 from core.trust_policy import Policy, PolicyError, applies, evaluate, load, parse, unchecked
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -298,3 +299,24 @@ def test_unchecked_respects_the_package_scope():
     assert unchecked(policy, DJANGO, []) == []
     acme = {**DJANGO, "package": "acme-core"}
     assert [v["condition"] for v in unchecked(policy, acme, [])] == ["unchecked missing_provenance"]
+
+
+def test_the_gate_implies_digest_mismatch_for_every_package():
+    policy = tp.parse({"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    gated, added = tp.with_gate_implied(policy)
+    assert added == ["digest_mismatch"] and gated.needs_digests and not policy.needs_digests
+    assert gated.blocklist == policy.blocklist and gated.unchecked == policy.unchecked
+
+
+def test_a_scoped_digest_rule_is_widened_not_doubled():
+    policy = tp.parse(
+        {"version": 1, "prohibit": [{"condition": "digest_mismatch", "packages": ["PyPI:django"]}]}
+    )
+    gated, added = tp.with_gate_implied(policy)
+    assert added == ["digest_mismatch"]
+    assert [(r.condition, r.packages) for r in gated.rules] == [("digest_mismatch", ())]
+
+
+def test_an_unscoped_digest_rule_is_left_as_it_is():
+    policy = tp.parse({"version": 1, "prohibit": ["digest_mismatch"]})
+    assert tp.with_gate_implied(policy) == (policy, [])

@@ -205,6 +205,57 @@ def _gate(*args):
     return CliRunner().invoke(cli, ["gate", *args])
 
 
+def _pypi_digests(**published):
+    """Stub PyPI's release JSON: the wheel digest per package, 404 for the rest."""
+
+    def fetch(url):
+        name = url.split("/pypi/", 1)[1].split("/", 1)[0]
+        if name not in published:
+            return 404, None
+        files = [
+            {"filename": f"{name}-4.2-py3-none-any.whl", "digests": {"sha256": published[name]}}
+        ]
+        return 200, {"urls": files}
+
+    return fetch
+
+
+def test_the_gate_checks_a_hash_edited_in_place_whatever_the_policy_says(tmp_path, monkeypatch):
+    """G3 (decision 14): a policy that forgot digest_mismatch still fails the edit."""
+    monkeypatch.setattr("core.digest_integrity.default_fetch", _pypi_digests(django=SHA_GOOD))
+    base = _write(tmp_path / "base/poetry.lock", _poetry(("django", "4.2", SHA_GOOD)))
+    head = _write(tmp_path / "poetry.lock", _poetry(("django", "4.2", SHA_EVIL)))
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    result = _gate(head, "--base", base, "--policy", policy)
+    assert result.exit_code == 1, result.output
+    assert "PROHIBITED digest_mismatch: PyPI:django==4.2" in result.output
+    assert "digest_mismatch is implied by the gate" in result.output
+
+
+def test_the_gate_fails_closed_when_an_implied_digest_check_cannot_run(tmp_path, monkeypatch):
+    monkeypatch.setattr("core.digest_integrity.default_fetch", lambda _url: (0, None))
+    base = _write(tmp_path / "base/poetry.lock", _poetry(("django", "4.2", SHA_GOOD)))
+    head = _write(tmp_path / "poetry.lock", _poetry(("django", "4.2", SHA_EVIL)))
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    assert _gate(head, "--base", base, "--policy", policy).exit_code == 1
+    relaxed = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"], "unchecked": "pass"})
+    assert _gate(head, "--base", base, "--policy", relaxed).exit_code == 0
+
+
+def test_check_and_attest_keep_digest_mismatch_as_written(tmp_path, monkeypatch):
+    """Only the gate implies the rule; attest enforces the policy it is given."""
+    asked = []
+    monkeypatch.setattr(
+        "core.digest_integrity.default_fetch", lambda url: asked.append(url) or (404, None)
+    )
+    base = _write(tmp_path / "base/poetry.lock", _poetry(("django", "4.2", SHA_GOOD)))
+    head = _write(tmp_path / "poetry.lock", _poetry(("django", "4.2", SHA_EVIL)))
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    result = _attest("--lockfile", head, "--base-lockfile", base, "--policy", policy)
+    assert result.exit_code == 0, result.output
+    assert asked == []
+
+
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
 def test_a_commit_made_with_no_verify_is_caught_by_the_ci_gate(tmp_path, monkeypatch):
     """`git commit --no-verify` skips the hook; the CI gate compares with the base."""
@@ -239,8 +290,9 @@ def test_limit_the_hook_misses_dependency_files_with_other_names():
         assert not re.search(_hook_files(), name), name
 
 
-def test_limit_a_lockfile_regenerated_after_the_gate_is_not_the_gated_one(tmp_path):
+def test_limit_a_lockfile_regenerated_after_the_gate_is_not_the_gated_one(tmp_path, monkeypatch):
     """The gate judges the file as it is when the gate runs, nothing later."""
+    monkeypatch.setattr("core.digest_integrity.default_fetch", _pypi_digests(django=SHA_GOOD))
     policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
     lock = tmp_path / "poetry.lock"
     _write(lock, _poetry(("django", "4.2", SHA_GOOD)))

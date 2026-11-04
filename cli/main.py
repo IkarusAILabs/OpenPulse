@@ -773,7 +773,9 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path, receip
     (fail closed: an unread file is never a pass). A prohibited check that
     applied but did not run (a source down, a spent budget) is a violation
     unless the policy says `unchecked: pass`. Entries that are not exactly
-    pinned packages are listed as not checked. Without a policy there is
+    pinned packages are listed as not checked. With a policy, changed
+    lockfile digests are always checked (digest_mismatch is implied, G3).
+    Without a policy there is
     nothing to enforce, so it passes. No events are needed: this checks
     trust, not upstream changes. With --receipt, the SHA-256 of every file
     it judged is recorded, so the install step can prove it installs the
@@ -796,6 +798,15 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path, receip
         raise
     except click.ClickException as e:  # a missing or invalid policy is not a violation
         raise click.UsageError(e.message) from e
+    if loaded is not None:
+        # G3 (decision 14): changed lockfile digests are always checked by the gate.
+        loaded, implied = _trust_policy.with_gate_implied(loaded)
+        for condition in implied:
+            _echo(
+                f"policy: {condition} is implied by the gate (changed lockfile entries are "
+                "always checked against the registry)",
+                err=True,
+            )
     names = _private_name_list(private_names) if loaded is not None else None
     files: list[dict[str, Any]] = []
     violations: list[dict[str, Any]] = []
