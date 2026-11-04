@@ -108,6 +108,11 @@ outputs:
   threshold-breached:
     description: "'true' when the fail-on threshold or a trust policy was breached"
     value: ${{ steps.run.outputs.threshold-breached || steps.gate.outputs.threshold-breached }}
+  receipts:
+    description: >-
+      With `gate`: the directory of gate receipts, one per gated file. Verify it
+      immediately before install: `openpulse gate --verify-receipt <dir> FILE...`
+    value: ${{ steps.gate.outputs.receipts }}
 
 runs:
   using: composite

@@ -129,11 +129,98 @@ def write(receipt: dict[str, Any], path: str | os.PathLike[str]) -> None:
         raise
 
 
+# ---------------------------------------------------------------------------
+# Verification before install (v0.17.0 item G2)
+# ---------------------------------------------------------------------------
+
+MAX_RECEIPT_BYTES = 1024 * 1024
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+def _key(path: str | os.PathLike[str]) -> str:
+    """How a recorded path and a named file are matched: the same file from
+    the same working directory, whatever the spelling."""
+    return os.path.normcase(os.path.abspath(os.fspath(path)))
+
+
+def receipt_files(path: str | os.PathLike[str]) -> list[Path]:
+    """The receipt itself, or every ``*.json`` in a directory of receipts (the
+    GitHub Action writes one per gated file). ValueError when there is none."""
+    target = Path(path)
+    if target.is_dir():
+        found = sorted(p for p in target.glob("*.json") if p.is_file())
+        if not found:
+            raise ValueError(f"{receipt_path(path)}: no receipt (*.json) in this directory")
+        return found
+    return [target]
+
+
+def load(path: str | os.PathLike[str]) -> dict[str, Any]:
+    """A receipt, validated enough to verify against; ValueError with the reason."""
+    from core.bounded_io import read_text
+
+    name = receipt_path(path)
+    try:
+        doc = json.loads(read_text(str(path), MAX_RECEIPT_BYTES, "receipt"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{name}: not a readable receipt ({exc.__class__.__name__})") from None
+    if not isinstance(doc, dict) or str(doc.get("receipt_version", "")).split(".")[0] != "1":
+        raise ValueError(f"{name}: not an OpenPulse gate receipt (receipt_version 1.x)")
+    files = doc.get("files")
+    if not isinstance(files, list) or not all(
+        isinstance(f, dict)
+        and isinstance(f.get("path"), str)
+        and (f.get("sha256") is None or _SHA256.fullmatch(str(f.get("sha256"))))
+        for f in files
+    ):
+        raise ValueError(f"{name}: its file list is malformed")
+    return doc
+
+
+def verify(
+    receipts: list[tuple[str, dict[str, Any]]], paths: list[str | os.PathLike[str]]
+) -> list[str]:
+    """Why ``paths`` may not be installed on the strength of ``receipts``
+    (empty when they may). Every receipt must record a passing gate; every
+    path must be a file every receipt naming it recorded as gated, with the
+    same SHA-256 now."""
+    problems = [
+        f"{name}: the gate did not pass (decision {str(doc.get('decision'))[:16]!r}); "
+        "nothing it names may be installed"
+        for name, doc in receipts
+        if doc.get("decision") != "passed" or doc.get("exit_code") != 0
+    ]
+    recorded: dict[str, list[dict[str, Any]]] = {}
+    for _name, doc in receipts:
+        for entry in doc["files"]:
+            recorded.setdefault(_key(entry["path"]), []).append(entry)
+    for path in paths:
+        shown = receipt_path(path)
+        entries = recorded.get(_key(path))
+        if not entries:
+            problems.append(f"{shown}: not in the receipt; gate it before installing it")
+            continue
+        if not os.path.isfile(path):
+            problems.append(f"{shown}: missing now")
+            continue
+        if any(e.get("status") != "gated" for e in entries):
+            problems.append(f"{shown}: the gate did not judge it (recorded as not gated)")
+            continue
+        now = sha256_file(path)
+        if any(e.get("sha256") != now for e in entries):
+            problems.append(f"{shown}: changed since the gate; run the gate again")
+    return problems
+
+
 __all__ = [
     "DECISIONS",
+    "MAX_RECEIPT_BYTES",
     "RECEIPT_VERSION",
     "build",
+    "load",
+    "receipt_files",
     "receipt_path",
     "sha256_file",
+    "verify",
     "write",
 ]

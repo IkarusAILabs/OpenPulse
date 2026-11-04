@@ -12,6 +12,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
   - every violation and unchecked check, as condition, check, status and dependency label, never a statement.
 
   Each file is hashed before and after it is read; a file that changed in between fails the gate (exit 2). A receipt is an integrity record within one pipeline run, not a signature. See "Gate receipts" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). Verifying it before install is item G2.
+- **Verify before install (v0.17.0 item G2).** `openpulse gate --verify-receipt RECEIPT FILE...` exits 0 only when every named file was gated by a passing gate and still has the SHA-256 it recorded. A file that changed, was not gated, or comes from a gate that did not pass exits 1; an unreadable receipt exits 2. It takes a receipt or a directory of receipts, repeatable. The GitHub Action's `gate` input writes one receipt per file and names their directory in a new `receipts` output, so the install step can verify first. See "Verify before install" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
 
 ### Changed
 
