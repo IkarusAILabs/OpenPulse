@@ -176,18 +176,56 @@ def test_main_writes_the_output_and_keeps_the_token_from_the_lookups(work, monke
     monkeypatch.setenv("GITHUB_OUTPUT", str(output))
     monkeypatch.setenv("GITHUB_TOKEN", "job-token")
     monkeypatch.setenv("RUNNER_TEMP", str(work))
-    seen = []
+    seen, gated = [], []
 
     def gate(args):
         import os
 
         seen.append(os.environ.get("GITHUB_TOKEN"))
+        gated.append(args)
         return 1
 
     monkeypatch.setattr(action_gate, "_gate", gate)
     assert action_gate.main() == 0
-    assert output.read_text(encoding="utf-8") == "threshold-breached=true\n"
+    breached, receipts = output.read_text(encoding="utf-8").splitlines()
+    assert breached == "threshold-breached=true"
+    directory = Path(receipts.removeprefix("receipts="))
+    assert directory.is_dir() and directory.parent == work
+    assert gated[0][-2:] == ["--receipt", str(directory / "receipt-0.json")]
     assert seen == [None]
+
+
+def test_each_gated_file_gets_its_own_receipt_and_they_verify(work, monkeypatch):
+    """G2 end to end through the Action's script: gate, then verify before install."""
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    _osv(monkeypatch)
+    (work / "requirements.txt").write_text("django==4.2\n", encoding="utf-8")
+    (work / "requirements-dev.txt").write_text("pytest==8.0\n", encoding="utf-8")
+    receipts = work / "receipts"
+    receipts.mkdir()
+    files = ("requirements.txt", "requirements-dev.txt")
+    assert action_gate.run(
+        list(files),
+        repo="acme/app",
+        base_sha="",
+        policy="",
+        token="t",
+        out_dir=str(work / "base"),
+        receipt_dir=str(receipts),
+    ) == (0, False)
+    assert sorted(p.name for p in receipts.iterdir()) == ["receipt-0.json", "receipt-1.json"]
+    verify = ["gate", "--verify-receipt", str(receipts), *files]
+    assert CliRunner().invoke(cli, verify).exit_code == 0
+    (work / "requirements-dev.txt").write_text("pytest==8.0\nevil-pkg==1.0\n", encoding="utf-8")
+    assert CliRunner().invoke(cli, verify).exit_code == 1
+
+
+def test_the_action_exposes_the_receipt_directory():
+    output = _action()["outputs"]["receipts"]
+    assert output["value"] == "${{ steps.gate.outputs.receipts }}"
 
 
 # ---------------------------------------------------------------------------

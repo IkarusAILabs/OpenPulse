@@ -14,6 +14,11 @@ Inputs arrive as environment variables, never on the command line:
 - ``IN_BASE_SHA``: the base commit (empty outside pull requests);
 - ``GITHUB_REPOSITORY``, ``GITHUB_TOKEN``, ``GITHUB_OUTPUT``, ``RUNNER_TEMP``.
 
+Each file's gate writes a receipt (v0.17.0 item G2) into a fresh directory,
+named in the ``receipts`` output: a later step runs
+``openpulse gate --verify-receipt <that directory> FILE...`` immediately
+before installing, and refuses any file that changed since the gate.
+
 A base file that cannot be read never narrows the checks: that file is
 checked in full. Exit 0 when the gate ran (``threshold-breached`` in
 ``GITHUB_OUTPUT`` says whether it found a violation), 2 on a usage error.
@@ -66,6 +71,7 @@ def run(
     token: str,
     out_dir: str,
     get: action_base_files.Get | None = None,
+    receipt_dir: str | None = None,
 ) -> tuple[int, bool]:
     """(exit code, threshold breached) for the gate over ``files``."""
     if not files:
@@ -109,6 +115,8 @@ def run(
             args += ["--policy", policy_path]
         if private_path:
             args += ["--private-names", private_path]
+        if receipt_dir:
+            args += ["--receipt", str(Path(receipt_dir) / f"receipt-{index}.json")]
         codes.append(_gate(args))
     if any(code not in (0, 1) for code in codes):
         return 2, False
@@ -117,11 +125,14 @@ def run(
 
 def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)  # notices in order with the gate's stderr
-    files =os.environ.get("IN_GATE", "").split()
+    files = os.environ.get("IN_GATE", "").split()
     # Threat: the job token reaching the trust lookups - only the base-file
     # reads use it, as in the attest step.
     token = os.environ.pop("GITHUB_TOKEN", "")
     scratch = tempfile.mkdtemp(prefix="openpulse-gate-base-", dir=os.environ.get("RUNNER_TEMP"))
+    receipts = tempfile.mkdtemp(
+        prefix="openpulse-gate-receipts-", dir=os.environ.get("RUNNER_TEMP")
+    )
     code, breached = run(
         files,
         repo=os.environ.get("GITHUB_REPOSITORY", ""),
@@ -129,11 +140,13 @@ def main() -> int:
         policy=os.environ.get("IN_POLICY", ""),
         token=token,
         out_dir=scratch,
+        receipt_dir=receipts,
     )
     output = os.environ.get("GITHUB_OUTPUT")
     if output and code == 0:
         with open(output, "a", encoding="utf-8") as fh:
             fh.write(f"threshold-breached={'true' if breached else 'false'}\n")
+            fh.write(f"receipts={receipts}\n")
     return code
 
 

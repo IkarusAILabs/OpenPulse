@@ -734,6 +734,35 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
     return str(target)
 
 
+def _verify_receipts(receipt_paths, paths):
+    """G2: exit 0 when every path may be installed on the receipts' strength,
+    1 when one may not, 2 when a receipt cannot be read."""
+    from core import gate_receipt
+
+    receipts = []
+    try:
+        for given in receipt_paths:
+            for path in gate_receipt.receipt_files(given):
+                receipts.append((gate_receipt.receipt_path(path), gate_receipt.load(path)))
+    except ValueError as e:
+        _echo(f"gate: {strip_unsafe(str(e))[:300]}", err=True)
+        raise SystemExit(2) from e
+    problems = gate_receipt.verify(receipts, list(paths))
+    for problem in problems:
+        _echo(f"gate: REFUSED {strip_unsafe(problem)[:300]}", err=True)
+    if problems:
+        _echo(
+            f"gate: verification failed ({len(problems)} problem(s)); do not install. "
+            "Changed means reinspect: run the gate again",
+            err=True,
+        )
+        raise SystemExit(1)
+    _echo(
+        f"gate: verified {len(paths)} file(s) against {len(receipts)} passing receipt(s); "
+        "they are the bytes the gate judged"
+    )
+
+
 @cli.command(name="gate")
 @click.argument("paths", nargs=-1, required=True, type=click.Path(dir_okay=False))
 @click.option(
@@ -763,8 +792,19 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
     help="Write a receipt of what was gated (file, policy and private-list SHA-256s, the "
     "decision, violations), whatever the outcome; verify it right before install",
 )
+@click.option(
+    "--verify-receipt",
+    "verify_receipts",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Instead of gating, check that every PATH is a file a passing gate recorded, with "
+    "the same SHA-256 now (exit 1 otherwise). A receipt file or a directory of them; "
+    "repeatable. Run it immediately before install",
+)
 @_policy_option
-def gate_command(paths, base_ref, base_paths, private_names, policy_path, receipt_out):
+def gate_command(
+    paths, base_ref, base_paths, private_names, policy_path, receipt_out, verify_receipts
+):
     """Pre-install trust gate (track T, T-E2): the trust policy on dependency files.
 
     Run it before `pip install` or `npm ci`, or as a pre-commit hook. Exit 0
@@ -779,7 +819,8 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path, receip
     nothing to enforce, so it passes. No events are needed: this checks
     trust, not upstream changes. With --receipt, the SHA-256 of every file
     it judged is recorded, so the install step can prove it installs the
-    same bytes.
+    same bytes: --verify-receipt checks that, and exits 1 on any file that
+    changed, was not gated, or comes from a gate that did not pass.
     """
     import tempfile
     from pathlib import Path as _Path
@@ -788,6 +829,14 @@ def gate_command(paths, base_ref, base_paths, private_names, policy_path, receip
     from core import dependency_confusion as _confusion
     from core import trust_policy as _trust_policy
 
+    if verify_receipts:
+        if base_ref or base_paths or receipt_out or policy_path or private_names:
+            raise click.UsageError(
+                "--verify-receipt checks files against a receipt; it takes no "
+                "--base-ref, --base, --receipt, --policy or --private-names"
+            )
+        _verify_receipts(verify_receipts, paths)
+        return
     if base_ref and base_paths:
         raise click.UsageError("use --base-ref or --base, not both")
     if base_paths and len(base_paths) != len(paths):

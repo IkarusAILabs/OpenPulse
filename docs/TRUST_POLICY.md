@@ -85,7 +85,7 @@ openpulse gate package-lock.json --base-ref HEAD                     # pre-commi
 - **Files it cannot read fail closed:** a named file that is not a readable dependency file (a malformed `package-lock.json`, a broken `pyproject.toml`, a README) exits 2: nothing in it was checked, so it is never a pass. Deleted files are skipped with a note.
 - **Entries it does not check are listed:** lines that are not exactly pinned PyPI or npm packages (`flask>=2`, a bare `requests`) are printed as not checked. The lockfile pins them: gate the lockfile too.
 - **First commit:** in a repository with no commits yet, `--base-ref HEAD` treats every file as new. Any other unknown ref is still a usage error.
-- **Receipt:** `--receipt PATH` writes what was gated, whatever the outcome (v0.17.0 item G1). See below.
+- **Receipt:** `--receipt PATH` writes what was gated, whatever the outcome (v0.17.0 item G1), and `--verify-receipt` checks it before install (G2). See below.
 
 ### Gate receipts
 
@@ -110,7 +110,25 @@ A receipt is a JSON document (`receipt_version` `1.0`) with a fixed set of field
 
 - **Hashed once, judged once:** each file is hashed before it is read and again after. A file that changed in between is an error (exit 2), so a receipt never names bytes the gate did not judge.
 - **No upstream text:** violations carry the condition, the check, the status and the dependency label from your own file, never a statement (statements can quote advisory records).
-- **Not a signature:** anyone who can write the files can write a receipt. It is an integrity record within one pipeline run: keep it in the job's workspace and verify it right before install. Verification before install (`--verify-receipt`) is v0.17.0 item G2.
+- **Not a signature:** anyone who can write the files can write a receipt. It is an integrity record within one pipeline run: keep it in the job's workspace and verify it right before install (below).
+
+### Verify before install
+
+The gate judges the files as they are when it runs. Between the gate and the install, a later step can rewrite them. `--verify-receipt` checks, immediately before install, that the files are the bytes a passing gate judged (v0.17.0 item G2):
+
+```bash
+openpulse gate requirements.txt poetry.lock --base-ref origin/main --receipt gate-receipt.json
+# ... other build steps ...
+openpulse gate --verify-receipt gate-receipt.json requirements.txt poetry.lock \
+  && pip install --require-hashes -r requirements.txt
+```
+
+- **Exit 0** only when every named file was recorded as gated by a receipt whose gate passed, and its SHA-256 now is the one recorded.
+- **Exit 1**, with a `gate: REFUSED` line per problem, when a file changed since the gate, was not given to the gate, was recorded as unreadable or missing, or is missing now, or when a receipt records a gate that did not pass. Changed means reinspect: run the gate again.
+- **Exit 2** when a receipt cannot be read (not JSON, not `receipt_version` 1.x, a malformed file list) or a directory holds no receipt: never a pass.
+- **Several receipts:** `--verify-receipt` takes a receipt file or a directory of them (every `*.json` in it), and can be repeated. Every receipt must be a passing one, and a file recorded in several must match each. The GitHub Action writes one receipt per gated file into a directory (its `receipts` output).
+- **Paths:** a named file matches a recorded path when both name the same file from the working directory, whatever the spelling (`./poetry.lock`, an absolute path). Verify from the directory the gate ran in.
+- **It checks only what it is given.** Name every file the install reads, and install with commands that do not rewrite them (`npm ci`, `pip install --require-hashes`). A lockfile the install step regenerates is not the verified one; that route is item G4.
 
 ### In CI, before install
 
@@ -177,6 +195,7 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | A dependency installed outside the files (`pip install x` in a build script) | No | The gate sees only its inputs. Install from the lockfile you gate, e.g. `pip install --require-hashes -r requirements.lock` |
 | `git commit --no-verify` (or a hook never installed) | Yes, in CI | The hook is a convenience, not a boundary: every hook can be skipped locally. The CI gate compares with the base branch, so the skipped commit's additions are still checked. Run it as a required status check |
 | A dependency file the hook's pattern does not name (`requirements/base.txt`, `constraints.txt`) | No, at commit | The hook selects `requirements*.txt` and the standard manifest and lockfile names. Widen it with `files:` in your `.pre-commit-config.yaml`, and list every file in the CI gate |
-| A lockfile regenerated after the gate (`poetry lock`, `npm install` in a later step) | No | The gate judges the file as it is when it runs. Install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`), or run the gate again after any step that rewrites it |
+| A file changed after the gate, before install (a later step rewrites `requirements.txt` or the lockfile) | Yes, with `--verify-receipt` | Write a receipt at the gate and run `openpulse gate --verify-receipt` on the same files immediately before install (v0.17.0). A changed file exits 1 |
+| A lockfile regenerated after the gate (`poetry lock`, `npm install` in a later step) | Partly | `--verify-receipt` refuses the regenerated file when it runs before install. A lockfile the install command itself rewrites is not covered yet (item G4): install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`) |
 | An install from a file the gate was not given (`pip install -r requirements-dev.txt`) | No | The gate sees only its inputs. Name every file you install from in the `gate` input or the `openpulse gate` command |
 | An internal package missing from the private-name list | Partly | `not_found_in_registry` fires, but the public checks describe someone else's package. List internal names before prohibiting it |

@@ -124,10 +124,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.16.1
+      - id: openpulse
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.16.1
         with:
           gate: requirements.txt poetry.lock
-      - run: pip install --require-hashes -r requirements.txt
+      # ... other steps ...
+      - name: Install what the gate passed (verify first)
+        env:
+          RECEIPTS: ${{ steps.openpulse.outputs.receipts }}
+        run: |
+          "$OPENPULSE_BIN/openpulse" gate --verify-receipt "$RECEIPTS" requirements.txt poetry.lock
+          pip install --require-hashes -r requirements.txt
 ```
 
 - **Pull requests:** each file is compared with its copy on the base commit, read through the contents API like `trust: pull-request`. A shallow checkout is enough. Only dependencies the pull request adds or changes are trust-checked. A file the pull request adds is checked in full.
@@ -135,7 +142,8 @@ jobs:
 - **Settings from the base branch:** the policy (`.openpulse/policy.yml`, or a repository-relative `policy` path) and `.openpulse/private-packages.txt` come from the base branch when it has them. A pull request that weakens or deletes its policy is still gated by the base branch's.
 - **Other events:** without a base commit (`push`, `schedule`), every dependency is checked.
 - **Isolation:** OpenPulse runs in its own virtual environment, installed from its hash-locked runtime set, so the gate itself installs none of your dependencies. The job token reads the base files only and is removed before the trust lookups.
-- **Outputs:** `threshold-breached` is `true` on a violation. `sarif-file`, `contracts-file` and `inspection-coverage` are empty, and `upload-sarif` is ignored.
+- **Outputs:** `threshold-breached` is `true` on a violation. `receipts` is the directory of gate receipts, one per gated file (v0.17.0 item G2). `sarif-file`, `contracts-file` and `inspection-coverage` are empty, and `upload-sarif` is ignored.
+- **Verify before install:** the gate judges the files as they are when it runs. Run `openpulse gate --verify-receipt` on the `receipts` directory and the same files in the step that installs, so a file a later step changed is refused (exit 1) instead of installed. The action's virtual environment stays on `$OPENPULSE_BIN` for the rest of the job. See *Verify before install* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
 - **Without a policy** the gate passes and says so.
 
 ## Pinning
