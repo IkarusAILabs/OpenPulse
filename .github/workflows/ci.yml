@@ -154,15 +154,28 @@ jobs:
           contracts-file: ${{ runner.temp }}/policy.jsonl
       # Threat: a pre-install gate that never fires (v0.15.0 Z3) - the gate
       # input runs only `openpulse gate`. A blocklist needs no lookups, so the
-      # pass and the block are both deterministic.
+      # pass and the block are both deterministic. The pass gates no lockfile:
+      # the gate checks lockfile digests whatever the policy says (v0.17.0
+      # G3), and the fixture lockfile's digests are made up.
       - name: Write a gate policy that blocks nothing in the fixtures
         run: |
           printf 'version: 1\nblocklist: ["PyPI:evil-pkg"]\n' > "$RUNNER_TEMP/gate-pass.yml"
       - id: gate-pass
         uses: ./
         with:
-          gate: data/fixtures/manifests/requirements.txt data/fixtures/lockfiles/poetry.lock
+          gate: data/fixtures/manifests/requirements.txt
           policy: ${{ runner.temp }}/gate-pass.yml
+      # Threat: a lockfile hash edit passing a policy that forgot
+      # digest_mismatch (v0.17.0 G3). The fixture's digests are not PyPI's,
+      # so the gate fails: on the mismatch, or, offline, on the unchecked
+      # digest. Either way it must not pass.
+      - id: gate-digest
+        continue-on-error: true
+        uses: ./
+        with:
+          gate: data/fixtures/lockfiles/poetry.lock
+          policy: ${{ runner.temp }}/gate-pass.yml
+          base-sha: ''  # no base: every entry is checked, on pushes and pull requests
       - id: gate-block
         continue-on-error: true
         uses: ./
@@ -180,6 +193,8 @@ jobs:
           GATE_PASS_OUTCOME: ${{ steps.gate-pass.outcome }}
           GATE_PASS_BREACHED: ${{ steps.gate-pass.outputs.threshold-breached }}
           GATE_PASS_SARIF: ${{ steps.gate-pass.outputs.sarif-file }}
+          GATE_PASS_RECEIPTS: ${{ steps.gate-pass.outputs.receipts }}
+          GATE_DIGEST_OUTCOME: ${{ steps.gate-digest.outcome }}
           GATE_BLOCK_OUTCOME: ${{ steps.gate-block.outcome }}
           GATE_BLOCK_BREACHED: ${{ steps.gate-block.outputs.threshold-breached }}
         run: |
@@ -187,6 +202,14 @@ jobs:
           test "$GATE_PASS_OUTCOME" = success
           test "$GATE_PASS_BREACHED" = false
           test -z "$GATE_PASS_SARIF"
+          test "$GATE_DIGEST_OUTCOME" = failure
+          # v0.17.0 G2: the gated file verifies; a file the gate never saw does not.
+          verify=("$OPENPULSE_BIN/openpulse" gate --verify-receipt "$GATE_PASS_RECEIPTS")
+          "${verify[@]}" data/fixtures/manifests/requirements.txt
+          if "${verify[@]}" data/fixtures/lockfiles/poetry.lock; then
+            echo "verify-receipt passed a file the gate never saw" >&2
+            exit 1
+          fi
           test "$GATE_BLOCK_OUTCOME" = failure
           test "$GATE_BLOCK_BREACHED" = true
           test "$PASS_BREACHED" = false
