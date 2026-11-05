@@ -75,6 +75,7 @@ def test_a_deleted_file_is_refused(work):
 
 def test_the_same_file_spelt_another_way_matches(work):
     assert _gate("requirements.txt", "r.json").exit_code == 0
+    (work / "sub").mkdir()  # Linux resolves `sub/..` only through a real directory
     spelt = str(Path(".") / "sub" / ".." / "requirements.txt")
     assert _run("--verify-receipt", "r.json", spelt).exit_code == 0
     assert _run("--verify-receipt", "r.json", str(work / "requirements.txt")).exit_code == 0
