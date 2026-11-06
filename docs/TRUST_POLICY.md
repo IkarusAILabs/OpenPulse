@@ -156,9 +156,15 @@ Gate the files before the step that installs them. With the GitHub Action, set i
 
 ```bash
 git fetch --no-tags origin "$BASE_BRANCH"     # e.g. main; a shallow clone lacks it
-openpulse gate requirements.txt poetry.lock --base-ref "origin/$BASE_BRANCH"
-pip install --require-hashes -r requirements.txt
+# after any step that generates or rewrites a dependency file:
+openpulse gate requirements.txt poetry.lock --base-ref "origin/$BASE_BRANCH" --receipt gate-receipt.json
+# ... other build steps ...
+openpulse gate --verify-receipt gate-receipt.json \
+  --require-receipt-for 'requirements*.txt' --require-receipt-for poetry.lock \
+  && pip install --require-hashes -r requirements.txt
 ```
+
+The order is the guarantee (v0.17.0): **generate, gate, verify, install**, with the verification in the same command as the install so neither can run without the other. Each install is then either of the exact bytes the gate passed, with the receipt to show it, or refused. See *Verify before install* and *Generated dependency files* above, and what is still not covered under *Bypass routes*.
 
 Install OpenPulse apart from the project (a separate virtual environment or `pipx`), so the gate runs before any project dependency is installed. The CLI reads the policy from the checked-out tree; protect `.openpulse/` with CODEOWNERS, or use the Action, which reads the base branch's.
 
@@ -220,4 +226,6 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | A dependency file generated after the gate, that the install step was not told about | Yes, with `--require-receipt-for` | Verify with a pattern for every dependency file the build can produce (`--require-receipt-for '**/package-lock.json'`): a matching file the gate never saw is refused (v0.17.0 item G4) |
 | A lockfile the install command itself rewrites (`npm install`, `poetry install` with a stale lock) | No | It changes after the last check. Install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`, `uv sync --locked`) |
 | An install from a file the gate was not given (`pip install -r requirements-dev.txt`) | No | The gate sees only its inputs. Name every file you install from in the `gate` input or the `openpulse gate` command |
+| A receipt edited or written by hand (claiming a passing gate) | No | A receipt is an integrity record within one pipeline run, not a signature: anyone who can write the files can write one. Write it and verify it in the same job, in the job's workspace, and never take a receipt from the pull request or an artifact it controls |
+| An install step that skips the verification | No (outside OpenPulse) | Run `openpulse gate --verify-receipt ... && <install>` as one command, so the install cannot run when verification fails. A workflow edit that removes it is the "removes or edits the workflow step" route above |
 | An internal package missing from the private-name list | Partly | `not_found_in_registry` fires, but the public checks describe someone else's package. List internal names before prohibiting it |
