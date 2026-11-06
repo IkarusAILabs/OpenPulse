@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.16.1"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.17.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.16.1
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.17.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -204,7 +204,7 @@ The full list, including what an attacker with write access to local history can
 
 ## What's new
 
-**On `main`, for v0.17.0 "Gate-to-Install Integrity" (unreleased):** what `openpulse gate` passed is what gets installed, or the install is refused.
+**v0.17.0 "Gate-to-Install Integrity":** what `openpulse gate` passed is what gets installed, or the install is refused.
 
 - **Receipts:** `openpulse gate --receipt PATH` records the SHA-256 of every file it judged, the policy, the decision and every violation.
 - **Verify before install:** `openpulse gate --verify-receipt PATH FILE...` refuses (exit 1) any file that changed since the gate, was not gated, or comes from a gate that did not pass. `--require-receipt-for PATTERN` catches dependency files a build step generated after the gate. The Action's `gate` input writes receipts and names them in a `receipts` output.
@@ -327,7 +327,7 @@ tests/              # offline tests (no network in CI)
 Two tracks share one evidence model:
 
 - **Upstream change intelligence:** M1 Trusted Evidence ✅ → M2 Upstream Discovery ✅ → M3 Report Product ✅ → M4 Benchmark 🔨 (11 formalized scenarios) → M5 Dependency Context ✅ → M6 Early Warning 🔨 (ledger, digest, warnings, signed webhook delivery with retries, and the GitHub Action shipped) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research).
-- **Track T, AI Dependency Trust Assurance:** identity and integrity checks (v0.12), agent trust evidence and contract 2.2 (v0.13), trust policy and measurements (v0.14), pre-install gates (v0.15), reputation indicators and contract 2.3 (v0.16), gate-to-install integrity (v0.17, on `main`, unreleased). The research questions, such as whether trust evidence changes what agents and people choose, remain open.
+- **Track T, AI Dependency Trust Assurance:** identity and integrity checks (v0.12), agent trust evidence and contract 2.2 (v0.13), trust policy and measurements (v0.14), pre-install gates (v0.15), reputation indicators and contract 2.3 (v0.16), gate-to-install integrity (v0.17). The research questions, such as whether trust evidence changes what agents and people choose, remain open.
 
 Full sequence, principles and metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md).
 

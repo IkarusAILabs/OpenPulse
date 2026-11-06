@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.17.0 "Gate-to-Install Integrity" — 2026-11-06
+
+Track T Phase 4 (T-E2): what `openpulse gate` passed is what gets installed, or the install is refused. The gate writes a receipt of the bytes it judged; the install step verifies it immediately before installing, including dependency files a build step generated after the gate; and a lockfile hash edited in place fails the gate even under a policy that never mentions `digest_mismatch`. The whole route is tested end to end with a real `pip install --require-hashes`, offline, on Linux and Windows. Still not covered, and documented in the bypass table: an install from a file the gate was not given, a lockfile the install command itself rewrites, a receipt written by hand, and an install step that skips the verification. Receipts are integrity records within one pipeline run, not signatures.
 
 ### Added
 
@@ -21,9 +23,22 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 - **`openpulse gate` always checks changed lockfile digests (v0.17.0 item G3, decision 14).** Once a policy exists, the gate enforces `digest_mismatch` for every package, whatever the policy says. A lockfile hash edited in place (same name and version, another artifact) can no longer pass a policy that forgot the rule. A scoped `digest_mismatch` rule is widened to every package in the gate. `check` and `attest` enforce the policy as written.
 
+### Fixed
+
+- **Poetry locks are read as Poetry writes them** (#319, thanks @arin30). Poetry puts `lock-version` under `[metadata]`; both lockfile readers looked for it at the document root, so a normal `poetry.lock` was rejected by `read_lockfile` and `lockfile_digests` returned no hashes. Root-level markers are still accepted.
+- **npm aliases are checked under their registry name** (#320, thanks @arin30). An alias such as `number-alias@npm:is-number@7.0.0` was checked, and its integrity hash filed, under the install name `number-alias`; the lockfile entry's `name` is now used when present, for dependencies and digests alike.
+
+### Docs and research
+
+- The monthly reports published at https://openpulse.ikaruslabs.net/ are linked from the README, `docs/ANALYSTS.md` and `docs/METHODOLOGY.md`.
+- Track T study, Part A, prepared and not yet run: star-history recorders, the organic and young organic sets, thresholds calibrated on organic data only, the pre-registered analysis code and the registration package (`docs/research/TRACK_T_STUDY_PROTOCOL.md`, `docs/research/TRACK_T_REGISTRATION.md`). Author-run with AI assistance; no held-out or labelled data has been read. No product behaviour depends on it.
+
 ### Upgrade notes
 
 - **A gate with a policy now asks the registry about changed lockfile entries**, even when the policy does not prohibit `digest_mismatch`. If PyPI or npm cannot be reached, that check is unchecked and fails the gate, as any prohibited check does. Set `unchecked: pass` in the policy to restore passing on unchecked checks. A gate without a policy is unchanged.
+- **`openpulse gate` with no file** is rejected by the gate itself (exit 2, as before), since the file argument is optional with `--verify-receipt`.
+- **The Action's `gate` input writes receipts** into a fresh directory under `RUNNER_TEMP` and sets a new `receipts` output. Nothing else about the step changes; verify them in your install step (see `docs/GITHUB_ACTION.md`).
+- Evidence contract unchanged (2.3.0); verdicts unchanged.
 
 ## 0.16.1 — 2026-11-03
 
