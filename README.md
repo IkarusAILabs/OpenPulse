@@ -128,7 +128,7 @@ Track T of the [roadmap](docs/ROADMAP.md), *AI Dependency Trust Assurance*. Each
 | `repository_moved` | Does the claimed repository now answer under another name? | indicator | 4.1% of repositories |
 | `young_popular_repository` | Is the repository younger than 180 days with at least 1000 stars? | indicator | experimental |
 
-An indicator (SUSPICIOUS_INCONCLUSIVE) is never a verdict: legitimate projects change maintainers, move to organisations and launch to many stars. `publisher_change`, `repository_moved` and `young_popular_repository` are on `main` and ship in v0.16.0. Rates and method: [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md).
+An indicator (SUSPICIOUS_INCONCLUSIVE) is never a verdict: legitimate projects change maintainers, move to organisations and launch to many stars. `publisher_change`, `repository_moved` and `young_popular_repository` shipped in v0.16.0. Rates and method: [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md).
 
 Where the evidence goes:
 
@@ -203,6 +203,13 @@ The full list, including what an attacker with write access to local history can
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
+
+**On `main`, for v0.17.0 "Gate-to-Install Integrity" (unreleased):** what `openpulse gate` passed is what gets installed, or the install is refused.
+
+- **Receipts:** `openpulse gate --receipt PATH` records the SHA-256 of every file it judged, the policy, the decision and every violation.
+- **Verify before install:** `openpulse gate --verify-receipt PATH FILE...` refuses (exit 1) any file that changed since the gate, was not gated, or comes from a gate that did not pass. `--require-receipt-for PATTERN` catches dependency files a build step generated after the gate. The Action's `gate` input writes receipts and names them in a `receipts` output.
+- **Lockfile digests always checked by the gate:** once a policy exists, a hash edited in place fails the gate even if the policy never mentions `digest_mismatch`.
+- **Tested end to end:** gate, verify and a real `pip install --require-hashes`, offline, on Linux and Windows.
 
 **v0.16.1:** `openpulse gate` no longer crashes when a private-name list is in use (the Action passes one whenever the base branch has it).
 
@@ -320,7 +327,7 @@ tests/              # offline tests (no network in CI)
 Two tracks share one evidence model:
 
 - **Upstream change intelligence:** M1 Trusted Evidence ✅ → M2 Upstream Discovery ✅ → M3 Report Product ✅ → M4 Benchmark 🔨 (11 formalized scenarios) → M5 Dependency Context ✅ → M6 Early Warning 🔨 (ledger, digest, warnings, signed webhook delivery with retries, and the GitHub Action shipped) → M7 Network → M8 AI-mediated direction → M9 combined assurance experiment (research).
-- **Track T, AI Dependency Trust Assurance:** identity and integrity checks (v0.12), agent trust evidence and contract 2.2 (v0.13), trust policy and measurements (v0.14), pre-install gates (v0.15), reputation indicators and contract 2.3 (v0.16, on `main`). The research questions, such as whether trust evidence changes what agents and people choose, remain open.
+- **Track T, AI Dependency Trust Assurance:** identity and integrity checks (v0.12), agent trust evidence and contract 2.2 (v0.13), trust policy and measurements (v0.14), pre-install gates (v0.15), reputation indicators and contract 2.3 (v0.16), gate-to-install integrity (v0.17, on `main`, unreleased). The research questions, such as whether trust evidence changes what agents and people choose, remain open.
 
 Full sequence, principles and metrics: [`docs/ROADMAP.md`](docs/ROADMAP.md); research framing: [`docs/research/RESEARCH_ALIGNMENT.md`](docs/research/RESEARCH_ALIGNMENT.md).
 

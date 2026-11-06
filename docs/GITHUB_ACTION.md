@@ -232,4 +232,6 @@ jobs:
 - The gate counts ACTION/CRITICAL causes. Phase C3 asks for causes *backed by keyed-valid evidence*, which depends on keyed integrity (Phase B3), and that has not shipped yet. Until it does, the gate trusts the event's evidence as `attest` validates it today.
 - Results are anchored to the input file, not to a line. Code Scanning shows them at file level.
 - Image refs can produce `note` (RELATED) results for events scoped to packages: the engine cannot compare them, so it says so instead of guessing.
+- Gate receipts are not signed: they prove, within one job, that the files installed are the ones the gate passed. Verify them in the same job that wrote them (the `receipts` output), never from an artifact a pull request controls.
+- `--verify-receipt` checks the files it is given and those its `--require-receipt-for` patterns match. An install command that rewrites its lockfile while installing (`npm install`, not `npm ci`) changes it after the check.
 - Not published to the GitHub Marketplace yet. That needs a tagged release.
