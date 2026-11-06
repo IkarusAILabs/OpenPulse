@@ -198,7 +198,7 @@ repos:
 
 ## Bypass routes
 
-A gate is only as good as the routes around it. Each route below is pinned by a test in `tests/test_gate_bypass.py` (track T evaluation category 8: v0.14.0 Y5, and the pre-install routes v0.15.0 Z4), so a change in what the gate covers cannot pass unnoticed.
+A gate is only as good as the routes around it. Each route below is pinned by a test in `tests/test_gate_bypass.py` (track T evaluation category 8: v0.14.0 Y5, and the pre-install routes v0.15.0 Z4), so a change in what the gate covers cannot pass unnoticed. The v0.17.0 routes are also run end to end in `tests/test_e2e_install.py` (item G5): gate, verify and a real `pip install --require-hashes` from a local wheel index, offline, asserting both what installs and that a refused change installs nothing.
 
 | Route | Covered? | How, or what to do instead |
 |---|---|---|
