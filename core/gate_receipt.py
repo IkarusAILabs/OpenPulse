@@ -212,6 +212,36 @@ def verify(
     return problems
 
 
+def required_files(
+    patterns: list[str], root: str | os.PathLike[str] = "."
+) -> tuple[list[str], list[str]]:
+    """(files that must be verified, patterns that matched nothing) for
+    ``--require-receipt-for`` (v0.17.0 item G4).
+
+    Each pattern is a glob relative to ``root`` (``poetry.lock``,
+    ``**/package-lock.json``). Every existing file it matches must be covered
+    by a passing receipt, so a dependency file a build step generated or
+    regenerated after the gate cannot reach install unverified. A pattern
+    that matches nothing is not an error: the file was not generated.
+    ValueError for a pattern that leaves ``root``.
+    """
+    base = Path(root)
+    files: list[str] = []
+    unmatched: list[str] = []
+    for pattern in patterns:
+        parts = Path(pattern).parts
+        rooted = Path(pattern).is_absolute() or Path(pattern).drive or Path(pattern).root
+        if not pattern or rooted or ".." in parts:
+            raise ValueError(f"--require-receipt-for {pattern!r}: use a pattern inside the project")
+        found = sorted(
+            os.path.relpath(p, base).replace("\\", "/") for p in base.glob(pattern) if p.is_file()
+        )
+        if not found:
+            unmatched.append(pattern)
+        files += [f for f in found if f not in files]
+    return files, unmatched
+
+
 __all__ = [
     "DECISIONS",
     "MAX_RECEIPT_BYTES",
@@ -220,6 +250,7 @@ __all__ = [
     "load",
     "receipt_files",
     "receipt_path",
+    "required_files",
     "sha256_file",
     "verify",
     "write",

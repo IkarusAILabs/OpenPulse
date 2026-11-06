@@ -309,3 +309,34 @@ def test_limit_an_install_from_an_ungated_file_is_invisible(tmp_path):
     ungated = _write(tmp_path / "requirements-dev.txt", "evil-pkg==1.0\n")
     assert _gate(gated, "--policy", policy).exit_code == 0
     assert _gate(gated, ungated, "--policy", policy).exit_code == 1  # gate every file
+
+
+def test_a_lockfile_regenerated_after_the_gate_is_refused_before_install(tmp_path, monkeypatch):
+    """v0.17.0 G2/G4: the receipt names the gated bytes; the regenerated file differs."""
+    monkeypatch.setattr("core.digest_integrity.default_fetch", _pypi_digests(django=SHA_GOOD))
+    monkeypatch.chdir(tmp_path)
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    _write(tmp_path / "poetry.lock", _poetry(("django", "4.2", SHA_GOOD)))
+    assert _gate("poetry.lock", "--policy", policy, "--receipt", "r.json").exit_code == 0
+    _write(tmp_path / "poetry.lock", _poetry(("django", "4.2", SHA_GOOD), ("evil", "1", SHA_EVIL)))
+    result = _gate("--verify-receipt", "r.json", "--require-receipt-for", "poetry.lock")
+    assert result.exit_code == 1 and "changed since the gate" in result.output
+
+
+def test_a_dependency_file_generated_after_the_gate_is_refused_before_install(
+    tmp_path, monkeypatch
+):
+    """v0.17.0 G4: nobody named it to the install step; the pattern finds it."""
+    monkeypatch.chdir(tmp_path)
+    policy = _policy(tmp_path, {"version": 1, "blocklist": ["PyPI:evil-pkg"]})
+    _write(tmp_path / "requirements.txt", "django==4.2\n")
+    assert _gate("requirements.txt", "--policy", policy, "--receipt", "r.json").exit_code == 0
+    _write(tmp_path / "web" / "package-lock.json", '{"lockfileVersion": 3, "packages": {}}')
+    result = _gate(
+        "--verify-receipt",
+        "r.json",
+        "--require-receipt-for",
+        "**/package-lock.json",
+        "requirements.txt",
+    )
+    assert result.exit_code == 1 and "web/package-lock.json: not in the receipt" in result.output
