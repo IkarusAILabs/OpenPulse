@@ -133,7 +133,8 @@ jobs:
         env:
           RECEIPTS: ${{ steps.openpulse.outputs.receipts }}
         run: |
-          "$OPENPULSE_BIN/openpulse" gate --verify-receipt "$RECEIPTS" requirements.txt poetry.lock
+          "$OPENPULSE_BIN/openpulse" gate --verify-receipt "$RECEIPTS" \
+            --require-receipt-for 'requirements*.txt' --require-receipt-for poetry.lock
           pip install --require-hashes -r requirements.txt
 ```
 
@@ -143,7 +144,7 @@ jobs:
 - **Other events:** without a base commit (`push`, `schedule`), every dependency is checked.
 - **Isolation:** OpenPulse runs in its own virtual environment, installed from its hash-locked runtime set, so the gate itself installs none of your dependencies. The job token reads the base files only and is removed before the trust lookups.
 - **Outputs:** `threshold-breached` is `true` on a violation. `receipts` is the directory of gate receipts, one per gated file (v0.17.0 item G2). `sarif-file`, `contracts-file` and `inspection-coverage` are empty, and `upload-sarif` is ignored.
-- **Verify before install:** the gate judges the files as they are when it runs. Run `openpulse gate --verify-receipt` on the `receipts` directory and the same files in the step that installs, so a file a later step changed is refused (exit 1) instead of installed. The action's virtual environment stays on `$OPENPULSE_BIN` for the rest of the job. See *Verify before install* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
+- **Verify before install:** the gate judges the files as they are when it runs. Run `openpulse gate --verify-receipt` on the `receipts` directory and the same files in the step that installs, so a file a later step changed is refused (exit 1) instead of installed. `--require-receipt-for` adds every existing file matching a pattern, so a dependency file a build step generated after the gate is refused too (v0.17.0 item G4). If the build generates a lockfile, put the action after that step. The action's virtual environment stays on `$OPENPULSE_BIN` for the rest of the job. See *Verify before install* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
 - **Without a policy** the gate passes and says so.
 
 ## Pinning

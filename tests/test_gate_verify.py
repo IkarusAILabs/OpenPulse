@@ -144,3 +144,92 @@ def test_verification_takes_no_gating_options(work):
     assert _gate("requirements.txt", "r.json").exit_code == 0
     result = _run("--verify-receipt", "r.json", "--policy", "policy.yml", "requirements.txt")
     assert result.exit_code == 2 and "takes no" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Generated dependency files (v0.17.0 item G4)
+# ---------------------------------------------------------------------------
+
+
+def test_a_file_regenerated_after_the_gate_is_refused(work):
+    """`poetry lock` / `npm install` after the gate rewrites the gated bytes."""
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    (work / "requirements.txt").write_text("django==4.2.1\n", encoding="utf-8")
+    result = _run("--verify-receipt", "r.json", "--require-receipt-for", "requirements*.txt")
+    assert result.exit_code == 1 and "changed since the gate" in result.output
+
+
+def test_a_dependency_file_generated_after_the_gate_is_refused(work):
+    """Nobody named it to the verify step, but the pattern finds it."""
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    (work / "poetry.lock").write_text('lock-version = "2.1"\n', encoding="utf-8")
+    result = _run(
+        "--verify-receipt",
+        "r.json",
+        "--require-receipt-for",
+        "poetry.lock",
+        "requirements.txt",
+    )
+    assert result.exit_code == 1
+    assert "poetry.lock: not in the receipt; gate it before installing it" in result.output
+
+
+def test_a_generated_file_in_a_subdirectory_is_found(work):
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    (work / "web").mkdir()
+    (work / "web" / "package-lock.json").write_text("{}", encoding="utf-8")
+    result = _run("--verify-receipt", "r.json", "--require-receipt-for", "**/package-lock.json")
+    assert result.exit_code == 1 and "web/package-lock.json: not in the receipt" in result.output
+
+
+def test_matching_gated_files_verify_without_naming_them(work):
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    assert _gate("requirements-dev.txt", "d.json").exit_code == 0
+    result = _run(
+        "--verify-receipt",
+        "r.json",
+        "--verify-receipt",
+        "d.json",
+        "--require-receipt-for",
+        "requirements*.txt",
+        "--require-receipt-for",
+        "poetry.lock",
+    )
+    assert result.exit_code == 0, result.output
+    assert "verified 2 file(s)" in result.output
+    assert "--require-receipt-for poetry.lock: no such file" in result.output
+
+
+def test_a_file_named_and_matched_is_verified_once(work):
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    result = _run(
+        "--verify-receipt",
+        "r.json",
+        "--require-receipt-for",
+        "requirements.txt",
+        "./requirements.txt",
+    )
+    assert result.exit_code == 0 and "verified 1 file(s)" in result.output
+
+
+def test_nothing_to_verify_is_an_error(work):
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    result = _run("--verify-receipt", "r.json", "--require-receipt-for", "poetry.lock")
+    assert result.exit_code == 2 and "nothing to verify" in result.output
+
+
+@pytest.mark.parametrize("pattern", ["../requirements.txt", "/etc/passwd", ""])
+def test_a_pattern_outside_the_project_is_an_error(work, pattern):
+    assert _gate("requirements.txt", "r.json").exit_code == 0
+    result = _run("--verify-receipt", "r.json", "--require-receipt-for", pattern)
+    assert result.exit_code == 2
+
+
+def test_require_receipt_for_needs_verify_receipt(work):
+    result = _run("requirements.txt", "--require-receipt-for", "poetry.lock")
+    assert result.exit_code == 2 and "part of --verify-receipt" in result.output
+
+
+def test_the_gate_still_needs_a_file(work):
+    result = _run("--policy", "policy.yml")
+    assert result.exit_code == 2 and "name at least one dependency file" in result.output

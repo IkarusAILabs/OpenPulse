@@ -734,9 +734,10 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
     return str(target)
 
 
-def _verify_receipts(receipt_paths, paths):
+def _verify_receipts(receipt_paths, paths, required=()):
     """G2: exit 0 when every path may be installed on the receipts' strength,
-    1 when one may not, 2 when a receipt cannot be read."""
+    1 when one may not, 2 when a receipt cannot be read. G4: every existing
+    file matching a ``required`` pattern is verified too."""
     from core import gate_receipt
 
     receipts = []
@@ -744,9 +745,17 @@ def _verify_receipts(receipt_paths, paths):
         for given in receipt_paths:
             for path in gate_receipt.receipt_files(given):
                 receipts.append((gate_receipt.receipt_path(path), gate_receipt.load(path)))
+        matched, unmatched = gate_receipt.required_files(list(required))
     except ValueError as e:
         _echo(f"gate: {strip_unsafe(str(e))[:300]}", err=True)
         raise SystemExit(2) from e
+    for pattern in unmatched:
+        _echo(f"gate: --require-receipt-for {strip_unsafe(pattern)[:200]}: no such file", err=True)
+    keys = {gate_receipt._key(p) for p in paths}
+    paths = list(paths) + [m for m in matched if gate_receipt._key(m) not in keys]
+    if not paths:
+        _echo("gate: nothing to verify: name the files to install, or a pattern that matches")
+        raise SystemExit(2)
     problems = gate_receipt.verify(receipts, list(paths))
     for problem in problems:
         _echo(f"gate: REFUSED {strip_unsafe(problem)[:300]}", err=True)
@@ -764,7 +773,7 @@ def _verify_receipts(receipt_paths, paths):
 
 
 @cli.command(name="gate")
-@click.argument("paths", nargs=-1, required=True, type=click.Path(dir_okay=False))
+@click.argument("paths", nargs=-1, type=click.Path(dir_okay=False))
 @click.option(
     "--base-ref",
     default=None,
@@ -801,9 +810,25 @@ def _verify_receipts(receipt_paths, paths):
     "the same SHA-256 now (exit 1 otherwise). A receipt file or a directory of them; "
     "repeatable. Run it immediately before install",
 )
+@click.option(
+    "--require-receipt-for",
+    "required",
+    multiple=True,
+    metavar="PATTERN",
+    help="With --verify-receipt: every existing file matching this glob (poetry.lock, "
+    "'**/package-lock.json') must be verified too, so a dependency file a build step "
+    "generated after the gate cannot be installed unverified. Repeatable",
+)
 @_policy_option
 def gate_command(
-    paths, base_ref, base_paths, private_names, policy_path, receipt_out, verify_receipts
+    paths,
+    base_ref,
+    base_paths,
+    private_names,
+    policy_path,
+    receipt_out,
+    verify_receipts,
+    required,
 ):
     """Pre-install trust gate (track T, T-E2): the trust policy on dependency files.
 
@@ -829,14 +854,18 @@ def gate_command(
     from core import dependency_confusion as _confusion
     from core import trust_policy as _trust_policy
 
+    if required and not verify_receipts:
+        raise click.UsageError("--require-receipt-for is part of --verify-receipt")
     if verify_receipts:
         if base_ref or base_paths or receipt_out or policy_path or private_names:
             raise click.UsageError(
                 "--verify-receipt checks files against a receipt; it takes no "
                 "--base-ref, --base, --receipt, --policy or --private-names"
             )
-        _verify_receipts(verify_receipts, paths)
+        _verify_receipts(verify_receipts, paths, required)
         return
+    if not paths:
+        raise click.UsageError("name at least one dependency file to gate")
     if base_ref and base_paths:
         raise click.UsageError("use --base-ref or --base, not both")
     if base_paths and len(base_paths) != len(paths):

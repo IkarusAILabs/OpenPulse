@@ -128,7 +128,27 @@ openpulse gate --verify-receipt gate-receipt.json requirements.txt poetry.lock \
 - **Exit 2** when a receipt cannot be read (not JSON, not `receipt_version` 1.x, a malformed file list) or a directory holds no receipt: never a pass.
 - **Several receipts:** `--verify-receipt` takes a receipt file or a directory of them (every `*.json` in it), and can be repeated. Every receipt must be a passing one, and a file recorded in several must match each. The GitHub Action writes one receipt per gated file into a directory (its `receipts` output).
 - **Paths:** a named file matches a recorded path when both name the same file from the working directory, whatever the spelling (`./poetry.lock`, an absolute path). Verify from the directory the gate ran in.
-- **It checks only what it is given.** Name every file the install reads, and install with commands that do not rewrite them (`npm ci`, `pip install --require-hashes`). A lockfile the install step regenerates is not the verified one; that route is item G4.
+- **It checks only what it is given.** Name every file the install reads, or give a pattern (below), and install with commands that do not rewrite them (`npm ci`, `pip install --require-hashes`).
+
+### Generated dependency files
+
+A lockfile a build step writes (`poetry lock`, `uv lock`, `npm install`, `pip-compile`) is a new file to the gate: what it pins was decided by that step, not by the change under review. Gate it **after** it is generated, and make sure nothing installs a generated file the gate did not see (v0.17.0 item G4):
+
+1. **Generate**, then **gate** the generated files, with a receipt.
+2. Any later step that rewrites them must be followed by the gate again.
+3. **Verify** immediately before install, with a pattern for every dependency file the build can produce:
+
+```bash
+poetry lock
+openpulse gate poetry.lock --receipt gate-receipt.json
+# ... other build steps ...
+openpulse gate --verify-receipt gate-receipt.json \
+  --require-receipt-for poetry.lock --require-receipt-for '**/package-lock.json' \
+  && poetry install --sync
+```
+
+- **`--require-receipt-for PATTERN`** (repeatable, with `--verify-receipt`): every existing file matching the glob, relative to the working directory, is verified like a named file. A generated file the gate never saw is refused (`not in the receipt`), and one regenerated after the gate is refused (`changed since the gate`). A pattern that matches nothing is noted, not refused: that file was not generated. With no named file and no match, there is nothing to verify, which is an error (exit 2). A pattern that leaves the project (`..`, an absolute path) is an error.
+- **Still not covered:** an install command that rewrites the lockfile while it installs (`npm install`, `poetry install` without a current lock). It runs after the last check, so no gate can see what it pins. Install with commands that refuse to change the lock: `npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`, `uv sync --locked`.
 
 ### In CI, before install
 
@@ -196,6 +216,8 @@ A gate is only as good as the routes around it. Each route below is pinned by a 
 | `git commit --no-verify` (or a hook never installed) | Yes, in CI | The hook is a convenience, not a boundary: every hook can be skipped locally. The CI gate compares with the base branch, so the skipped commit's additions are still checked. Run it as a required status check |
 | A dependency file the hook's pattern does not name (`requirements/base.txt`, `constraints.txt`) | No, at commit | The hook selects `requirements*.txt` and the standard manifest and lockfile names. Widen it with `files:` in your `.pre-commit-config.yaml`, and list every file in the CI gate |
 | A file changed after the gate, before install (a later step rewrites `requirements.txt` or the lockfile) | Yes, with `--verify-receipt` | Write a receipt at the gate and run `openpulse gate --verify-receipt` on the same files immediately before install (v0.17.0). A changed file exits 1 |
-| A lockfile regenerated after the gate (`poetry lock`, `npm install` in a later step) | Partly | `--verify-receipt` refuses the regenerated file when it runs before install. A lockfile the install command itself rewrites is not covered yet (item G4): install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`) |
+| A lockfile regenerated after the gate (`poetry lock`, `npm install` in a later step) | Yes, with `--verify-receipt` | The regenerated file no longer has the gated SHA-256, so verification refuses it (v0.17.0). Gate again after any step that rewrites it |
+| A dependency file generated after the gate, that the install step was not told about | Yes, with `--require-receipt-for` | Verify with a pattern for every dependency file the build can produce (`--require-receipt-for '**/package-lock.json'`): a matching file the gate never saw is refused (v0.17.0 item G4) |
+| A lockfile the install command itself rewrites (`npm install`, `poetry install` with a stale lock) | No | It changes after the last check. Install with commands that refuse to change the lock (`npm ci`, `pip install --require-hashes`, `poetry install` after `poetry check --lock`, `uv sync --locked`) |
 | An install from a file the gate was not given (`pip install -r requirements-dev.txt`) | No | The gate sees only its inputs. Name every file you install from in the `gate` input or the `openpulse gate` command |
 | An internal package missing from the private-name list | Partly | `not_found_in_registry` fires, but the public checks describe someone else's package. List internal names before prohibiting it |
