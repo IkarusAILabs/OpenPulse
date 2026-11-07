@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.17.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.18.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.17.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.18.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -203,6 +203,12 @@ The full list, including what an attacker with write access to local history can
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
+
+**v0.18.0 "Inspection Coverage Assurance":** repository coverage that never overstates itself.
+
+- **More is read:** requirements variants (`requirements-dev.txt`, `requirements/*.txt`, `constraints.txt`), monorepo members under `packages/` (skipped before, a fix), npm workspace members through their lockfile, and Cargo workspace roots. A `-r`/`-c` include that was not inspected makes coverage PARTIAL.
+- **What was searched is stated:** ref and commit, file patterns, skipped directories with counts, the limits that applied, files found and read; in `check` and `attest`, and as `inspection_coverage.scope` in evidence contract 2.4.0.
+- **No all-clear over PARTIAL:** every summary that could read as clear names what was not inspected, by category and count.
 
 **v0.17.0 "Gate-to-Install Integrity":** what `openpulse gate` passed is what gets installed, or the install is refused.
 
