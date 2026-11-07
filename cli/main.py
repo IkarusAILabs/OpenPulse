@@ -1787,8 +1787,11 @@ def _coverage_note(inspections) -> str | None:
     The terminal preamble alone is not enough: the body is what reaches a
     webhook, and "nothing upcoming" over an unread repository is unknown
     dressed as clear. None when every inspection is COMPLETE or no
-    repository was inspected, so those outputs are unchanged.
+    repository was inspected, so those outputs are unchanged. The line
+    names the categories not inspected first (S4), then the details.
     """
+    from core import coverage
+
     if not inspections:
         return None
     status, reasons = _coverage_summary(inspections)
@@ -1796,8 +1799,8 @@ def _coverage_note(inspections) -> str | None:
         return None
     why = "; ".join(reasons) or "no reason recorded"
     return (
-        f"⚠️ Repository inspection coverage: {status} — {why}. "
-        "Results are not a clean bill of health."
+        f"⚠️ Repository inspection coverage: {coverage.describe(status, reasons)}. "
+        f"Details: {why}. Results are not a clean bill of health."
     )
 
 
@@ -1873,9 +1876,11 @@ def _deliver_alerts(
 
 def _echo_run_coverage(inspections) -> str:
     """Print the run-level repository coverage (if any) and return it."""
+    from core import coverage
+
     status, reasons = _coverage_summary(inspections)
     if inspections:
-        _echo(f"repository inspection coverage: {status}")
+        _echo(f"repository inspection coverage: {coverage.describe(status, reasons)}")
         for reason in reasons:
             _echo(f"   - {reason}")
     return status
@@ -2402,7 +2407,14 @@ def check(
         )
         for reason in reasons:
             _echo(f"   - {reason}")
-    _echo(f"\n{affected}/{len(deps)} dependencies affected")
+    if run_coverage in ("PARTIAL", "FAILED"):
+        # S4: the count alone reads as an all-clear over an unread repository.
+        _echo(
+            f"\n{affected}/{len(deps)} dependencies affected, over {run_coverage} repository "
+            "coverage: what was not inspected was not checked (see above)"
+        )
+    else:
+        _echo(f"\n{affected}/{len(deps)} dependencies affected")
     from core.risk.check import fail_on_threshold, strict_affected
 
     # Same gate as the digest branch: --fail-on must not depend on
