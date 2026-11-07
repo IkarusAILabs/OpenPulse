@@ -107,7 +107,7 @@ def test_untrusted_record_fields_are_bounded():
 
 def test_without_trust_the_block_is_null_and_the_document_valid(event):
     doc = _doc(event)
-    assert doc["contract_version"] == "2.3.0" and doc["trust_assurance"] is None
+    assert doc["contract_version"] == "2.4.0" and doc["trust_assurance"] is None
     assert validate_contract(doc) == [] and verify_content_hash(doc)
 
 

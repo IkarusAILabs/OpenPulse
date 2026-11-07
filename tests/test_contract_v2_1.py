@@ -45,8 +45,12 @@ def test_non_repository_inputs_are_not_applicable(tmp_path, name):
     assert result.exit_code == 0, result.output
     assert docs
     for doc in docs:
-        assert doc["contract_version"] == "2.3.0"  # 2.3 keeps 2.1's coverage values
-        assert doc["inspection_coverage"] == {"status": "NOT_APPLICABLE", "reasons": []}
+        assert doc["contract_version"] == "2.4.0"  # 2.4 keeps 2.1's coverage values
+        assert doc["inspection_coverage"] == {
+            "status": "NOT_APPLICABLE",
+            "reasons": [],
+            "scope": None,  # 2.4: no repository, nothing searched
+        }
         assert validate_contract(doc) == []
         assert verify_content_hash(doc)
 
@@ -120,6 +124,7 @@ def test_not_applicable_is_a_2_1_value_only(tmp_path):
     doc = docs[0]
     as_2_0 = json.loads(json.dumps(doc))
     as_2_0.pop("trust_assurance")  # a 2.2 field; this test is about the 2.1 value
+    as_2_0["inspection_coverage"].pop("scope")  # a 2.4 field
     as_2_0["contract_version"] = as_2_0["provenance"]["contract_version"] = "2.0.0"
     errors = validate_v1_contract(as_2_0, load_v2_schema())
     assert any("inspection_coverage" in e for e in errors), errors

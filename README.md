@@ -135,7 +135,7 @@ Where the evidence goes:
 - **Agents:** the `trust` block in `dependency_status` and `check_dependency_file`, with what needs attention listed first.
 - **People:** `openpulse trust FILE [--base EARLIER]` (report-only) and `openpulse confusion` for your private names.
 - **Gates:** the trust policy in `openpulse gate`, `check --policy`, `attest --policy` and the Action.
-- **Records:** `attest --trust` writes each dependency's checks into the evidence contract's `trust_assurance` (contract 2.3.0), covered by its content hash, and into SARIF and DefectDojo.
+- **Records:** `attest --trust` writes each dependency's checks into the evidence contract's `trust_assurance` (contract 2.4.0), covered by its content hash, and into SARIF and DefectDojo.
 
 ## Upstream change intelligence: after it is in
 
@@ -199,7 +199,7 @@ The full list, including what an attacker with write access to local history can
 - **Collectors:** GitHub, OSV, NVD, MITRE CVE, CISA KEV, endoflife.date and Docker Hub, plus PyPI, npm and the GitHub API for trust checks. Errors become data, never crashes; every response is size-capped while it streams.
 - **Analysts:** Change, Security, Evidence and Report, behind an evidence gate with veto power.
 - **History:** hash-chained registry observations and a detection ledger, MACed with a history key, with anchors kept outside the store. History committed to the repository is refused.
-- **Outputs:** evidence contract 2.3.0 (older versions still validate), SARIF 2.1.0, Markdown summaries, DefectDojo, Dependency-Track, signed webhooks, and monthly and lifecycle reports.
+- **Outputs:** evidence contract 2.4.0 (older versions still validate), SARIF 2.1.0, Markdown summaries, DefectDojo, Dependency-Track, signed webhooks, and monthly and lifecycle reports.
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
@@ -310,7 +310,7 @@ tests/              # offline tests (no network in CI)
 | [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md) | Trust policy, `openpulse gate`, pre-commit, bypass routes |
 | [`docs/GITHUB_ACTION.md`](docs/GITHUB_ACTION.md) | The GitHub Action: inputs, permissions, SARIF levels, workflows |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | DefectDojo and Dependency-Track |
-| [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md) | Evidence contract 2.3 and every earlier version |
+| [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md) | Evidence contract 2.4 and every earlier version |
 | [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md) | How each trust check is measured, with false-positive rates |
 | [`docs/SCHEDULED_CHECKS.md`](docs/SCHEDULED_CHECKS.md) | Scheduled checks, the detection ledger, webhook delivery |
 | [`docs/KEYED_INTEGRITY.md`](docs/KEYED_INTEGRITY.md) | History keys, anchors and what they protect against |

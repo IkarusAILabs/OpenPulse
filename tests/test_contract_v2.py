@@ -14,6 +14,7 @@ from core.evidence_contract import (
     CONTRACT_V2_1_VERSION,
     CONTRACT_V2_2_VERSION,
     CONTRACT_V2_3_VERSION,
+    CONTRACT_V2_4_VERSION,
     CONTRACT_V2_VERSION,
     build_contract,
     build_v1_contract,
@@ -95,12 +96,15 @@ def doc(django_event):
 
 
 def test_v2_document_shape(doc):
-    # attest emits 2.3.0 since v0.16.0 (Q5): 2.2 plus three trust check names,
-    # same hash rule; 2.2.0 (v0.13.0 X5) added trust_assurance.
+    # attest emits 2.4.0 since v0.18.0 (S3): 2.3 plus inspection_coverage.scope,
+    # same hash rule; 2.3.0 (v0.16.0 Q5) added three trust check names and
+    # 2.2.0 (v0.13.0 X5) trust_assurance.
     assert CONTRACT_V2_1_VERSION == "2.1.0" and CONTRACT_V2_2_VERSION == "2.2.0"
-    assert doc["contract_version"] == CONTRACT_V2_3_VERSION == "2.3.0"
-    assert doc["provenance"]["contract_version"] == "2.3.0"
+    assert CONTRACT_V2_3_VERSION == "2.3.0"
+    assert doc["contract_version"] == CONTRACT_V2_4_VERSION == "2.4.0"
+    assert doc["provenance"]["contract_version"] == "2.4.0"
     assert doc["trust_assurance"] is None
+    assert doc["inspection_coverage"]["scope"] is None
     assert CONTRACT_V2_VERSION == "2.0.0"
     assert doc["provenance"]["content_hash_method"] == CONTENT_HASH_METHOD == "jcs-sha256"
     assert validate_contract(doc) == []
@@ -128,8 +132,9 @@ def test_v2_values_are_the_v12_builders(django_event):
     assert v1["contract_version"] == "1.2.0" and verify_v1_content_hash(v1)
     assert verify_content_hash(v1)  # the dispatcher handles 1.x too
     for name in v1:
-        if name != "provenance" and name != "contract_version":
+        if name not in ("provenance", "contract_version", "inspection_coverage"):
             assert v1[name] == v2[name], name
+    assert v2["inspection_coverage"] == {**v1["inspection_coverage"], "scope": None}
     assert v1["provenance"]["content_hash"] != v2["provenance"]["content_hash"]
 
 
@@ -179,7 +184,7 @@ def test_attest_cli_emits_v2(tmp_path):
     )
     assert result.exit_code == 0, result.output
     docs = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line]
-    assert docs and all(d["contract_version"] == "2.3.0" for d in docs)
+    assert docs and all(d["contract_version"] == "2.4.0" for d in docs)
     assert all(validate_contract(d) == [] and verify_content_hash(d) for d in docs)
 
 

@@ -7,8 +7,8 @@ with provenance for every field - not a signature format (keys,
 signatures and trust roots are a separate, later concern, per issue
 #53).
 
-- Schema (current, 2.3): [`schemas/evidence-contract/v2.3/schema.json`](../schemas/evidence-contract/v2.3/schema.json)
-  (JSON Schema draft 2020-12); 2.2, 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
+- Schema (current, 2.4): [`schemas/evidence-contract/v2.4/schema.json`](../schemas/evidence-contract/v2.4/schema.json)
+  (JSON Schema draft 2020-12); 2.3, 2.2, 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
 - Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
@@ -225,9 +225,28 @@ Minor, additive. `trust_assurance.checks[].check` may also be one of three reput
 | `repository_moved` | The claimed GitHub repository answers under another name (renamed or transferred) | the repository it answers as |
 | `young_popular_repository` (threat T5) | The claimed repository is younger than 180 days and has at least 1000 stars. Stars are inputs, never trust evidence, so this check is never `VERIFIED_RELATIONSHIP` | the repository |
 
-Their firing rates on legitimate packages are in [`docs/research/TRACK_T_MEASUREMENTS.md`](research/TRACK_T_MEASUREMENTS.md). Nothing else changes: same fields, statuses, summary and hash rule. The 2.2 schema stays byte-for-byte, and a 2.2 validator rejects a 2.3 document that names a new check. `openpulse attest` emits 2.3.0.
+Their firing rates on legitimate packages are in [`docs/research/TRACK_T_MEASUREMENTS.md`](research/TRACK_T_MEASUREMENTS.md). Nothing else changes: same fields, statuses, summary and hash rule. The 2.2 schema stays byte-for-byte, and a 2.2 validator rejects a 2.3 document that names a new check. `openpulse attest` emitted 2.3.0 in v0.16-v0.17.
 
 **Upgrading a consumer:** validate against `schemas/evidence-contract/v2.3/schema.json`. A consumer that switches on `check` must accept the three new names, or ignore names it does not know.
+
+### 2.4.0 - discovery scope (v0.18.0, S3)
+
+Minor, additive. `inspection_coverage` has a required `scope`: what the repository inspection searched, so a consumer can tell what COMPLETE was complete *over*. It is null when the run inspected no repository (`NOT_APPLICABLE`) or the repository could not be enumerated (`FAILED` before the tree was read).
+
+| Field | Meaning |
+|---|---|
+| `repository`, `ref`, `commit` | The repository, the branch read, and the commit every file was read at |
+| `file_patterns` | The dependency file names and patterns that were read (`requirements.txt`, `requirements*.txt`, `*.csproj`, ...) |
+| `recognised_not_read` | Dependency file names recognised but not read (`yarn.lock`, `uv.lock`, ...); each one present makes coverage PARTIAL |
+| `skipped_directories` | `[{directory, files}]`: directories not searched (`node_modules`, `vendor`, hidden directories, ...) and how many files each held, most first. At most 50 are named; `directory: null` sums the rest and any name outside `[A-Za-z0-9._-]` |
+| `tree_entries` | Entries in the repository tree |
+| `limits` | `max_tree_entries`, `max_files`, `max_file_bytes`, `max_total_bytes` |
+| `limits_reached` | Which applied: `tree_truncated`, `max_files`, `max_file_bytes`, `max_total_bytes` |
+| `files_found`, `files_read` | Dependency files discovered, and how many were read and parsed |
+
+Coverage is only as complete as this search: a file outside `file_patterns`, under a skipped directory or past a limit was not read. The hash rule is unchanged; `scope` is inside the content hash. The 2.3 schema stays byte-for-byte, and a 2.3 validator rejects a 2.4 document (`scope` is an unexpected property). `openpulse attest` emits 2.4.0, and prints the same scope as one line (`searched owner/repo main@<commit>: ...`), as does `check --github-repo`.
+
+**Upgrading a consumer:** validate against `schemas/evidence-contract/v2.4/schema.json`. Treat a null `scope` as "no repository searched", never as "everything searched".
 
 ## CLI
 
