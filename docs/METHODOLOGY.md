@@ -449,6 +449,18 @@ applied, and how many dependency files were found and read. `check` and
 `attest` print it as one line, and evidence contract 2.4.0 carries it as
 `inspection_coverage.scope`. COMPLETE means complete over that search.
 
+No summary reads as an all-clear over PARTIAL or FAILED coverage
+(v0.18.0 S4). Every one that could (`check`, `digest`, `warnings`, the
+webhook body, the SARIF notification and the job summary) names what was
+not inspected by category, with counts, before the details: unsupported
+dependency files, requirements includes not inspected, files over the
+size limit, the repository size cap, the file-count cap, a truncated
+tree, unsafe paths, and files that could not be fetched or parsed. The
+SARIF run carries them as `inspection_coverage_categories`. `check`'s
+closing count says when it is over PARTIAL or FAILED coverage. Whether
+`--fail-on` should also fail on PARTIAL by default is open (decision 15);
+today that needs `--fail-on-partial`.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not

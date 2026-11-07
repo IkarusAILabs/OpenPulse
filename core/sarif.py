@@ -344,16 +344,20 @@ def build_sarif(
     index = {rule["id"]: i for i, rule in enumerate(rules)}
     for result in results:
         result["ruleIndex"] = index[result["ruleId"]]
+    from core import coverage as _coverage
+
     status = str((coverage or {}).get("status") or "COMPLETE")
+    reason_list = [str(r) for r in (coverage or {}).get("reasons") or []]
     notifications = []
     if status not in ("COMPLETE", "NOT_APPLICABLE"):
-        reasons = "; ".join(str(r) for r in (coverage or {}).get("reasons") or []) or "no reason"
+        reasons = "; ".join(reason_list) or "no reason"
+        described = _coverage.describe(status, reason_list)
         notifications.append(
             {
                 "level": "warning",
                 "message": {
-                    "text": f"repository inspection coverage {status}: {reasons}. "
-                    "Results are not a clean bill of health."
+                    "text": f"repository inspection coverage {described}. "
+                    f"Details: {reasons}. Results are not a clean bill of health."
                 },
             }
         )
@@ -378,6 +382,7 @@ def build_sarif(
                 "results": results,
                 "properties": {
                     "inspection_coverage": status,
+                    "inspection_coverage_categories": _coverage.block(status, reason_list),
                     "contracts": len(pairs),
                     "not_affected_omitted": omitted,
                     "trust_policy_violations": len(trust_violations or []),
@@ -390,6 +395,13 @@ def build_sarif(
 def _md(text: Any) -> str:
     """Escape table-breaking characters in untrusted event/dependency text."""
     return str(text).replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
+
+
+def _categories_md(found: Any) -> str:
+    """' - not inspected: unsupported dependency files (2), ...' (S4), or ''."""
+    if not isinstance(found, dict) or not found:
+        return ""
+    return " - not inspected: " + ", ".join(f"{_md(k)} ({int(n)})" for k, n in found.items())
 
 
 def render_summary(sarif: dict[str, Any]) -> str:
@@ -407,7 +419,8 @@ def render_summary(sarif: dict[str, Any]) -> str:
         f"- **note** (UNKNOWN / RELATED / lower impact): {counts['note']}",
         f"- NOT_AFFECTED pairs omitted: {props['not_affected_omitted']}",
         f"- Evidence contracts rendered: {props['contracts']}",
-        f"- Repository inspection coverage: **{props['inspection_coverage']}**",
+        f"- Repository inspection coverage: **{props['inspection_coverage']}**"
+        + _categories_md(props.get("inspection_coverage_categories")),
     ]
     for invocation in run.get("invocations", []):
         for note in invocation.get("toolExecutionNotifications", []):

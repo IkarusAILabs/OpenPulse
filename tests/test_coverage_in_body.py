@@ -26,7 +26,13 @@ def test_markdown_body_names_incomplete_coverage(monkeypatch, command, coverage)
     _patch_inspection(monkeypatch, coverage)
     result = _run(command, *INPUTS, *REPO, *EVENT)
     assert result.exit_code == 0, result.output
-    assert f"> ⚠️ {LINE} {coverage} — {coverage.lower()} scan reason." in result.output
+    described = {
+        "FAILED": "FAILED - the repository could not be read, so none of its dependencies "
+        "were checked",
+        "PARTIAL": "PARTIAL - not inspected: files that could not be fetched or parsed (1)",
+    }[coverage]
+    # S4: the categories first, then the details.
+    assert f"> ⚠️ {LINE} {described}. Details: {coverage.lower()} scan reason." in result.output
 
 
 @pytest.mark.parametrize("command", ["digest", "warnings"])

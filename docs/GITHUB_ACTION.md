@@ -33,7 +33,7 @@ The job summary lists them in their own *Trust checks* table.
 
 Every result carries the evidence URLs and the `provenance.content_hash` of the contract it renders. You can recompute the hash from the contract's content.
 
-**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is `PARTIAL` or `FAILED`, you get a warning annotation and the SARIF carries a tool notification. Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.
+**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is `PARTIAL` or `FAILED`, you get a warning annotation and the SARIF carries a tool notification. Both, and the job summary's coverage line, name what was not inspected by category with counts (unsupported dependency files, files over the size limit, a truncated tree, ...), and the SARIF run properties carry them as `inspection_coverage_categories` (v0.18.0). Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.
 
 ## Inputs
 
