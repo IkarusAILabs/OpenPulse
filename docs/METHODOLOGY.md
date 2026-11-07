@@ -430,6 +430,18 @@ holds inside a file: a manifest that declares dependencies but yields
 none must refuse or record skips, never return a silent empty set
 (the namespaced pom.xml regression, #112).
 
+Files OpenPulse recognises but cannot read (`yarn.lock`, `pnpm-lock.yaml`,
+`uv.lock`, `Pipfile.lock`, a `package.json` without its lockfile, ...)
+are listed as not inspected, so coverage is PARTIAL (v0.16.0 S1).
+Requirements variants (`requirements-*.txt`, `requirements_*.txt`,
+`constraints*.txt`, any `.txt` in a `requirements/` directory) are read
+with the requirements parser (v0.18.0 S2). A `-r` or `-c` include pulls
+in lines from another file: coverage stays COMPLETE only when that file
+is itself in the repository and was inspected. An include of a URL, an
+absolute path, a path outside the repository or a file that was not
+inspected makes coverage PARTIAL and names it. A constraints file is read
+as pins: it decides the version of whatever installs those packages.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not

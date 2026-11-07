@@ -2,6 +2,16 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Requirements variants read in repository inspection (v0.18.0 item S2).** `--github-repo` and the Action's repository discovery now read `requirements-*.txt`, `requirements_*.txt`, `constraints*.txt` and any `.txt` in a `requirements/` directory with the requirements parser, instead of listing them as "dependency file not supported" (S1). They are parsed as requirements by their name, so a file of only `-r base.txt` and ranges is read, not refused. `-r` and `-c` includes are accounted for: an included file that is in the repository and was inspected keeps coverage COMPLETE; one that was not inspected, or a URL, absolute path or path outside the repository, makes coverage PARTIAL and is named in the coverage reasons. See "Repository inspection coverage" in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
+### Upgrade notes
+
+- **More dependencies from repositories.** A repository with requirements variants now yields their pinned dependencies, so `check --github-repo` may report findings it did not before, and coverage that was PARTIAL only because of those files may now be COMPLETE. A requirements file that includes a file OpenPulse did not inspect now makes coverage PARTIAL where it was COMPLETE.
+
 ## 0.17.0 "Gate-to-Install Integrity" — 2026-11-06
 
 Track T Phase 4 (T-E2): what `openpulse gate` passed is what gets installed, or the install is refused. The gate writes a receipt of the bytes it judged; the install step verifies it immediately before installing, including dependency files a build step generated after the gate; and a lockfile hash edited in place fails the gate even under a policy that never mentions `digest_mismatch`. The whole route is tested end to end with a real `pip install --require-hashes`, offline, on Linux and Windows. Still not covered, and documented in the bypass table: an install from a file the gate was not given, a lockfile the install command itself rewrites, a receipt written by hand, and an install step that skips the verification. Receipts are integrity records within one pipeline run, not signatures.
