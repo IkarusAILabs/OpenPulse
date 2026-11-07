@@ -160,7 +160,7 @@ def test_a_2_3_document_carries_the_indicators_and_validates(event):
     moved = next(r for r in block["checks"] if r["check"] == "repository_moved")
     assert moved["references"] == ["https://github.com/acme-org/widget"]
     doc = _doc(event, block)
-    assert doc["contract_version"] == "2.3.0"
+    assert doc["contract_version"] == "2.4.0"  # attest's version since v0.18.0
     assert validate_contract(doc) == [] and verify_content_hash(doc)
     assert '"evidence":' not in json.dumps(doc["trust_assurance"])
 
@@ -169,10 +169,12 @@ def test_a_2_2_consumer_rejects_the_new_check_names_and_2_2_documents_still_vali
     block = trust_assurance_block(trust_checks(WIDGET, _lookups(Net())))
     as_2_2 = _doc(event, block)
     as_2_2["contract_version"] = as_2_2["provenance"]["contract_version"] = "2.2.0"
+    as_2_2["inspection_coverage"].pop("scope")  # a 2.4 field
     assert any("check" in e for e in validate_v1_contract(as_2_2, load_v2_2_schema()))
     old = {c: r for c, r in trust_checks(WIDGET, None).items() if c in TRUST_CHECKS_2_2}
     still = _doc(event, trust_assurance_block(old))
     still["contract_version"] = still["provenance"]["contract_version"] = "2.2.0"
+    still["inspection_coverage"].pop("scope")
     assert validate_contract(still) == []
 
 

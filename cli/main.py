@@ -1762,6 +1762,25 @@ def _coverage_summary(inspections) -> tuple[str, list[str]]:
     return status, reasons
 
 
+def _scope_line(inspection) -> str | None:
+    """One line saying what a repository inspection searched (S3), or None."""
+    scope = getattr(inspection, "scope", None)
+    if not scope:
+        return None
+    skipped = ", ".join(
+        f"{d['directory'] or 'other'} ({d['files']})" for d in scope["skipped_directories"][:5]
+    )
+    more = len(scope["skipped_directories"]) - 5
+    if more > 0:
+        skipped += f", +{more} more"
+    return (
+        f"searched {scope['repository']} {scope['ref']}@{scope['commit'][:12]}: "
+        f"{scope['files_read']}/{scope['files_found']} dependency file(s) read from "
+        f"{scope['tree_entries']} tree entries; skipped directories: {skipped or 'none'}; "
+        f"limits reached: {', '.join(scope['limits_reached']) or 'none'}"
+    )
+
+
 def _coverage_note(inspections) -> str | None:
     """One line for the rendered body when a repository was not fully read (#102).
 
@@ -2035,6 +2054,8 @@ def _load_check_inputs(
         for reason in inspection.coverage_reasons:
             _echo(f"! coverage: {reason}")
         _echo(f"github-repo ({github_repo}): inspection coverage {inspection.coverage}")
+        if line := _scope_line(inspection):
+            _echo(f"github-repo ({github_repo}): {line}")
         inspections.append(inspection)
         if inspection.dependencies:
             _echo(
@@ -2838,7 +2859,7 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     "trust",
     is_flag=True,
     help="Also check trust for PyPI and npm dependencies (live lookups) and record it in "
-    "each contract's trust_assurance (2.3.0); never part of a verdict",
+    "each contract's trust_assurance (2.4.0); never part of a verdict",
 )
 @click.option(
     "--private-names",
@@ -3003,6 +3024,8 @@ def attest(
             f"github-repo ({github_repo}): inspection coverage {inspection.coverage}",
             err=True,
         )
+        if line := _scope_line(inspection):
+            _echo(f"github-repo ({github_repo}): {line}", err=True)
         inspections.append(inspection)
         if inspection.dependencies:
             _echo(
@@ -3041,6 +3064,8 @@ def attest(
     # contract 2.1 says NOT_APPLICABLE, not COMPLETE coverage of a scan
     # that never happened (#109).
     coverage_override = {"status": "NOT_APPLICABLE", "reasons": []}
+    # One repository input per run: its scope (S3, contract 2.4) is the run's.
+    inspection_scope = inspections[0].scope if len(inspections) == 1 else None
     if inspections:
         run_status, run_reasons = _coverage_summary(inspections)
         _echo(f"repository inspection coverage: {run_status}", err=True)
@@ -3082,6 +3107,7 @@ def attest(
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
                 trust_assurance=trust_blocks.get(index),
+                inspection_scope=inspection_scope,
             )
             problems = validate_contract(doc)
             if problems:

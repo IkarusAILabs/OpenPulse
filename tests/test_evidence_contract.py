@@ -484,6 +484,7 @@ def test_attest_records_failed_repository_scan_on_every_contract(monkeypatch):
         assert doc["inspection_coverage"] == {
             "status": "FAILED",
             "reasons": ["revision unavailable"],
+            "scope": None,  # 2.4: the repository could not be enumerated
         }
         assert validate_contract(doc) == []
         assert verify_content_hash(doc)

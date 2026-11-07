@@ -7,10 +7,12 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 ### Added
 
 - **Requirements variants read in repository inspection (v0.18.0 item S2).** `--github-repo` and the Action's repository discovery now read `requirements-*.txt`, `requirements_*.txt`, `constraints*.txt` and any `.txt` in a `requirements/` directory with the requirements parser, instead of listing them as "dependency file not supported" (S1). They are parsed as requirements by their name, so a file of only `-r base.txt` and ranges is read, not refused. `-r` and `-c` includes are accounted for: an included file that is in the repository and was inspected keeps coverage COMPLETE; one that was not inspected, or a URL, absolute path or path outside the repository, makes coverage PARTIAL and is named in the coverage reasons. See "Repository inspection coverage" in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+- **What was searched is recorded (v0.18.0 item S3).** Every repository inspection states its scope: the ref and commit, the file patterns read and the recognised names not read, the directories skipped (`node_modules`, `vendor`, hidden directories, ...) with how many files each held, the tree size, the limits and which of them applied, and how many dependency files were found and read. `check --github-repo` and `attest --github-repo` print it as one line (`searched owner/repo main@<commit>: ...`). **Evidence contract 2.4.0** (additive) carries it as a required `inspection_coverage.scope`, null when no repository was inspected; the 2.3 schema is published unchanged beside it. See [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md).
 
 ### Upgrade notes
 
 - **More dependencies from repositories.** A repository with requirements variants now yields their pinned dependencies, so `check --github-repo` may report findings it did not before, and coverage that was PARTIAL only because of those files may now be COMPLETE. A requirements file that includes a file OpenPulse did not inspect now makes coverage PARTIAL where it was COMPLETE.
+- **`openpulse attest` emits evidence contract 2.4.0.** A consumer that accepts exactly 2.3.0 rejects it; validate against `schemas/evidence-contract/v2.4/schema.json`. The only change is `inspection_coverage.scope`.
 
 ## 0.17.0 "Gate-to-Install Integrity" — 2026-11-06
 

@@ -442,6 +442,13 @@ absolute path, a path outside the repository or a file that was not
 inspected makes coverage PARTIAL and names it. A constraints file is read
 as pins: it decides the version of whatever installs those packages.
 
+Every inspection also states what it searched (v0.18.0 S3): the ref and
+commit, the file patterns read, the recognised names not read, the
+directories skipped with how many files each held, the limits and which
+applied, and how many dependency files were found and read. `check` and
+`attest` print it as one line, and evidence contract 2.4.0 carries it as
+`inspection_coverage.scope`. COMPLETE means complete over that search.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not

@@ -87,6 +87,9 @@ class RepoInspection:
     coverage_reasons: list[str] = field(default_factory=list)
     branch: str = ""
     commit: str = ""
+    #: What was searched (v0.18.0 S3): see :func:`discovery_scope`. None
+    #: when the repository could not be enumerated at all.
+    scope: dict[str, Any] | None = None
 
 
 SUPPORTED_MANIFESTS = {
@@ -589,6 +592,10 @@ class _Discovery:
     skip_reasons: list[str] = field(default_factory=list)
     truncated: bool = False
     error: dict[str, Any] | None = None
+    tree_entries: int = 0
+    #: skipped directory name -> files under it that were not looked at
+    skipped_dirs: dict[str, int] = field(default_factory=dict)
+    limits_reached: list[str] = field(default_factory=list)
 
 
 def discover_dependency_files(
@@ -623,6 +630,8 @@ def discover_dependency_files(
 
     files: list[dict[str, Any]] = []
     skip_reasons: list[str] = []
+    skipped_dirs: dict[str, int] = {}
+    limits: list[str] = []
     total_size = 0
     npm_lock_dirs = {
         e.get("path", "").rpartition("/")[0]
@@ -639,7 +648,9 @@ def discover_dependency_files(
 
         # Check if in skipped directory
         parts = path.split("/")
-        if any(_should_skip_dir(p) for p in parts[:-1]):
+        skipped = next((p for p in parts[:-1] if _should_skip_dir(p)), None)
+        if skipped is not None:
+            skipped_dirs[skipped] = skipped_dirs.get(skipped, 0) + 1
             continue
 
         filename = parts[-1]
@@ -661,6 +672,8 @@ def discover_dependency_files(
             skip_reasons.append(
                 f"{path}: {size} bytes exceeds {MAX_BLOB_BYTES}-byte inspection limit"
             )
+            if "max_file_bytes" not in limits:
+                limits.append("max_file_bytes")
             continue
 
         total_size += size
@@ -669,6 +682,7 @@ def discover_dependency_files(
                 f"{path}: repository size cap ({MAX_DISCOVERED_BYTES} bytes) reached; "
                 "remaining dependency files not inspected"
             )
+            limits.append("max_total_bytes")
             break
 
         files.append({"path": path, "type": file_type, "size": size, "sha": entry.get("sha", "")})
@@ -677,9 +691,78 @@ def discover_dependency_files(
             skip_reasons.append(
                 f"file cap ({MAX_FILES}) reached; remaining dependency files not inspected"
             )
+            limits.append("max_files")
             break
 
-    return _Discovery(files=files, skip_reasons=skip_reasons, truncated=truncated)
+    return _Discovery(
+        files=files,
+        skip_reasons=skip_reasons,
+        truncated=truncated,
+        tree_entries=len(entries),
+        skipped_dirs=skipped_dirs,
+        limits_reached=limits,
+    )
+
+
+#: What discovery looks for, in the order a reader would scan the list.
+DISCOVERY_PATTERNS = (
+    *sorted(SUPPORTED_MANIFESTS | SUPPORTED_LOCKFILES | SUPPORTED_SBOMS | SUPPORTED_INVENTORIES),
+    "*.csproj",
+    "*.lock.json",
+    "requirements*.txt",
+    "constraints*.txt",
+    "requirements/*.txt",
+)
+#: Skipped directories named in a scope, at most; the rest are summed.
+MAX_SCOPE_DIRS = 50
+_SCOPE_DIR = re.compile(r"[A-Za-z0-9._-]{1,100}")
+
+
+def discovery_scope(
+    repo: GitHubRepo,
+    branch: str,
+    commit: str,
+    discovery: _Discovery,
+    files_read: int,
+) -> dict[str, Any]:
+    """What one repository inspection searched (v0.18.0 S3), in a fixed shape.
+
+    The ref and commit, the file-name patterns read and the recognised
+    names that are not, the directories skipped with how many files each
+    held, the tree size, the limits and which of them applied, and how
+    many dependency files were found and read. A directory name outside a
+    plain character set is counted, not named.
+    """
+    named = sorted(
+        (d for d in discovery.skipped_dirs if _SCOPE_DIR.fullmatch(d)),
+        key=lambda d: (-discovery.skipped_dirs[d], d),
+    )[:MAX_SCOPE_DIRS]
+    other = sum(n for d, n in discovery.skipped_dirs.items() if d not in named)
+    skipped = [{"directory": d, "files": discovery.skipped_dirs[d]} for d in named]
+    if other:
+        skipped.append({"directory": None, "files": other})
+    limits = list(discovery.limits_reached)
+    if discovery.truncated:
+        limits.insert(0, "tree_truncated")
+    return {
+        "repository": str(repo),
+        "ref": branch,
+        "commit": commit,
+        "file_patterns": list(DISCOVERY_PATTERNS),
+        "recognised_not_read": sorted(UNSUPPORTED_DEPENDENCY_FILES)
+        + ["package.json (without package-lock.json)"],
+        "skipped_directories": skipped,
+        "tree_entries": discovery.tree_entries,
+        "limits": {
+            "max_tree_entries": MAX_TREE_ENTRIES,
+            "max_files": MAX_FILES,
+            "max_file_bytes": MAX_BLOB_BYTES,
+            "max_total_bytes": MAX_DISCOVERED_BYTES,
+        },
+        "limits_reached": limits,
+        "files_found": len(discovery.files),
+        "files_read": files_read,
+    }
 
 
 def parse_dependency_file(
@@ -913,6 +996,7 @@ def inspect_github_repo(
     coverage_reasons.extend(discovery.skip_reasons)
 
     if not discovery.files:
+        scope = discovery_scope(repo, default_branch, commit_sha, discovery, 0)
         if not coverage_reasons:
             return RepoInspection(
                 skipped=[
@@ -922,6 +1006,7 @@ def inspect_github_repo(
                 coverage=COVERAGE_COMPLETE,
                 branch=default_branch,
                 commit=commit_sha,
+                scope=scope,
             )
         return RepoInspection(
             skipped=list(coverage_reasons),
@@ -929,12 +1014,15 @@ def inspect_github_repo(
             coverage_reasons=list(coverage_reasons),
             branch=default_branch,
             commit=commit_sha,
+            scope=scope,
         )
 
     all_deps: list[dict[str, Any]] = []
     all_skipped: list[str] = []
+    files_read = 0
     for file_info in discovery.files:
         deps, skipped, readable = parse_dependency_file(repo, file_info, token)
+        files_read += readable
         if not readable:
             coverage_reasons.extend(skipped)
         for dep in deps:
@@ -975,6 +1063,7 @@ def inspect_github_repo(
         coverage_reasons=list(coverage_reasons),
         branch=default_branch,
         commit=commit_sha,
+        scope=discovery_scope(repo, default_branch, commit_sha, discovery, files_read),
     )
 
 
