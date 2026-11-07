@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.18.0 "Inspection Coverage Assurance" — 2026-11-07
+
+Phase 12 (M5/M6): repository coverage that never overstates itself. More of a repository is read (requirements variants and their includes, monorepo members under `packages/`, npm and Cargo workspaces); every inspection states what it searched (evidence contract 2.4.0, `inspection_coverage.scope`); and no summary reads as an all-clear over PARTIAL or FAILED coverage. COMPLETE means every dependency file in the search was read; anything else is PARTIAL with each category named. Still open: whether `--fail-on` fails on PARTIAL by default (decision 15; `--fail-on-partial` does today), and readers for `pnpm-lock.yaml`, `yarn.lock` and `uv.lock`, which are listed as not inspected.
 
 ### Added
 
@@ -17,6 +19,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ### Upgrade notes
 
+- Dependencies: CI actions bumped (`actions/setup-java` 6.2.0, the CodeQL action group); no runtime dependency changed.
 - **More dependencies from repositories.** A repository with requirements variants now yields their pinned dependencies, so `check --github-repo` may report findings it did not before, and coverage that was PARTIAL only because of those files may now be COMPLETE. A requirements file that includes a file OpenPulse did not inspect now makes coverage PARTIAL where it was COMPLETE.
 - **`openpulse attest` emits evidence contract 2.4.0.** A consumer that accepts exactly 2.3.0 rejects it; validate against `schemas/evidence-contract/v2.4/schema.json`. The only change is `inspection_coverage.scope`.
 - **More of a monorepo is read.** Repositories with members under `packages/` now report those members' dependencies (and possibly new findings), and may move from COMPLETE to PARTIAL where a member uses a format OpenPulse does not read yet (a pnpm or Yarn workspace, `uv.lock`).
