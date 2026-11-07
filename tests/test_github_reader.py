@@ -615,16 +615,21 @@ class TestUnsupportedDependencyFiles:
         inspection = self._inspect(
             monkeypatch,
             ["requirements.txt", "yarn.lock", "uv.lock", "requirements-dev.txt"],
-            blobs={"requirements.txt": "requests==2.32.0\n"},
+            blobs={
+                "requirements.txt": "requests==2.32.0\n",
+                "requirements-dev.txt": "-r requirements.txt\npytest==8.0\n",
+            },
         )
 
         assert inspection.coverage == COVERAGE_PARTIAL
-        for name in ("yarn.lock", "uv.lock", "requirements-dev.txt"):
+        for name in ("yarn.lock", "uv.lock"):
             assert any(
                 r.startswith(f"{name}: dependency file not supported")
                 for r in inspection.coverage_reasons
             ), name
-        assert [d["package"] for d in inspection.dependencies] == ["requests"]
+        # S2: the requirements variant is read, not reported.
+        assert not any(r.startswith("requirements-dev.txt") for r in inspection.coverage_reasons)
+        assert sorted(d["package"] for d in inspection.dependencies) == ["pytest", "requests"]
         assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
 
     @pytest.mark.parametrize(
@@ -641,9 +646,6 @@ class TestUnsupportedDependencyFiles:
             "environment.yml",
             "setup.py",
             "setup.cfg",
-            "requirements-dev.txt",
-            "constraints.txt",
-            "requirements/base.txt",
             "services/api/package.json",
         ],
     )
@@ -707,3 +709,96 @@ class TestGitBlobSha:
     def test_matches_git_object_id(self):
         # echo -n 'hi' | git hash-object --stdin
         assert _git_blob_sha1(b"hi\n") == "45b983be36b73c0788dc9cbcb76cbb80fc7bb057"
+
+
+class TestRequirementsVariants:
+    """S2 (v0.18.0): requirements variants are read, and their includes are accounted for."""
+
+    _inspect = TestUnsupportedDependencyFiles._inspect
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "requirements-dev.txt",
+            "requirements_test.txt",
+            "constraints.txt",
+            "constraints-py311.txt",
+            "requirements/base.txt",
+            "services/api/requirements/prod.txt",
+        ],
+    )
+    def test_a_variant_is_read_and_complete(self, monkeypatch, path):
+        inspection = self._inspect(monkeypatch, [path], blobs={path: "django==4.2\n"})
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert [(d["package"], d["version"], d["path"]) for d in inspection.dependencies] == [
+            ("django", "4.2", path)
+        ]
+
+    def test_a_file_of_only_includes_and_ranges_is_read_not_refused(self, monkeypatch):
+        """No pinned line: the format is known from the name, never guessed."""
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "requirements-dev.txt"],
+            blobs={
+                "requirements.txt": "django==4.2\n",
+                "requirements-dev.txt": "-r requirements.txt\npytest>=8\n",
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert any(s.startswith("requirements-dev.txt: line 2") for s in inspection.skipped)
+
+    def test_an_include_that_was_inspected_keeps_coverage_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements/base.txt", "requirements/dev.txt", "constraints.txt"],
+            blobs={
+                "requirements/base.txt": "-c ../constraints.txt\ndjango==4.2\n",
+                "requirements/dev.txt": "-r base.txt\n--requirement=base.txt\npytest==8.0\n",
+                "constraints.txt": "django==4.2\n",
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+
+    def test_an_include_that_was_not_inspected_makes_coverage_partial(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt"],
+            blobs={"requirements.txt": "-r deps/prod.txt\ndjango==4.2\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.coverage_reasons == [
+            "requirements.txt: includes deps/prod.txt (-r/-c), which was not inspected; "
+            "its dependencies were not inspected"
+        ]
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    @pytest.mark.parametrize(
+        "line",
+        ["-r https://example.com/r.txt", "-r ../../outside.txt", "-c /etc/constraints.txt"],
+    )
+    def test_an_include_outside_the_repository_makes_coverage_partial(self, monkeypatch, line):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements-dev.txt"],
+            blobs={"requirements-dev.txt": f"{line}\npytest==8.0\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.coverage_reasons == [
+            "requirements-dev.txt: includes a requirements file outside the repository "
+            "(-r/-c); its dependencies were not inspected"
+        ]
+
+    def test_other_text_files_are_not_dependency_files(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "docs/notes.txt", "requirements.in"],
+            blobs={"requirements.txt": "django==4.2\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert [d["path"] for d in inspection.dependencies] == ["requirements.txt"]
