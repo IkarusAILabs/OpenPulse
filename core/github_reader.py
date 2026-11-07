@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -164,9 +165,13 @@ SKIP_DIRS = {
     "target",
     ".gradle",
     "vendor",
-    "packages",
     ".terraform",
 }
+
+#: NuGet's restore folder (``packages/<Id>.<version>/``, packages.config
+#: layout). ``packages/`` itself is the conventional monorepo directory and is
+#: searched (v0.18.0 S5); only a restored NuGet package under it is skipped.
+_NUGET_RESTORE = re.compile(r"[A-Za-z0-9_.-]+?\.\d+(\.\d+){1,3}(-[A-Za-z0-9.-]+)?")
 
 
 def parse_github_repo(url_or_name: str) -> GitHubRepo:
@@ -550,6 +555,37 @@ def requirements_includes(content: str) -> list[str]:
     return found
 
 
+def npm_workspace_members(content: str) -> list[str]:
+    """Directories a package-lock.json records as its workspace members
+    (``packages`` keys outside ``node_modules``), relative to the lockfile."""
+    try:
+        doc = json.loads(content)
+    except ValueError:
+        return []
+    packages = doc.get("packages") if isinstance(doc, dict) else None
+    if not isinstance(packages, dict):
+        return []
+    return sorted(
+        str(key)
+        for key in packages
+        if key and "node_modules/" not in str(key) and not str(key).startswith("node_modules")
+    )
+
+
+def _covered_by_workspace(path: str, files: list[dict[str, Any]]) -> bool:
+    """True when an ancestor directory's package-lock.json that was read lists
+    this package.json's directory as a workspace member."""
+    import posixpath
+
+    member = posixpath.dirname(path)
+    for file_info in files:
+        lock_dir = posixpath.dirname(file_info["path"])
+        for relative in file_info.get("npm_workspaces") or []:
+            if posixpath.normpath(posixpath.join(lock_dir, relative)) == member:
+                return True
+    return False
+
+
 def _include_target(path: str, target: str) -> str | None:
     """The repository path ``target`` names from the file at ``path``, or None
     when it names nothing inside the repository (a URL, an absolute path, a
@@ -584,6 +620,17 @@ def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
 
 
+def _skipped_dir(parts: list[str]) -> str | None:
+    """The directory that excludes a path from discovery, or None."""
+    for index, part in enumerate(parts[:-1]):
+        if _should_skip_dir(part):
+            return part
+        if part == "packages" and index + 1 < len(parts) - 1:
+            if _NUGET_RESTORE.fullmatch(parts[index + 1]):
+                return "packages-nuget-restore"
+    return None
+
+
 @dataclass
 class _Discovery:
     """Result of enumerating dependency files at one revision."""
@@ -596,6 +643,9 @@ class _Discovery:
     #: skipped directory name -> files under it that were not looked at
     skipped_dirs: dict[str, int] = field(default_factory=dict)
     limits_reached: list[str] = field(default_factory=list)
+    #: (path, reason) of package.json files with no package-lock.json beside
+    #: them: covered if an ancestor's lockfile lists them as workspace members.
+    pending_package_json: list[tuple[str, str]] = field(default_factory=list)
 
 
 def discover_dependency_files(
@@ -631,6 +681,7 @@ def discover_dependency_files(
     files: list[dict[str, Any]] = []
     skip_reasons: list[str] = []
     skipped_dirs: dict[str, int] = {}
+    pending_package_json: list[tuple[str, str]] = []
     limits: list[str] = []
     total_size = 0
     npm_lock_dirs = {
@@ -648,7 +699,7 @@ def discover_dependency_files(
 
         # Check if in skipped directory
         parts = path.split("/")
-        skipped = next((p for p in parts[:-1] if _should_skip_dir(p)), None)
+        skipped = _skipped_dir(parts)
         if skipped is not None:
             skipped_dirs[skipped] = skipped_dirs.get(skipped, 0) + 1
             continue
@@ -659,7 +710,11 @@ def discover_dependency_files(
             is_supported, file_type = True, "requirements"
         if not is_supported:
             reason = _unsupported_reason(path, npm_lock_dirs)
-            if reason is not None:
+            if reason is not None and filename == "package.json":
+                # Possibly an npm workspace member, read through an ancestor's
+                # package-lock.json (S5): decided once the lockfiles are read.
+                pending_package_json.append((path, reason))
+            elif reason is not None:
                 skip_reasons.append(reason)
             continue
 
@@ -701,6 +756,7 @@ def discover_dependency_files(
         tree_entries=len(entries),
         skipped_dirs=skipped_dirs,
         limits_reached=limits,
+        pending_package_json=pending_package_json,
     )
 
 
@@ -791,6 +847,8 @@ def parse_dependency_file(
 
     if file_type == "requirements" or path.rpartition("/")[2] == "requirements.txt":
         file_info["includes"] = requirements_includes(content or "")
+    if path.rpartition("/")[2] == "package-lock.json":
+        file_info["npm_workspaces"] = npm_workspace_members(content or "")
 
     try:
         if file_type == "requirements":
@@ -996,6 +1054,8 @@ def inspect_github_repo(
     coverage_reasons.extend(discovery.skip_reasons)
 
     if not discovery.files:
+        # No lockfile was read, so no package.json is covered by a workspace.
+        coverage_reasons.extend(reason for _path, reason in discovery.pending_package_json)
         scope = discovery_scope(repo, default_branch, commit_sha, discovery, 0)
         if not coverage_reasons:
             return RepoInspection(
@@ -1030,6 +1090,12 @@ def inspect_github_repo(
             dep["repository_commit"] = commit_sha
         all_deps.extend(deps)
         all_skipped.extend(skipped)
+
+    # A package.json with no lockfile beside it is read through the lockfile
+    # of the workspace that lists it (S5); anything else was not inspected.
+    for path, reason in discovery.pending_package_json:
+        if not _covered_by_workspace(path, discovery.files):
+            coverage_reasons.append(reason)
 
     # A `-r` / `-c` include pulls in lines this run read only if the target
     # was itself inspected; anything else is unknown, so coverage is PARTIAL.

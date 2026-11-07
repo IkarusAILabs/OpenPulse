@@ -640,9 +640,13 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
 
     `[dependencies]` / `[dev-dependencies]` / `[build-dependencies]`
     are read; path/git/workspace specs are skipped with reasons,
-    exactly like the lockfile reader's discipline. A Cargo.toml
-    with none of the three tables is refused (a manifest declaring
-    nothing) rather than read as empty.
+    exactly like the lockfile reader's discipline. A workspace root
+    (v0.18.0 S5) also has its `[workspace.dependencies]` read, and a
+    virtual manifest (`[workspace]` without `[package]`) that declares
+    no dependencies is read as empty with a note: its members and the
+    Cargo.lock beside it carry the dependencies. Any other Cargo.toml
+    with none of the tables is refused (a manifest declaring nothing)
+    rather than read as empty.
     """
     if not isinstance(doc, dict):
         raise ValueError("Cargo.toml must be a mapping")
@@ -653,8 +657,13 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
     deps: list[dict[str, Any]] = []
     skipped: list[str] = []
     saw_table = False
-    for section in ("dependencies", "dev-dependencies", "build-dependencies"):
-        table = doc.get(section)
+    workspace = doc.get("workspace") if has_workspace else {}
+    sections = [
+        (section, doc.get(section))
+        for section in ("dependencies", "dev-dependencies", "build-dependencies")
+    ]
+    sections.append(("workspace.dependencies", workspace.get("dependencies")))
+    for section, table in sections:
         if table is None:
             continue
         saw_table = True
@@ -668,6 +677,11 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
             else:
                 deps.append(dep)
     if not saw_table:
+        if has_workspace and not has_package:
+            return deps, [
+                "virtual workspace manifest: its members' Cargo.toml files and the "
+                "Cargo.lock carry the dependencies"
+            ]
         raise ValueError(
             "Cargo.toml declares no `[dependencies]`/`[dev-dependencies]`/"
             "`[build-dependencies]` table"

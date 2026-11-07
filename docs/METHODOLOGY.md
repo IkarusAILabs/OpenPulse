@@ -461,6 +461,19 @@ closing count says when it is over PARTIAL or FAILED coverage. Whether
 `--fail-on` should also fail on PARTIAL by default is open (decision 15);
 today that needs `--fail-on-partial`.
 
+Monorepos (v0.18.0 S5): every member is found and read, or listed as not
+inspected. `packages/`, the conventional monorepo directory, is searched;
+only NuGet's restore folder under it (`packages/<Id>.<version>/`) is
+skipped. An npm workspace member's `package.json` is covered by the
+`package-lock.json` of the workspace that lists it; a `package.json` no
+read lockfile lists is not inspected. pnpm workspaces and uv projects
+are listed as not inspected (their lockfiles are not read yet). A Cargo
+workspace root is read (`[workspace.dependencies]`, or a note for a
+virtual manifest that declares none), as are its members and Cargo.lock.
+Poetry projects, Go modules and Maven modules in subdirectories are read
+where they are; a Maven version inherited from a parent POM is recorded
+as skipped, never guessed.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not
