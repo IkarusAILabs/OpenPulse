@@ -2,6 +2,12 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Standalone evidence consumer (v0.19.0 item P1).** [`conformance/consumer/`](conformance/consumer/README.md) is a small Python package, `openpulse-evidence-consumer`, that validates OpenPulse evidence contracts without OpenPulse: it imports nothing from it, and its one runtime dependency is `jsonschema`, installed from a hash-pinned `requirements.lock` generated with the repository's own pins (decision 16). `openpulse-consumer check contracts.jsonl` validates every document against exactly the schema its `contract_version` names (1.0.0 to 2.4.0 bundled, copied from `schemas/evidence-contract/`); an unknown version, a non-JSON line, a missing or unexpected field, an unreadable or empty file are never a pass. A new `consumer` CI job installs it alone into its own environment, asserts OpenPulse is not importable there, and runs its tests and `check` from outside the checkout on what that commit's `attest` writes, on Linux and Windows. Exact-version rules, hash verification and the outcome summary are P2-P4.
+
 ## 0.18.0 "Inspection Coverage Assurance" — 2026-11-07
 
 Phase 12 (M5/M6): repository coverage that never overstates itself. More of a repository is read (requirements variants and their includes, monorepo members under `packages/`, npm and Cargo workspaces); every inspection states what it searched (evidence contract 2.4.0, `inspection_coverage.scope`); and no summary reads as an all-clear over PARTIAL or FAILED coverage. COMPLETE means every dependency file in the search was read; anything else is PARTIAL with each category named. Still open: whether `--fail-on` fails on PARTIAL by default (decision 15; `--fail-on-partial` does today), and readers for `pnpm-lock.yaml`, `yarn.lock` and `uv.lock`, which are listed as not inspected.
