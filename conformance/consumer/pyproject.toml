@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openpulse-evidence-consumer"
+version = "0.1.0"
+description = "Validate and read OpenPulse evidence contracts without OpenPulse"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+# The one runtime dependency (decision 16). Installed hash-locked from
+# requirements.lock beside this file; nothing from OpenPulse.
+dependencies = ["jsonschema>=4.18"]
+
+[project.scripts]
+openpulse-consumer = "openpulse_consumer.__main__:main"
+
+[tool.setuptools]
+packages = ["openpulse_consumer"]
+
+[tool.setuptools.package-data]
+openpulse_consumer = ["schemas/*/schema.json"]

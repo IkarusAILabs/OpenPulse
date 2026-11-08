@@ -351,13 +351,13 @@ Goal: repository-wide coverage that never overstates itself. `--github-repo` rep
 
 **Exit:** a repository's coverage is COMPLETE only when every dependency file in it was read; anything else is PARTIAL with each uninspected file and category named, and no output reads as all-clear over a PARTIAL run.
 
-## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; approved 2026-11-03) — LATER
+## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; approved 2026-11-03) — ACTIVE
 
 Goal: show that an evidence contract means the same thing outside OpenPulse. `conformance/evidence-contract/verify.mjs` already recomputes the content hash with no OpenPulse code, but it accepts any `2.x` version string, does not validate the schema, and says nothing about the document's outcomes.
 
 | # | Item | Size | Depends on |
 |---|---|---|---|
-| P1 | **Standalone consumer.** `conformance/consumer/`: a small Python package with no OpenPulse imports (one pinned, hash-locked dependency: `jsonschema`), tested in CI from outside the checkout | M | — |
+| P1 | ✅ **Standalone consumer** (done: `conformance/consumer/`, `requirements.lock` from `scripts/compile_locks.py`, the `consumer` CI job). `conformance/consumer/`: a small Python package with no OpenPulse imports (one pinned, hash-locked dependency: `jsonschema`), tested in CI from outside the checkout | M | — |
 | P2 | **Exact versions.** Accepts only versions with a published schema and validates against exactly that schema; rejects unknown versions (`2.9.0`), a `provenance.contract_version` that differs from the top level, and unknown fields where the schema is closed. `verify.mjs` rejects unknown versions too | S | P1 |
 | P3 | **Hash verification** for 1.x and 2.x documents, matching `verify.mjs` | S | P1 |
 | P4 | **Outcomes preserved.** The consumer's summary keeps NOT_AFFECTED, RELATED and UNKNOWN apart, keeps `inspection_coverage` and `trust_assurance` statuses (MISSING_EVIDENCE and NOT_PERFORMED included), and never folds a negative or incomplete outcome into "pass". Tested with documents built to tempt that mistake | S | P1 |
