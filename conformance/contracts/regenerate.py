@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import importlib.util
 import io
 import json
 import os
@@ -42,9 +43,20 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-sys.path.insert(0, str(ROOT / "conformance" / "consumer"))
 
-from openpulse_consumer.hashes import v1_content_hash, v2_content_hash  # noqa: E402
+
+def _load_hashes() -> Any:
+    """The consumer's hash rules, standard library only: no jsonschema needed here."""
+    path = ROOT / "conformance" / "consumer" / "openpulse_consumer" / "hashes.py"
+    spec = importlib.util.spec_from_file_location("_corpus_hashes", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_HASHES = _load_hashes()
+v1_content_hash = _HASHES.v1_content_hash
+v2_content_hash = _HASHES.v2_content_hash
 
 #: (contract version, git ref, the commit it must resolve to, a note, uses --replay)
 PRODUCERS: tuple[tuple[str, str, str, str, bool], ...] = (

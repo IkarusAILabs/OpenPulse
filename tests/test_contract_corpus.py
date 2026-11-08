@@ -22,9 +22,26 @@ from core.evidence_contract import validate_contract, verify_content_hash
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "conformance" / "contracts"
 MANIFEST = json.loads((CORPUS / "MANIFEST.json").read_text(encoding="utf-8"))
-sys.path.insert(0, str(ROOT / "conformance" / "consumer"))
+CONSUMER = ROOT / "conformance" / "consumer"
 
-from openpulse_consumer import check, summarize, supported_versions  # noqa: E402
+
+def _consumer():
+    """The standalone consumer; its one dependency (jsonschema) is not OpenPulse's."""
+    pytest.importorskip("jsonschema")
+    sys.path.insert(0, str(CONSUMER))
+    try:
+        import openpulse_consumer
+    finally:
+        sys.path.remove(str(CONSUMER))
+    return openpulse_consumer
+
+
+def _published_versions() -> list[str]:
+    found = [
+        json.loads(p.read_text(encoding="utf-8"))["properties"]["contract_version"]["const"]
+        for p in (ROOT / "schemas" / "evidence-contract").glob("*/schema.json")
+    ]
+    return sorted(found, key=lambda v: tuple(int(n) for n in v.split(".")))
 
 
 def _read(version: str, name: str) -> list[dict]:
@@ -33,7 +50,7 @@ def _read(version: str, name: str) -> list[dict]:
 
 
 def test_every_published_version_has_documents_and_negatives():
-    assert list(MANIFEST["versions"]) == supported_versions()
+    assert list(MANIFEST["versions"]) == _published_versions()
     for version, entry in MANIFEST["versions"].items():
         docs = _read(version, "documents")
         assert len(docs) >= 3
@@ -43,21 +60,34 @@ def test_every_published_version_has_documents_and_negatives():
         assert len(entry["commit"]) == 40
 
 
-def test_every_document_is_valid_for_both_validators():
+def test_every_document_is_valid_for_openpulse():
     for version in MANIFEST["versions"]:
         for doc in _read(version, "documents"):
-            assert check(doc).valid, (version, check(doc).errors)
             assert validate_contract(doc) == [], version
             assert verify_content_hash(doc), version
 
 
-def test_every_negative_is_rejected_where_the_manifest_says():
+def test_every_document_is_valid_for_the_consumer():
+    check = _consumer().check
+    for version in MANIFEST["versions"]:
+        for doc in _read(version, "documents"):
+            assert check(doc).valid, (version, check(doc).errors)
+
+
+def test_the_consumer_rejects_every_negative_where_the_manifest_says():
+    check = _consumer().check
     for version, entry in MANIFEST["versions"].items():
         for expected, bad in zip(entry["negatives"], _read(version, "negatives"), strict=True):
             where, name = expected["rejected_at"], f"{version}: {expected['mutation']}"
             result = check(bad)
             assert not result.valid, f"the consumer accepted {name}"
             assert any(e.startswith(f"{where}:") for e in result.errors), (name, result.errors)
+
+
+def test_openpulse_rejects_every_negative_where_the_manifest_says():
+    for version, entry in MANIFEST["versions"].items():
+        for expected, bad in zip(entry["negatives"], _read(version, "negatives"), strict=True):
+            where, name = expected["rejected_at"], f"{version}: {expected['mutation']}"
             if where == "$.provenance.content_hash":
                 assert validate_contract(bad) == [], name  # only the hash says no
                 assert not verify_content_hash(bad), f"OpenPulse verified {name}"
@@ -81,7 +111,7 @@ def test_schema_negatives_carry_a_valid_hash_so_only_the_schema_catches_them():
 
 def test_the_corpus_summarises_with_nothing_folded():
     docs = [d for v in MANIFEST["versions"] for d in _read(v, "documents")]
-    summary = summarize(docs)
+    summary = _consumer().summarize(docs)
     assert (summary.valid, summary.invalid) == (len(docs), 0)
     assert sum(summary.relationships.values()) == len(docs)
     assert summary.coverage["NOT_REPORTED"] == len(_read("1.0.0", "documents"))
