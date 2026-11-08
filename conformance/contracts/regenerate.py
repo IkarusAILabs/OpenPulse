@@ -112,7 +112,30 @@ INPUTS = (
     "data/fixtures/django-eol/event.json",
 )
 _SCRUB = re.compile(r"TOKEN|KEY|SECRET|PASSWORD|^OPENPULSE|^GITHUB|^PYTHON", re.IGNORECASE)
-_RUN_CLI = "import sys; sys.path.insert(0, '.'); from cli.main import cli; cli()"
+#: Runs the producer as an uninstalled source tree. Its provenance stamps
+#: openpulse_version from installed distribution metadata, which would be
+#: whatever OpenPulse the running interpreter happens to have (CI installs
+#: the current checkout), so both names it has used are hidden: each tree then
+#: reports its own fallback version (the 1.0 producer had none: "unknown").
+_RUN_CLI = """
+import importlib.metadata as m
+import sys
+
+_real = m.version
+
+
+def _version(name):
+    if name in ("openpulse", "ikarus-openpulse"):
+        raise m.PackageNotFoundError(name)
+    return _real(name)
+
+
+m.version = _version
+sys.path.insert(0, ".")
+from cli.main import cli
+
+cli()
+"""
 
 
 def rehash(doc: dict[str, Any]) -> dict[str, Any]:

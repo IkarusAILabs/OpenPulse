@@ -351,7 +351,7 @@ Goal: repository-wide coverage that never overstates itself. `--github-repo` rep
 
 **Exit:** a repository's coverage is COMPLETE only when every dependency file in it was read; anything else is PARTIAL with each uninspected file and category named, and no output reads as all-clear over a PARTIAL run.
 
-## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; approved 2026-11-03) — ACTIVE
+## Phase 13 — v0.19.0 "Evidence Consumer and Portability" (M9 preparation, T-F2; approved 2026-11-03) — DONE, released 2026-11-08
 
 Goal: show that an evidence contract means the same thing outside OpenPulse. `conformance/evidence-contract/verify.mjs` already recomputes the content hash with no OpenPulse code, but it accepts any `2.x` version string, does not validate the schema, and says nothing about the document's outcomes.
 
