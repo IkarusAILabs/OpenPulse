@@ -7,6 +7,8 @@ import pytest
 from core.lockfile_reader import (
     MAX_LOCKFILE_BYTES,
     load_cargo_lock_doc,
+    load_composer_lock_doc,
+    load_nuget_lock_doc,
     load_package_lock_doc,
     load_poetry_lock_doc,
     read_lockfile,
@@ -17,6 +19,8 @@ from core.schema.models import OSSEvent
 NPM_FIXTURE = "data/fixtures/lockfiles/package-lock.json"
 POETRY_FIXTURE = "data/fixtures/lockfiles/poetry.lock"
 CARGO_FIXTURE = "data/fixtures/lockfiles/Cargo.lock"
+COMPOSER_FIXTURE = "data/fixtures/lockfiles/composer.lock"
+NUGET_FIXTURE = "data/fixtures/lockfiles/packages.lock.json"
 MALFORMED_FIXTURE = "data/fixtures/lockfiles/malformed.txt"
 
 
@@ -186,6 +190,62 @@ class TestCargoReader:
         deps, skipped = load_cargo_lock_doc(doc)
         assert [d["package"] for d in deps] == ["real"]
         assert len(skipped) == 1
+
+
+class TestComposerReader:
+    def test_fixture_pins_three_packages_and_skips_unpinned(self):
+        deps, skipped, fmt = read_lockfile(COMPOSER_FIXTURE)
+        assert fmt == "composer"
+        assert deps == [
+            {
+                "kind": "package",
+                "package": "monolog/monolog",
+                "ecosystem": "Packagist",
+                "version": "2.9.1",
+            },
+            {"kind": "package", "package": "psr/log", "ecosystem": "Packagist", "version": "1.1.4"},
+            {
+                "kind": "package",
+                "package": "phpunit/phpunit",
+                "ecosystem": "Packagist",
+                "version": "9.5.20",
+            },
+        ]
+        assert len(skipped) == 1
+        assert "`unpinned/pkg`: no pinned version" in skipped[0]
+
+    def test_zero_package_composer_lock_is_valid(self):
+        deps, skipped = load_composer_lock_doc({"packages": []})
+        assert deps == [] and skipped == []
+
+    def test_invalid_composer_doc_raises_error(self):
+        with pytest.raises(ValueError, match="needs a `packages` list"):
+            load_composer_lock_doc({"invalid": True})
+
+
+class TestNuGetReader:
+    def test_fixture_pins_two_packages_and_skips_unresolved(self):
+        deps, skipped, fmt = read_lockfile(NUGET_FIXTURE)
+        assert fmt == "nuget"
+        assert deps == [
+            {
+                "kind": "package",
+                "package": "Newtonsoft.Json",
+                "ecosystem": "NuGet",
+                "version": "13.0.3",
+            },
+            {"kind": "package", "package": "Serilog", "ecosystem": "NuGet", "version": "3.1.1"},
+        ]
+        assert len(skipped) == 1
+        assert "`UnresolvedPackage` (net8.0): no resolved version" in skipped[0]
+
+    def test_zero_dependency_nuget_lock_is_valid(self):
+        deps, skipped = load_nuget_lock_doc({"version": 1, "dependencies": {}})
+        assert deps == [] and skipped == []
+
+    def test_invalid_nuget_doc_raises_error(self):
+        with pytest.raises(ValueError, match="needs an integer `version`"):
+            load_nuget_lock_doc({"dependencies": {}})
 
 
 class TestFormatDetection:

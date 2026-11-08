@@ -748,6 +748,20 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
                 return (*load_cargo_toml_doc(toml_doc), "cargo")
     if _looks_like_requirements(text):
         return (*load_requirements_txt_doc(text), "requirements")
+    import os
+    basename = os.path.basename(path).lower()
+    if basename in ("build.gradle", "build.gradle.kts"):
+        raise ValueError(
+            "Gradle build script: dependencies are resolved at build time; add gradle.lockfile"
+        )
+    if basename == "package.swift":
+        raise ValueError(
+            "Swift package manifest: dependencies are resolved at build time; add Package.resolved"
+        )
+    if basename == "composer.json":
+        raise ValueError(
+            "Composer manifest: dependencies are declared as ranges; add composer.lock"
+        )
     raise ValueError(
         "input has none of the manifest structural markers "
         "(pom.xml `<project>` root, go.mod `module` directive, pyproject "

@@ -226,6 +226,91 @@ def load_cargo_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
     return deps, skipped
 
 
+def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate a parsed composer.lock into pinned Packagist dep entries.
+
+    Returns (dependencies, skipped). Reads `packages` (runtime) and
+    `packages-dev` (development). Each entry requires a name and a resolved
+    version. A lock with zero packages is valid state (project has no deps).
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("composer.lock must be a mapping")
+    if "packages" not in doc and "packages-dev" not in doc:
+        raise ValueError("composer.lock needs a `packages` list")
+    deps: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for section in ("packages", "packages-dev"):
+        pkgs = doc.get(section)
+        if not pkgs:
+            continue
+        if not isinstance(pkgs, list):
+            skipped.append(f"`{section}` is not a list")
+            continue
+        for i, entry in enumerate(pkgs):
+            if not isinstance(entry, dict):
+                skipped.append(f"{section} #{i}: not a mapping")
+                continue
+            name = entry.get("name")
+            label = str(name) if name is not None else f"{section} #{i}"
+            if not name or not isinstance(name, str):
+                skipped.append(f"{section} #{i}: no name")
+                continue
+            version = entry.get("version")
+            if not isinstance(version, str) or not version:
+                skipped.append(f"`{label}`: no pinned version - skipped, never range-guessed")
+                continue
+            clean_ver = (
+                version[1:]
+                if version.startswith("v") and len(version) > 1 and version[1].isdigit()
+                else version
+            )
+            key = (name.lower(), clean_ver)
+            if key in seen:
+                continue
+            seen.add(key)
+            deps.append(_pinned_dep(str(name), "Packagist", clean_ver))
+    return deps, skipped
+
+
+def load_nuget_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate a parsed packages.lock.json (NuGet) into pinned dep entries.
+
+    Structure: dependencies.<tfm>.<package_name>.resolved.
+    Returns (dependencies, skipped).
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("packages.lock.json must be a mapping")
+    if not isinstance(doc.get("version"), int):
+        raise ValueError("packages.lock.json needs an integer `version`")
+    deps_section = doc.get("dependencies")
+    if not isinstance(deps_section, dict):
+        raise ValueError("packages.lock.json needs a `dependencies` mapping")
+    deps: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for tfm, packages in deps_section.items():
+        if not isinstance(packages, dict):
+            skipped.append(f"framework `{tfm}`: not a mapping")
+            continue
+        for name, entry in packages.items():
+            if not isinstance(entry, dict):
+                skipped.append(f"`{name}` ({tfm}): not a mapping")
+                continue
+            resolved = entry.get("resolved")
+            if not isinstance(resolved, str) or not resolved:
+                skipped.append(
+                    f"`{name}` ({tfm}): no resolved version - skipped, never range-guessed"
+                )
+                continue
+            key = (str(name).lower(), resolved)
+            if key in seen:
+                continue
+            seen.add(key)
+            deps.append(_pinned_dep(str(name), "NuGet", resolved))
+    return deps, skipped
+
+
 def _toml_module() -> Any:
     """stdlib tomllib (3.11+); on 3.10 refuse instead of adding a dependency."""
     try:
@@ -255,7 +340,14 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     if isinstance(doc, dict):
         if isinstance(doc.get("lockfileVersion"), int):
             return (*load_package_lock_doc(doc), "npm")
-        raise ValueError("valid JSON but no integer `lockfileVersion` - not a package-lock.json")
+        if "packages" in doc and isinstance(doc.get("packages"), list):
+            return (*load_composer_lock_doc(doc), "composer")
+        if isinstance(doc.get("version"), int) and isinstance(doc.get("dependencies"), dict):
+            return (*load_nuget_lock_doc(doc), "nuget")
+        raise ValueError(
+            "valid JSON but no integer `lockfileVersion`, composer `packages` list, "
+            "or NuGet `dependencies` mapping - not a recognised lockfile"
+        )
     tomllib = _toml_module()
     try:
         text = data.decode("utf-8")
@@ -303,6 +395,45 @@ def lockfile_digests(path: str) -> LockedDigests:
                 if isinstance(version, str) and isinstance(integrity, str):
                     name = _npm_package_name(str(key), entry)
                     out[("npm", name, version)] = {"integrity": integrity.split()}
+        return out
+    if isinstance(doc, dict) and "packages" in doc and isinstance(doc.get("packages"), list):
+        for section in ("packages", "packages-dev"):
+            for entry in doc.get(section) or []:
+                if not isinstance(entry, dict):
+                    continue
+                name, version = entry.get("name"), entry.get("version")
+                if not isinstance(name, str) or not isinstance(version, str):
+                    continue
+                clean_ver = (
+                    version[1:]
+                    if version.startswith("v") and len(version) > 1 and version[1].isdigit()
+                    else version
+                )
+                dist = entry.get("dist")
+                if isinstance(dist, dict) and dist.get("shasum"):
+                    shasum = str(dist["shasum"]).strip()
+                    if shasum:
+                        out[("Packagist", name, clean_ver)] = {"sha1": [shasum]}
+        return out
+    if (
+        isinstance(doc, dict)
+        and isinstance(doc.get("version"), int)
+        and isinstance(doc.get("dependencies"), dict)
+    ):
+        for packages in doc.get("dependencies", {}).values():
+            if not isinstance(packages, dict):
+                continue
+            for name, entry in packages.items():
+                if not isinstance(entry, dict):
+                    continue
+                resolved, content_hash = entry.get("resolved"), entry.get("contentHash")
+                if (
+                    isinstance(name, str)
+                    and isinstance(resolved, str)
+                    and isinstance(content_hash, str)
+                    and content_hash
+                ):
+                    out[("NuGet", name, resolved)] = {"sha512": [content_hash]}
         return out
     try:
         toml_doc = _toml_module().loads(data.decode("utf-8"))
