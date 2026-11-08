@@ -18,7 +18,8 @@
 #   REVIEW_REQUIRED/UNVERIFIED mappings cap verdict confidence. Absent
 #   metadata means unreviewed — never assume reviewed. The legacy flat
 #   keys (`identity_source` etc.) are still read for back-compat but
-#   should not be copied.
+#   should not be copied: they are VERIFIED only with `confidence: high`,
+#   otherwise REVIEW_REQUIRED, and a test refuses them in this file.
 - slug: bitnami
   display_name: Bitnami catalog
   github: bitnami/containers

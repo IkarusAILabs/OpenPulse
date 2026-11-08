@@ -221,7 +221,7 @@ def positive_repositories(directory: Path, sample: int, seed: int = SEED) -> lis
                 entry["methods"].append(method)
     ordered = sorted(rows.values(), key=lambda r: r["repository"].lower())
     if sample and len(ordered) > sample:
-        ordered = sorted(random.Random(seed).sample(ordered, sample), key=lambda r: r["repository"])
+        ordered = sorted(random.Random(seed).sample(ordered, sample), key=lambda r: r["repository"])  # noqa: S311 - seeded, reproducible sampling; not a secret
     return ordered
 
 

@@ -281,7 +281,7 @@ _SUMMARY_SEVERITY = {
 
 
 def run(cases: int, seed: int) -> dict:
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     severities: Counter = Counter()
     per_event: Counter = Counter()
     examples: dict[str, list] = {}

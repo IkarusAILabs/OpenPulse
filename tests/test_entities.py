@@ -192,6 +192,54 @@ def test_identity_status_values_valid():
             assert str(block["status"]).upper() in VALID_STATUSES, entry.get("slug")
 
 
+def _legacy_catalog(**flat):
+    entry = {"slug": "acme", "aliases": ["acme-fork"], "docker_images": [], "packages": []}
+    return [{**entry, **flat}]
+
+
+def test_legacy_flat_identity_keys_respect_confidence():
+    """D5: flat keys are VERIFIED only with confidence high; before, any flat
+    key made the mapping VERIFIED, even confidence low or none."""
+    from core.entities.identity import (
+        REVIEW_REQUIRED,
+        VERIFIED,
+        identity_block_for_slug,
+        resolution_trust,
+    )
+
+    reviewed = {"identity_source": "upstream README", "reviewed_at": "2026-10-01"}
+    cases = {
+        "high": VERIFIED,
+        "HIGH": VERIFIED,
+        "medium": REVIEW_REQUIRED,
+        "low": REVIEW_REQUIRED,
+        "certain": REVIEW_REQUIRED,
+        None: REVIEW_REQUIRED,
+    }
+    for confidence, expected in cases.items():
+        flat = dict(reviewed, confidence=confidence) if confidence else dict(reviewed)
+        catalog = _legacy_catalog(**flat)
+        block = identity_block_for_slug("acme", catalog)
+        assert block["status"] == expected, confidence
+        assert block["source"] == "upstream README"
+        trust = resolution_trust("acme-fork", catalog)
+        assert (trust["via"], trust["identity_status"]) == ("catalog", expected), confidence
+    # One flat key alone is never a review.
+    only = _legacy_catalog(maintainer="someone")
+    assert identity_block_for_slug("acme", only)["status"] == REVIEW_REQUIRED
+    # The formal block still wins over flat keys.
+    both = _legacy_catalog(confidence="low", identity={"status": "VERIFIED", "confidence": "high"})
+    assert identity_block_for_slug("acme", both)["status"] == VERIFIED
+
+
+def test_the_shipped_catalog_uses_no_legacy_flat_identity_keys():
+    from core.entities.catalog import load_catalog
+    from core.entities.identity import _LEGACY_KEYS
+
+    for entry in load_catalog():
+        assert not any(k in entry for k in _LEGACY_KEYS), entry.get("slug")
+
+
 def test_purl_builder():
     from core.entities.catalog import purl_for
 
@@ -359,7 +407,6 @@ def test_registry_name_collisions_resolve_per_ecosystem():
         ("PyPI", "elasticsearch"),  # the Python client
     ]:
         assert package_trust(name, ecosystem)["via"] == "self", (ecosystem, name)
-
 
 
 def test_normalize_ref_keeps_a_leading_npm_scope():

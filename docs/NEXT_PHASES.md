@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-08 (v0.19 released):** v0.19.0 "Evidence Consumer and Portability" is released (Phase 13, P1–P5: #336–#341). The exit holds: a consumer with no OpenPulse code validates every released contract version, 1.0 to 2.4, on documents written by each version's own release. After the release: D5's rest (#344) and H13 (#345) are on `main` under Unreleased, which completes Phase 1. What is left needs the owner: decisions 3, 6, 7, 9, 15, 17 and 18, D6 (ask first), and the scope of any Phase 14.
 - **Update 2026-11-07 (v0.18 released):** v0.18.0 "Inspection Coverage Assurance" is released (Phase 12, S2–S5: #331–#334; S1 shipped in v0.16.0). The exit holds: coverage is COMPLETE only when every dependency file in the recorded search was read, anything else is PARTIAL with each category named, and no summary reads as an all-clear over PARTIAL. Decision 15 (`--fail-on` on PARTIAL by default) stays open. Next: Phase 13 (v0.19.0).
 - **Update 2026-11-06 (v0.17 built):** G1–G6 are on `main` (#315, #322, #323, #325, #326 and the G6 docs). The exit condition holds: the bypass routes "a file changed after the gate" and "a lockfile regenerated after the gate" are "Yes" in `docs/TRUST_POLICY.md`, pinned by `tests/test_gate_bypass.py` and run end to end in `tests/test_e2e_install.py`. Still not covered, and documented: an install from a file the gate was not given, a lockfile the install command itself rewrites, a receipt written by hand, a skipped verification. v0.17.0 released 2026-11-06. Next: Phase 12 (v0.18.0).
 - **Update 2026-11-03 (track T research):** the owner asked an AI assistant to take on the star-history indicators and track T's study. Started as "Track T research" below: TR1 (star-history recorder) and TR2 (draft protocol) are done. GitHub's stargazer listings and GraphQL `starredAt` are closed to third parties (verified 2026-11-03), so star history comes from the counts-only star-history endpoint. Labels come from StarScout and OSV, never from an AI. Decisions 17 and 18 are new. R-C stays with an independent team.
@@ -85,23 +86,23 @@ The work on `main` reaches users only through a release, and the documented inst
 
 Each item has an issue with acceptance criteria, so it can go to contributors. Maintainers review and merge, applying the "test where users hit it" rule.
 
-| # | Item | Issue | Size | Who |
+| # | Item | Issue | Size | Status |
 |---|---|---|---|---|
-| H1 | `check --fail-on` must fail on FAILED repository coverage | #101 | S | contributor |
-| H2 | Digest/warnings show non-COMPLETE coverage in the body (and the webhook) | #102 | S | contributor |
-| H3 | Per-file blob cap below the total budget (25 MB), so one file can't use the whole budget | #103, #148 | S | contributor (#148) |
-| H4 | CI guard also catches `--deselect`, `-k "not …"`, `collect_ignore`, `addopts` | #104 | S | contributor |
-| H5 | Token file: first non-empty line, validate the token, reuse `bounded_io` | #138 | S | contributor |
-| H6 | Token file: warn when other users can read it | #139 | S | contributor |
-| H7 | `persist-credentials: false` on the `test` and `codeql` checkouts, plus a policy test | #141 | S | contributor |
-| H8 | `scan_secrets`: canonical self-skip, skip virtualenvs, decide on `*.lock` | #142 | S | contributor |
-| H9 | Catalog collisions fail loudly **at every caller** (resolver and trust) | #144, #151 | S | contributor (#151) |
-| H10 | Standalone evidence-contract consumer (no OpenPulse imports) | #108 | M | contributor |
+| H1 | `check --fail-on` must fail on FAILED repository coverage | #101 | S | DONE (#240) |
+| H2 | Digest/warnings show non-COMPLETE coverage in the body (and the webhook) | #102 | S | DONE (#249) |
+| H3 | Per-file blob cap below the total budget (25 MB), so one file can't use the whole budget | #103, #148 | S | DONE (#220; #148 closed) |
+| H4 | CI guard also catches `--deselect`, `-k "not …"`, `collect_ignore`, `addopts` | #104 | S | DONE (#244) |
+| H5 | Token file: first non-empty line, validate the token, reuse `bounded_io` | #138 | S | DONE (#245) |
+| H6 | Token file: warn when other users can read it | #139 | S | DONE (#246) |
+| H7 | `persist-credentials: false` on the `test` and `codeql` checkouts, plus a policy test | #141 | S | DONE (#243) |
+| H8 | `scan_secrets`: canonical self-skip, skip virtualenvs, decide on `*.lock` | #142 | S | DONE (#247) |
+| H9 | Catalog collisions fail loudly **at every caller** (resolver and trust) | #144, #151 | S | DONE (#219; #151 closed) |
+| H10 | Standalone evidence-contract consumer (no OpenPulse imports) | #108 | M | DONE (v0.19.0 P1–P5, #336–#341) |
 | H11 | **A6b:** stream every collector's HTTP response with a byte cap; rework the tests that mock `httpx.get` | — | M | DONE (#155, v0.7.1) |
 | H12 | **D1:** hash-pinned locks (`--require-hashes`), `--no-deps -e .`, and `check_lock.py` failing on unlocked installs | #110 | M | DONE (#156, v0.7.1) |
-| H13 | **D3 (rest):** ruff `S` rules with justified per-line ignores | — | S | maintainer |
+| H13 | **D3 (rest):** ruff `S` rules with justified per-line ignores (done: 4 asserts became explicit checks, two `urlopen` clients refuse non-https URLs, every other finding carries its reason on the line; tests exempt from S101/S105/S106/S603/S607 only) | — | S | DONE (#345) |
 
-**Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel.
+**Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel. **Met 2026-11-08:** every row is done; H13 (#345) was the last.
 
 ## Phase 2 — v0.9.0 "Anchored Trust" (layers 2 and 6) — DONE, released 2026-11-01
 
@@ -387,7 +388,7 @@ Goal: the two track T items that needed data or a study, done by an AI assistant
 | # | Item | Issue | Size | Depends on |
 |---|---|---|---|---|
 | D2 | (v0.10.0 V1) Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **as `ikarus-openpulse`** (R2); sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
-| D5 (rest) | Legacy flat identity keys respect `confidence` | — | S | H9 |
+| D5 (rest) | ✅ Legacy flat identity keys respect `confidence` (done: VERIFIED only with `confidence: high`; the shipped catalog uses none) | — | S | H9 |
 | D6 | Move the top-level packages (`core`, `cli`, `collectors`, `analyzers`, `reports`) under one namespace with a deprecation shim. **The namespace can't be `openpulse`:** the PyPI `openpulse` package imports as `openpulse`, so both installed together would collide. Use the R2 name: `ikarus_openpulse`. Keep `python -I -m cli` working through the shim for one minor release. | — | L | R2, D2 (ask first) |
 
 **Exit:** `pip install <R2 name>` installs a signed, attested OpenPulse with an SBOM, and no OpenPulse module shadows or is shadowed by another distribution.

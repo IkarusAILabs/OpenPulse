@@ -55,3 +55,12 @@ def test_npm_shorthand(url, expected):
 def test_npm_shorthand_does_not_swallow_hosts():
     assert github_repo_from_url("gitlab.com/org/repo", npm_shorthand=True) is None
     assert github_repo_from_url("github.com/org/repo", npm_shorthand=True) == "org/repo"
+
+
+def test_the_client_refuses_anything_but_https():
+    from collect import Http
+
+    client = Http.__new__(Http)  # no log file or token needed to reach the check
+    for url in ("file:///etc/passwd", "http://pypi.org/pypi/x/json", "ftp://example.org/x"):
+        with pytest.raises(ValueError, match="non-https"):
+            client.request(url)

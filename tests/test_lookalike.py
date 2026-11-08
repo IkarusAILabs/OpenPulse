@@ -153,3 +153,17 @@ def test_every_reference_file_is_valid_json():
     for path in sorted(data_path("reference").glob("*.json")):
         assert len(hashlib.sha256(path.read_bytes()).hexdigest()) == 64
         json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_reference_refresh_script_fetches_only_https():
+    """The tarball URL comes from registry metadata, so a file: URL is refused."""
+    import importlib.util
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "refresh_reference_names.py"
+    spec = importlib.util.spec_from_file_location("refresh_reference_names", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for url in ("file:///etc/passwd", "http://registry.npmjs.org/x"):
+        with pytest.raises(SystemExit, match="non-https"):
+            module._get(url)

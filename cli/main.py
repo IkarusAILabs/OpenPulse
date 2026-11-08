@@ -603,8 +603,8 @@ def _untracked(_ctx, param, value):
     if not value:
         return value
     try:
-        tracked = subprocess.run(
-            ["git", "ls-files", "-z", "--", value],
+        tracked = subprocess.run(  # noqa: S603 - fixed git argv; git from PATH, as the user runs it
+            ["git", "ls-files", "-z", "--", value],  # noqa: S607 - fixed git argv; git from PATH, as the user runs it
             capture_output=True,
             timeout=30,
             check=False,
@@ -711,7 +711,7 @@ def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
     from pathlib import Path as _Path
 
     def git(*args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], capture_output=True, check=False)
+        return subprocess.run(["git", *args], capture_output=True, check=False)  # noqa: S603, S607 - fixed git argv; git from PATH, as the user runs it
 
     try:
         top = git("-C", str(_Path(path).resolve().parent), "rev-parse", "--show-toplevel")

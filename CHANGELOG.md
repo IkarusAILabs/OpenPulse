@@ -2,6 +2,16 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Changed
+
+- **Lint: ruff's `S` (bandit) rules are on (H13, D3).** Each finding outside the tests is fixed or carries its reason on the line. Fixed: four `assert`s that guarded real conditions (and vanish under `python -O`) are explicit checks, in the mutation runner, the ecosystem-version bridges and `scripts/compile_locks.py`; the reference-name refresh script and the prevalence collector refuse any URL that is not https (the npm tarball URL comes from registry metadata, and `urlopen` would open `file:`). Kept with a reason: seeded `random` for reproducible sampling, `git`/`gh`/`uv` with fixed arguments, and the `pom.xml` parse, which refuses any DOCTYPE before parsing. Tests are exempt only from `assert`, fixed-argument subprocesses and placeholder tokens. No behaviour of `openpulse` changes.
+
+### Fixed
+
+- **Legacy flat identity keys no longer make a mapping VERIFIED on their own (D5).** A catalog entry with the pre-`identity:` flat keys (`identity_source`, `reviewed_at`, `maintainer`, `confidence`) was VERIFIED whatever its `confidence` said, even `low` or none, so a verdict resting on it was never capped. It is now VERIFIED only with `confidence: high`; anything else is REVIEW_REQUIRED and caps an affected verdict at EMERGING, as a formal `identity:` block does. The shipped catalog uses no flat keys (a test keeps it so), so no shipped verdict changes; a catalog passed to the library with flat keys may now see capped confidence.
+
 ## 0.19.0 "Evidence Consumer and Portability" — 2026-11-08
 
 Phase 13 (M9 preparation, T-F2): an evidence contract means the same thing outside OpenPulse. A standalone consumer that imports nothing from OpenPulse validates each document against exactly the schema of the version it declares, recomputes its content hash, and summarises its outcomes without ever folding an UNKNOWN, a PARTIAL coverage or a MISSING_EVIDENCE into a pass. It is tested on documents written by every released contract version's own release. No contract version, verdict or gate changes.

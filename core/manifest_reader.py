@@ -391,7 +391,7 @@ def load_pom_xml_doc(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     if _DOCTYPE_RE.search(text):
         raise ValueError("pom.xml declares a DOCTYPE - refused (POMs need no DTD)")
     try:
-        root = ET.fromstring(text)
+        root = ET.fromstring(text)  # noqa: S314 - DOCTYPE refused above, so no entities; str input, bounded size
     except ET.ParseError as e:
         raise ValueError(f"pom.xml is not parseable XML: {e}") from None
     if _local_name(root.tag) != "project":
