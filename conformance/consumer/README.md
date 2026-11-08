@@ -69,7 +69,7 @@ for outcome in summary.outcomes:
   - `date`, `date-time` and `uri` are checked as OpenPulse checks them, with the standard library only, so the result never depends on optional format packages.
 - **Content hash (P3):** a document valid against its schema then has its hash recomputed. 2.x: SHA-256 over the RFC 8785 (JCS) form, the same rule as `verify.mjs`, with this package's own standard-library JCS. 1.x: the 1.0, 1.1 or 1.2 field list with the two pinned provenance values. A document changed after it was hashed is invalid.
 - **Outcome summary (P4):** above.
-- **Next (P5):** a corpus of documents from every released contract version, with mutated negatives.
+- **Released-contract corpus (P5):** [`conformance/contracts/`](../contracts/README.md) holds documents written by each released contract version's own producer, which this package must accept, and one-rule negatives, which it must reject. CI runs it over all of them.
 
 ## For OpenPulse maintainers
 
