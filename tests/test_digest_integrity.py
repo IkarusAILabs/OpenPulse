@@ -79,7 +79,7 @@ def test_npm_integrity_mismatch_is_a_failure():
 
 
 def test_old_sha1_locks_compare_with_the_registry_shasum():
-    shasum = hashlib.sha1(b"tgz").hexdigest()
+    shasum = hashlib.sha1(b"tgz").hexdigest()  # noqa: S324 - npm's legacy sha1 shasum is the fixture
     fetch = Registry({NPM_URL: (200, {"dist": {"integrity": sri(b"tgz"), "shasum": shasum}})})
     record = check("npm", "left-pad", "1.3.0", {"integrity": [sri(b"tgz", "sha1")]}, fetch=fetch)
     assert record["status"] == "VERIFIED_RELATIONSHIP"

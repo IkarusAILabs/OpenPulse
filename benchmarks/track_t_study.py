@@ -127,7 +127,7 @@ def indicators(history: dict[str, Any]) -> dict[str, float] | None:
 def split(names: list[str], seed: int = SEED) -> tuple[list[str], list[str]]:
     """(calibration, held-out): half of the names (rounded down) by the seed."""
     ordered = sorted(names, key=str.lower)
-    chosen = set(random.Random(seed).sample(ordered, len(ordered) // 2))
+    chosen = set(random.Random(seed).sample(ordered, len(ordered) // 2))  # noqa: S311 - seeded, reproducible sampling; not a secret
     return [n for n in ordered if n in chosen], [n for n in ordered if n not in chosen]
 
 
@@ -242,7 +242,7 @@ def frame(
         names, records = malicious_names(archive, ecosystem)
 
         def pick(n: int, names: list[str] = names) -> list[str]:
-            return sorted(random.Random(SEED).sample(names, min(n, len(names))))
+            return sorted(random.Random(SEED).sample(names, min(n, len(names))))  # noqa: S311 - seeded, reproducible sampling; not a secret
 
         out[ecosystem] = {
             "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
@@ -621,8 +621,13 @@ PACKAGE_DIR = ROOT / "dist"
 def _git(*args: str) -> str:
     import subprocess
 
-    done = subprocess.run(
-        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True, encoding="utf-8"
+    done = subprocess.run(  # noqa: S603 - fixed git argv; git from PATH, as the user runs it
+        ["git", *args],  # noqa: S607 - fixed git argv; git from PATH, as the user runs it
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        encoding="utf-8",
     )
     return done.stdout.strip()
 

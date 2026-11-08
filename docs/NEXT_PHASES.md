@@ -99,7 +99,7 @@ Each item has an issue with acceptance criteria, so it can go to contributors. M
 | H10 | Standalone evidence-contract consumer (no OpenPulse imports) | #108 | M | contributor |
 | H11 | **A6b:** stream every collector's HTTP response with a byte cap; rework the tests that mock `httpx.get` | — | M | DONE (#155, v0.7.1) |
 | H12 | **D1:** hash-pinned locks (`--require-hashes`), `--no-deps -e .`, and `check_lock.py` failing on unlocked installs | #110 | M | DONE (#156, v0.7.1) |
-| H13 | **D3 (rest):** ruff `S` rules with justified per-line ignores | — | S | maintainer |
+| H13 | ✅ **D3 (rest):** ruff `S` rules with justified per-line ignores (done: 4 asserts became explicit checks, two `urlopen` clients refuse non-https URLs, every other finding carries its reason on the line; tests exempt from S101/S105/S106/S603/S607 only) | — | S | maintainer |
 
 **Exit:** all of the above merged, then a v0.7.1 patch release. A6b closes the last unbounded input channel.
 

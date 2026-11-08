@@ -106,7 +106,7 @@ def _compile(
         cmd += ["--extra", extra]
     if constraints is not None:
         cmd += ["-c", str(constraints)]
-    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout  # noqa: S603 - fixed uv argv; maintainer script
 
 
 def _tool_lock(uv: str, tmp: str, name: str, pins: tuple[str, ...], core: Path | None) -> str:
@@ -159,7 +159,8 @@ def main(argv: list[str]) -> int:
         provenance_only = {name: b for name, b in prov_full.items() if name not in core}
         runtime = _blocks(_compile(uv, pyproject, "3.10", pins))
         consumer = _blocks(_compile(uv, CONSUMER, "3.11", shared))
-        assert set(runtime) <= set(core), "runtime lock must be a subset of the core lock"
+        if not set(runtime) <= set(core):
+            raise SystemExit("runtime lock must be a subset of the core lock")
         CORE.write_text(CORE_HEADER + "\n".join(core.values()) + "\n", encoding="utf-8")
         RUNTIME.write_text(RUNTIME_HEADER + "\n".join(runtime.values()) + "\n", encoding="utf-8")
         MCP.write_text(MCP_HEADER + "\n".join(mcp_only.values()) + "\n", encoding="utf-8")
