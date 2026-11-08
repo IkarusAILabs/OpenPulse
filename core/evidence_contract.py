@@ -282,7 +282,7 @@ def _rename_blocks(base: EvidenceContract) -> dict[str, Any]:
 #: the planned (always-null) signature family, with the two
 #: clock/hash-dependent provenance values pinned during hashing so
 #: the digest is a function of the evidence content only.
-_V1_BODY_FIELDS = (
+_V1_0_BODY_FIELDS = (
     "contract_version",
     "event_context",
     "identity",
@@ -294,18 +294,24 @@ _V1_BODY_FIELDS = (
     "unknowns",
     "recommendation",
     "provenance",
-    "inspection_coverage",
 )
+
+#: 1.1 added inspection_coverage and hashes it.
+_V1_BODY_FIELDS = (*_V1_0_BODY_FIELDS, "inspection_coverage")
 
 #: 1.2 hashes its additive blocks too, with the same computation.
 _V1_2_BODY_FIELDS = (*_V1_BODY_FIELDS, "verdict_meaning", "evaluation_context")
+
+#: The fields each 1.x version's hash covers, by contract_version.
+_V1_HASHED = {"1.0.0": _V1_0_BODY_FIELDS, "1.1.0": _V1_BODY_FIELDS, "1.2.0": _V1_2_BODY_FIELDS}
 
 
 def _hash_body(doc: dict[str, Any]) -> str:
     """Digest over the v1 body with content_hash and the generation
     timestamp pinned: same logical content -> same hash, always.
-    The covered fields follow the document's own contract_version."""
-    fields = _V1_2_BODY_FIELDS if doc.get("contract_version") == "1.2.0" else _V1_BODY_FIELDS
+    The covered fields follow the document's own contract_version: a 1.0
+    document hashes the 1.0 fields (it has no inspection_coverage)."""
+    fields = _V1_HASHED.get(str(doc.get("contract_version")), _V1_BODY_FIELDS)
     body: dict[str, Any] = {name: doc[name] for name in fields}
     body["provenance"] = dict(body["provenance"])
     body["provenance"]["content_hash"] = attestation._HASH_PLACEHOLDER

@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
             result = check(doc)
             if result.valid:
                 valid += 1
-                print(f"{name}:{number}: valid contract {result.version}")
+                print(f"{name}:{number}: valid contract {result.version}, content hash verified")
                 continue
             invalid += 1
             label = f"contract {result.version}" if result.version else "not a contract"

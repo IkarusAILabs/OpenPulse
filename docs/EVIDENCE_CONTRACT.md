@@ -56,15 +56,24 @@ JCS is RFC 8785: members sorted by the UTF-16 code units of their names, numbers
 
 - Python: `core.evidence_contract.verify_content_hash(doc)` (any contract version; the JCS encoder is `core/jcs.py`, stdlib only).
 - Node: `node conformance/evidence-contract/verify.mjs contracts.jsonl` (exit 1 when a document fails).
+- Python without OpenPulse: `openpulse-consumer check contracts.jsonl` ([`conformance/consumer/`](../conformance/consumer/README.md)) validates each document and recomputes its hash, for 2.x and 1.x alike, with its own stdlib JCS (v0.19.0 P3).
 
 The same logical document still hashes identically at any build time, and any content edit changes the hash. A document whose `content_hash_method` is not `jcs-sha256` does not verify as 2.x.
 
 ### 1.x
 
 
-`sha256:<hex>` over canonical JSON (sorted keys, compact separators)
-of every top-level field except the planned (always-null) signature
-family, with the two clock/hash-dependent provenance values pinned:
+`sha256:<hex>` over Python's `json.dumps(body, sort_keys=True,
+separators=(",", ":"))` (ASCII-escaped) of the version's hashed fields,
+with the two clock/hash-dependent provenance values pinned. The fields:
+
+- 1.0: `contract_version`, `event_context`, `identity`, `scope`,
+  `affected_dependency`, `assessment`, `evidence_refs`, `temporal`,
+  `unknowns`, `recommendation`, `provenance`;
+- 1.1: those and `inspection_coverage`;
+- 1.2: those and `verdict_meaning`, `evaluation_context`.
+
+The pinned values:
 
 - `provenance.content_hash` -> `"sha256:pending"`
 - `provenance.generation_timestamp` -> `"1970-01-01T00:00:00Z"`
