@@ -1402,6 +1402,34 @@ def observe(
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
+def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
+    """Observe each catalog entry's GitHub repository; findings from its changes (C2).
+
+    Failures (a rate limit, a refused history) are reported and skipped: a
+    repository that cannot be observed this run contributes nothing.
+    """
+    import os as _os
+
+    from collectors.github.collector import GitHubCollector
+    from core.observations.repository import observe_github_repository
+
+    token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
+    changes = []
+    for entry in catalog:
+        repo = entry.get("github")
+        if not repo:
+            continue
+        meta = GitHubCollector({repo: repo}, token=token).fetch_repo_meta(repo)
+        result = observe_github_repository(
+            repo, meta, store_root=store, history_key=history_key, previous_keys=previous_keys
+        )
+        if result["error"] is not None:
+            _echo(f"repository history skipped for {repo}: {result['error'].get('safe_message')}")
+            continue
+        changes += result["changes"]
+    return change_analyst.analyze_repository_changes(changes)
+
+
 @cli.command("observe-github")
 @click.option("--repo", "repo", required=True, help="GitHub repository, owner/name")
 @click.option(
@@ -1436,12 +1464,13 @@ def observe_github(
     history_key_file=None,
     history_previous_keys_file=None,
 ):
-    """Record a GitHub repository's facts in its verifiable history (v0.20.0 C1).
+    """Record a GitHub repository's facts in its verifiable history and report changes.
 
     Stores the license, archived flag, the path GitHub answers with, the
     default branch and the last push, hash-chained beside `observe`'s
-    registry histories. A 404 is recorded as missing; any other failure
-    records nothing.
+    registry histories (v0.20.0 C1). A 404 is recorded as missing; any other
+    failure records nothing. Compared with the previous record, a license
+    change, an archive and a move to a new owner are findings (C2).
     """
     from collectors.github.collector import GitHubCollector
     from core.observations.repository import observe_github_repository, split_repo
@@ -1490,10 +1519,23 @@ def observe_github(
         )
     if result["history_status"] == "REBASELINED":
         _echo("re-baselined: no comparison with earlier records this run.")
-    elif result["history_status"] == "GENESIS":
+        return
+    if result["history_status"] == "GENESIS":
         _echo("baseline recorded: no previous observation to compare with.")
-    else:
-        _echo("appended to the history; changes between records are read in v0.20.0 C2.")
+        return
+    if not result["changes"]:
+        _echo("no changes since the last observation.")
+        return
+    for change in result["changes"]:
+        detail = (
+            f": {change.get('previous')} -> {change.get('current')}"
+            if change.get("previous") or change.get("current")
+            else ""
+        )
+        first = change.get("first_detected_at") or "not proven (history is not keyed)"
+        _echo(f"- {change['type']}{detail} (first detected: {first})")
+    for finding in change_analyst.analyze_repository_changes(result["changes"]):
+        _echo("\n" + report_analyst.render_finding_md(finding))
 
 
 @cli.command()
@@ -1510,7 +1552,10 @@ def observe_github(
 @click.option(
     "--with-sweep",
     is_flag=True,
-    help="Run live distribution sweep first and include its findings",
+    help=(
+        "Run the live distribution sweep and observe the projects' GitHub repositories "
+        "first, and include their findings"
+    ),
 )
 @click.option(
     "--store",
@@ -1600,6 +1645,13 @@ def report(
             previous_keys=previous_keys,
         )["findings"]
         _echo(f"sweep findings: {len(sweep_findings)}")
+        repository_findings = _observe_catalog_repositories(
+            selected, store, history_key, previous_keys
+        )
+        _echo(f"repository history findings: {len(repository_findings)}")
+        # The history restates the snapshot's "archived"/"moved" with more evidence.
+        items = change_analyst.replace_snapshot_duplicates(items, repository_findings)
+        sweep_findings += repository_findings
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."

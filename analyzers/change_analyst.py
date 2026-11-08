@@ -422,6 +422,166 @@ def _ownership_drift(entry: dict[str, Any]) -> tuple[str, str] | None:
     return (queried, actual)
 
 
+#: How a repository-history finding was detected: two comparable records
+#: of OpenPulse's own GitHub repository history (v0.20.0 C2).
+DETECTION_REPOSITORY_HISTORY = "repository_history"
+
+#: Repository change type -> (event_type, impact, significance). Changes
+#: that are not here are reported as changes, never as findings: an
+#: unarchived repository, a 404 (it can be a token that cannot see the
+#: repository), and a license GitHub stopped or started recognising.
+REPOSITORY_CHANGE_RULES = {
+    "license_changed": ("LICENSE_CHANGE", "REVIEW", "high"),
+    "archived": ("PROJECT_ARCHIVED", "REVIEW", "high"),
+    "moved": ("OWNERSHIP_CHANGE", "REVIEW", "medium"),
+}
+#: The same signals as the snapshot rules use for these event types.
+_REPOSITORY_SIGNAL = {
+    "LICENSE_CHANGE": "license",
+    "PROJECT_ARCHIVED": "lifecycle",
+    "OWNERSHIP_CHANGE": "ownership",
+}
+
+
+def _repository_title(change: dict[str, Any], path: str) -> tuple[str, str]:
+    kind, before, after = change.get("type"), change.get("previous"), change.get("current")
+    between = (
+        f"Between {change.get('previous_observed_at')} and {change.get('observed_at')} "
+        "(the two observations that show it)"
+    )
+    if kind == "license_changed":
+        return (
+            f"{path} changed its license from {before} to {after} on GitHub",
+            f"{between}, GitHub's license id for the repository changed from {before} to "
+            f"{after}. GitHub detects licenses from the license file; check the project's "
+            "own announcement and the license of the release you use.",
+        )
+    if kind == "archived":
+        return (
+            f"{path} was archived on GitHub",
+            f"{between}, the repository became read-only; no fixes will land. Teams "
+            "depending on it may need to migrate.",
+        )
+    return (
+        f"{before} moved to {after} on GitHub",
+        f"{between}, the repository's owner changed from {str(before).split('/')[0]} to "
+        f"{str(after).split('/')[0]}. Recorded identity may be stale; verify package "
+        "registries and docs followed the move.",
+    )
+
+
+def analyze_repository_changes(
+    changes: list[dict[str, Any]], today: date | None = None
+) -> list[dict[str, Any]]:
+    """Repository history changes (``core.observations.repository``) -> findings.
+
+    Only a change between two comparable records of one history becomes a
+    finding, and it carries both records as its evidence. ``effective_at``
+    is when OpenPulse first saw the change, not when it happened upstream:
+    the change happened between the two observations, which the finding
+    names. ``first_detected_at`` comes from the history, and only from a
+    keyed one. The archived and moved findings name the same artifact as the
+    snapshot rules in ``analyze_github_meta``.
+    """
+    today = today or date.today()
+    findings = []
+    for c in changes:
+        if not isinstance(c, dict):
+            continue
+        rule = REPOSITORY_CHANGE_RULES.get(str(c.get("type", "")))
+        if not rule:
+            continue
+        event_type, impact, significance = rule
+        path = f"{c.get('namespace')}/{c.get('repository')}"
+        # A move names the old path: the recorded references that now redirect.
+        ref = f"github.com/{c.get('previous') if c.get('type') == 'moved' else path}"
+        title, summary = _repository_title(c, path)
+        observed = str(c.get("observed_at") or today)
+        url = f"https://github.com/{c.get('current') if c.get('type') == 'moved' else path}"
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": event_type,
+                "signal": _REPOSITORY_SIGNAL[event_type],
+                "title": title,
+                "summary": summary,
+                "impact": impact,
+                "significance": significance,
+                "detection_method": DETECTION_REPOSITORY_HISTORY,
+                "evidence_strength": EVIDENCE_MODERATE,
+                "observed_at": str(today),
+                "first_detected_at": c.get("first_detected_at"),
+                "effective_at": observed,
+                "lifecycle_state": STATE_EFFECTIVE,
+                "scope": {"kind": "project", "versions": []},
+                "affected_versions": ["*"],
+                "affected_artifacts": [{"kind": "source-repository", "ref": ref}],
+                "references": [url],
+                "observation_evidence": {
+                    "observation_id": c.get("current_observation_id"),
+                    "source": "github",
+                    "source_url": url,
+                    "observed_at": observed,
+                    "content_hash": c.get("current_hash"),
+                    "chain_hash": c.get("current_chain"),
+                    "parser_version": c.get("parser_version"),
+                    "previous_observation_id": c.get("previous_observation_id"),
+                    "previous_observation_hash": c.get("previous_chain") or c.get("previous_hash"),
+                    "previous_observed_at": c.get("previous_observed_at"),
+                    "previous_content_hash": c.get("previous_hash"),
+                    "fact": {
+                        "type": c.get("type"),
+                        "repository": f"github.com/{path}",
+                        "previous": c.get("previous"),
+                        "current": c.get("current"),
+                    },
+                },
+                "supporting": [c],
+            }
+        )
+    return findings
+
+
+def _artifact_refs(finding: dict[str, Any]) -> set[str]:
+    return {
+        str(a.get("ref", "")).lower()
+        for a in finding.get("affected_artifacts") or []
+        if isinstance(a, dict)
+    }
+
+
+def replace_snapshot_duplicates(
+    items: list[dict[str, Any]], history_findings: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Items without the snapshot findings a history finding restates.
+
+    ``analyze_github_meta`` reports "archived" and "moved" from the current
+    snapshot on every run; the repository history reports the same fact on
+    the run it changed, with when it was first seen and both observations
+    as evidence. Where both name the same event type and repository, the
+    history finding is kept and the snapshot one dropped. Never mutates
+    ``items``.
+    """
+    seen = {
+        (f.get("event_type"), ref)
+        for f in history_findings
+        if f.get("detection_method") == DETECTION_REPOSITORY_HISTORY
+        for ref in _artifact_refs(f)
+    }
+    if not seen:
+        return items
+    kept = []
+    for item in items:
+        findings = [
+            f
+            for f in item.get("findings", [])
+            if f.get("detection_method") == DETECTION_REPOSITORY_HISTORY
+            or not any((f.get("event_type"), ref) in seen for ref in _artifact_refs(f))
+        ]
+        kept.append({**item, "findings": findings})
+    return kept
+
+
 #: Diff type -> (event_type, impact, significance, template).
 #: Significance is assessed from the observation itself (P1 §12):
 #: a moved `latest` digest is routine registry churn (low); a vanished

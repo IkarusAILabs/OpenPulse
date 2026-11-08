@@ -337,6 +337,18 @@ rate limit, records nothing, because it is not a fact about the
 repository. Paths are stored lower-case, as GitHub's are
 case-insensitive. A first observation is a baseline.
 
+Changes come only from two comparable records of one history (never
+across a genesis or a re-baseline). A new license id is a
+`LICENSE_CHANGE`; archiving is `PROJECT_ARCHIVED`; a new owner is
+`OWNERSHIP_CHANGE` (a same-owner rename stays silent, as in the snapshot
+rule). Each finding names the window between the two observations,
+because the change happened somewhere inside it; `effective_at` is when
+OpenPulse first saw it. A license that GitHub stops recognising (none,
+`NOASSERTION`) is lost evidence, not a relicense. An unarchive, a 404 and
+a restored repository are reported as changes but are not findings: a
+404 can mean a token that cannot see the repository. As with registry
+changes, `first_detected_at` is published only from a keyed history.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under

@@ -282,7 +282,7 @@ def test_observe_github_records_and_reports(tmp_path, monkeypatch):
 
     second = runner.invoke(cli, ["observe-github", "--repo", REPO, "--store", store])
     assert second.exit_code == 0, second.output
-    assert "appended to the history" in second.output
+    assert "no changes since the last observation" in second.output
     assert len(list_observations("github.com", "example", "widget", root=store)) == 2
 
 
