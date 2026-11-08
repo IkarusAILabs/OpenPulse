@@ -206,10 +206,15 @@ def _history_integrity(
     store_root: str,
     history_key: Any,
     previous_keys: tuple[Any, ...] = (),
+    verify: Callable[[list[dict[str, Any]]], dict[str, Any]] = verify_registry_history,
 ) -> str:
-    """Keyed integrity of one repository's stored history (B3)."""
+    """Keyed integrity of one repository's stored history (B3).
+
+    ``verify`` recomputes each record's content hash for its record type
+    (registry by default; ``core.observations.repository`` passes its own).
+    """
     ordered, chain_ok = order_history(load_all(registry, namespace, repository, root=store_root))
-    if not chain_ok or verify_registry_history(ordered)["status"] == BROKEN:
+    if not chain_ok or verify(ordered)["status"] == BROKEN:
         return BROKEN
     return str(verify_keyed_history(ordered, keyring(history_key, previous_keys))["status"])
 
@@ -234,7 +239,11 @@ def validate_rebaseline_reason(reason: str) -> str:
 
 
 def _assess_history(
-    history: list[dict[str, Any]], directory: Any, namespace: str, repository: str
+    history: list[dict[str, Any]],
+    directory: Any,
+    namespace: str,
+    repository: str,
+    verify: Callable[[list[dict[str, Any]]], dict[str, Any]] = verify_registry_history,
 ) -> tuple[list[dict[str, Any]], str, str]:
     """(chain-ordered records, status, refusal detail) for one stored history."""
     where = f"observation history for {namespace}/{repository}"
@@ -255,7 +264,7 @@ def _assess_history(
     ordered, chain_ok = order_history(history)
     if not chain_ok:
         return history, BROKEN, f"{where} is forked or gapped"
-    status = str(verify_registry_history(ordered)["status"])
+    status = str(verify(ordered)["status"])
     if status == BROKEN:
         return ordered, BROKEN, f"{where} failed integrity verification"
     actual_tip = link_hash_for(ordered[-1])
@@ -285,11 +294,18 @@ def _legacy_after_chained(history: list[dict[str, Any]]) -> bool:
     return False
 
 
-def _integrity_refusal(status: str, detail: str, namespace: str, repository: str) -> dict:
+def _integrity_refusal(
+    status: str,
+    detail: str,
+    namespace: str,
+    repository: str,
+    collector: str = "registries",
+    command: str | None = None,
+) -> dict:
+    command = command or f"openpulse observe --namespace {namespace} --repo {repository}"
     hint = (
         "; refusing to diff or append. After checking why, accept it with "
-        f"`openpulse observe --namespace {namespace} --repo {repository} "
-        '--rebaseline --reason "..."`'
+        f'`{command} --rebaseline --reason "..."`'
     )
     return {
         "observation": None,
@@ -297,7 +313,7 @@ def _integrity_refusal(status: str, detail: str, namespace: str, repository: str
         "changes": [],
         "saved_path": None,
         "error": {
-            "collector": "registries",
+            "collector": collector,
             "error": True,
             "category": "integrity",
             "retryable": False,
@@ -379,6 +395,7 @@ def _keyed_refusal(
     namespace: str,
     repository: str,
     previous_keys: tuple[Any, ...] = (),
+    collector: str = "registries",
 ) -> tuple[dict[str, Any] | None, Any]:
     """(refusal, retired key to hand over from) for appending to this history.
 
@@ -424,7 +441,7 @@ def _keyed_refusal(
         "changes": [],
         "saved_path": None,
         "error": {
-            "collector": "registries",
+            "collector": collector,
             "error": True,
             "category": "integrity",
             "retryable": False,
