@@ -91,6 +91,58 @@ class Validation(unittest.TestCase):
         self.assertIsNone(check({"contract_version": 2}).version)
 
 
+class ExactVersions(unittest.TestCase):
+    """P2: a document is held to exactly the schema its version names."""
+
+    def test_only_exact_published_version_strings_are_read(self):
+        for version in ("2.4", "v2.4.0", " 2.4.0", "2.4.0-rc1", "2.10.0", "3.0.0"):
+            doc = copy.deepcopy(_docs()[0])
+            doc["contract_version"] = version
+            result = check(doc)
+            self.assertFalse(result.valid, version)
+            self.assertIn("no published schema", result.errors[0], version)
+
+    def test_provenance_must_name_the_same_version(self):
+        doc = copy.deepcopy(_docs()[0])
+        doc["provenance"]["contract_version"] = "2.3.0"
+        result = check(doc)
+        self.assertFalse(result.valid)
+        self.assertEqual(
+            result.errors[0],
+            "$.provenance.contract_version: '2.3.0' differs from the top-level "
+            "contract_version '2.4.0'",
+        )
+
+    def test_formats_are_checked_as_openpulse_checks_them(self):
+        cases = {
+            ("temporal", "announcement_date"): "1st April",
+            ("provenance", "generation_timestamp"): "yesterday",
+            ("evidence_refs", 0, "url"): "www.example.com/no-scheme",
+        }
+        for path, bad in cases.items():
+            doc = copy.deepcopy(_docs()[0])
+            target = doc
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = bad
+            result = check(doc)
+            where = "$" + "".join(f"[{p}]" if isinstance(p, int) else f".{p}" for p in path)
+            self.assertFalse(result.valid, path)
+            self.assertTrue(any(e.startswith(where + ":") for e in result.errors), result.errors)
+
+    def test_well_formed_values_of_each_format_pass(self):
+        doc = copy.deepcopy(_docs()[0])
+        doc["temporal"]["announcement_date"] = "2026-01-31"
+        doc["provenance"]["generation_timestamp"] = "2026-11-08T10:00:00+03:00"
+        doc["evidence_refs"][0]["url"] = "urn:isbn:0451450523"
+        self.assertTrue(check(doc).valid, check(doc).errors)
+
+    def test_every_bundled_schema_is_closed_at_the_top(self):
+        """An unknown top-level field fails in every version: no version is lenient."""
+        for version, schema in schemas().items():
+            self.assertIs(schema.get("additionalProperties"), False, version)
+
+
 class Reading(unittest.TestCase):
     def test_blank_lines_are_skipped_and_bad_lines_reported(self):
         with tempfile.TemporaryDirectory() as tmp:

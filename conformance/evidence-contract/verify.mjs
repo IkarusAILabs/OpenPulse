@@ -5,6 +5,12 @@
 // Usage: node verify.mjs contracts.jsonl   (or a single .json document)
 // Exit 0 when every document verifies, 1 otherwise.
 //
+// Only the 2.x versions OpenPulse has published are accepted (VERSIONS; a
+// test keeps it equal to schemas/evidence-contract/), and the document's
+// provenance.contract_version must be its top-level contract_version.
+// 1.x documents use a different hash rule; validate them with the
+// standalone consumer (conformance/consumer/).
+//
 // content_hash = "sha256:" + hex(SHA-256(JCS(body))), where body is the
 // document without signature, signing_key_id and trust_root, and without
 // provenance.content_hash and provenance.generation_timestamp.
@@ -38,8 +44,15 @@ export function contentHash(doc) {
   return "sha256:" + createHash("sha256").update(jcs(body), "utf8").digest("hex");
 }
 
+export const VERSIONS = ["2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"];
+
 export function verify(doc) {
-  if (!String(doc.contract_version).startsWith("2.")) return "not a 2.x contract";
+  if (!VERSIONS.includes(doc.contract_version)) {
+    return `unsupported contract_version ${JSON.stringify(doc.contract_version)} (${VERSIONS.join(", ")})`;
+  }
+  if (doc.provenance?.contract_version !== doc.contract_version) {
+    return "provenance.contract_version differs from contract_version";
+  }
   if (doc.provenance?.content_hash_method !== "jcs-sha256") return "content_hash_method is not jcs-sha256";
   return contentHash(doc) === doc.provenance.content_hash ? null : "content_hash does not match";
 }

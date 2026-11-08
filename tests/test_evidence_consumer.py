@@ -10,6 +10,7 @@ and both validators agree on what ``openpulse attest`` emits.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -83,3 +84,93 @@ def test_both_validators_agree_on_what_attest_emits(tmp_path):
         assert consumer.check(doc).valid, consumer.check(doc).errors
         broken = dict(doc, surprise=True)
         assert validate_contract(broken) and not consumer.check(broken).valid
+
+
+def test_verify_mjs_accepts_exactly_the_published_2x_versions():
+    """verify.mjs's VERSIONS list is the 2.x schemas, so a new schema needs it too."""
+    import re
+
+    script = (ROOT / "conformance" / "evidence-contract" / "verify.mjs").read_text("utf-8")
+    listed = re.search(r"export const VERSIONS = \[([^\]]*)\]", script)
+    assert listed, "verify.mjs has no VERSIONS list"
+    versions = re.findall(r'"([0-9.]+)"', listed.group(1))
+    published = sorted(
+        json.loads(p.read_text("utf-8"))["properties"]["contract_version"]["const"]
+        for p in (ROOT / "schemas" / "evidence-contract").glob("*/schema.json")
+    )
+    assert versions == [v for v in published if v.startswith("2.")]
+
+
+def _attest_docs(tmp_path):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    out = tmp_path / "contracts.jsonl"
+    result = CliRunner().invoke(
+        cli,
+        [
+            "attest",
+            "--watchlist",
+            "data/fixtures/watchlist_sample.yaml",
+            "--event",
+            "data/fixtures/django-eol/event.json",
+            "--replay",
+            "--output",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    return [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line]
+
+
+def _mutants(doc):
+    """Documents built to be rejected, one rule each (P2)."""
+    import copy
+
+    def mutate(change):
+        bad = copy.deepcopy(doc)
+        change(bad)
+        return bad
+
+    return {
+        "unknown version": mutate(lambda d: d.update(contract_version="2.9.0")),
+        "short version": mutate(lambda d: d.update(contract_version="2.4")),
+        "provenance version": mutate(lambda d: d["provenance"].update(contract_version="2.3.0")),
+        "unknown field": mutate(lambda d: d.update(surprise=True)),
+        "bad date": mutate(lambda d: d["temporal"].update(announcement_date="1st April")),
+        "bad date-time": mutate(lambda d: d["provenance"].update(generation_timestamp="now")),
+        "bad uri": mutate(lambda d: d["evidence_refs"][0].update(url="no-scheme")),
+        "older schema": mutate(lambda d: d.update(contract_version="2.3.0")),
+    }
+
+
+def test_the_consumer_and_openpulse_reject_the_same_documents(tmp_path):
+    from core.evidence_contract import validate_contract
+
+    consumer = _consumer()
+    doc = _attest_docs(tmp_path)[0]
+    for name, bad in _mutants(doc).items():
+        assert validate_contract(bad), f"OpenPulse accepted: {name}"
+        assert not consumer.check(bad).valid, f"the consumer accepted: {name}"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_verify_mjs_rejects_unknown_and_mismatched_versions(tmp_path):
+    doc = _attest_docs(tmp_path)[0]
+    script = str(ROOT / "conformance" / "evidence-contract" / "verify.mjs")
+    cases = {
+        "good": (doc, 0, "OK"),
+        "unknown": ({**doc, "contract_version": "2.9.0"}, 1, "unsupported contract_version"),
+        "mismatch": (
+            {**doc, "provenance": {**doc["provenance"], "contract_version": "2.3.0"}},
+            1,
+            "provenance.contract_version differs",
+        ),
+    }
+    for name, (document, code, text) in cases.items():
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        done = subprocess.run(["node", script, str(path)], capture_output=True, text=True)
+        assert done.returncode == code, (name, done.stdout, done.stderr)
+        assert text in done.stdout, (name, done.stdout)

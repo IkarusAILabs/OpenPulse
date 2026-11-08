@@ -3,25 +3,33 @@
 Every published schema (``schemas/<dir>/schema.json``, copied byte for byte
 from OpenPulse's ``schemas/evidence-contract/``) names the one contract
 version it describes in ``properties.contract_version.const``. A document is
-validated against the schema of the version it declares, and only that one:
-a version with no published schema is not a contract this package can read.
+validated against the schema of the version it declares, and only that one
+(v0.19.0 P2):
 
-``format`` keywords are annotations here (the JSON Schema 2020-12 default),
-so the result never depends on which optional ``jsonschema`` format
-packages happen to be installed.
+- a version with no published schema (``2.9.0``, ``2.4``, ``v2.4.0``) is not
+  a contract this package can read;
+- ``provenance.contract_version`` must be the top-level version;
+- where a schema is closed (``additionalProperties: false``), an unknown
+  field fails;
+- the three formats the schemas use are checked as OpenPulse checks them
+  (``date``, ``date-time``: the standard library's ISO 8601 parsers;
+  ``uri``: a scheme), with the standard library only, so the result never
+  depends on which optional ``jsonschema`` format packages are installed.
 """
 
 from __future__ import annotations
 
 import functools
 import json
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 #: A JSONL file of contracts larger than this is refused, not read.
 MAX_DOCUMENTS_BYTES = 64 * 1024 * 1024
@@ -49,11 +57,46 @@ def supported_versions() -> list[str]:
     return sorted(schemas(), key=lambda v: tuple(int(p) for p in v.split(".")))
 
 
+#: OpenPulse's own format rules (core.evidence_contract), and no others.
+FORMATS = FormatChecker(formats=())
+
+
+@FORMATS.checks("date")
+def _is_date(value: object) -> bool:
+    if not isinstance(value, str):
+        return True  # format applies to strings; the type keyword judges the rest
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+@FORMATS.checks("date-time")
+def _is_datetime(value: object) -> bool:
+    if not isinstance(value, str):
+        return True
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
+@FORMATS.checks("uri")
+def _is_uri(value: object) -> bool:
+    """An absolute URI: a scheme (RFC 3986: a letter, then letters, digits, + . -)."""
+    return not isinstance(value, str) or _SCHEME.match(value) is not None
+
+
+_SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
+
+
 @functools.cache
 def _validator(version: str) -> Draft202012Validator:
     schema = schemas()[version]
     Draft202012Validator.check_schema(schema)
-    return Draft202012Validator(schema)
+    return Draft202012Validator(schema, format_checker=FORMATS)
 
 
 @dataclass
@@ -84,10 +127,19 @@ def check(doc: Any) -> Check:
         return Check(
             version, [f"$.contract_version: no published schema for {version!r} ({supported})"]
         )
-    errors = sorted(
+    found = sorted(
         _validator(version).iter_errors(doc), key=lambda e: (_where(e.absolute_path), e.message)
     )
-    return Check(version, [f"{_where(e.absolute_path)}: {e.message}" for e in errors])
+    errors = [f"{_where(e.absolute_path)}: {e.message}" for e in found]
+    provenance = doc.get("provenance")
+    stated = provenance.get("contract_version") if isinstance(provenance, dict) else None
+    if stated is not None and stated != version:
+        errors.insert(
+            0,
+            f"$.provenance.contract_version: {stated!r} differs from the top-level "
+            f"contract_version {version!r}",
+        )
+    return Check(version, errors)
 
 
 def read_jsonl(path: str | Path) -> Iterator[tuple[int, Any]]:

@@ -319,6 +319,8 @@ jobs:
           PY
           "$CPY" -m unittest discover -s consumer-tests -v
           "$CPY" -m openpulse_consumer check attest.jsonl
+      - name: Verify the same contracts' hashes with Node, no OpenPulse
+        run: node conformance/evidence-contract/verify.mjs "$RUNNER_TEMP/attest.jsonl"
   provenance:
     # Threat: the optional provenance extra (`[provenance]`, track T T-B1)
     # pulls ~24 packages the core never installs (sigstore, cryptography,
