@@ -23,6 +23,10 @@ openpulse-consumer check contracts.jsonl
 ```
 
 ```bash
+openpulse-consumer summary contracts.jsonl
+```
+
+```bash
 openpulse-consumer versions
 ```
 
@@ -32,6 +36,13 @@ openpulse-consumer versions
 - **Exit 1:** any document is not, with each problem's JSON path. A line that is not JSON, a version with no published schema (`2.9.0`), a missing required field and a field a closed schema does not allow all fail.
 - **Exit 2:** a file cannot be read, or holds no contract. An empty file is never a pass.
 
+`summary` (add `--json` for machine-readable output) counts what the valid documents state, each axis apart, and lists what each one leaves open. It has no pass: its exit codes are `check`'s, so 0 means every document was read and verified, not that any outcome is favourable.
+
+- **Relationship:** all seven values, zeros included. NOT_AFFECTED, RELATED and UNKNOWN all have `affected: false` and are counted as three outcomes.
+- **Inspection coverage:** COMPLETE, PARTIAL, FAILED, NOT_APPLICABLE, and NOT_REPORTED for contract 1.0, which has no coverage field (never counted as COMPLETE).
+- **Trust:** records per status, counted from the records; a run without trust checks is "not checked", which is not a check that found nothing.
+- **Open, per document:** an UNKNOWN or RELATED relationship; a NOT_AFFECTED whose scope does not admit a negative, or that had no freshness bound; coverage PARTIAL, FAILED or NOT_REPORTED; every trust status but VERIFIED_RELATIONSHIP. A document with nothing open is still only what its fields state.
+
 From Python:
 
 ```python
@@ -40,6 +51,13 @@ from openpulse_consumer import check, read_jsonl
 for line, doc in read_jsonl("contracts.jsonl"):
     result = check(doc)
     print(line, result.version, result.valid, result.errors)
+
+from openpulse_consumer import summarize
+
+summary = summarize(doc for _line, doc in read_jsonl("contracts.jsonl"))
+print(summary.relationships, summary.coverage, summary.trust_records)
+for outcome in summary.outcomes:
+    print(outcome.dependency, outcome.relationship, outcome.open)
 ```
 
 ## What it checks, and what it does not yet
@@ -50,7 +68,8 @@ for line, doc in read_jsonl("contracts.jsonl"):
   - every schema is closed, so an unknown field fails;
   - `date`, `date-time` and `uri` are checked as OpenPulse checks them, with the standard library only, so the result never depends on optional format packages.
 - **Content hash (P3):** a document valid against its schema then has its hash recomputed. 2.x: SHA-256 over the RFC 8785 (JCS) form, the same rule as `verify.mjs`, with this package's own standard-library JCS. 1.x: the 1.0, 1.1 or 1.2 field list with the two pinned provenance values. A document changed after it was hashed is invalid.
-- **Next (P4–P5):** a summary that keeps every outcome apart (NOT_AFFECTED, RELATED, UNKNOWN, PARTIAL coverage, MISSING_EVIDENCE, NOT_PERFORMED) and never folds an incomplete one into a pass, and a corpus of documents from every released contract version.
+- **Outcome summary (P4):** above.
+- **Next (P5):** a corpus of documents from every released contract version, with mutated negatives.
 
 ## For OpenPulse maintainers
 

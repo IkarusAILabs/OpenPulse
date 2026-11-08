@@ -20,16 +20,19 @@ import io
 import json
 import tempfile
 import unittest
+from dataclasses import fields
 from pathlib import Path
 
-from openpulse_consumer import check, read_jsonl, schemas, supported_versions
+from openpulse_consumer import check, outcome, read_jsonl, schemas, summarize, supported_versions
 from openpulse_consumer.__main__ import main
 from openpulse_consumer.hashes import (
     CanonicalizationError,
     canonicalize,
     hash_problem,
+    v1_content_hash,
     v2_content_hash,
 )
+from openpulse_consumer.summary import COVERAGE, RELATIONSHIPS, TRUST_STATUSES, Outcome, Summary
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixtures" / "attest-2.4.0.jsonl"
@@ -244,6 +247,184 @@ class Canonicalization(unittest.TestCase):
                 canonicalize(value)
 
 
+def _rehash(doc: dict) -> dict:
+    """Re-hash a document edited on purpose, so only its outcome is under test."""
+    if doc["contract_version"].startswith("2."):
+        doc["provenance"]["content_hash"] = v2_content_hash(doc)
+    else:
+        doc["provenance"]["content_hash"] = v1_content_hash(doc)
+    return doc
+
+
+def _by_relationship(relationship: str) -> dict:
+    found = next(d for d in _docs() if d["assessment"]["relationship"] == relationship)
+    return copy.deepcopy(found)
+
+
+def _clear_negative() -> dict:
+    """NOT_AFFECTED with every condition a negative needs met."""
+    doc = _by_relationship("NOT_AFFECTED")
+    doc["scope"]["completeness"]["admits_negative"] = True
+    doc["inspection_coverage"]["status"] = "COMPLETE"
+    doc["evaluation_context"].update(
+        as_of="2026-11-01T00:00:00Z", max_evidence_age_days=30, freshness_bound_applied=True
+    )
+    return _rehash(doc)
+
+
+def _record(status: str) -> dict:
+    return {
+        "check": "registry_existence",
+        "status": status,
+        "statement": "fixed template",
+        "checked_at": None,
+        "references": [],
+    }
+
+
+def _with_trust(doc: dict, statuses: list[str]) -> dict:
+    counts = dict.fromkeys(TRUST_STATUSES, 0)
+    for status in statuses:
+        counts[status] += 1
+    doc["trust_assurance"] = {
+        "checks": [_record(s) for s in statuses],
+        "summary": counts,
+        "used_in_verdict": False,
+    }
+    return _rehash(doc)
+
+
+class Outcomes(unittest.TestCase):
+    """P4: documents built to tempt a summary into a pass it should not give."""
+
+    def test_the_fixtures_are_valid_so_every_tempting_document_is_too(self):
+        for doc in (_clear_negative(), _with_trust(_clear_negative(), ["MISSING_EVIDENCE"])):
+            self.assertTrue(check(doc).valid, check(doc).errors)
+
+    def test_not_affected_related_and_unknown_stay_apart(self):
+        related = _by_relationship("UNKNOWN")
+        related["assessment"]["relationship"] = "RELATED"
+        docs = [_clear_negative(), _by_relationship("UNKNOWN"), _rehash(related)]
+        self.assertTrue(all(not d["assessment"]["affected"] for d in docs))
+        summary = summarize(docs)
+        self.assertEqual(summary.valid, 3)
+        self.assertEqual(
+            {k: v for k, v in summary.relationships.items() if v},
+            {"NOT_AFFECTED": 1, "UNKNOWN": 1, "RELATED": 1},
+        )
+        self.assertEqual(summary.outcomes[0].open, ())
+        self.assertIn("relationship UNKNOWN", summary.outcomes[1].open[0])
+        self.assertIn("relationship RELATED", summary.outcomes[2].open[0])
+        self.assertEqual(summary.with_open_items, 2)
+
+    def test_every_value_of_every_axis_is_reported_even_at_zero(self):
+        summary = summarize([])
+        self.assertEqual(list(summary.relationships), list(RELATIONSHIPS))
+        self.assertEqual(len(RELATIONSHIPS), 7)
+        self.assertEqual(list(summary.coverage), list(COVERAGE))
+        self.assertEqual(list(summary.trust_records), list(TRUST_STATUSES))
+        self.assertEqual(summary.valid, 0)
+
+    def test_a_negative_with_partial_coverage_is_counted_on_both_axes(self):
+        doc = _clear_negative()
+        doc["inspection_coverage"].update(status="PARTIAL", reasons=["file cap reached"])
+        summary = summarize([_rehash(doc)])
+        self.assertEqual(summary.relationships["NOT_AFFECTED"], 1)
+        self.assertEqual(summary.coverage["PARTIAL"], 1)
+        self.assertEqual(summary.coverage["COMPLETE"], 0)
+        self.assertEqual(summary.outcomes[0].open, ("inspection coverage PARTIAL",))
+        self.assertEqual(summary.outcomes[0].coverage_reasons, ("file cap reached",))
+
+    def test_a_failed_inspection_is_open(self):
+        doc = _clear_negative()
+        doc["inspection_coverage"].update(status="FAILED", reasons=["tree not enumerable"])
+        self.assertEqual(outcome(_rehash(doc)).open, ("inspection coverage FAILED",))
+
+    def test_a_negative_the_scope_does_not_admit_is_open(self):
+        doc = _clear_negative()
+        doc["scope"]["completeness"].update(state="partial", basis=None, admits_negative=False)
+        self.assertEqual(
+            outcome(_rehash(doc)).open, ("NOT_AFFECTED, but the scope does not admit a negative",)
+        )
+
+    def test_a_negative_without_a_freshness_bound_is_open(self):
+        doc = _clear_negative()
+        doc["evaluation_context"].update(
+            as_of=None, max_evidence_age_days=None, freshness_bound_applied=False
+        )
+        (item,) = outcome(_rehash(doc)).open
+        self.assertIn("no freshness bound", item)
+
+    def test_missing_evidence_and_not_performed_are_counted_and_open(self):
+        statuses = ["MISSING_EVIDENCE", "NOT_PERFORMED", "NOT_PERFORMED", "VERIFIED_RELATIONSHIP"]
+        summary = summarize([_with_trust(_clear_negative(), statuses)])
+        self.assertEqual(summary.trust_records["MISSING_EVIDENCE"], 1)
+        self.assertEqual(summary.trust_records["NOT_PERFORMED"], 2)
+        self.assertEqual(summary.trust_records["VERIFIED_RELATIONSHIP"], 1)
+        self.assertEqual(summary.trust_not_checked, 0)
+        self.assertEqual(
+            summary.outcomes[0].open, ("trust: 1 MISSING_EVIDENCE", "trust: 2 NOT_PERFORMED")
+        )
+
+    def test_every_trust_status_but_verified_relationship_is_open(self):
+        for status in TRUST_STATUSES:
+            found = outcome(_with_trust(_clear_negative(), [status])).open
+            expected = () if status == "VERIFIED_RELATIONSHIP" else (f"trust: 1 {status}",)
+            self.assertEqual(found, expected)
+
+    def test_trust_not_checked_is_not_a_check_that_found_nothing(self):
+        unchecked = _clear_negative()
+        self.assertIsNone(unchecked["trust_assurance"])
+        empty = _with_trust(_clear_negative(), [])
+        summary = summarize([unchecked, empty])
+        self.assertEqual(summary.trust_not_checked, 1)
+        self.assertIsNone(summary.outcomes[0].trust)
+        self.assertEqual(summary.outcomes[1].trust, dict.fromkeys(TRUST_STATUSES, 0))
+
+    def test_the_trust_records_are_counted_not_their_summary(self):
+        doc = _with_trust(_clear_negative(), ["MISSING_EVIDENCE"])
+        doc["trust_assurance"]["summary"]["MISSING_EVIDENCE"] = 0
+        doc["trust_assurance"]["summary"]["VERIFIED_RELATIONSHIP"] = 1
+        result = outcome(_rehash(doc))
+        self.assertEqual(result.trust["MISSING_EVIDENCE"], 1)
+        self.assertEqual(result.trust["VERIFIED_RELATIONSHIP"], 0)
+        self.assertIn("disagrees with its records", result.open[0])
+
+    def test_contract_1_0_reports_no_coverage_and_is_never_complete(self):
+        v10 = [doc for _n, doc in read_jsonl(V1_FIXTURE) if doc["contract_version"] == "1.0.0"]
+        summary = summarize(v10)
+        self.assertEqual(summary.coverage["NOT_REPORTED"], len(v10))
+        self.assertEqual(summary.coverage["COMPLETE"], 0)
+        self.assertTrue(all("inspection coverage NOT_REPORTED" in o.open for o in summary.outcomes))
+        negative = copy.deepcopy(v10[0])
+        negative["assessment"].update(relationship="NOT_AFFECTED", affected=False)
+        open_items = outcome(_rehash(negative)).open
+        self.assertIn("does not report whether the scope admits a negative", open_items[0])
+
+    def test_an_invalid_document_contributes_no_outcome(self):
+        tampered = _clear_negative()
+        tampered["assessment"]["relationship"] = "UNKNOWN"  # not re-hashed
+        summary = summarize([tampered, None, {"contract_version": "2.4.0"}, _clear_negative()])
+        self.assertEqual((summary.valid, summary.invalid), (1, 3))
+        self.assertEqual(summary.relationships["UNKNOWN"], 0)
+        self.assertEqual(summary.relationships["NOT_AFFECTED"], 1)
+
+    def test_nothing_offers_a_pass(self):
+        words = ("pass", "ok", "clean", "safe", "success", "clear", "green")
+        names = [f.name for f in fields(Summary)] + [f.name for f in fields(Outcome)]
+        names += list(summarize(_docs()).to_dict())
+        for name in names:
+            self.assertFalse(any(w in name.lower() for w in words), name)
+
+    def test_the_real_fixtures_summarise(self):
+        summary = summarize(_docs() + [doc for _n, doc in read_jsonl(V1_FIXTURE)])
+        self.assertEqual((summary.valid, summary.invalid), (12, 0))
+        self.assertEqual(summary.relationships["UNKNOWN"], 3)
+        self.assertEqual(summary.relationships["NOT_AFFECTED"], 2)
+        self.assertEqual(summary.coverage["NOT_APPLICABLE"], 6)
+        self.assertEqual(summary.trust_not_checked, 12)
+
+
 class Reading(unittest.TestCase):
     def test_blank_lines_are_skipped_and_bad_lines_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -277,6 +458,41 @@ class Cli(unittest.TestCase):
             empty.write_text("\n", encoding="utf-8")
             self.assertEqual(_run("check", str(empty))[0], 2)
             self.assertEqual(_run("check", str(Path(tmp) / "missing.jsonl"))[0], 2)
+
+    def test_summary_prints_every_axis_and_no_verdict(self):
+        code, out = _run("summary", str(FIXTURE))
+        self.assertEqual(code, 0, out)
+        self.assertIn("documents: 6 valid and summarised, 0 invalid", out)
+        self.assertIn("NOT_AFFECTED 2", out)
+        self.assertIn("RELATED 0", out)
+        self.assertIn("UNKNOWN 3", out)
+        self.assertIn("MISSING_EVIDENCE 0", out)
+        self.assertIn("trust not checked: 6 document(s)", out)
+        self.assertIn("open: relationship UNKNOWN", out)
+        self.assertIn("not a pass or fail", out)
+
+    def test_summary_json_and_invalid_documents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "mixed.jsonl"
+            bad = copy.deepcopy(_docs()[0])
+            bad["assessment"]["relationship"] = "NOT_AFFECTED"
+            path.write_text(
+                json.dumps(_docs()[1]) + "\n" + json.dumps(bad) + "\n", encoding="utf-8"
+            )
+            code, out = _run("summary", str(path))
+            self.assertEqual(code, 1)
+            self.assertIn(":2: INVALID, not summarised", out)
+            code, out = _run("summary", "--json", str(path))
+        self.assertEqual(code, 1)
+        data = json.loads(out)
+        self.assertEqual((data["valid"], data["invalid"]), (1, 1))
+        self.assertEqual(data["relationships"]["NOT_AFFECTED"], 0)
+
+    def test_summary_of_an_empty_file_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / "empty.jsonl"
+            empty.write_text("\n", encoding="utf-8")
+            self.assertEqual(_run("summary", str(empty))[0], 2)
 
     def test_versions_lists_the_readable_versions(self):
         code, out = _run("versions")
