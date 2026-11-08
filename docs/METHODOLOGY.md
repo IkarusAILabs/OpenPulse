@@ -326,6 +326,17 @@ folder, tip included, still looks like a first run to the store
 itself; an anchor kept outside it detects that (below). It does not resist an adversary who
 recomputes the whole suffix, unless a history key is set.
 
+Repository observations (v0.20.0) keep GitHub repository facts the same
+way: `openpulse observe-github --repo owner/name` records the queried
+path and the path GitHub answers with, `archived`, GitHub's license id,
+the last push and the default branch, under `github.com/<owner>/<name>/`
+in the same store, with the same chain, tip, refusals, re-baseline,
+history-key MACs and anchor coverage. A 404 is recorded as `missing`
+(deleted, or not visible to the token); any other failure, such as a
+rate limit, records nothing, because it is not a fact about the
+repository. Paths are stored lower-case, as GitHub's are
+case-insensitive. A first observation is a baseline.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under

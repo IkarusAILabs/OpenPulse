@@ -4,6 +4,10 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 
 ## Unreleased
 
+### Added
+
+- **Repository observation history (v0.20.0 item C1).** `openpulse observe-github --repo owner/name` records what GitHub says about a repository (the path it answers with, `archived`, its license id, the last push and the default branch) as a hash-chained history beside the registry histories, with the same guarantees: verified on every append; tampered, rolled-back or downgraded histories refused until `--rebaseline --reason`; history-key MACs; covered by anchors. A 404 is recorded as `missing`; any other failure records nothing. Until now repository facts were judged from the current snapshot only, so a license change could not be seen; reading changes out of this history is C2. `core/observations/sweep.py`'s history checks now take the record type's verifier as a parameter; registry histories behave as before.
+
 ### Changed
 
 - **Lint: ruff's `S` (bandit) rules are on (H13, D3).** Each finding outside the tests is fixed or carries its reason on the line. Fixed: four `assert`s that guarded real conditions (and vanish under `python -O`) are explicit checks, in the mutation runner, the ecosystem-version bridges and `scripts/compile_locks.py`; the reference-name refresh script and the prevalence collector refuse any URL that is not https (the npm tarball URL comes from registry metadata, and `urlopen` would open `file:`). Kept with a reason: seeded `random` for reproducible sampling, `git`/`gh`/`uv` with fixed arguments, and the `pom.xml` parse, which refuses any DOCTYPE before parsing. Tests are exempt only from `assert`, fixed-argument subprocesses and placeholder tokens. No behaviour of `openpulse` changes.
