@@ -1,0 +1,359 @@
+{
+  "description": "Documents written by each released contract version's own producer (conformance/contracts/regenerate.py), and one-rule negatives derived from them.",
+  "inputs": [
+    "--watchlist",
+    "data/fixtures/watchlist_sample.yaml",
+    "--event",
+    "data/fixtures/django-eol/event.json"
+  ],
+  "versions": {
+    "1.0.0": {
+      "producer": "d68f5338c80b25edfcb70e00c331192884c429d9",
+      "commit": "d68f5338c80b25edfcb70e00c331192884c429d9",
+      "note": "untagged: the parent of f772695, which replaced 1.0 with 1.1 (v0.6.0 was never tagged)",
+      "replay": false,
+      "documents": [
+        "sha256:69e05fc7a9c0df6aff17ff44fa10e435b2774635f7e07a92bcd07e719dfab69e",
+        "sha256:778b7924f20a815886ccf59193c5f45a2edc6d0dd6dcd604e107be96bfc54e7b",
+        "sha256:c11b86846f5887f93fe2c0b60223ff20c30365e8d8b61ee0426c2339d84a962a"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        }
+      ]
+    },
+    "1.1.0": {
+      "producer": "v0.6.1",
+      "commit": "ab8089d7cce09104aa7a02b69f84a08065582903",
+      "note": "first tag emitting 1.1",
+      "replay": false,
+      "documents": [
+        "sha256:77420c5189878fae0481f95a6ac653c07f68645e1530eb6bd3b63b642e26caa4",
+        "sha256:35a1cb4f444643e8f75bdf957a9ec3b4ee77c7cbc0374e85c48642a252816856",
+        "sha256:4728691667b8a1569b878d71627e0093b439100aadf608ec90057f05c02d6a0d"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        }
+      ]
+    },
+    "1.2.0": {
+      "producer": "v0.8.0",
+      "commit": "f4b1c10b08b0009805f2ddbe251498afc6a376fa",
+      "note": "first tag emitting 1.2",
+      "replay": true,
+      "documents": [
+        "sha256:e3f0d1129091c36a5321221d3e555a868711e351137ef9927527215bb754dd9c",
+        "sha256:a8817d97893108b415538eda219fed4828ce034e7a5caf46aec74ca8ce55ac3d",
+        "sha256:31209051ad7f9cffd9869fc9047cfd1cba1c2d7cd2bdadbe24f17ab6c7a54e24"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        }
+      ]
+    },
+    "2.0.0": {
+      "producer": "v0.9.0",
+      "commit": "aae94e10d49f980b5cd93105ac20aca3c6538abb",
+      "note": "first tag emitting 2.0",
+      "replay": true,
+      "documents": [
+        "sha256:47c199db22942057fa075cadb12d2950fe4a63ec24fabcb2d5b55b84ff8d85a8",
+        "sha256:ada6ee682ef7bf2d195e7c2f2c041e15870a57ac2fd9cf2f6a5be1d9f3ae8c84",
+        "sha256:91553d6303948df6c9b8b36b9f01b1cf1cfc49b5cd2d4ca952d282f42ae57618"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        },
+        {
+          "mutation": "other hash method",
+          "rejected_at": "$.provenance.content_hash_method"
+        }
+      ]
+    },
+    "2.1.0": {
+      "producer": "v0.10.0",
+      "commit": "134d302bc0b1e522bdad1dd0e812b65b28786581",
+      "note": "first tag emitting 2.1",
+      "replay": true,
+      "documents": [
+        "sha256:ebf267b6a9683e95e7627ecc97cde6969c97479ea9db9f9333eefce86b03c82c",
+        "sha256:29d5badd99e5a108e4a1b30bfd361fb4eb8d6a4581f9605d0bae213e916feceb",
+        "sha256:8ca2ec1014a9c55845d504f6ab274b88b3d606817648285a1f1df45e4860ac17"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        },
+        {
+          "mutation": "other hash method",
+          "rejected_at": "$.provenance.content_hash_method"
+        }
+      ]
+    },
+    "2.2.0": {
+      "producer": "v0.13.0",
+      "commit": "a6419587146e21300c30569be8fa1b8fb2495253",
+      "note": "first tag emitting 2.2",
+      "replay": true,
+      "documents": [
+        "sha256:196f11c7d33f9bbf2d6ca77825108b165bf1869a90287256a766fee7223e2d3f",
+        "sha256:695f050ee8d79a0b5352f271cc5f26d8021b64c5c7d489fbf26ff905a4b346e6",
+        "sha256:911581383d7bffc418ef4a8b765c3fabac6ab78f1bc08f095743d3eb575d2999"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        },
+        {
+          "mutation": "other hash method",
+          "rejected_at": "$.provenance.content_hash_method"
+        }
+      ]
+    },
+    "2.3.0": {
+      "producer": "v0.16.0",
+      "commit": "9a33183db391f5043331374602cf0f6ce1695e8d",
+      "note": "first tag emitting 2.3",
+      "replay": true,
+      "documents": [
+        "sha256:22bd3686cbf7d19c1f48f84ded6948df2dcdafa6757645ba87bfdd20b37c585d",
+        "sha256:0f76851e0a3f065e571482eb8ab8a04b8d32f5d18cc2fe12fa4e05d320715314",
+        "sha256:c9159bc80a710aafb8304005a0866acd1d4c8a594db0049bac52c149667e5300"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        },
+        {
+          "mutation": "other hash method",
+          "rejected_at": "$.provenance.content_hash_method"
+        }
+      ]
+    },
+    "2.4.0": {
+      "producer": "v0.18.0",
+      "commit": "fdba61afa255b37acbeb9713eb793d896afc915d",
+      "note": "first tag emitting 2.4",
+      "replay": true,
+      "documents": [
+        "sha256:d447b51b83e16f49da9ef1173d78e13cabc8986ad1548ce15cbe78bb5d3089a7",
+        "sha256:710da3b1f517443372df44279e94a7ac4a8cd2820832ce8e9addb02bc65ba3bb",
+        "sha256:4b4ca699cf127119de758e7931a9e64d126af078276851ba2e80e463531595aa"
+      ],
+      "negatives": [
+        {
+          "mutation": "changed after hashing",
+          "rejected_at": "$.provenance.content_hash"
+        },
+        {
+          "mutation": "unknown field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "missing field",
+          "rejected_at": "$"
+        },
+        {
+          "mutation": "unpublished version",
+          "rejected_at": "$.contract_version"
+        },
+        {
+          "mutation": "provenance version differs",
+          "rejected_at": "$.provenance.contract_version"
+        },
+        {
+          "mutation": "relationship outside the vocabulary",
+          "rejected_at": "$.assessment.relationship"
+        },
+        {
+          "mutation": "impossible date",
+          "rejected_at": "$.temporal.announcement_date"
+        },
+        {
+          "mutation": "other hash method",
+          "rejected_at": "$.provenance.content_hash_method"
+        }
+      ]
+    }
+  }
+}

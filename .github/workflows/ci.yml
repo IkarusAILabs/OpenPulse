@@ -263,7 +263,11 @@ jobs:
     # Threat: an evidence contract that only OpenPulse can read is not
     # portable evidence (v0.19.0 P1). The standalone consumer is installed
     # alone, hash-locked, into its own environment with no OpenPulse in it,
-    # and run from outside the checkout on what this commit's `attest` writes.
+    # and run from outside the checkout on what this commit's `attest` writes,
+    # and on the released-contract corpus (P5): what every released contract
+    # version's own producer wrote, which must verify, and one-rule negatives,
+    # which must not. Full history, so the corpus is regenerated from its
+    # producers' commits and compared.
     strategy:
       fail-fast: false
       matrix:
@@ -274,7 +278,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {persist-credentials: false}
+        with: {persist-credentials: false, fetch-depth: 0}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         # Download cache only: every install below stays --require-hashes.
         with:
@@ -322,6 +326,24 @@ jobs:
           "$CPY" -m openpulse_consumer summary attest.jsonl
       - name: Verify the same contracts' hashes with Node, no OpenPulse
         run: node conformance/evidence-contract/verify.mjs "$RUNNER_TEMP/attest.jsonl"
+      - name: Run the consumer over the released-contract corpus
+        run: |
+          for f in conformance/contracts/*/documents.jsonl; do
+            "$CPY" -m openpulse_consumer check "$f"
+          done
+          for f in conformance/contracts/*/negatives.jsonl; do
+            if "$CPY" -m openpulse_consumer check "$f" > "$RUNNER_TEMP/neg.txt"; then
+              cat "$RUNNER_TEMP/neg.txt"; echo "$f: the consumer accepted a negative"; exit 1
+            fi
+            grep -q "^0 valid, " "$RUNNER_TEMP/neg.txt" || {
+              cat "$RUNNER_TEMP/neg.txt"; echo "$f: the consumer accepted a negative"; exit 1; }
+          done
+          for f in conformance/contracts/2.*/documents.jsonl; do
+            node conformance/evidence-contract/verify.mjs "$f"
+          done
+      - name: Regenerate the corpus from its producers and compare
+        if: runner.os == 'Linux'
+        run: python conformance/contracts/regenerate.py --check
   provenance:
     # Threat: the optional provenance extra (`[provenance]`, track T T-B1)
     # pulls ~24 packages the core never installs (sigstore, cryptography,
