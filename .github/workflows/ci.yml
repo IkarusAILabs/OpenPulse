@@ -319,6 +319,7 @@ jobs:
           PY
           "$CPY" -m unittest discover -s consumer-tests -v
           "$CPY" -m openpulse_consumer check attest.jsonl
+          "$CPY" -m openpulse_consumer summary attest.jsonl
       - name: Verify the same contracts' hashes with Node, no OpenPulse
         run: node conformance/evidence-contract/verify.mjs "$RUNNER_TEMP/attest.jsonl"
   provenance:
