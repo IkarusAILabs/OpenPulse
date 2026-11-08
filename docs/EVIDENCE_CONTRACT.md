@@ -9,7 +9,7 @@ signatures and trust roots are a separate, later concern, per issue
 
 - Schema (current, 2.4): [`schemas/evidence-contract/v2.4/schema.json`](../schemas/evidence-contract/v2.4/schema.json)
   (JSON Schema draft 2020-12); 2.3, 2.2, 2.1, 2.0, 1.2, 1.1 and 1.0 stay published beside it
-- Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs)
+- Hash verifier with no OpenPulse code (Node 18+): [`conformance/evidence-contract/verify.mjs`](../conformance/evidence-contract/verify.mjs). It accepts only the published 2.x versions, and a `provenance.contract_version` equal to the top level (v0.19.0 P2)
 - Standalone consumer with no OpenPulse code (Python 3.11+, one dependency: `jsonschema`): [`conformance/consumer/`](../conformance/consumer/README.md), `openpulse-consumer check contracts.jsonl` validates each document against exactly the schema its version names (v0.19.0 P1). A new schema is copied into it with `python conformance/consumer/sync_schemas.py`; OpenPulse's tests fail until it is
 - Builder + standalone validator: [`core/evidence_contract.py`](../core/evidence_contract.py)
 - Convergence layer (the v0.1.0 inward shape): [`core/attestation.py`](../core/attestation.py)
