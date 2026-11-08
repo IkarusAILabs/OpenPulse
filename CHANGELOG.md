@@ -2,6 +2,12 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Fixed
+
+- **Legacy flat identity keys no longer make a mapping VERIFIED on their own (D5).** A catalog entry with the pre-`identity:` flat keys (`identity_source`, `reviewed_at`, `maintainer`, `confidence`) was VERIFIED whatever its `confidence` said, even `low` or none, so a verdict resting on it was never capped. It is now VERIFIED only with `confidence: high`; anything else is REVIEW_REQUIRED and caps an affected verdict at EMERGING, as a formal `identity:` block does. The shipped catalog uses no flat keys (a test keeps it so), so no shipped verdict changes; a catalog passed to the library with flat keys may now see capped confidence.
+
 ## 0.19.0 "Evidence Consumer and Portability" — 2026-11-08
 
 Phase 13 (M9 preparation, T-F2): an evidence contract means the same thing outside OpenPulse. A standalone consumer that imports nothing from OpenPulse validates each document against exactly the schema of the version it declares, recomputes its content hash, and summarises its outcomes without ever folding an UNKNOWN, a PARTIAL coverage or a MISSING_EVIDENCE into a pass. It is tested on documents written by every released contract version's own release. No contract version, verdict or gate changes.
