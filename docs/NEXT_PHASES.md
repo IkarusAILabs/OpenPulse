@@ -387,7 +387,7 @@ Goal: the two track T items that needed data or a study, done by an AI assistant
 | # | Item | Issue | Size | Depends on |
 |---|---|---|---|---|
 | D2 | (v0.10.0 V1) Tag-triggered release workflow: build the sdist and wheel; publish to PyPI with Trusted Publishing (OIDC) **as `ikarus-openpulse`** (R2); sigstore signatures and SLSA build-provenance attestations; attach the SBOM | #111 | M | R2 |
-| D5 (rest) | Legacy flat identity keys respect `confidence` | — | S | H9 |
+| D5 (rest) | ✅ Legacy flat identity keys respect `confidence` (done: VERIFIED only with `confidence: high`; the shipped catalog uses none) | — | S | H9 |
 | D6 | Move the top-level packages (`core`, `cli`, `collectors`, `analyzers`, `reports`) under one namespace with a deprecation shim. **The namespace can't be `openpulse`:** the PyPI `openpulse` package imports as `openpulse`, so both installed together would collide. Use the R2 name: `ikarus_openpulse`. Keep `python -I -m cli` working through the shim for one minor release. | — | L | R2, D2 (ask first) |
 
 **Exit:** `pip install <R2 name>` installs a signed, attested OpenPulse with an SBOM, and no OpenPulse module shadows or is shadowed by another distribution.
