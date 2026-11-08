@@ -197,7 +197,7 @@ def select(
 def sample(kept: dict[str, dict[str, Any]], size: int = SAMPLE, seed: int = SEED):
     names = sorted(kept, key=str.lower)
     if size and len(names) > size:
-        names = sorted(random.Random(seed).sample(names, size), key=str.lower)
+        names = sorted(random.Random(seed).sample(names, size), key=str.lower)  # noqa: S311 - seeded, reproducible sampling; not a secret
     return {n: kept[n] for n in names}
 
 

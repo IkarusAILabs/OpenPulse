@@ -195,7 +195,7 @@ MUTATIONS: dict[str, tuple[Callable[[dict[str, Any]], Any], bool, str, bool]] = 
 
 
 def _git(*args: str) -> bytes:
-    return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True).stdout
+    return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True).stdout  # noqa: S603, S607 - fixed git argv; git from PATH, as the user runs it
 
 
 def _commit(ref: str) -> str:
@@ -227,7 +227,7 @@ def produce(
     if replay:
         command.append("--replay")
     command += ["--output", str(out)]
-    done = subprocess.run(command, cwd=tree, env=_env(), capture_output=True, text=True)
+    done = subprocess.run(command, cwd=tree, env=_env(), capture_output=True, text=True)  # noqa: S603 - sys.executable running a pinned producer tree
     if done.returncode:
         raise SystemExit(f"{ref} attest failed ({done.returncode}):\n{done.stderr[-2000:]}")
     docs = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line]

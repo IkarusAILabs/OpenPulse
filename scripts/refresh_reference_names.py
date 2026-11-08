@@ -66,8 +66,10 @@ LIMIT {top_n}
 
 
 def _get(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:
+    if not url.startswith("https://"):
+        raise SystemExit(f"refusing a non-https URL: {url!r}")
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310 - https only, checked above
+    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 - https only, checked above
         return response.read()
 
 

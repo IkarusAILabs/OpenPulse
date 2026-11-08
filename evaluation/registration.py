@@ -138,7 +138,7 @@ def _spread(values: list[float]) -> dict[str, Any] | None:
 
 
 def _bootstrap_mean(values: list[float], resamples: int, seed: int) -> list[float]:
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     draws = sorted(sum(rng.choice(values) for _ in values) / len(values) for _ in range(resamples))
     return [round(draws[int(0.025 * resamples)], 4), round(draws[int(0.975 * resamples) - 1], 4)]
 
@@ -201,7 +201,7 @@ def paired_difference(
     point = diff(keys)
     if point is None:
         return {"x": x, "y": y, "difference": None, "clusters": 0, "pairs": 0}
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     draws = sorted(
         d
         for d in (diff([rng.choice(keys) for _ in keys]) for _ in range(resamples))
@@ -247,7 +247,7 @@ def paired_event_false_clears(
     fw, fb = failed(worse), failed(better)
     d = {e: int(e in fw) - int(e in fb) for e in at_risk}
     point = sum(d.values()) / len(at_risk)
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     draws = [sum(d[rng.choice(at_risk)] for _ in at_risk) / len(at_risk) for _ in range(resamples)]
     return {
         "worse": worse,
@@ -301,7 +301,7 @@ def pair_false_clears(
             clusters[r["event"]][0] += r["outcome"] == CLEARED
             clusters[r["event"]][1] += 1
         keys = sorted(clusters)
-        rng = random.Random(seed)
+        rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
         draws = []
         for _ in range(resamples):
             sample = [clusters[rng.choice(keys)] for _ in keys]
@@ -453,7 +453,7 @@ def review_sample(
     unresolved, drawn without replacement; every one in the window can be
     drawn, so the sample weights cycles as W1 does.
     """
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     out = {}
     for name in REVIEW_POLICIES:
         pool = [

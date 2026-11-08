@@ -345,7 +345,8 @@ def main() -> None:
         "tests": _regression_failures(),
         "versions": _differential_failures(),
     }
-    assert baseline["random"] == baseline["tests"] == baseline["versions"] == 0, baseline
+    if baseline["random"] or baseline["tests"] or baseline["versions"]:
+        raise SystemExit(f"the unmutated baseline already fails: {baseline}")
     rows = []
     for mutant_id, description, module, qualname, old, new in MUTANTS:
         with mutated(module, qualname, old, new):

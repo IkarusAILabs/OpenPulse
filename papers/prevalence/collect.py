@@ -70,12 +70,17 @@ class Http:
     def _gh_token():
         try:
             return subprocess.run(
-                ["gh", "auth", "token"], capture_output=True, text=True, check=True
+                ["gh", "auth", "token"],  # noqa: S607 - fixed gh argv; gh from PATH, as the user runs it
+                capture_output=True,
+                text=True,
+                check=True,
             ).stdout.strip()
         except (OSError, subprocess.CalledProcessError):
             return None
 
     def request(self, url, data=None, attempts=5):
+        if not url.startswith("https://"):
+            raise ValueError(f"refusing a non-https URL: {url!r}")
         headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
         if url.startswith("https://api.github.com/") and self.github_token:
             headers["Authorization"] = f"Bearer {self.github_token}"
@@ -85,10 +90,10 @@ class Http:
             body = json.dumps(data).encode()
             headers["Content-Type"] = "application/json"
         for attempt in range(attempts):
-            req = urllib.request.Request(url, data=body, headers=headers)
+            req = urllib.request.Request(url, data=body, headers=headers)  # noqa: S310 - https only, checked above
             fetched = now()
             try:
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310 - https only, checked above
                     status, final_url, text = (
                         resp.status,
                         resp.geturl(),
@@ -187,7 +192,7 @@ def cmd_frame(args, http):
 
 
 def cmd_sample(args, _http):
-    rng = random.Random(args.seed)
+    rng = random.Random(args.seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     out = os.path.join(args.out, "sample.jsonl")
     with open(out, "w", encoding="utf-8") as fh:
         for eco in ECOSYSTEMS:
