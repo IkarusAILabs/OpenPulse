@@ -623,6 +623,17 @@ def _untracked(_ctx, param, value):
     return value
 
 
+def _store_root(ctx, param, value):
+    """Click callback for an observation store: never empty, never tracked by git.
+
+    An empty root is the current directory: history would be written among
+    the user's own files, beside whatever they hold.
+    """
+    if not str(value or "").strip():
+        raise click.BadParameter("needs a directory (the default is .openpulse/observations)")
+    return _untracked(ctx, param, value)
+
+
 def _report_violations(violations) -> bool:
     """Print each violation; True when the run must fail."""
     for v in violations:
@@ -1326,7 +1337,7 @@ def demo_bitnami():
     "--store",
     default=".openpulse/observations",
     help="History root directory",
-    callback=_untracked,
+    callback=_store_root,
 )
 @click.option(
     "--rebaseline",
@@ -1402,6 +1413,85 @@ def observe(
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
+#: Release-license transitions older than this are history, not news: a
+#: report includes only the ones published within it (the command shows all).
+RECENT_RELEASE_LICENSE_DAYS = 365
+
+
+def _catalog_release_licenses(catalog, today=None, fetch_json=None):
+    """LICENSE_CHANGE findings for the catalog's npm and PyPI packages (C3).
+
+    The most recent transition per package, and only when its release was
+    published within RECENT_RELEASE_LICENSE_DAYS. A package that cannot be
+    compared contributes nothing and is reported.
+    """
+    from datetime import date as _date
+    from datetime import timedelta as _timedelta
+
+    from core.release_license import check as release_license_check
+
+    today = today or _date.today()
+    floor = str(today - _timedelta(days=RECENT_RELEASE_LICENSE_DAYS))
+    findings = []
+    for entry in catalog:
+        for package in entry.get("packages") or []:
+            if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+                continue
+            result = release_license_check(
+                package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+            )
+            if result["status"] != "COMPARED":
+                _echo(f"release licenses skipped for {result['purl']}: {result['reason']}")
+                continue
+            for finding in change_analyst.analyze_release_license_changes(result, today=today):
+                if str(finding.get("effective_at") or "")[:10] >= floor:
+                    findings.append(finding)
+    return findings
+
+
+@cli.command("release-license")
+@click.option(
+    "--ecosystem", required=True, type=click.Choice(["npm", "PyPI"], case_sensitive=False)
+)
+@click.option("--package", "name", required=True, help="Package name, as the registry spells it")
+@click.option(
+    "--version",
+    "version",
+    default=None,
+    help="Your version: list every license change in the releases after it",
+)
+def release_license(ecosystem, name, version):
+    """Compare the licenses a registry records per release (v0.20.0 C3).
+
+    npm lists every release's license; PyPI is read for two releases (yours,
+    or the one before the latest, and the latest). A changed license is a
+    finding to review, never a verdict.
+    """
+    from core.release_license import check as release_license_check
+
+    result = release_license_check(ecosystem, name, version)
+    if result["status"] != "COMPARED":
+        _echo(f"not compared: {result['reason']}")
+        raise SystemExit(1)
+    latest = result["latest"] or {}
+    _echo(
+        f"{result['purl']}: latest {latest.get('version')} is licensed "
+        f"{latest.get('license') or 'without a declared license'}; "
+        f"{result['releases_compared']} release(s) with a declared license compared"
+    )
+    for pair in result["not_comparable"]:
+        _echo(
+            f"- not comparable: {pair['from_version']} -> {pair['to_version']} "
+            "(different kinds of license record)"
+        )
+    if not result["transitions"]:
+        scope = f"after {version}" if version else "in the most recent change"
+        _echo(f"no license change {scope}.")
+        return
+    for finding in change_analyst.analyze_release_license_changes(result):
+        _echo("\n" + report_analyst.render_finding_md(finding))
+
+
 def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
     """Observe each catalog entry's GitHub repository; findings from its changes (C2).
 
@@ -1436,7 +1526,7 @@ def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
     "--store",
     default=".openpulse/observations",
     help="History root directory (shared with `observe`)",
-    callback=_untracked,
+    callback=_store_root,
 )
 @click.option(
     "--rebaseline",
@@ -1553,15 +1643,15 @@ def observe_github(
     "--with-sweep",
     is_flag=True,
     help=(
-        "Run the live distribution sweep and observe the projects' GitHub repositories "
-        "first, and include their findings"
+        "Run the live distribution sweep, observe the projects' GitHub repositories and "
+        "compare their packages' release licenses first, and include their findings"
     ),
 )
 @click.option(
     "--store",
     default=".openpulse/observations",
     help="History root for --with-sweep",
-    callback=_untracked,
+    callback=_store_root,
 )
 @click.option(
     "--ledger",
@@ -1652,6 +1742,9 @@ def report(
         # The history restates the snapshot's "archived"/"moved" with more evidence.
         items = change_analyst.replace_snapshot_duplicates(items, repository_findings)
         sweep_findings += repository_findings
+        release_license_findings = _catalog_release_licenses(selected)
+        _echo(f"release license findings: {len(release_license_findings)}")
+        sweep_findings += release_license_findings
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."
@@ -3348,7 +3441,7 @@ def attest(
     "--store",
     default=".openpulse/observations",
     help="History root directory",
-    callback=_untracked,
+    callback=_store_root,
 )
 @click.option(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"

@@ -582,6 +582,87 @@ def replace_snapshot_duplicates(
     return kept
 
 
+#: How a release-license finding was detected: the licenses a package
+#: registry records for two releases (v0.20.0 C3).
+DETECTION_RELEASE_METADATA = "registry_release_metadata"
+
+_REGISTRY_PAGES = {
+    "npm": "https://www.npmjs.com/package/{name}/v/{version}",
+    "PyPI": "https://pypi.org/project/{name}/{version}/",
+}
+
+
+def analyze_release_license_changes(
+    result: dict[str, Any], today: date | None = None
+) -> list[dict[str, Any]]:
+    """Release license transitions (``core.release_license.check``) -> findings.
+
+    One LICENSE_CHANGE per transition, placed for review. ``effective_at`` is
+    the publish time of the release that carries the new license. When the
+    releases between the two compared were not read (PyPI), the finding says
+    the change happened somewhere after the earlier one, at the latest by the
+    later one. Nothing is found for a check that was not performed.
+    """
+    today = today or date.today()
+    if not isinstance(result, dict) or result.get("status") != "COMPARED":
+        return []
+    eco, name, purl = result.get("ecosystem"), result.get("name"), result.get("purl")
+    findings = []
+    for t in result.get("transitions") or []:
+        before, after = t.get("from_license"), t.get("to_license")
+        old, new = t.get("from_version"), t.get("to_version")
+        if t.get("between_compared"):
+            title = f"{name} ({eco}) changed its license from {before} to {after} in {new}"
+            when = (
+                f"Release {new} is the first, by version, to carry {after}; "
+                f"{old} carried {before}."
+            )
+        else:
+            title = f"{name} ({eco}) changed its license from {before} to {after} by {new}"
+            when = (
+                f"{old} carried {before} and {new} carries {after}; the releases in between "
+                f"were not compared, so the change is somewhere after {old}, at the latest in "
+                f"{new}."
+            )
+        page = _REGISTRY_PAGES.get(str(eco), "").format(name=name, version=new)
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": "LICENSE_CHANGE",
+                "signal": "license",
+                "title": title,
+                "summary": f"{when} This is the license the publisher declared to the "
+                "registry; check the project's own announcement and the license file of the "
+                "release you use before relying on it.",
+                "impact": "REVIEW",
+                "significance": "high",
+                "detection_method": DETECTION_RELEASE_METADATA,
+                "evidence_strength": EVIDENCE_MODERATE,
+                "observed_at": str(today),
+                "first_detected_at": None,
+                "effective_at": t.get("published"),
+                "lifecycle_state": STATE_EFFECTIVE,
+                "scope": {"kind": "package", "packages": [purl], "versions": []},
+                "affected_versions": ["*"],
+                "affected_artifacts": [{"kind": "package", "ref": purl}],
+                "references": [page] if page else [],
+                "registry_evidence": {
+                    "source": "registry.npmjs.org" if eco == "npm" else "pypi.org",
+                    "package": purl,
+                    "from_version": old,
+                    "to_version": new,
+                    "from_license": before,
+                    "to_license": after,
+                    "published": t.get("published"),
+                    "between_compared": bool(t.get("between_compared")),
+                    "releases_compared": result.get("releases_compared"),
+                },
+                "supporting": [t],
+            }
+        )
+    return findings
+
+
 #: Diff type -> (event_type, impact, significance, template).
 #: Significance is assessed from the observation itself (P1 §12):
 #: a moved `latest` digest is routine registry churn (low); a vanished

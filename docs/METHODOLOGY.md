@@ -349,6 +349,25 @@ a restored repository are reported as changes but are not findings: a
 404 can mean a token that cannot see the repository. As with registry
 changes, `first_detected_at` is published only from a keyed history.
 
+## License changes between releases
+
+npm and PyPI record a license for each release, so a relicense can be
+checked without any history of OpenPulse's own (`openpulse
+release-license`, `core/release_license.py`). Releases are ordered by
+version precedence (semver for npm, PEP 440 for PyPI), not by publish
+time, so a backport of an older line never reads as a change back;
+prereleases and versions that do not order are left out, and a release
+without a usable license is skipped. npm's packument carries every
+release's license. PyPI's project document describes only the latest
+release, so two releases are compared, and a finding says when the
+releases between them were not. PyPI records a license three ways (PEP
+639 expression, the free-text field, classifiers); values of different
+kinds count as the same license when their text matches and are
+otherwise not compared. A change is a `LICENSE_CHANGE` for review, dated
+by the publish time of the release that carries the new license: it is
+what the publisher declared to the registry, not a reading of the
+license file.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under
