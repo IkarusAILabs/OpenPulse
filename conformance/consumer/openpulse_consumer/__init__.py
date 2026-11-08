@@ -3,8 +3,9 @@
 A consumer of OpenPulse's evidence needs to know three things about a
 document it was handed: is it a well-formed contract of the version it
 claims, was it altered, and what did it establish. This package answers the
-first with nothing but the published JSON Schemas and ``jsonschema``; hash
-verification (P3) and the outcome summary (P4) build on it.
+first with nothing but the published JSON Schemas and ``jsonschema``, and
+the second by recomputing the content hash (P3); the outcome summary (P4)
+builds on them.
 
 It imports nothing from OpenPulse, on purpose: a third party can install it
 alone (``requirements.lock`` beside it, hash-pinned) and get the same answer

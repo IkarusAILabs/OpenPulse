@@ -28,7 +28,7 @@ openpulse-consumer versions
 
 `check` reads JSONL (one contract per line, as `openpulse attest --output` writes them) and prints one line per document, then a count:
 
-- **Exit 0:** every document is valid against the schema of the version it declares.
+- **Exit 0:** every document is valid against the schema of the version it declares, and its content hash verifies.
 - **Exit 1:** any document is not, with each problem's JSON path. A line that is not JSON, a version with no published schema (`2.9.0`), a missing required field and a field a closed schema does not allow all fail.
 - **Exit 2:** a file cannot be read, or holds no contract. An empty file is never a pass.
 
@@ -49,7 +49,8 @@ for line, doc in read_jsonl("contracts.jsonl"):
   - `provenance.contract_version` must be the top-level version;
   - every schema is closed, so an unknown field fails;
   - `date`, `date-time` and `uri` are checked as OpenPulse checks them, with the standard library only, so the result never depends on optional format packages.
-- **Next (P3–P5):** content-hash verification for 1.x and 2.x, a summary that keeps every outcome apart (NOT_AFFECTED, RELATED, UNKNOWN, PARTIAL coverage, MISSING_EVIDENCE, NOT_PERFORMED) and never folds an incomplete one into a pass, and a corpus of documents from every released contract version.
+- **Content hash (P3):** a document valid against its schema then has its hash recomputed. 2.x: SHA-256 over the RFC 8785 (JCS) form, the same rule as `verify.mjs`, with this package's own standard-library JCS. 1.x: the 1.0, 1.1 or 1.2 field list with the two pinned provenance values. A document changed after it was hashed is invalid.
+- **Next (P4–P5):** a summary that keeps every outcome apart (NOT_AFFECTED, RELATED, UNKNOWN, PARTIAL coverage, MISSING_EVIDENCE, NOT_PERFORMED) and never folds an incomplete one into a pass, and a corpus of documents from every released contract version.
 
 ## For OpenPulse maintainers
 

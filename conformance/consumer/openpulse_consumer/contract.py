@@ -15,6 +15,10 @@ validated against the schema of the version it declares, and only that one
   (``date``, ``date-time``: the standard library's ISO 8601 parsers;
   ``uri``: a scheme), with the standard library only, so the result never
   depends on which optional ``jsonschema`` format packages are installed.
+
+A document that is valid against its schema then has its content hash
+recomputed (P3, ``openpulse_consumer.hashes``): a document changed after it
+was hashed is not valid either.
 """
 
 from __future__ import annotations
@@ -30,6 +34,8 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
+
+from openpulse_consumer.hashes import hash_problem
 
 #: A JSONL file of contracts larger than this is refused, not read.
 MAX_DOCUMENTS_BYTES = 64 * 1024 * 1024
@@ -131,6 +137,10 @@ def check(doc: Any) -> Check:
         _validator(version).iter_errors(doc), key=lambda e: (_where(e.absolute_path), e.message)
     )
     errors = [f"{_where(e.absolute_path)}: {e.message}" for e in found]
+    if not errors:
+        problem = hash_problem(doc)
+        if problem:
+            errors.append(f"$.provenance.content_hash: {problem}")
     provenance = doc.get("provenance")
     stated = provenance.get("contract_version") if isinstance(provenance, dict) else None
     if stated is not None and stated != version:

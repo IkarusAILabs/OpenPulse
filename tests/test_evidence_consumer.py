@@ -174,3 +174,43 @@ def test_verify_mjs_rejects_unknown_and_mismatched_versions(tmp_path):
         done = subprocess.run(["node", script, str(path)], capture_output=True, text=True)
         assert done.returncode == code, (name, done.stdout, done.stderr)
         assert text in done.stdout, (name, done.stdout)
+
+
+def test_openpulse_verifies_a_genuine_1_0_document():
+    """Fixed in P3: 1.0 hashes eleven fields; the 1.1 field list made every
+    1.0 document fail verify_content_hash (no inspection_coverage)."""
+    from core.evidence_contract import verify_content_hash
+
+    v1 = [
+        json.loads(line)
+        for line in (CONSUMER / "tests" / "fixtures" / "openpulse-1.x.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    v10 = [d for d in v1 if d["contract_version"] == "1.0.0"]
+    assert v10 and all(verify_content_hash(d) for d in v10)
+    tampered = dict(v10[0], identity={**v10[0]["identity"], "dependency": "someone-else"})
+    assert not verify_content_hash(tampered)
+
+
+def test_the_consumer_and_openpulse_compute_the_same_hashes(tmp_path):
+    import copy
+
+    from core.evidence_contract import verify_content_hash
+
+    consumer = _consumer()
+    from openpulse_consumer import hashes  # noqa: E402  (loaded by _consumer)
+
+    docs = _attest_docs(tmp_path) + [
+        json.loads(line)
+        for line in (CONSUMER / "tests" / "fixtures" / "openpulse-1.x.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    for doc in docs:
+        assert verify_content_hash(doc) and hashes.hash_problem(doc) is None
+        tampered = copy.deepcopy(doc)
+        tampered["identity"]["dependency"] = "someone-else"
+        assert not verify_content_hash(tampered)
+        assert hashes.hash_problem(tampered) is not None
+        assert not consumer.check(tampered).valid
