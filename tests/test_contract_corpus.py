@@ -60,6 +60,16 @@ def test_every_published_version_has_documents_and_negatives():
         assert len(entry["commit"]) == 40
 
 
+def test_each_producer_stamps_its_own_version_not_the_installed_one():
+    """The producers run as uninstalled trees (regenerate.py): an installed
+    OpenPulse, as in CI, must not stamp provenance.openpulse_version."""
+    for version, entry in MANIFEST["versions"].items():
+        ref = entry["producer"]
+        expected = ref[1:] if ref.startswith("v") else "unknown"
+        stamped = {d["provenance"]["openpulse_version"] for d in _read(version, "documents")}
+        assert stamped == {expected}, version
+
+
 def test_every_document_is_valid_for_openpulse():
     for version in MANIFEST["versions"]:
         for doc in _read(version, "documents"):

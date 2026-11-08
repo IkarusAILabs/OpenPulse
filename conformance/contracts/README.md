@@ -44,7 +44,7 @@ python conformance/contracts/regenerate.py
 python conformance/contracts/regenerate.py --check
 ```
 
-**Regenerating:** the script refuses a ref that no longer resolves to its pinned commit. Producers run in an environment with tokens, keys and `OPENPULSE*`/`GITHUB*`/`PYTHON*` variables removed.
+**Regenerating:** the script refuses a ref that no longer resolves to its pinned commit. Producers run in an environment with tokens, keys and `OPENPULSE*`/`GITHUB*`/`PYTHON*` variables removed. Each producer runs as an uninstalled source tree: installed OpenPulse metadata is hidden from it, so `provenance.openpulse_version` (which is hashed) is the tree's own fallback version, never the OpenPulse installed in the interpreter that runs it. The 1.0 producer had no fallback and says `unknown`.
 
 **`--check`:** regenerates into a temporary directory and exits 1 if any content hash or negative differs. Two runs differ only in `provenance.generation_timestamp`, which no hash covers.
 

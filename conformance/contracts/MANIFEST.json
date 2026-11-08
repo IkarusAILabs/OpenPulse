@@ -13,9 +13,9 @@
       "note": "untagged: the parent of f772695, which replaced 1.0 with 1.1 (v0.6.0 was never tagged)",
       "replay": false,
       "documents": [
-        "sha256:69e05fc7a9c0df6aff17ff44fa10e435b2774635f7e07a92bcd07e719dfab69e",
-        "sha256:778b7924f20a815886ccf59193c5f45a2edc6d0dd6dcd604e107be96bfc54e7b",
-        "sha256:c11b86846f5887f93fe2c0b60223ff20c30365e8d8b61ee0426c2339d84a962a"
+        "sha256:bb1bc65b6f5d349c3930204447849e6df31e14205a1453d9f69867cdeb761e3f",
+        "sha256:f191433499a13a576560d79e30b472c5d0b8c2b7751775bd96aadae39ba5e206",
+        "sha256:e12791e9f9b34e6444807ccde027c7f72b99713c6f185833319fec1e5bf98e76"
       ],
       "negatives": [
         {
@@ -54,9 +54,9 @@
       "note": "first tag emitting 1.1",
       "replay": false,
       "documents": [
-        "sha256:77420c5189878fae0481f95a6ac653c07f68645e1530eb6bd3b63b642e26caa4",
-        "sha256:35a1cb4f444643e8f75bdf957a9ec3b4ee77c7cbc0374e85c48642a252816856",
-        "sha256:4728691667b8a1569b878d71627e0093b439100aadf608ec90057f05c02d6a0d"
+        "sha256:d8615e7c9faafc70cfd0ac1577626e2c222b33f1483d2fa189ed16b7ad391df8",
+        "sha256:24c2ec656d282c7cf8d6c313c0e4b8d0e8b17d647aaf113f79d4b26372dc1a88",
+        "sha256:c632371ad215fa5ef1f33b4a4d933aad0747686353e1bce97008780d9ed0ffae"
       ],
       "negatives": [
         {
