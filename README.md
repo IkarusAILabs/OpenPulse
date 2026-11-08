@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.18.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.19.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.18.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.19.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -203,6 +203,13 @@ The full list, including what an attacker with write access to local history can
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
+
+**v0.19.0 "Evidence Consumer and Portability":** an evidence contract means the same thing outside OpenPulse.
+
+- **Standalone consumer:** `conformance/consumer/` (`openpulse-evidence-consumer`, Python 3.11+, one dependency: `jsonschema`, hash-locked) imports nothing from OpenPulse. `openpulse-consumer check` validates each document against exactly the schema its version names and recomputes its content hash, 1.0 to 2.4.
+- **Outcomes kept apart:** `openpulse-consumer summary` counts relationship, inspection coverage and trust separately, lists what each document leaves open, and has no pass.
+- **Tested on every released version:** `conformance/contracts/` holds documents written by each version's own release, and one-rule negatives; CI runs the consumer, OpenPulse's validator and `verify.mjs` over them.
+- **Fixed:** OpenPulse now verifies genuine 1.0 contracts (it hashed them with the 1.1 field list).
 
 **v0.18.0 "Inspection Coverage Assurance":** repository coverage that never overstates itself.
 
