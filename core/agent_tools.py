@@ -256,6 +256,7 @@ class Lookups:
         self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
         self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
+        self._registry: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
 
     @property
     def remaining(self) -> int:
@@ -442,6 +443,29 @@ class Lookups:
         record = module.check(ecosystem, name, version, fetch_json=self._fetch_json, **seams)
         if record["status"] != "NOT_PERFORMED":
             self._reputation[key] = (now, record)
+        return record
+
+    def registry_change(
+        self, kind: str, ecosystem: str, name: str, version: str | None
+    ) -> dict[str, Any]:
+        """A v0.20.0 registry record for one release (v0.21.0 W1): ``deprecation``
+        (``core.registry_deprecation``) or ``release_license``
+        (``core.release_license``). Cached per session; NOT_PERFORMED never
+        cached. Each check spends one lookup."""
+        from core import registry_deprecation, release_license
+
+        module = {"deprecation": registry_deprecation, "release_license": release_license}[kind]
+        key = (kind, ecosystem, name, version or "")
+        hit = self._registry.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = module.check(ecosystem, name, version, fetch_json=self._fetch_json)
+        if record["status"] != module.NOT_PERFORMED:
+            self._registry[key] = (now, record)
         return record
 
     def _disk_path(self, slug: str) -> Path | None:
@@ -888,6 +912,62 @@ def _registry_existence(dep: dict[str, Any], lookups: Lookups | None) -> list[di
         return registry_existence.not_performed("budget", ecosystem=ecosystem)
 
 
+#: The source line for the v0.20.0 registry checks of a dependency's own
+#: release (v0.21.0 W1).
+REGISTRY_CHANGES_SOURCE = "registry deprecations and release licenses"
+
+
+def registry_change_events(
+    dep: dict[str, Any], lookups: Lookups | None, today: date | None = None
+) -> tuple[list[Any], dict[str, Any]]:
+    """(events, source status) for one dependency's release (v0.21.0 W1).
+
+    The publisher's deprecation and withdrawal flags on the package and on
+    this release, and the license changes in the releases after it (what an
+    upgrade would bring), each bridged into an event built for this
+    dependency alone (``analyzers.registry_events``). npm and PyPI only.
+    The status says what was not read: a check not made is never a clean
+    result. Without a version only the package-level flags are read.
+    """
+    from analyzers.change_analyst import analyze_deprecations, analyze_release_license_changes
+    from analyzers.registry_events import registry_finding_to_event
+    from core import registry_existence
+
+    status: dict[str, Any] = {"source": REGISTRY_CHANGES_SOURCE}
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep.get("kind") != "package" or ecosystem is None:
+        return [], {**status, "status": "unsupported", "detail": "npm and PyPI packages only"}
+    if lookups is None:
+        return [], {**status, "status": "disabled"}
+    name = str(dep["package"])
+    version = str(dep["version"]) if dep.get("version") else None
+    findings: list[dict[str, Any]] = []
+    missing: list[str] = []
+    exhausted = None
+    for kind in ("deprecation", "release_license") if version else ("deprecation",):
+        try:
+            record = lookups.registry_change(kind, ecosystem, name, version)
+        except BudgetExhausted as exc:
+            exhausted = str(exc)
+            break
+        if record.get("status") == "NOT_PERFORMED":
+            missing.append(f"{kind.replace('_', ' ')}: {record.get('reason')}")
+        elif kind == "deprecation":
+            findings += analyze_deprecations(record, today=today)
+        else:
+            findings += analyze_release_license_changes(record, today=today)
+    slug = str(_trust(dep)["slug"])
+    events = [registry_finding_to_event(f, slug, today=today) for f in findings]
+    if exhausted is not None:
+        return events, {**status, "status": "budget-exhausted", "detail": exhausted}
+    if missing:
+        return events, {**status, "status": "error", "detail": "; ".join(missing)}
+    result = {**status, "status": "ok", "records": len(events)}
+    if version is None:
+        result["detail"] = "no version: package-level flags only, license changes not compared"
+    return events, result
+
+
 def _assess(
     dep: dict[str, Any],
     lookups: Lookups | None,
@@ -937,6 +1017,13 @@ def _assess(
             )
         bundles[slug] = raw
         repository = _repository(raw)
+    if lookups is not None and dep["kind"] == "package":
+        # v0.21.0 W1: the publisher's flags on this release, and the license
+        # changes an upgrade would bring, judged like any upstream change.
+        changes, change_status = registry_change_events(dep, lookups, today)
+        if change_status["status"] != "unsupported":
+            all_events += changes
+            sources.append(change_status)
     verdict = check_dependency(
         dep,
         all_events,

@@ -421,6 +421,85 @@ def _attest_trust(deps, private_names, base_keys=None):
     return out
 
 
+#: Registry change reads (v0.21.0 W1): a deprecation and a release-license
+#: record per dependency, under one budget for the run.
+_REGISTRY_CHANGES_LOOKUPS_PER_DEP = 2
+_REGISTRY_CHANGES_MAX_LOOKUPS = 2000
+#: Dependencies named one by one when they could not be read; the rest are counted.
+_REGISTRY_CHANGES_NAMED = 20
+
+
+def _registry_changes_option(func):
+    """--registry-changes: the v0.20.0 registry checks for each dependency's own release."""
+    return click.option(
+        "--registry-changes",
+        "registry_changes",
+        is_flag=True,
+        help="Also read npm and PyPI for each package's own release (live lookups): the "
+        "publisher's deprecation or yank, an Inactive project, and license changes in later "
+        "releases. Each is a REVIEW finding, so it fails a run only under --fail-on review "
+        "or --fail-on affected",
+    )(func)
+
+
+def _dependency_registry_events(deps, today=None):
+    """{dependency index: [events]} for the registry changes of each release (W1).
+
+    Each npm and PyPI dependency is read once and gets the events built for it
+    alone. What was not read is said on stderr, never dropped silently: other
+    ecosystems are counted, and a dependency whose registry gave no answer, or
+    that the budget did not reach, is named (the first few) and counted.
+    """
+    from core import agent_tools
+
+    packages = [
+        (i, dep, agent_tools._dependency_key(dep))
+        for i, dep in enumerate(deps)
+        if dep.get("kind") == "package" and agent_tools._refused_entry(dep) is None
+    ]
+    unique = {key for _, _, key in packages}
+    lookups = agent_tools.Lookups(
+        budget=min(
+            _REGISTRY_CHANGES_MAX_LOOKUPS,
+            _REGISTRY_CHANGES_LOOKUPS_PER_DEP * len(unique) + 10,
+        )
+    )
+    answers: dict[Any, Any] = {}
+    out: dict[int, list[Any]] = {}
+    for index, dep, key in packages:
+        if key not in answers:
+            answers[key] = (dep, *agent_tools.registry_change_events(dep, lookups, today))
+        _, events, status = answers[key]
+        if events and status["status"] != "unsupported":
+            out[index] = events
+    read = [a for a in answers.values() if a[2]["status"] != "unsupported"]
+    unread = [a for a in read if a[2]["status"] not in ("ok",)]
+    unsupported = sum(1 for a in answers.values() if a[2]["status"] == "unsupported")
+    found = sum(len(a[1]) for a in read)
+    _echo(
+        f"registry changes: {len(read) - len(unread)} of {len(read)} npm and PyPI "
+        f"dependencies read, {found} change(s) found, {lookups.used} of {lookups.budget} "
+        "lookups used",
+        err=True,
+    )
+    if unsupported:
+        _echo(
+            f"registry changes: {unsupported} dependency(s) of other ecosystems not read "
+            "(npm and PyPI only)",
+            err=True,
+        )
+    for dep, _, status in unread[:_REGISTRY_CHANGES_NAMED]:
+        label = f"{dep['package']}=={dep.get('version') or '?'}"
+        _echo(f"! registry changes not fully read for {label}: {status.get('detail')}", err=True)
+    if len(unread) > _REGISTRY_CHANGES_NAMED:
+        _echo(
+            f"! registry changes not fully read for {len(unread) - _REGISTRY_CHANGES_NAMED} "
+            "more dependency(s)",
+            err=True,
+        )
+    return out
+
+
 def _policy_option(func):
     """--policy: trust conditions that fail the run (T-E1)."""
     return click.option(
@@ -2545,6 +2624,7 @@ def _load_check_inputs(
 )
 @_policy_option
 @_history_key_option
+@_registry_changes_option
 def check(
     watchlist,
     sbom,
@@ -2572,6 +2652,7 @@ def check(
     history_key_file=None,
     history_previous_keys_file=None,
     policy_path=None,
+    registry_changes=False,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -2600,16 +2681,19 @@ def check(
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    # Registry changes (W1) are built per dependency and judged with it alone.
+    own_events = _dependency_registry_events(deps) if registry_changes else {}
     results = [
         check_dependency(
             dep,
-            loaded_events,
+            [*loaded_events, *own_events.get(index, [])],
             bundles,
             as_of=evaluation.as_of,
             max_evidence_age=evaluation.max_evidence_age,
         )
-        for dep in deps
+        for index, dep in enumerate(deps)
     ]
+    loaded_events = [*loaded_events, *(e for events in own_events.values() for e in events)]
     violations = _policy_violations(deps, _load_policy(policy_path), lockfile)
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
@@ -2708,6 +2792,7 @@ def check(
             _echo(f"repository inspection coverage {run_coverage}: gate failed")
             raise SystemExit(1)
         return
+    registry_titles = {e.id: e.title for events in own_events.values() for e in events}
     for dep, result in zip(deps, results):
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
         relationship = result.relationship
@@ -2719,7 +2804,10 @@ def check(
             _echo(f"🚨 {label}: AFFECTED ({relationship}){first_note}")
             for verdict in result.verdicts:
                 if verdict["affected"]:
-                    _echo(f"   - [{verdict['impact']}] {verdict['detail']}")
+                    # A registry change (W1) says what changed, not only how it matched.
+                    what = registry_titles.get(str(verdict.get("event_id")))
+                    detail = f"{what} ({verdict['detail']})" if what else verdict["detail"]
+                    _echo(f"   - [{verdict['impact']}] {detail}")
         elif relationship == "NOT_AFFECTED":
             _echo(f"✅ {label}: NOT_AFFECTED — {result.reason}")
         elif relationship == "RELATED":
@@ -3223,6 +3311,7 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     help="The base copy of --lockfile, as --base-manifest",
 )
 @_policy_option
+@_registry_changes_option
 def attest(
     watchlist,
     sbom,
@@ -3248,6 +3337,7 @@ def attest(
     policy_path=None,
     base_manifest=None,
     base_lockfile=None,
+    registry_changes=False,
 ):
     """Emit one evidence-contract document per dependency × event pair.
 
@@ -3431,8 +3521,10 @@ def attest(
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
     labels: dict[int, str] = {}
+    # Registry changes (W1): events built for one dependency, attested with it alone.
+    own_events = _dependency_registry_events(deps) if registry_changes else {}
     for index, (dep, uri) in enumerate(zip(deps, uris, strict=True)):
-        for event in loaded_events:
+        for event in [*loaded_events, *own_events.get(index, [])]:
             verdict = check_dependency(
                 dep,
                 [event],
@@ -3509,12 +3601,12 @@ def attest(
         combined = [
             check_dependency(
                 dep,
-                loaded_events,
+                [*loaded_events, *own_events.get(index, [])],
                 bundles,
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
             )
-            for dep in deps
+            for index, dep in enumerate(deps)
         ]
         if fail_on_threshold(combined, fail_on):
             _echo(f"fail-on {fail_on}: threshold breached", err=True)

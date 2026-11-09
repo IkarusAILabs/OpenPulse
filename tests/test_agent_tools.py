@@ -352,9 +352,10 @@ def test_the_per_file_cap_names_the_projects_it_skipped(monkeypatch):
     )
     assert out["live_projects_looked_up"] == 1
     assert out["live_lookups_capped"]
-    # One lifecycle lookup plus one digest check (T-B4), both under the same cap.
+    # One lifecycle lookup, the release's deprecation and license records
+    # (v0.21.0 W1) and one digest check (T-B4), all under the same cap.
     assert out["digest_integrity"]["capped"] == 1
-    assert out["lookups"]["used"] == 2
+    assert out["lookups"]["used"] == 4
 
 
 def test_project_lifecycle_refuses_past_the_budget():

@@ -384,6 +384,23 @@ No contract version change: `LICENSE_CHANGE` and `DEPRECATION` are already in ev
 
 **Exit:** a license change, an archive or ownership transition and a package deprecation are each reported from verifiable evidence, with the time OpenPulse first saw it and an evidence strength that says how it was seen; each class has a verified case or is labelled experimental.
 
+## Phase 15 — v0.21.0 "Your Dependencies, Watched" (M6; approved 2026-11-09) — ACTIVE
+
+Goal: the v0.20.0 checks reach the dependencies people actually use, and a scheduled run remembers what it saw. Two gaps after v0.20.0: deprecation and license-change detection ran only on catalog packages (`report --with-sweep`), never on a project's own lockfile, the Action, the gate or the agent tools; and repository history needs repeated observations, but the Action kept nothing between runs, so even a weekly schedule could not see a change. This closes M6's remaining "scheduling and CI/PR integration".
+
+| # | Item | Size | Depends on |
+|---|---|---|---|
+| W1 | ✅ **Your dependencies get the v0.20 checks** (done: `check`/`attest --registry-changes`, the Action's `registry-changes` input, the agent tools with live lookups; `analyzers/registry_events.py` builds each event for one dependency): deprecations and yanks for the version you use and license changes after it, as `REVIEW` results in the output, contracts, SARIF and the digest. Advisory: they fail a run only under an explicit `--fail-on review` or `affected` | M | — |
+| W2 | **The Action keeps history between runs.** An opt-in `history` input restores and saves the observation history and the detection ledger through the Actions cache, keyed by a history key from a secret. A tampered, rolled-back or foreign cache is refused, never adopted silently | M | — |
+| W3 | **The Action observes your GitHub repositories.** For each repository your dependencies link to, a scheduled run records license, archive and owner changes in the W2 history | M | W2 |
+| W4 | **Only what is new.** A scheduled run reports changes first seen since the previous run, with the time OpenPulse first saw each, from the existing detection ledger | S | W2 |
+| W5 | **Delivery from the Action.** New findings in the job summary, and optionally a signed webhook (existing) or one updated issue | S | W4 |
+| W6 | **Docs and an end-to-end test.** A weekly-watch example in `docs/GITHUB_ACTION.md`; two scheduled runs over recorded responses, where the second reports the change exactly once | S | W1–W5 |
+
+No contract version change is planned: evidence contract 2.4.0 already carries every field. If an item needs a new field it is an additive 2.5.0, raised in that item's PR first. Not in v0.21.0: new lockfile ecosystems (#153, with contributor PR #343), contract v2 signatures (#80), the `--fail-on` PARTIAL default (decision 15), the namespace move D6 (ask first), and forcing a live repository change (one cannot be forced; W2 and W3 make one likely to be seen).
+
+**Exit:** a deprecated, yanked or relicensed dependency in a project's own files is reported from verifiable registry evidence, and a weekly scheduled run of the Action reports a repository or registry change once, when it is first seen, with the history it was seen in.
+
 ## Track T research — star-history indicators and the track T study (author-run, AI-assisted; started 2026-11-03) — ACTIVE
 
 Goal: the two track T items that needed data or a study, done by an AI assistant where that is sound (owner, 2026-11-03). Independence is not claimed: labels come from published third-party records, thresholds are frozen on organic data before any positive is read, and the protocol is registered by a named author before the run. R-C (track R's held-out evaluation) stays with an independent human team; AI only prepares it.
@@ -446,6 +463,7 @@ These compete for reviewer time, not for the same files:
 | 17 | Approve the track T study protocol (Part A) and register it under your name on OSF or Zenodo before the held-out data is read; an AI cannot be the accountable author — open | TR5 |
 | 18 | Use StarScout's flagged-repository lists as fake-star labels, kept local (git-ignored) and published only as aggregates, as its authors ask — open | TR1's positives, TR6 |
 | 19 | v0.20.0 scope (Phase 14): change evidence beyond lifecycle (repository history, license changes, deprecation), no contract version change — **decided 2026-11-08: approved** | C1–C6 |
+| 20 | v0.21.0 scope (Phase 15): the v0.20 checks for a project's own dependencies, Action history between runs, scheduled repository observation, new-only reporting and delivery; no contract version change planned — **decided 2026-11-09: approved** | W1–W6 |
 
 ## Risks
 
