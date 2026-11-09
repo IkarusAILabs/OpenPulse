@@ -59,6 +59,15 @@ inputs:
       against the base branch's copy of manifest and lockfile), or all.
     required: false
     default: 'off'
+  registry-changes:
+    description: >-
+      Registry changes for each npm and PyPI dependency's own release (live
+      lookups): the publisher's deprecation or yank, an Inactive project, and
+      license changes in later releases. off (default) or all. Each is a
+      REVIEW result, so it fails the step only with fail-on review or
+      affected.
+    required: false
+    default: 'off'
   policy:
     description: >-
       Trust policy file (docs/TRUST_POLICY.md). Empty: .openpulse/policy.yml
@@ -180,6 +189,7 @@ runs:
         IN_SARIF: ${{ inputs.sarif-file }}
         IN_CONTRACTS: ${{ inputs.contracts-file }}
         IN_TRUST: ${{ inputs.trust }}
+        IN_REGISTRY_CHANGES: ${{ inputs.registry-changes }}
         IN_POLICY: ${{ inputs.policy }}
         IN_BASE_SHA: ${{ inputs.base-sha }}
         IN_TOKEN: ${{ inputs.github-token }}
@@ -277,6 +287,14 @@ runs:
           policy=(--policy "$IN_POLICY")
         fi
 
+        # Registry changes of each dependency's release (v0.21.0 W1).
+        changes=()
+        case "$IN_REGISTRY_CHANGES" in
+          off|'') ;;
+          all) changes=(--registry-changes) ;;
+          *) echo "::error title=OpenPulse::unknown registry-changes '$IN_REGISTRY_CHANGES' (off, all)"; exit 2 ;;
+        esac
+
         gate=()
         case "$IN_FAIL_ON" in
           none|'') ;;
@@ -290,7 +308,7 @@ runs:
         set +e
         # ${a[@]+...}: empty arrays under `set -u` on bash 3.2 (macOS).
         "$OPENPULSE_BIN/openpulse" attest "${args[@]}" "${events[@]}" ${gate[@]+"${gate[@]}"} \
-          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} \
+          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"} \
           --output "$IN_CONTRACTS" --sarif "$IN_SARIF" --summary "$summary"
         rc=$?
         set -e

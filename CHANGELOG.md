@@ -2,6 +2,17 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Your dependencies get the v0.20 registry checks (v0.21.0 item W1).** v0.20.0 read npm and PyPI for catalog packages only. With `--registry-changes` (`openpulse check`, `openpulse attest`, the Action's new `registry-changes: all` input), each npm and PyPI dependency's own release is read: the publisher's deprecation (npm `deprecated`), a yanked release (PEP 592), an Inactive project, and license changes in the releases after yours (what an upgrade would bring). Each is a `DEPRECATION` or `LICENSE_CHANGE` result at `REVIEW`, with the registry page as evidence, in the output, the evidence contracts, SARIF (`openpulse/deprecation`, `openpulse/license-change`) and the digest. The event behind it is built for that one dependency (`analyzers/registry_events.py`), so a flag on one release never reaches another release of the same package. What was not read is said on stderr: other ecosystems are counted, and an unreachable registry or a spent budget is named per dependency. The agent tools (`dependency_status`, `check_dependency_file`) do the same whenever live lookups are on, and say so in `sources` (`registry deprecations and release licenses`); a check that was not made is in `not_established`. Off by default in the CLI and the Action. No contract version change: both event types were already in every schema's vocabulary.
+
+### Upgrade notes
+
+- **No gate changes by default.** `--registry-changes` and `registry-changes` are opt-in. Turned on, a registry change is a `REVIEW` result: it fails a run only under `--fail-on review` or `--fail-on affected` (`--strict` and `--fail-on action` stay as they were).
+- **The agent tools read the registry for each live dependency.** `dependency_status` and `check_dependency_file` with live lookups now spend two more lookups per npm or PyPI dependency (one for deprecation flags, one for release licenses), under the same session budget, and report deprecations and license changes among `causes`.
+
 ## 0.20.0 "Change Evidence Beyond Lifecycle" — 2026-11-09
 
 Phase 14 (M2): changes that are not end-of-life dates become findings with the evidence they rest on. A repository's GitHub history, the licenses npm and PyPI record per release, and the deprecation and withdrawal flags publishers set on the registry each yield findings for review; every finding states its confidence and evidence basis, and each class is backed by a verified, replayable case in `docs/DISCOVERIES.md` or ships as experimental. No contract version change: `LICENSE_CHANGE` and `DEPRECATION` were already in every schema's vocabulary.

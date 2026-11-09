@@ -49,6 +49,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `fail-on` | `action` | `affected`, `review`, `action`, `critical` or `none` |
 | `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs. |
 | `trust` | `off` | `off`, `pull-request` (dependencies a pull request adds or changes) or `all`. Live lookups; see *Trust checks and a trust policy* |
+| `registry-changes` | `off` | `off` or `all`: read npm and PyPI for each dependency's own release (live lookups); see *Registry changes of your dependencies* |
 | `policy` | (empty) | Trust policy file; empty uses `.openpulse/policy.yml` when present |
 | `gate` | (empty) | Dependency files for the pre-install gate. When set, the step runs only `openpulse gate`; see *Before install: the `gate` input* |
 | `base-sha` | the pull request's base | Base commit for `trust: pull-request` and `gate` |
@@ -73,6 +74,24 @@ permissions:
 
 On pull requests from forks, the token is read-only and SARIF upload fails. Keep `upload-sarif: false` there and rely on the job summary.
 
+
+## Registry changes of your dependencies (v0.21.0)
+
+`registry-changes: all` reads npm and PyPI for each npm and PyPI dependency's own release:
+
+- the publisher's deprecation (npm `deprecated`) of the package or of your release;
+- a yanked release (PEP 592) and a project that declares itself Inactive (PyPI);
+- license changes in the releases after yours, which an upgrade would bring.
+
+Each is a `warning` result under `openpulse/deprecation` or `openpulse/license-change`, with the registry page as evidence and an evidence contract like any other result. It is a `REVIEW` result, so it fails the step only with `fail-on: review` or `fail-on: affected`. A flag on one release is reported for that release only. The log says how many dependencies were read and names any whose registry gave no answer; other ecosystems are counted, not read. Off by default: an existing workflow stays offline and unchanged.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          registry-changes: all
+          fail-on: action          # report registry changes, do not fail on them
+```
 
 ## Trust checks and a trust policy (v0.14.0)
 
