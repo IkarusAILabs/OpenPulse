@@ -367,7 +367,7 @@ Goal: show that an evidence contract means the same thing outside OpenPulse. `co
 
 **Exit:** a third party can validate, verify and read any released OpenPulse contract without OpenPulse, and gets the same outcomes OpenPulse reported, including every unknown.
 
-## Phase 14 — v0.20.0 "Change Evidence Beyond Lifecycle" (M2; approved 2026-11-08) — ACTIVE
+## Phase 14 — v0.20.0 "Change Evidence Beyond Lifecycle" (M2; approved 2026-11-08) — DONE, released 2026-11-09
 
 Goal: detect the upstream changes the schema already names but nothing produces. `LICENSE_CHANGE` and `DEPRECATION` have no detector; repository facts (archived, moved, license) were judged from the current snapshot only, so a license *change* could not be seen, and only container registries kept a verifiable history. M2's rule applies: formalisation and verification, not more mechanisms.
 
