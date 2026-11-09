@@ -541,7 +541,7 @@ def analyze_repository_changes(
                 "supporting": [c],
             }
         )
-    return findings
+    return [with_support(f) for f in findings]
 
 
 def _artifact_refs(finding: dict[str, Any]) -> set[str]:
@@ -664,7 +664,7 @@ def analyze_release_license_changes(
                 "supporting": [t],
             }
         )
-    return findings
+    return [with_support(f) for f in findings]
 
 
 #: How a deprecation finding was detected: a flag the publisher set on the
@@ -773,7 +773,56 @@ def analyze_deprecations(result: dict[str, Any], today: date | None = None) -> l
                 "supporting": [flag],
             }
         )
-    return findings
+    return [with_support(f) for f in findings]
+
+
+# --- Verified cases before support is claimed (v0.20.0 C6) ------------------------------
+
+#: Each Phase 14 detection class and the verified, replayable cases in
+#: docs/DISCOVERIES.md that back it. A class with none ships as
+#: experimental and its findings say so; ``tests/test_discoveries.py``
+#: replays every case named here.
+VERIFIED_CASES: dict[str, tuple[str, ...]] = {
+    "repository_history": (),
+    "release_license:npm": ("Case 11",),
+    "release_license:PyPI": ("Case 12",),
+    "npm_deprecated": ("Case 13", "Case 14"),
+    "pypi_yanked": ("Case 15",),
+    "pypi_inactive": ("Case 16",),
+}
+
+SUPPORT_VERIFIED = "verified"
+SUPPORT_EXPERIMENTAL = "experimental"
+
+
+def support_class(finding: dict[str, Any]) -> str | None:
+    """The Phase 14 detection class of one finding, or None for any other finding."""
+    method = finding.get("detection_method")
+    if method == DETECTION_REPOSITORY_HISTORY:
+        return "repository_history"
+    evidence = finding.get("registry_evidence") or {}
+    if method == DETECTION_RELEASE_METADATA:
+        npm = evidence.get("source") == "registry.npmjs.org"
+        return "release_license:" + ("npm" if npm else "PyPI")
+    if method == DETECTION_REGISTRY_FLAG:
+        return str(evidence.get("flag"))
+    return None
+
+
+def with_support(finding: dict[str, Any]) -> dict[str, Any]:
+    """The finding with its support status: verified by named cases, or experimental."""
+    cls = support_class(finding)
+    if cls is None:
+        return finding
+    cases = list(VERIFIED_CASES.get(cls, ()))
+    result = dict(finding, support=SUPPORT_VERIFIED if cases else SUPPORT_EXPERIMENTAL)
+    result["verified_cases"] = cases
+    if not cases:
+        result["summary"] = (
+            f"{finding.get('summary', '')} Experimental: no verified case of this detection "
+            "yet (docs/DISCOVERIES.md)."
+        )
+    return result
 
 
 # --- Evidence rules for change evidence beyond lifecycle (v0.20.0 C5) -----------------

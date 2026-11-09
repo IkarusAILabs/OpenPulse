@@ -411,6 +411,11 @@ OpenPulse's own, so they carry none. Lead time is claimed for
 lifecycle events only: a relicense, an archive or a deprecation flag
 has no date it takes effect that OpenPulse could have warned ahead of.
 
+A class is claimed only with a verified, replayable case in
+`docs/DISCOVERIES.md` (`VERIFIED_CASES`); each finding carries
+`support: verified` and its cases, or `support: experimental`. Repository
+history is experimental until a real change is observed twice.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under

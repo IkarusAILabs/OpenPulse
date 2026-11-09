@@ -81,6 +81,8 @@ def render_finding_md(finding: dict[str, Any]) -> str:
     impact = _impact_of(finding)
     label = finding.get("event_type") or ("SECURITY" if finding.get("cve_id") else "?")
     summary = finding.get("summary") or finding.get("description") or ""
+    if finding.get("support") == "experimental":
+        label = f"{label}, experimental"
     return (
         f"{BADGE.get(impact, '⚪')} **[{label}]** {finding.get('title')} "
         f"(_analyst={finding.get('analyst')}, suggested impact={impact}_)\n"

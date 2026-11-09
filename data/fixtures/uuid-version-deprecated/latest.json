@@ -1,0 +1,10 @@
+{
+ "captured": "2026-11-09",
+ "response": {
+  "license": "MIT",
+  "name": "uuid",
+  "version": "14.0.3"
+ },
+ "source_url": "https://registry.npmjs.org/uuid/latest",
+ "trimmed": "only the fields the check reads, values verbatim"
+}

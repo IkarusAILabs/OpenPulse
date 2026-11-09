@@ -241,6 +241,135 @@ recorded below, not hidden.
   the golden test) or `openpulse check --images` against the
   curated event.
 
+## Phase 14 cases (v0.20.0) — change evidence beyond lifecycle
+
+Each class Phase 14 added needs at least one case here before it is
+claimed (decision 19, item C6); `analyzers.change_analyst.VERIFIED_CASES`
+names them, every finding carries `support: verified` with its case
+numbers, and a class with none is `experimental` and says so. The
+registry responses below were recorded 2026-11-09 under
+`data/fixtures/<case>/`, trimmed to the fields the checks read (values
+verbatim, each file names its source URL), and replay offline in
+`tests/test_discoveries.py`. Each case is also confirmed by a source
+the detection did not use.
+
+| Class | Cases | Status |
+|---|---|---|
+| Release licenses, npm (C3) | 11 | verified |
+| Release licenses, PyPI (C3) | 12 | verified |
+| npm `deprecated` (C4) | 13, 14 | verified |
+| PyPI yanked (C4) | 15 | verified |
+| PyPI Inactive classifier (C4) | 16 | verified |
+| Repository history: license, archive, move (C2) | — | **experimental** |
+
+## Case 11 — react relicensed BSD-3-Clause to MIT ✅ VERIFIED (recorded replay)
+
+- What changed: release 15.6.2 is the first, by version, to declare MIT;
+  15.6.1 declared BSD-3-Clause.
+- Why it matters: a license change between the release you run and the
+  one you upgrade to changes what you may do with it.
+- Affected: `pkg:npm/react`, releases from 15.6.2.
+- Evidence: the npm packument (`react-relicense/packument.json`; every
+  main-line release's `license` and publish time; prereleases, which the
+  check ignores, dropped).
+- Independent confirmation: React's own CHANGELOG, "15.6.2 (September
+  25, 2017) — Switch from BSD + Patents to MIT license".
+- Confidence: EMERGING (a difference OpenPulse observed between two
+  declarations). First detection: none recorded (no history of
+  OpenPulse's own). Effective date: 2017-09-26 (publish time of 15.6.2).
+- Scope: package. Finding: `LICENSE_CHANGE` / REVIEW.
+- Reproduction: `openpulse release-license --ecosystem npm --package
+  react --version 15.6.1`; offline `test_case_11_react_relicensed_bsd_to_mit_replays`.
+
+## Case 12 — psycopg2 dropped ZPL ✅ VERIFIED (recorded replay)
+
+- What changed: 2.7 declared "LGPL with exceptions or ZPL"; the latest,
+  2.9.13, declares "LGPL with exceptions".
+- Why it matters: the Zope Public License option is gone; anyone relying
+  on it now holds an LGPL licence only.
+- Affected: `pkg:pypi/psycopg2`.
+- Evidence: the PyPI project document and release 2.7's
+  (`psycopg2-license/`). PyPI is read for two releases, so the finding
+  says the change is somewhere after 2.7, at the latest in 2.9.13.
+- Independent confirmation: psycopg2 commit `8b2450287e` "Removed ZPL
+  license (closes: #1087)", 2020-04-28, between 2.8.5 and 2.8.6; PyPI's
+  2.8 still declares ZPL and 2.8.6 does not.
+- Confidence: EMERGING. First detection: none recorded. Effective date:
+  the publish time of 2.9.13 (the latest moment the change can be placed
+  from the two releases read).
+- Scope: package. Finding: `LICENSE_CHANGE` / REVIEW.
+- Reproduction: `openpulse release-license --ecosystem PyPI --package
+  psycopg2 --version 2.7`; offline `test_case_12_psycopg2_dropped_zpl_replays`.
+
+## Case 13 — request deprecated ✅ VERIFIED (recorded replay)
+
+- What changed: the release npm installs by default (2.88.2) carries the
+  publisher's deprecation: "request has been deprecated, see
+  https://github.com/request/request/issues/3142".
+- Why it matters: no further fixes; npm warns on every install.
+- Affected: `pkg:npm/request`, every version.
+- Evidence: `request-deprecated/latest.json` (npm `/request/latest`).
+- Independent confirmation: request/request issue #3142, "Request's
+  Past, Present and Future" (opened 2019-03-30), the announcement the
+  message points to.
+- Confidence: CONFIRMED (the publisher's own statement on its package).
+  First detection: none recorded. Effective date: unrecorded (the
+  registry keeps no date for a deprecation).
+- Scope: package. Finding: `DEPRECATION` / REVIEW.
+- Reproduction: `openpulse deprecation --ecosystem npm --package request`;
+  offline `test_case_13_request_deprecated_replays`.
+
+## Case 14 — uuid 3.4.0 deprecated while the latest is not ✅ VERIFIED (recorded replay)
+
+- What changed: release 3.4.0 carries the publisher's deprecation
+  ("uuid@10 and below is no longer supported …"); the latest, 14.0.3,
+  does not.
+- Why it matters: the flag covers the release you run, not the package;
+  the finding is scoped to 3.4.0.
+- Affected: `pkg:npm/uuid@3.4.0`.
+- Evidence: `uuid-version-deprecated/latest.json` and `3.4.0.json`.
+- Independent confirmation: the publisher's message names the supported
+  line (uuid@11 and later), and the latest release carries no flag.
+- Confidence: CONFIRMED. First detection: none recorded. Effective date:
+  unrecorded.
+- Scope: one release. Finding: `DEPRECATION` / REVIEW.
+- Reproduction: `openpulse deprecation --ecosystem npm --package uuid
+  --version 3.4.0`; offline
+  `test_case_14_uuid_old_line_deprecated_while_latest_is_not_replays`.
+
+## Case 15 — urllib3 2.0.0 yanked ✅ VERIFIED (recorded replay)
+
+- What changed: every file of 2.0.0 is yanked (PEP 592), with the reason
+  "Truncated response bodies when streaming a large compressed body.
+  Upgrade to at least 2.0.2 …".
+- Why it matters: installers skip it unless pinned exactly; a lockfile
+  pinning it keeps the bug.
+- Affected: `pkg:pypi/urllib3@2.0.0`.
+- Evidence: `urllib3-yanked/project.json` (each release's files with
+  their yank flags and reasons).
+- Independent confirmation: urllib3's CHANGES, 2.0.2 (2023-05-03), fixes
+  `HTTPResponse.stream()` truncating decompressed data.
+- Confidence: CONFIRMED. First detection: none recorded. Effective date:
+  unrecorded.
+- Scope: one release. Finding: `DEPRECATION` / REVIEW.
+- Reproduction: `openpulse deprecation --ecosystem PyPI --package urllib3
+  --version 2.0.0`; offline `test_case_15_urllib3_2_0_0_yanked_replays`.
+
+## Case 16 — attrdict declares itself inactive ✅ VERIFIED (recorded replay)
+
+- What changed: the latest release (2.0.1) carries "Development Status
+  :: 7 - Inactive".
+- Why it matters: the publisher says the project is no longer developed.
+- Affected: `pkg:pypi/attrdict`.
+- Evidence: `attrdict-inactive/project.json`.
+- Independent confirmation: the source repository, bcj/AttrDict, is
+  archived (last push 2019-02-01).
+- Confidence: EMERGING (a classifier describes the release it shipped
+  with). First detection: none recorded. Effective date: unrecorded.
+- Scope: package. Finding: `DEPRECATION` / REVIEW.
+- Reproduction: `openpulse deprecation --ecosystem PyPI --package
+  attrdict`; offline `test_case_16_attrdict_declares_itself_inactive_replays`.
+
 ## Anti-case — the 5-tag window flaw (caught, fixed)
 
 Same-session catch: symmetric appear/disappear pairs (`latest`
@@ -261,6 +390,13 @@ pipeline must not be able to claim more than its acquisition supports.
   with `PROJECT_ARCHIVED`, the first combined firing) and
   formalized with golden replays; same-owner renames stay silent
   (offline proofs in `tests/test_analysts.py`).
+- Repository history (`diff_repository_observations`, v0.20.0 C2):
+  license changes, archives and moves seen between two of
+  OpenPulse's own observations. Offline proofs in
+  `tests/test_repository_changes.py`; no real change has been
+  observed twice yet, so the class ships **experimental** and its
+  findings say so. It is verified by the first live firing,
+  recorded here with both observations.
 - Namespace moves (`split_moves`, `core/observations/sweep.py`):
   cross-namespace appear/disappear pairs become one migration story.
   Offline proofs in `tests/test_correlation.py`; no live pair
