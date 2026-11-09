@@ -509,6 +509,8 @@ def analyze_repository_changes(
                 "significance": significance,
                 "detection_method": DETECTION_REPOSITORY_HISTORY,
                 "evidence_strength": EVIDENCE_MODERATE,
+                "confidence": "EMERGING",
+                "evidence_basis": BASIS_OBSERVED_DIFFERENCE,
                 "observed_at": str(today),
                 "first_detected_at": c.get("first_detected_at"),
                 "effective_at": observed,
@@ -638,6 +640,8 @@ def analyze_release_license_changes(
                 "significance": "high",
                 "detection_method": DETECTION_RELEASE_METADATA,
                 "evidence_strength": EVIDENCE_MODERATE,
+                "confidence": "EMERGING",
+                "evidence_basis": BASIS_OBSERVED_DIFFERENCE,
                 "observed_at": str(today),
                 "first_detected_at": None,
                 "effective_at": t.get("published"),
@@ -747,6 +751,8 @@ def analyze_deprecations(result: dict[str, Any], today: date | None = None) -> l
                 "significance": "high" if package_wide else "medium",
                 "detection_method": DETECTION_REGISTRY_FLAG,
                 "evidence_strength": strength,
+                "confidence": "CONFIRMED" if strength == EVIDENCE_STRONG else "EMERGING",
+                "evidence_basis": BASIS_PUBLISHER_STATEMENT,
                 "observed_at": str(today),
                 "first_detected_at": None,
                 "effective_at": None,
@@ -768,6 +774,96 @@ def analyze_deprecations(result: dict[str, Any], today: date | None = None) -> l
             }
         )
     return findings
+
+
+# --- Evidence rules for change evidence beyond lifecycle (v0.20.0 C5) -----------------
+#
+# What a finding's confidence rests on, stated on the finding itself:
+#
+# - a difference OpenPulse observed (two repository observations, or two
+#   releases' declared licenses) is one credible source: EMERGING;
+# - a flag the publisher set on the registry (npm ``deprecated``, a PyPI
+#   yank) is the publisher's own statement about its package: CONFIRMED;
+#   a classifier describes the release it shipped with and is rarely kept
+#   up to date, so it stays EMERGING;
+# - GitHub's license id is a heuristic over the license file: a license
+#   change it reports is CORROBORATED only when the registry's license for
+#   one of the project's packages agrees with the new license
+#   (``corroborate_repository_license``).
+
+#: Basis of a finding's confidence.
+BASIS_OBSERVED_DIFFERENCE = "observed_difference"
+BASIS_PUBLISHER_STATEMENT = "publisher_statement"
+
+_LICENSE_SUFFIXES = ("-only", " license")
+
+
+def same_license(a: Any, b: Any) -> bool:
+    """Two license values that name the same license, compared conservatively.
+
+    Case, spacing, outer parentheses, an SPDX ``-only`` suffix and a trailing
+    "License" are ignored; nothing else is (``Apache-2.0`` and "Apache
+    Software License" do not agree).
+    """
+
+    def norm(value: Any) -> str:
+        text = " ".join(str(value or "").casefold().split())
+        if text.startswith("(") and text.endswith(")") and text.count("(") == 1:
+            text = text[1:-1].strip()
+        for suffix in _LICENSE_SUFFIXES:
+            if text.endswith(suffix):
+                text = text[: -len(suffix)].strip()
+        return text
+
+    left, right = norm(a), norm(b)
+    return bool(left) and left == right
+
+
+def corroborate_repository_license(
+    finding: dict[str, Any], registry_licenses: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """A GitHub license change, checked against the registry's licenses (C5).
+
+    ``registry_licenses``: ``{"purl", "license"}`` for the project's packages,
+    the license the registry declares for the latest release. Agreement with
+    the new license makes the finding CORROBORATED (two independent sources:
+    the repository's license file and the publisher's declaration). Anything
+    else leaves it EMERGING and says what the registry declares: a registry
+    lagging behind until the next release is normal, not a contradiction.
+    Other findings are returned unchanged.
+    """
+    if (
+        finding.get("event_type") != "LICENSE_CHANGE"
+        or finding.get("detection_method") != DETECTION_REPOSITORY_HISTORY
+    ):
+        return finding
+    new = ((finding.get("observation_evidence") or {}).get("fact") or {}).get("current")
+    declared = [
+        {"purl": r.get("purl"), "license": r.get("license")}
+        for r in registry_licenses or []
+        if isinstance(r, dict) and r.get("license")
+    ]
+    agreeing = [r for r in declared if same_license(r["license"], new)]
+    result = dict(finding)
+    result["registry_agreement"] = {
+        "license": new,
+        "agreeing": agreeing,
+        "declared": declared,
+    }
+    if agreeing:
+        result["confidence"] = "CORROBORATED"
+        result["evidence_strength"] = EVIDENCE_STRONG
+        names = ", ".join(str(r["purl"]) for r in agreeing)
+        result["summary"] = (
+            f"{finding.get('summary', '')} The registry agrees: {names} declares {new}."
+        )
+    elif declared:
+        found = "; ".join(f"{r['purl']} declares {r['license']}" for r in declared)
+        result["summary"] = (
+            f"{finding.get('summary', '')} The registry does not agree yet ({found}): "
+            "GitHub's license detection alone is a heuristic."
+        )
+    return result
 
 
 #: Diff type -> (event_type, impact, significance, template).
