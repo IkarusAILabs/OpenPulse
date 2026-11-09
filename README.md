@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.19.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.20.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.19.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -203,6 +203,14 @@ The full list, including what an attacker with write access to local history can
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
+
+**v0.20.0 "Change Evidence Beyond Lifecycle":** changes that are not end-of-life dates, each with the evidence it rests on.
+
+- **Repository history:** `openpulse observe-github` keeps a hash-chained, keyed history of a GitHub repository; a license change, an archive or a move to a new owner between two observations is a finding for review (experimental until a real change is observed twice).
+- **License changes between releases:** `openpulse release-license` compares the license npm or PyPI records for each release, in version order (React's BSD-3-Clause to MIT in 15.6.2).
+- **Deprecated and withdrawn packages:** `openpulse deprecation` reads npm's `deprecated`, PyPI yanks and the Inactive classifier, for the package or your version.
+- **Evidence rules:** each finding states its confidence and basis: an observed difference is EMERGING, the publisher's own flag CONFIRMED, and GitHub's license id is CORROBORATED only when the registry agrees. Lead time is claimed for lifecycle events only.
+- **Verified cases:** `docs/DISCOVERIES.md` Cases 11-16 replay recorded registry responses, each confirmed by a source the check did not use.
 
 **v0.19.0 "Evidence Consumer and Portability":** an evidence contract means the same thing outside OpenPulse.
 

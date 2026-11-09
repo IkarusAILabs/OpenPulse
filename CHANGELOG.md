@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.20.0 "Change Evidence Beyond Lifecycle" — 2026-11-09
+
+Phase 14 (M2): changes that are not end-of-life dates become findings with the evidence they rest on. A repository's GitHub history, the licenses npm and PyPI record per release, and the deprecation and withdrawal flags publishers set on the registry each yield findings for review; every finding states its confidence and evidence basis, and each class is backed by a verified, replayable case in `docs/DISCOVERIES.md` or ships as experimental. No contract version change: `LICENSE_CHANGE` and `DEPRECATION` were already in every schema's vocabulary.
 
 ### Added
 
