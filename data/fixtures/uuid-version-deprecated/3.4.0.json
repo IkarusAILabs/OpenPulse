@@ -1,0 +1,11 @@
+{
+ "captured": "2026-11-09",
+ "response": {
+  "deprecated": "uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).",
+  "license": "MIT",
+  "name": "uuid",
+  "version": "3.4.0"
+ },
+ "source_url": "https://registry.npmjs.org/uuid/3.4.0",
+ "trimmed": "only the fields the check reads, values verbatim"
+}

@@ -1,0 +1,157 @@
+{
+ "captured": "2026-11-09",
+ "response": {
+  "info": {
+   "classifiers": [
+    "Development Status :: 7 - Inactive",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy"
+   ],
+   "version": "2.0.1",
+   "yanked": false,
+   "yanked_reason": null
+  },
+  "releases": {
+   "0.1.0": [
+    {
+     "upload_time_iso_8601": "2013-11-23T04:58:01.374217Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.1.1": [
+    {
+     "upload_time_iso_8601": "2013-11-23T05:08:36.318158Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.2.0": [
+    {
+     "upload_time_iso_8601": "2014-01-03T19:20:31.346626Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.2.1": [
+    {
+     "upload_time_iso_8601": "2014-03-19T16:36:29.967847Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.3.0": [
+    {
+     "upload_time_iso_8601": "2014-05-28T21:30:00.522525Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-05-28T21:29:56.688674Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.3.1": [
+    {
+     "upload_time_iso_8601": "2014-06-03T16:42:48.814894Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-06-03T16:42:45.807190Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.4.0": [
+    {
+     "upload_time_iso_8601": "2014-07-01T06:48:56.689691Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-07-01T06:48:54.152595Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.5.0": [
+    {
+     "upload_time_iso_8601": "2014-07-14T15:35:37.827926Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-07-14T15:35:34.338899Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "0.5.1": [
+    {
+     "upload_time_iso_8601": "2014-07-14T19:16:18.189828Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-07-14T19:16:13.475917Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "1.0.0": [
+    {
+     "upload_time_iso_8601": "2014-08-18T14:33:12.581178Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2014-08-18T14:33:09.798913Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "1.1.0": [
+    {
+     "upload_time_iso_8601": "2014-10-29T21:42:07.908308Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "1.2.0": [
+    {
+     "upload_time_iso_8601": "2014-11-27T06:57:34.326260Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "2.0.0": [
+    {
+     "upload_time_iso_8601": "2015-04-10T00:28:22.407198Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ],
+   "2.0.1": [
+    {
+     "upload_time_iso_8601": "2019-02-01T22:33:56.508208Z",
+     "yanked": false,
+     "yanked_reason": null
+    },
+    {
+     "upload_time_iso_8601": "2019-02-01T22:33:58.493807Z",
+     "yanked": false,
+     "yanked_reason": null
+    }
+   ]
+  }
+ },
+ "source_url": "https://pypi.org/pypi/attrdict/json",
+ "trimmed": "only the fields the check reads, values verbatim"
+}
