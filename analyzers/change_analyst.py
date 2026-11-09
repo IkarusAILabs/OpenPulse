@@ -663,6 +663,113 @@ def analyze_release_license_changes(
     return findings
 
 
+#: How a deprecation finding was detected: a flag the publisher set on the
+#: package registry (v0.20.0 C4).
+DETECTION_REGISTRY_FLAG = "registry_publisher_flag"
+
+_DEPRECATION_PAGES = {
+    "npm": "https://www.npmjs.com/package/{name}/v/{version}",
+    "PyPI": "https://pypi.org/project/{name}/{version}/",
+}
+
+
+def analyze_deprecations(result: dict[str, Any], today: date | None = None) -> list[dict[str, Any]]:
+    """Publisher flags (``core.registry_deprecation.check``) -> DEPRECATION findings.
+
+    One finding per flag, placed for review. A package-level flag (npm's
+    ``latest`` deprecated, a PyPI project declaring itself inactive, or
+    every release yanked) covers every version; a version-level flag
+    covers only the release you named. The registry records no date for
+    a flag, so ``effective_at`` is left empty: OpenPulse knows when it saw
+    the flag, not when it was set. Nothing is found for a check that was
+    not performed.
+    """
+    from core import registry_deprecation as rd
+
+    today = today or date.today()
+    if not isinstance(result, dict) or result.get("status") != rd.CHECKED:
+        return []
+    eco, name, purl = result.get("ecosystem"), result.get("name"), result.get("purl")
+    findings = []
+    for flag in result.get("flags") or []:
+        kind, level, version, text = (
+            flag.get("kind"),
+            flag.get("level"),
+            flag.get("version"),
+            flag.get("message"),
+        )
+        package_wide = level == rd.PACKAGE
+        quoted = f" The publisher's message: \"{text}\"" if text else ""
+        if kind == rd.NPM_DEPRECATED:
+            subject = f"{name} (npm)" if package_wide else f"{name} {version} (npm)"
+            title = f"{subject} is deprecated by its publisher"
+            what = (
+                f"The release npm installs by default ({version}) carries the publisher's "
+                "deprecation, so npm warns on every install."
+                if package_wide
+                else f"Release {version} carries the publisher's deprecation; the latest "
+                f"release ({result.get('latest')}) does not."
+            )
+            strength = EVIDENCE_STRONG
+        elif kind == rd.PYPI_YANKED:
+            title = f"{name} {version} (PyPI) was yanked by its publisher"
+            what = (
+                f"Every release of {name} is yanked, the latest ({version}) included."
+                if package_wide
+                else f"Release {version} is yanked (PEP 592): installers skip it unless it "
+                f"is pinned exactly. The latest release is {result.get('latest')}."
+            )
+            strength = EVIDENCE_STRONG
+        elif kind == rd.PYPI_INACTIVE:
+            title = f"{name} (PyPI) declares itself inactive"
+            what = (
+                f"The latest release ({version}) carries the classifier "
+                f"\"{rd.INACTIVE_CLASSIFIER}\": the publisher says the project is no "
+                "longer developed."
+            )
+            # A classifier describes the release it was published with; it is
+            # the publisher's statement, but not one kept up to date.
+            strength = EVIDENCE_MODERATE
+        else:
+            continue
+        versions = [] if package_wide else [version]
+        page = _DEPRECATION_PAGES.get(str(eco), "").format(name=name, version=version)
+        findings.append(
+            {
+                "analyst": "change",
+                "event_type": "DEPRECATION",
+                "signal": "lifecycle",
+                "title": title,
+                "summary": f"{what}{quoted} This is what the publisher declared on the "
+                "registry; check the project's own announcement for the reason and any "
+                "replacement before acting on it.",
+                "impact": "REVIEW",
+                "significance": "high" if package_wide else "medium",
+                "detection_method": DETECTION_REGISTRY_FLAG,
+                "evidence_strength": strength,
+                "observed_at": str(today),
+                "first_detected_at": None,
+                "effective_at": None,
+                "lifecycle_state": STATE_EFFECTIVE,
+                "scope": {"kind": "package", "packages": [purl], "versions": versions},
+                "affected_versions": versions or ["*"],
+                "affected_artifacts": [{"kind": "package", "ref": purl}],
+                "references": [page] if page else [],
+                "registry_evidence": {
+                    "source": "registry.npmjs.org" if eco == "npm" else "pypi.org",
+                    "package": purl,
+                    "flag": kind,
+                    "level": level,
+                    "version": version,
+                    "latest": result.get("latest"),
+                    "message": text,
+                },
+                "supporting": [flag],
+            }
+        )
+    return findings
+
+
 #: Diff type -> (event_type, impact, significance, template).
 #: Significance is assessed from the observation itself (P1 §12):
 #: a moved `latest` digest is routine registry churn (low); a vanished

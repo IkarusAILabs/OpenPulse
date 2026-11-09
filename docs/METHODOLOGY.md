@@ -368,6 +368,23 @@ by the publish time of the release that carries the new license: it is
 what the publisher declared to the registry, not a reading of the
 license file.
 
+## Deprecated and withdrawn packages
+
+Three flags are set by the package's publisher on the registry itself
+(`openpulse deprecation`, `core/registry_deprecation.py`): npm's
+`deprecated` message, a yanked PyPI release (PEP 592) and the PyPI
+classifier "Development Status :: 7 - Inactive". npm is read through
+the `latest` version document and, when you name one, your version's;
+a deprecation on `latest` covers the package, one only on your version
+covers that release, and an empty message is a lifted deprecation. A
+PyPI release is yanked when all its files are; every release yanked, or
+the inactive classifier on the latest, covers the package. Each flag
+is a `DEPRECATION` for review carrying the publisher's message, bounded
+and single-line. The registry keeps no date for a flag, so
+`effective_at` is empty: OpenPulse knows when it saw the flag, not when
+it was set. A classifier is moderate evidence, as it describes the
+release it was published with and is rarely kept up to date.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under
