@@ -385,6 +385,32 @@ and single-line. The registry keeps no date for a flag, so
 it was set. A classifier is moderate evidence, as it describes the
 release it was published with and is rarely kept up to date.
 
+## Evidence rules for change evidence
+
+Each finding from repository history, release licenses and registry
+flags states its `confidence` and what it rests on (`evidence_basis`):
+
+- **A difference OpenPulse observed** (`observed_difference`): two
+  repository observations, or two releases' declared licenses. One
+  credible source: `EMERGING`.
+- **The publisher's own statement** (`publisher_statement`): npm's
+  `deprecated` and a PyPI yank are set by the publisher on its own
+  package: `CONFIRMED`. The Inactive classifier is also the publisher's,
+  but describes the release it shipped with: `EMERGING`.
+- **GitHub's license id** is a heuristic over the license file. A
+  license change it reports becomes `CORROBORATED` only when the
+  registry's license for the latest release of one of the project's
+  npm or PyPI packages names the new license (case, an SPDX `-only`
+  suffix and a trailing "License" ignored; nothing else). A registry
+  that still declares the old license leaves the finding `EMERGING`:
+  it may simply not have released since.
+
+First detection is recorded where a keyed history proves it (repository
+changes); release licenses and registry flags have no history of
+OpenPulse's own, so they carry none. Lead time is claimed for
+lifecycle events only: a relicense, an archive or a deprecation flag
+has no date it takes effect that OpenPulse could have warned ahead of.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under

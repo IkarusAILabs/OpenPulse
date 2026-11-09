@@ -84,9 +84,21 @@ def finding_lead_time(finding: dict[str, Any]) -> tuple[int | None, str | None, 
     Detection is first_detected_at ONLY — observed_at/last sightings
     are re-observations, not discovery, and must never stand in.
     Unknown first detection -> (None, None, None): no claim.
+
+    Lead time is defined for lifecycle events only (v0.20.0 C5): a
+    repository change, a relicense or a publisher's flag has no date it
+    takes effect that OpenPulse could have warned ahead of, so a finding
+    of another event type makes no lead-time claim. A finding without an
+    event type predates the rule and is read as before.
     """
     if not isinstance(finding, dict):
         return None, None, None
+    event_type = finding.get("event_type")
+    if event_type:
+        from core.detections.ledger import LIFECYCLE_EVENT_TYPES
+
+        if str(event_type) not in LIFECYCLE_EVENT_TYPES:
+            return None, None, None
     detected = parse_day(finding.get("first_detected_at"))
     effective = parse_day(finding.get("effective_at") or finding.get("event_date"))
     if detected is None or effective is None:

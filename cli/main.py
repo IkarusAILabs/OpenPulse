@@ -1551,7 +1551,9 @@ def deprecation(ecosystem, name, version):
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
-def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
+def _observe_catalog_repositories(
+    catalog, store, history_key, previous_keys, fetch_json=None
+):
     """Observe each catalog entry's GitHub repository; findings from its changes (C2).
 
     Failures (a rate limit, a refused history) are reported and skipped: a
@@ -1563,7 +1565,7 @@ def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
     from core.observations.repository import observe_github_repository
 
     token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
-    changes = []
+    findings = []
     for entry in catalog:
         repo = entry.get("github")
         if not repo:
@@ -1575,8 +1577,32 @@ def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
         if result["error"] is not None:
             _echo(f"repository history skipped for {repo}: {result['error'].get('safe_message')}")
             continue
-        changes += result["changes"]
-    return change_analyst.analyze_repository_changes(changes)
+        found = change_analyst.analyze_repository_changes(result["changes"])
+        if any(f["event_type"] == "LICENSE_CHANGE" for f in found):
+            # GitHub's license id is a heuristic: ask the registry (C5).
+            registry = _registry_licenses(entry, fetch_json=fetch_json)
+            found = [
+                change_analyst.corroborate_repository_license(f, registry) for f in found
+            ]
+        findings += found
+    return findings
+
+
+def _registry_licenses(entry, fetch_json=None):
+    """{"purl", "license"} the registry declares for each npm/PyPI package's latest release."""
+    from core.release_license import check as release_license_check
+
+    declared = []
+    for package in entry.get("packages") or []:
+        if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+            continue
+        result = release_license_check(
+            package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+        )
+        latest = result.get("latest") or {}
+        if result["status"] == "COMPARED" and latest.get("license"):
+            declared.append({"purl": result["purl"], "license": latest["license"]})
+    return declared
 
 
 @cli.command("observe-github")
