@@ -1492,6 +1492,65 @@ def release_license(ecosystem, name, version):
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
+def _catalog_deprecations(catalog, today=None, fetch_json=None):
+    """DEPRECATION findings for the catalog's npm and PyPI packages (C4).
+
+    Package-level flags only: the catalog names packages, not the versions
+    you run (``openpulse deprecation --version`` checks one release). A
+    package that cannot be checked contributes nothing and is reported.
+    """
+    from core.registry_deprecation import CHECKED
+    from core.registry_deprecation import check as deprecation_check
+
+    findings = []
+    for entry in catalog:
+        for package in entry.get("packages") or []:
+            if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+                continue
+            result = deprecation_check(
+                package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+            )
+            if result["status"] != CHECKED:
+                _echo(f"deprecation not checked for {result['purl']}: {result['reason']}")
+                continue
+            findings += change_analyst.analyze_deprecations(result, today=today)
+    return findings
+
+
+@cli.command("deprecation")
+@click.option(
+    "--ecosystem", required=True, type=click.Choice(["npm", "PyPI"], case_sensitive=False)
+)
+@click.option("--package", "name", required=True, help="Package name, as the registry spells it")
+@click.option(
+    "--version",
+    "version",
+    default=None,
+    help="Your version: also check whether this release is deprecated (npm) or yanked (PyPI)",
+)
+def deprecation(ecosystem, name, version):
+    """Read the publisher's deprecation and withdrawal flags (v0.20.0 C4).
+
+    npm's ``deprecated``, PyPI's yanked releases (PEP 592) and the
+    "Development Status :: 7 - Inactive" classifier. A flag is a finding to
+    review, never a verdict.
+    """
+    from core.registry_deprecation import CHECKED
+    from core.registry_deprecation import check as deprecation_check
+
+    result = deprecation_check(ecosystem, name, version)
+    if result["status"] != CHECKED:
+        _echo(f"not checked: {result['reason']}")
+        raise SystemExit(1)
+    findings = change_analyst.analyze_deprecations(result)
+    if not findings:
+        scope = f"{result['purl']} or release {version}" if version else result["purl"]
+        _echo(f"no deprecation or withdrawal flag on {scope} (latest {result['latest']}).")
+        return
+    for finding in findings:
+        _echo("\n" + report_analyst.render_finding_md(finding))
+
+
 def _observe_catalog_repositories(catalog, store, history_key, previous_keys):
     """Observe each catalog entry's GitHub repository; findings from its changes (C2).
 
@@ -1644,7 +1703,8 @@ def observe_github(
     is_flag=True,
     help=(
         "Run the live distribution sweep, observe the projects' GitHub repositories and "
-        "compare their packages' release licenses first, and include their findings"
+        "compare their packages' release licenses and deprecation flags first, and include "
+        "their findings"
     ),
 )
 @click.option(
@@ -1745,6 +1805,9 @@ def report(
         release_license_findings = _catalog_release_licenses(selected)
         _echo(f"release license findings: {len(release_license_findings)}")
         sweep_findings += release_license_findings
+        deprecation_findings = _catalog_deprecations(selected)
+        _echo(f"deprecation findings: {len(deprecation_findings)}")
+        sweep_findings += deprecation_findings
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."
