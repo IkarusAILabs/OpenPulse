@@ -275,6 +275,7 @@ OPENPULSE_WEBHOOK_URL=https://hooks.slack.com/services/... \
 openpulse discover --manifest go.mod --images images.txt --out .openpulse/discovered
 openpulse observe --namespace bitnami --repo redis
 openpulse observe-github --repo minio/minio
+openpulse release-license --ecosystem npm --package react --version 15.6.1
 openpulse analyze --project redis
 openpulse report --month 2026-09 --raw-bundle-dir path/to/bundles
 openpulse lifecycle-report --month 2026-09
