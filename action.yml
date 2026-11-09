@@ -103,6 +103,32 @@ inputs:
     description: Python used to run OpenPulse
     required: false
     default: '3.11'
+  history:
+    description: >-
+      Keep OpenPulse's history (observation history and detection ledger)
+      between runs in the Actions cache. off (default) or on. Needs
+      history-key. The restored history is audited before anything runs: a
+      broken, rolled-back, unkeyed or foreign history fails the step. Saved
+      only on the default branch.
+    required: false
+    default: 'off'
+  history-key:
+    description: >-
+      The history key that MACs the history, from a secret
+      (`openpulse history-key generate`). Passed to OpenPulse as an
+      environment variable only.
+    required: false
+    default: ''
+  history-previous-keys:
+    description: Retired history keys, one per line, from a secret (key rotation)
+    required: false
+    default: ''
+  history-id:
+    description: >-
+      Names the cached history, so jobs that watch different things keep
+      separate histories. Letters, digits, '.', '_' and '-'.
+    required: false
+    default: 'default'
 
 outputs:
   sarif-file:
@@ -122,6 +148,11 @@ outputs:
       With `gate`: the directory of gate receipts, one per gated file. Verify it
       immediately before install: `openpulse gate --verify-receipt <dir> FILE...`
     value: ${{ steps.gate.outputs.receipts }}
+  history-status:
+    description: >-
+      With `history: on`: OK (a history was restored and passed the audit) or
+      EMPTY (nothing restored: a first run, or an evicted cache)
+    value: ${{ steps.history-audit.outputs.status }}
 
 runs:
   using: composite
@@ -152,6 +183,70 @@ runs:
         "$bin/python" -m pip install --disable-pip-version-check -q \
           --no-deps -e "$ACTION_ROOT"
         echo "OPENPULSE_BIN=$bin" >> "$GITHUB_ENV"
+
+    # History between runs (v0.21.0 W2). Threat: a restored cache is input
+    # others can write - it is audited with the key before anything runs,
+    # and saved only from the default branch.
+    - id: history-setup
+      if: inputs.history != 'off'
+      name: Check the history inputs
+      shell: bash
+      env:
+        IN_HISTORY: ${{ inputs.history }}
+        IN_HISTORY_ID: ${{ inputs.history-id }}
+        IN_GATE: ${{ inputs.gate }}
+        HAS_KEY: ${{ inputs.history-key != '' }}
+      run: |
+        set -euo pipefail
+        case "$IN_HISTORY" in
+          on) ;;
+          *) echo "::error title=OpenPulse history::unknown history '$IN_HISTORY' (off, on)"; exit 2 ;;
+        esac
+        if [ -n "$IN_GATE" ]; then
+          echo "::warning title=OpenPulse history::history is not used with gate, which keeps none"
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ "$HAS_KEY" != "true" ]; then
+          echo "::error title=OpenPulse history::history: on needs history-key (a secret; openpulse history-key generate)"
+          exit 2
+        fi
+        if ! [[ "$IN_HISTORY_ID" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
+          echo "::error title=OpenPulse history::history-id must be 1-64 letters, digits, '.', '_' or '-'"
+          exit 2
+        fi
+        echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+    - id: history-restore
+      if: steps.history-setup.outputs.enabled == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          .openpulse/observations
+          .openpulse/detections
+        key: openpulse-history-v1-${{ inputs.history-id }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: openpulse-history-v1-${{ inputs.history-id }}-
+
+    - id: history-audit
+      if: steps.history-setup.outputs.enabled == 'true'
+      name: Audit the restored history
+      shell: bash
+      env:
+        OPENPULSE_HISTORY_KEY: ${{ inputs.history-key }}
+        OPENPULSE_HISTORY_KEYS_PREVIOUS: ${{ inputs.history-previous-keys }}
+        RESTORED: ${{ steps.history-restore.outputs.cache-matched-key }}
+      run: |
+        set -euo pipefail
+        set +e
+        "$OPENPULSE_BIN/openpulse" history-audit --require-keyed
+        rc=$?
+        set -e
+        if [ "$rc" -ne 0 ]; then
+          echo "::error title=OpenPulse history::the restored history was refused (see the log). It was not used and will not be saved. After checking why, delete the cache entry to start a new history: gh cache delete '$RESTORED'"
+          exit 1
+        fi
+        status="$("$OPENPULSE_BIN/openpulse" history-audit --require-keyed --json | "$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(sys.stdin)["status"])')"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
 
     # Pre-install gate (v0.15.0 Z3): only `openpulse gate`, before anything
     # is installed. Threat: a pull request weakening its own gate - the base
@@ -341,6 +436,19 @@ runs:
         sarif_file: ${{ steps.run.outputs.sarif-file }}
         category: openpulse
 
+    # Saved even when a gate failed (the history is still true), never after a
+    # refused audit, and only on the default branch: a pull request's history
+    # never becomes the one scheduled runs build on.
+    - if: >-
+        !cancelled() && steps.history-audit.outcome == 'success'
+        && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        && hashFiles('.openpulse/observations/**', '.openpulse/detections/**') != ''
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          .openpulse/observations
+          .openpulse/detections
+        key: openpulse-history-v1-${{ inputs.history-id }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Enforce fail-on
       if: steps.run.outputs.threshold-breached == 'true'
       shell: bash

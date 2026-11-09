@@ -57,8 +57,12 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `contracts-file` | `openpulse-contracts.jsonl` | Where to write the evidence-contract JSONL |
 | `upload-sarif` | `false` | Upload the SARIF to Code Scanning (needs `security-events: write`) |
 | `python-version` | `3.11` | Python version that runs OpenPulse, in an isolated venv |
+| `history` | `off` | `on` keeps OpenPulse's history between runs in the Actions cache; see *Keeping history between runs* |
+| `history-key` | (empty) | The history key, from a secret (`openpulse history-key generate`). Needed with `history: on` |
+| `history-previous-keys` | (empty) | Retired history keys, one per line, from a secret (key rotation) |
+| `history-id` | `default` | Names the cached history, so jobs that watch different things keep separate ones |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) and `threshold-breached` (`true` when `fail-on` or the trust policy failed the step).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`).
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
@@ -74,6 +78,41 @@ permissions:
 
 On pull requests from forks, the token is read-only and SARIF upload fails. Keep `upload-sarif: false` there and rely on the job summary.
 
+
+## Keeping history between runs (v0.21.0)
+
+A runner starts empty, so without help every run is a first run. With `history: on` the action keeps OpenPulse's history (`.openpulse/observations` and `.openpulse/detections`) in the Actions cache:
+
+1. **Restore** the newest saved history for this `history-id`.
+2. **Audit** it with `openpulse history-audit --require-keyed`, before anything else runs. The step fails, naming what and why, on a history whose chain is broken, that was rolled back or downgraded, that has a record or ledger entry not keyed with your key, or that was keyed with another key. A refused history is not used and not saved; after checking why, delete the cache entry the error names (`gh cache delete <key>`) to start a new history.
+3. **Run** as usual.
+4. **Save** the history under a new cache key, but only on the default branch, only after a passed audit, and only when there is something to save. A pull request reads the default branch's history but never writes the one scheduled runs build on.
+
+```yaml
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays 06:17 UTC
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          fail-on: none
+```
+
+Make the key once with `openpulse history-key generate` and store it as an Actions secret. The key reaches OpenPulse only as an environment variable. Output `history-status` is `OK` (a history was restored and passed) or `EMPTY` (a first run, or a cache GitHub evicted after 7 days unused: the history starts again, and nothing is backdated).
+
+What the audit cannot see: the whole history replaced by an older genuine copy of itself, such as an earlier cache entry left after the newer ones were deleted (deleting caches needs `actions: write`). Only a checkpoint kept outside the cache detects that: `openpulse anchor` and `openpulse verify --anchor` (`docs/SCHEDULED_CHECKS.md`).
+
+In v0.21.0 the history is filled by the steps that come next in this release: repository observations (W3) and new-only findings (W4).
 
 ## Registry changes of your dependencies (v0.21.0)
 

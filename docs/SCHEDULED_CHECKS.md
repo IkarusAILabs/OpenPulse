@@ -62,6 +62,8 @@ it too. Without `--fail-on`, `warnings` only reports.
 
 ### Keyed history across runs (lead times in CI)
 
+The OpenPulse Action does this for you with `history: on` (v0.21.0): it restores, audits and saves the history ([`docs/GITHUB_ACTION.md`](GITHUB_ACTION.md)). The steps below are for workflows that run the CLI directly. After restoring a cache yourself, run `openpulse history-audit --require-keyed` before anything else: it refuses a broken, rolled-back, unkeyed or foreign history.
+
 A fresh runner starts with an empty `.openpulse/`, so the recipe above
 records every detection as new and publishes no lead time. Lead times
 need two things: the detection ledger carried from run to run, and a
