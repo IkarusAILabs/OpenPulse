@@ -6,6 +6,7 @@ Status words: DONE, ACTIVE, NEXT, LATER, BLOCKED (waiting on a decision).
 
 ## Where we are (verified against `main` @ `a461bc9`, 2026-10-28)
 
+- **Update 2026-11-08 (v0.20 plan, owner-approved):** v0.20.0 "Change Evidence Beyond Lifecycle" is Phase 14 below (decision 19): M2's change classes that the schema names but nothing detects. Build order: C1 repository history, C2 repository changes, C3 per-release licenses, C4 deprecation, C5 evidence rules, C6 verified cases.
 - **Update 2026-11-08 (v0.19 released):** v0.19.0 "Evidence Consumer and Portability" is released (Phase 13, P1–P5: #336–#341). The exit holds: a consumer with no OpenPulse code validates every released contract version, 1.0 to 2.4, on documents written by each version's own release. After the release: D5's rest (#344) and H13 (#345) are on `main` under Unreleased, which completes Phase 1. What is left needs the owner: decisions 3, 6, 7, 9, 15, 17 and 18, D6 (ask first), and the scope of any Phase 14.
 - **Update 2026-11-07 (v0.18 released):** v0.18.0 "Inspection Coverage Assurance" is released (Phase 12, S2–S5: #331–#334; S1 shipped in v0.16.0). The exit holds: coverage is COMPLETE only when every dependency file in the recorded search was read, anything else is PARTIAL with each category named, and no summary reads as an all-clear over PARTIAL. Decision 15 (`--fail-on` on PARTIAL by default) stays open. Next: Phase 13 (v0.19.0).
 - **Update 2026-11-06 (v0.17 built):** G1–G6 are on `main` (#315, #322, #323, #325, #326 and the G6 docs). The exit condition holds: the bypass routes "a file changed after the gate" and "a lockfile regenerated after the gate" are "Yes" in `docs/TRUST_POLICY.md`, pinned by `tests/test_gate_bypass.py` and run end to end in `tests/test_e2e_install.py`. Still not covered, and documented: an install from a file the gate was not given, a lockfile the install command itself rewrites, a receipt written by hand, a skipped verification. v0.17.0 released 2026-11-06. Next: Phase 12 (v0.18.0).
@@ -366,6 +367,23 @@ Goal: show that an evidence contract means the same thing outside OpenPulse. `co
 
 **Exit:** a third party can validate, verify and read any released OpenPulse contract without OpenPulse, and gets the same outcomes OpenPulse reported, including every unknown.
 
+## Phase 14 — v0.20.0 "Change Evidence Beyond Lifecycle" (M2; approved 2026-11-08) — DONE, released 2026-11-09
+
+Goal: detect the upstream changes the schema already names but nothing produces. `LICENSE_CHANGE` and `DEPRECATION` have no detector; repository facts (archived, moved, license) were judged from the current snapshot only, so a license *change* could not be seen, and only container registries kept a verifiable history. M2's rule applies: formalisation and verification, not more mechanisms.
+
+| # | Item | Size | Depends on |
+|---|---|---|---|
+| C1 | ✅ **Repository observation history** (done: `core/observations/repository.py`, `openpulse observe-github`). GitHub repository facts (the queried path and the path GitHub answers with, `archived`, GitHub's license id, the last push, the default branch, and `missing` for a 404) kept as a hash-chained history beside the registry histories (`github.com/<owner>/<name>/`), with the same lock, tip pointer, ROLLBACK/DOWNGRADE/BROKEN refusals, reasoned re-baseline, history-key MACs and anchor coverage. Any failure other than a 404 records nothing | M | — |
+| C2 | ✅ **Repository changes become findings** (done: `diff_repository_observations`, `analyze_repository_changes`, `observe-github` and `report --with-sweep`; unarchived, a 404 and lost license evidence are changes, not findings; the history finding replaces the snapshot's restatement in a report): `LICENSE_CHANGE` (from one license id to another), archived, unarchived and moved to a new owner, each with the time it was first observed. "No license detected" or `NOASSERTION` is lost evidence, never a relicense. The snapshot rules stay for repositories with no history | M | C1 |
+| C3 | ✅ **License changes between releases** (done: `core/release_license.py`, `openpulse release-license`, `report --with-sweep` for catalog packages, changes published in the last 365 days; releases ordered by version, PyPI's two spellings never a change): npm and PyPI record a license per release, so a change between two releases is verifiable today, without waiting for history to build up. Reuses the existing registry fetchers and their host allowlist | M | — |
+| C4 | ✅ **Deprecated and withdrawn packages** (done: `core/registry_deprecation.py`, `openpulse deprecation`, `report --with-sweep` for catalog packages' package-level flags; npm read through version documents, so very large packages are still checked): npm `deprecated`, PyPI yanked releases (PEP 592) and the "Development Status :: 7 - Inactive" classifier become `DEPRECATION` findings. npm and PyPI only | M | — |
+| C5 | ✅ **Evidence rules** (done: each C2–C4 finding carries `confidence` and `evidence_basis`; `corroborate_repository_license` asks the registry only when GitHub reports a license change; `finding_lead_time` is lifecycle-only): a difference OpenPulse observed is moderate evidence (EMERGING); a flag the publisher set on the registry is the publisher's own statement; GitHub's license detection is a heuristic and needs the registry's license to agree before it is corroborated. First detection is recorded; lead time stays defined for lifecycle events only | S | C2–C4 |
+| C6 | ✅ **Verified cases before support is claimed** (done: Cases 11–16 in `docs/DISCOVERIES.md` replay recorded registry responses; `VERIFIED_CASES` and each finding's `support`; repository history ships experimental): each new class needs at least one replayable, verified case in `docs/DISCOVERIES.md`; until then it ships as experimental | S | C2–C5 |
+
+No contract version change: `LICENSE_CHANGE` and `DEPRECATION` are already in every contract schema's vocabulary. Not in v0.20.0: `MAINTAINER_CHANGE` (npm maintainer lists are noisy; v0.16's publisher-change indicator covers the risky case), `MAJOR_RELEASE` (a release, not a risk), a live firing for `split_moves` (cannot be forced), and new lockfile ecosystems (#153, #343).
+
+**Exit:** a license change, an archive or ownership transition and a package deprecation are each reported from verifiable evidence, with the time OpenPulse first saw it and an evidence strength that says how it was seen; each class has a verified case or is labelled experimental.
+
 ## Track T research — star-history indicators and the track T study (author-run, AI-assisted; started 2026-11-03) — ACTIVE
 
 Goal: the two track T items that needed data or a study, done by an AI assistant where that is sound (owner, 2026-11-03). Independence is not claimed: labels come from published third-party records, thresholds are frozen on organic data before any positive is read, and the protocol is registered by a named author before the run. R-C (track R's held-out evaluation) stays with an independent human team; AI only prepares it.
@@ -427,6 +445,7 @@ These compete for reviewer time, not for the same files:
 | 16 | v0.19.0 scope (Phase 13), including the consumer's one runtime dependency (`jsonschema`) — **decided 2026-11-03: approved** | P1–P5 |
 | 17 | Approve the track T study protocol (Part A) and register it under your name on OSF or Zenodo before the held-out data is read; an AI cannot be the accountable author — open | TR5 |
 | 18 | Use StarScout's flagged-repository lists as fake-star labels, kept local (git-ignored) and published only as aggregates, as its authors ask — open | TR1's positives, TR6 |
+| 19 | v0.20.0 scope (Phase 14): change evidence beyond lifecycle (repository history, license changes, deprecation), no contract version change — **decided 2026-11-08: approved** | C1–C6 |
 
 ## Risks
 

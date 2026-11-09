@@ -326,6 +326,96 @@ folder, tip included, still looks like a first run to the store
 itself; an anchor kept outside it detects that (below). It does not resist an adversary who
 recomputes the whole suffix, unless a history key is set.
 
+Repository observations (v0.20.0) keep GitHub repository facts the same
+way: `openpulse observe-github --repo owner/name` records the queried
+path and the path GitHub answers with, `archived`, GitHub's license id,
+the last push and the default branch, under `github.com/<owner>/<name>/`
+in the same store, with the same chain, tip, refusals, re-baseline,
+history-key MACs and anchor coverage. A 404 is recorded as `missing`
+(deleted, or not visible to the token); any other failure, such as a
+rate limit, records nothing, because it is not a fact about the
+repository. Paths are stored lower-case, as GitHub's are
+case-insensitive. A first observation is a baseline.
+
+Changes come only from two comparable records of one history (never
+across a genesis or a re-baseline). A new license id is a
+`LICENSE_CHANGE`; archiving is `PROJECT_ARCHIVED`; a new owner is
+`OWNERSHIP_CHANGE` (a same-owner rename stays silent, as in the snapshot
+rule). Each finding names the window between the two observations,
+because the change happened somewhere inside it; `effective_at` is when
+OpenPulse first saw it. A license that GitHub stops recognising (none,
+`NOASSERTION`) is lost evidence, not a relicense. An unarchive, a 404 and
+a restored repository are reported as changes but are not findings: a
+404 can mean a token that cannot see the repository. As with registry
+changes, `first_detected_at` is published only from a keyed history.
+
+## License changes between releases
+
+npm and PyPI record a license for each release, so a relicense can be
+checked without any history of OpenPulse's own (`openpulse
+release-license`, `core/release_license.py`). Releases are ordered by
+version precedence (semver for npm, PEP 440 for PyPI), not by publish
+time, so a backport of an older line never reads as a change back;
+prereleases and versions that do not order are left out, and a release
+without a usable license is skipped. npm's packument carries every
+release's license. PyPI's project document describes only the latest
+release, so two releases are compared, and a finding says when the
+releases between them were not. PyPI records a license three ways (PEP
+639 expression, the free-text field, classifiers); values of different
+kinds count as the same license when their text matches and are
+otherwise not compared. A change is a `LICENSE_CHANGE` for review, dated
+by the publish time of the release that carries the new license: it is
+what the publisher declared to the registry, not a reading of the
+license file.
+
+## Deprecated and withdrawn packages
+
+Three flags are set by the package's publisher on the registry itself
+(`openpulse deprecation`, `core/registry_deprecation.py`): npm's
+`deprecated` message, a yanked PyPI release (PEP 592) and the PyPI
+classifier "Development Status :: 7 - Inactive". npm is read through
+the `latest` version document and, when you name one, your version's;
+a deprecation on `latest` covers the package, one only on your version
+covers that release, and an empty message is a lifted deprecation. A
+PyPI release is yanked when all its files are; every release yanked, or
+the inactive classifier on the latest, covers the package. Each flag
+is a `DEPRECATION` for review carrying the publisher's message, bounded
+and single-line. The registry keeps no date for a flag, so
+`effective_at` is empty: OpenPulse knows when it saw the flag, not when
+it was set. A classifier is moderate evidence, as it describes the
+release it was published with and is rarely kept up to date.
+
+## Evidence rules for change evidence
+
+Each finding from repository history, release licenses and registry
+flags states its `confidence` and what it rests on (`evidence_basis`):
+
+- **A difference OpenPulse observed** (`observed_difference`): two
+  repository observations, or two releases' declared licenses. One
+  credible source: `EMERGING`.
+- **The publisher's own statement** (`publisher_statement`): npm's
+  `deprecated` and a PyPI yank are set by the publisher on its own
+  package: `CONFIRMED`. The Inactive classifier is also the publisher's,
+  but describes the release it shipped with: `EMERGING`.
+- **GitHub's license id** is a heuristic over the license file. A
+  license change it reports becomes `CORROBORATED` only when the
+  registry's license for the latest release of one of the project's
+  npm or PyPI packages names the new license (case, an SPDX `-only`
+  suffix and a trailing "License" ignored; nothing else). A registry
+  that still declares the old license leaves the finding `EMERGING`:
+  it may simply not have released since.
+
+First detection is recorded where a keyed history proves it (repository
+changes); release licenses and registry flags have no history of
+OpenPulse's own, so they carry none. Lead time is claimed for
+lifecycle events only: a relicense, an archive or a deprecation flag
+has no date it takes effect that OpenPulse could have warned ahead of.
+
+A class is claimed only with a verified, replayable case in
+`docs/DISCOVERIES.md` (`VERIFIED_CASES`); each finding carries
+`support: verified` and its cases, or `support: experimental`. Repository
+history is experimental until a real change is observed twice.
+
 With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
 made by `openpulse history-key generate`), every new observation
 record and detection-ledger entry also carries an HMAC-SHA256 under

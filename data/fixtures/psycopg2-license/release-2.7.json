@@ -1,0 +1,35 @@
+{
+ "captured": "2026-11-09",
+ "response": {
+  "info": {
+   "classifiers": [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
+    "License :: OSI Approved :: Zope Public License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 2.6",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.2",
+    "Programming Language :: Python :: 3.3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: SQL",
+    "Topic :: Database",
+    "Topic :: Database :: Front-Ends",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+   ],
+   "license": "LGPL with exceptions or ZPL",
+   "license_expression": null,
+   "version": "2.7"
+  }
+ },
+ "source_url": "https://pypi.org/pypi/psycopg2/2.7/json",
+ "trimmed": "only the fields the check reads, values verbatim"
+}

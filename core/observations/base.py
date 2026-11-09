@@ -181,23 +181,45 @@ def verify_observation_chain(records: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 class GitHubRepositoryObservation(ObservationBase):
+    """What GitHub said about one repository at one time (v0.20.0 C1).
+
+    ``namespace``/``repository`` are the path that was queried; ``full_name``
+    is the path GitHub answered with, so a transfer or rename shows as a
+    difference between the two. ``missing`` records a 404 (deleted, or made
+    private): a fact, not a failed observation. Every fact is under the
+    content hash; ``core.observations.repository`` builds, stores and
+    verifies these records.
+    """
+
     source: str = "github"
-    repo: str = ""
+    registry: str = "github.com"
+    namespace: str = ""
+    repository: str = ""
+    full_name: str | None = None
     archived: bool = False
+    missing: bool = False
+    license: str | None = Field(
+        default=None, description="GitHub's SPDX id (or license key); None when it detected none"
+    )
     pushed_at: str | None = None
     default_branch: str | None = None
-    license: str | None = None
 
     def integrity_body(self) -> dict[str, Any]:
         return {
-            "repo": self.repo,
+            "registry": self.registry,
+            "namespace": self.namespace,
+            "repository": self.repository,
+            "full_name": self.full_name,
             "archived": self.archived,
-            "pushed_at": self.pushed_at,
+            "missing": self.missing,
             "license": self.license,
+            "pushed_at": self.pushed_at,
+            "default_branch": self.default_branch,
         }
 
     def seal(self, body: dict[str, Any] | None = None) -> GitHubRepositoryObservation:  # type: ignore[override]
-        staged = self.model_copy(update={"entity_reference": self.entity_reference or self.repo})
+        reference = f"{self.registry}/{self.namespace}/{self.repository}"
+        staged = self.model_copy(update={"entity_reference": self.entity_reference or reference})
         return staged.model_copy(update=staged._seal_update(body or staged.integrity_body()))
 
 

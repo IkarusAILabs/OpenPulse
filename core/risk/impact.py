@@ -245,6 +245,19 @@ def _public_change(
             "any deployment is affected: review, never automatic action"
         )
         return _result(PROJECT_CHANGE, REVIEW, reasons)
+    if event_type == "LICENSE_CHANGE":
+        reasons.append(
+            "license change is a project-level fact; whether it matters depends "
+            "on the release you use and how: review, never automatic action"
+        )
+        return _result(PROJECT_CHANGE, REVIEW, reasons)
+    if event_type == "DEPRECATION":
+        reasons.append(
+            "deprecation is the publisher's statement about the package or a "
+            "release; what to move to depends on the release you use: review, "
+            "never automatic action"
+        )
+        return _result(PROJECT_CHANGE, REVIEW, reasons)
     if event_type == "DISTRIBUTION_CHANGE":
         if significance == "high" and finding.get("distribution_model_change"):
             reasons.append(
