@@ -60,6 +60,10 @@ that has already passed. The reason goes to stderr, so `--output json`
 stays parseable. As with every gate, FAILED repository coverage fails
 it too. Without `--fail-on`, `warnings` only reports.
 
+### Only what is new
+
+With the ledger on (the default), `check` ends with what it had not seen before: `new since the last run: 2 of 14 detection(s)` and the new ones, `none`, or on an empty ledger `first run with this ledger`. `check --new-only` lists only the dependencies with a new detection; the counts and `--strict` / `--fail-on` still cover every dependency. `attest --ledger PATH --new-findings new.json` writes the new ones as JSON. The ledger must be carried between runs (below), or every run is a first run.
+
 ### Keyed history across runs (lead times in CI)
 
 The OpenPulse Action does this for you with `history: on` (v0.21.0): it restores, audits and saves the history ([`docs/GITHUB_ACTION.md`](GITHUB_ACTION.md)). The steps below are for workflows that run the CLI directly. After restoring a cache yourself, run `openpulse history-audit --require-keyed` before anything else: it refuses a broken, rolled-back, unkeyed or foreign history.

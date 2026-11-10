@@ -442,6 +442,35 @@ def _registry_changes_option(func):
     )(func)
 
 
+def _echo_new(report, err=False) -> None:
+    """What this run recorded for the first time (W4); nothing when no fact is tracked."""
+    if report is None or not report["facts"]:
+        return
+    if report["baseline"]:
+        _echo(
+            f"first run with this ledger: {report['new_facts']} detection(s) recorded; "
+            "later runs say what is new",
+            err=err,
+        )
+        return
+    if not report["new"]:
+        _echo(
+            f"new since the last run: none ({report['facts']} detection(s) already known)",
+            err=err,
+        )
+        return
+    _echo(
+        f"new since the last run: {report['new_facts']} of {report['facts']} detection(s)",
+        err=err,
+    )
+    for item in report["new"]:
+        _echo(
+            f"  + {strip_unsafe(item['dependency'])}: {strip_unsafe(item['title'])} "
+            f"[{item['impact']}]",
+            err=err,
+        )
+
+
 def _observe_repositories_option(func):
     """--observe-repositories and its store: the repositories your dependencies name (W3)."""
     func = click.option(
@@ -2755,6 +2784,12 @@ def _load_check_inputs(
 @_history_key_option
 @_registry_changes_option
 @_observe_repositories_option
+@click.option(
+    "--new-only",
+    is_flag=True,
+    help="List only dependencies with a detection first recorded in this run (needs the "
+    "ledger). Counts and gates still cover every dependency",
+)
 def check(
     watchlist,
     sbom,
@@ -2785,6 +2820,7 @@ def check(
     registry_changes=False,
     observe_repositories=False,
     observation_store=".openpulse/observations",
+    new_only=False,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -2840,25 +2876,26 @@ def check(
     # enrichment, never a prerequisite - a busy lock must degrade the
     # run to today's no-ledger output, not crash the command a cron
     # schedule depends on.
+    new_report = None
+    if new_only and not ledger_root:
+        raise click.ClickException("--new-only needs the ledger (--ledger must not be empty)")
     if ledger_root:
-        from core.detections.ledger import keyed_first_seen, record_detection
+        from core.detections.ledger import keyed_first_seen
         from core.history_key import keyring
+        from core.new_detections import record_new_detections
         from core.risk.check import detections_from_verdicts
 
         history_key, previous_keys = _load_history_key(
             history_key_file, history_previous_keys_file, ledger_root
         )
         try:
-            for fact in detections_from_verdicts(results, loaded_events):
-                record_detection(
-                    fact["project"],
-                    fact["finding_class"],
-                    fact["subject"],
-                    scope=fact["scope"],
-                    root=ledger_root,
-                    history_key=history_key,
-                    previous_keys=previous_keys,
-                )
+            new_report = record_new_detections(
+                results,
+                loaded_events,
+                ledger_root=ledger_root,
+                history_key=history_key,
+                previous_keys=previous_keys,
+            )
         except TimeoutError:
             _echo("ledger busy - detections not recorded this run", err=True)
         else:
@@ -2894,6 +2931,7 @@ def check(
 
         text = render_check_digest(results, coverage_note=_coverage_note(inspections))
         _echo(text)
+        _echo_new(new_report)
         if webhook and delivery_root:
             _deliver_alerts(
                 webhook,
@@ -2932,9 +2970,15 @@ def check(
             raise SystemExit(1)
         return
     registry_titles = {e.id: e.title for events in own_events.values() for e in events}
+    # --new-only (W4): only dependencies with a detection first recorded this
+    # run are listed. The counts and every gate still cover all of them.
+    newly = {item["dependency"] for item in new_report["new"]} if new_report else set()
     for dep, result in zip(deps, results):
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
         relationship = result.relationship
+        if new_only and str(result.dependency) not in newly:
+            affected += 1 if result.affected else 0
+            continue
         if result.affected:
             affected += 1
             first_note = (
@@ -2970,6 +3014,7 @@ def check(
         )
     else:
         _echo(f"\n{affected}/{len(deps)} dependencies affected")
+    _echo_new(new_report)
     from core.risk.check import fail_on_threshold, strict_affected
 
     # Same gate as the digest branch: --fail-on must not depend on
@@ -3453,6 +3498,21 @@ def _warnings_gate(built, fail_on, inspections) -> None:
 @_registry_changes_option
 @_observe_repositories_option
 @_history_key_option
+@click.option(
+    "--ledger",
+    "ledger_root",
+    default="",
+    callback=_untracked,
+    help="Record this run's detections in the detection ledger at PATH and say which are "
+    "new since the last run (off by default; `check` uses .openpulse/detections)",
+)
+@click.option(
+    "--new-findings",
+    "new_findings_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="With --ledger: write the detections first recorded in this run to PATH as JSON",
+)
 def attest(
     watchlist,
     sbom,
@@ -3483,6 +3543,8 @@ def attest(
     observation_store=".openpulse/observations",
     history_key_file=None,
     history_previous_keys_file=None,
+    ledger_root="",
+    new_findings_path="",
 ):
     """Emit one evidence-contract document per dependency × event pair.
 
@@ -3709,6 +3771,44 @@ def attest(
         for v in violations
         if v["index"] in labels
     ]
+    # What this run detected for the first time (W4), from the combined
+    # per-dependency verdicts `check` records. Recorded before any gate
+    # exits: a failed gate does not make the detection less true.
+    new_report = None
+    if new_findings_path and not ledger_root:
+        raise click.ClickException("--new-findings needs --ledger")
+    if ledger_root:
+        from core.new_detections import record_new_detections
+
+        history_key, previous_keys = _load_history_key(
+            history_key_file, history_previous_keys_file, ledger_root
+        )
+        try:
+            new_report = record_new_detections(
+                [
+                    check_dependency(
+                        dep,
+                        [*loaded_events, *own_events.get(index, [])],
+                        bundles,
+                        as_of=evaluation.as_of,
+                        max_evidence_age=evaluation.max_evidence_age,
+                    )
+                    for index, dep in enumerate(deps)
+                ],
+                [*loaded_events, *(e for events in own_events.values() for e in events)],
+                ledger_root=ledger_root,
+                history_key=history_key,
+                previous_keys=previous_keys,
+            )
+        except TimeoutError:
+            _echo("ledger busy - detections not recorded this run", err=True)
+        _echo_new(new_report, err=True)
+        if new_findings_path:
+            payload = dict(new_report or {"baseline": False, "new": [], "facts": 0, "new_facts": 0})
+            payload["recorded"] = new_report is not None
+            _Path(new_findings_path).write_text(
+                _json.dumps(payload, indent=2, sort_keys=True) + NL, encoding="utf-8"
+            )
     if sarif_path or summary_path:
         from core.sarif import build_sarif, render_summary
 
@@ -3729,6 +3829,10 @@ def attest(
             # every step of the job.
             with open(summary_path, "a", encoding="utf-8") as handle:
                 handle.write(render_summary(sarif_doc))
+                if new_report is not None:
+                    from core.new_detections import render_new_md
+
+                    handle.write(render_new_md(new_report))
     if defectdojo_path:
         from core.defectdojo import build_findings
 

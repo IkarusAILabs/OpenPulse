@@ -17,8 +17,9 @@ Bridge rules:
   check was asked about that release; the event is never offered to
   another version of the same package.
 - Scope versions stay empty: a registry flag carries no release-cycle
-  identity, so it is not recorded as a lifecycle fact in the detection
-  ledger (``durable_fact_from_cause``).
+  identity, so it is never a lifecycle fact in the detection ledger and
+  never yields a lead time. It is recorded as a change under its event id
+  (``ledger.CHANGE``, W4), which is how a later run knows it is not new.
 - Impact is REVIEW, as the finding placed it; confidence is the
   finding's own (C5): CONFIRMED for a flag the publisher set, EMERGING
   for a classifier or an observed license difference.

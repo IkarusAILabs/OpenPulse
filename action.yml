@@ -162,6 +162,16 @@ outputs:
       With `history: on`: OK (a history was restored and passed the audit) or
       EMPTY (nothing restored: a first run, or an evicted cache)
     value: ${{ steps.history-audit.outputs.status }}
+  new-findings:
+    description: >-
+      With `history: on`: how many detections this run recorded for the first
+      time. On a first run (history-status EMPTY) every detection is new.
+    value: ${{ steps.run.outputs.new-findings }}
+  new-findings-file:
+    description: >-
+      With `history: on`: a JSON file listing the detections first recorded in
+      this run (dependency, type, title, impact, evidence URLs)
+    value: ${{ steps.run.outputs.new-findings-file }}
 
 runs:
   using: composite
@@ -420,6 +430,16 @@ runs:
           *) echo "::error title=OpenPulse::unknown registry-changes '$IN_REGISTRY_CHANGES' (off, all)"; exit 2 ;;
         esac
 
+        # New since the last run (v0.21.0 W4): with a kept history, detections
+        # are recorded in its ledger and the first-time ones listed.
+        ledger=()
+        new_file=""
+        if [ "$HISTORY_ENABLED" = "true" ]; then
+          new_file="$RUNNER_TEMP/openpulse-new-findings.json"
+          rm -f "$new_file"
+          ledger=(--ledger .openpulse/detections --new-findings "$new_file")
+        fi
+
         gate=()
         case "$IN_FAIL_ON" in
           none|'') ;;
@@ -433,7 +453,7 @@ runs:
         set +e
         # ${a[@]+...}: empty arrays under `set -u` on bash 3.2 (macOS).
         "$OPENPULSE_BIN/openpulse" attest "${args[@]}" "${events[@]}" ${gate[@]+"${gate[@]}"} \
-          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"}           ${observe[@]+"${observe[@]}"} \
+          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"}           ${observe[@]+"${observe[@]}"} ${ledger[@]+"${ledger[@]}"} \
           --output "$IN_CONTRACTS" --sarif "$IN_SARIF" --summary "$summary"
         rc=$?
         set -e
@@ -458,6 +478,13 @@ runs:
           echo "inspection-coverage=$coverage"
           echo "threshold-breached=$breached"
         } >> "$GITHUB_OUTPUT"
+        if [ -n "$new_file" ] && [ -f "$new_file" ]; then
+          new_count="$("$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["new_facts"])' "$new_file")"
+          {
+            echo "new-findings=$new_count"
+            echo "new-findings-file=$new_file"
+          } >> "$GITHUB_OUTPUT"
+        fi
 
     # Threat: an unpinned upload action - pinned by SHA like ci.yml.
     - if: inputs.upload-sarif == 'true' && inputs.gate == ''

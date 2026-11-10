@@ -148,9 +148,12 @@ def test_a_registry_event_is_not_a_lifecycle_fact_in_the_ledger():
     event = registry_finding_to_event(_uuid_finding(), "uuid", today=TODAY)
     verdict = check_dependency(_dep("uuid", "3.4.0"), [event])
     assert verdict.affected and verdict.relationship == "AFFECTS_PACKAGE"
-    # No release-cycle identity: nothing durable to record (W4 decides what is new).
+    # No release-cycle identity: never a lifecycle fact (so never a lead time).
+    # It is remembered as a change, under its own event id (W4).
     assert event.scope.versions == []
-    assert detections_from_verdicts([verdict], [event]) == []
+    assert detections_from_verdicts([verdict], [event]) == [
+        {"project": "uuid", "finding_class": "change", "subject": event.id, "scope": []}
+    ]
 
 
 def test_a_license_change_event_names_both_releases():
