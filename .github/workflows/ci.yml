@@ -248,9 +248,23 @@ jobs:
           observe-repositories: 'on'
           sarif-file: ${{ runner.temp }}/observe.sarif
           contracts-file: ${{ runner.temp }}/observe.jsonl
+      # Threat: delivery with no kept history (v0.21.0 W5): every run would be a
+      # first run, so nothing could ever be sent. Refused before anything runs.
+      - id: notify-no-history
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          notify-issue: 'on'
+          sarif-file: ${{ runner.temp }}/notify.sarif
+          contracts-file: ${{ runner.temp }}/notify.jsonl
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
+          NOTIFY_NO_HISTORY_OUTCOME: ${{ steps.notify-no-history.outcome }}
+          PASS_DELIVERY: ${{ steps.pass.outputs.delivery }}
+          HISTORY_OK_DELIVERY: ${{ steps.history-ok.outputs.delivery }}
           PASS_BREACHED: ${{ steps.pass.outputs.threshold-breached }}
           PASS_COVERAGE: ${{ steps.pass.outputs.inspection-coverage }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
@@ -286,6 +300,11 @@ jobs:
           test ! -e "$RUNNER_TEMP/refused.sarif"
           test "$HISTORY_NO_KEY_OUTCOME" = failure
           test "$OBSERVE_NO_HISTORY_OUTCOME" = failure
+          # v0.21.0 W5: delivery needs a kept history, and is off unless asked for.
+          test "$NOTIFY_NO_HISTORY_OUTCOME" = failure
+          test ! -e "$RUNNER_TEMP/notify.sarif"
+          test -z "$PASS_DELIVERY"
+          test -z "$HISTORY_OK_DELIVERY"
           test ! -e "$RUNNER_TEMP/observe.sarif"
           test "$GATE_PASS_OUTCOME" = success
           test "$GATE_PASS_BREACHED" = false

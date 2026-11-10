@@ -63,7 +63,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `history-previous-keys` | (empty) | Retired history keys, one per line, from a secret (key rotation) |
 | `history-id` | `default` | Names the cached history, so jobs that watch different things keep separate ones |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`), and with `history: on` also `new-findings` (how many detections are new since the last run) and `new-findings-file` (a JSON list of them).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`), and with `history: on` also `new-findings` (how many detections are new since the last run) and `new-findings-file` (a JSON list of them), and with `notify-webhook` or `notify-issue` also `delivery`.
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
@@ -75,6 +75,7 @@ Grant the least privilege you need:
 permissions:
   contents: read          # always enough for path inputs and public-repo discovery
   security-events: write  # ONLY when upload-sarif: true (or a separate upload step)
+  issues: write           # ONLY when notify-issue: on
 ```
 
 On pull requests from forks, the token is read-only and SARIF upload fails. Keep `upload-sarif: false` there and rely on the job summary.
@@ -137,6 +138,43 @@ With `history: on` the action records each run's detections in the kept ledger a
       - if: steps.openpulse.outputs.new-findings != '0' && steps.openpulse.outputs.history-status == 'OK'
         run: cat "${{ steps.openpulse.outputs.new-findings-file }}"
 ```
+
+## Delivering what is new (v0.21.0)
+
+The job summary always has the *New since the last run* section. To be told without opening the run, add one or both:
+
+- `notify-issue: on` keeps **one issue** in the repository. The first new finding opens it (title "OpenPulse: new findings in your dependencies"); later ones are added as comments, so watchers are notified. If you close it, the next new finding opens another. The job needs `issues: write`.
+- `notify-webhook` posts the new findings as JSON text (`{"text": ...}`: Slack incoming webhooks and most receivers accept it). Pass the URL from a secret. With `notify-webhook-secret` (at least 32 characters) the post is signed; see *Signed posts* in [SCHEDULED_CHECKS.md](SCHEDULED_CHECKS.md).
+
+```yaml
+    permissions:
+      contents: read
+      issues: write           # ONLY for notify-issue: on
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          fail-on: none
+          notify-issue: 'on'
+          notify-webhook: ${{ secrets.OPENPULSE_WEBHOOK_URL }}
+          notify-webhook-secret: ${{ secrets.OPENPULSE_WEBHOOK_SECRET }}
+```
+
+What to expect:
+
+- Both need `history: on`; without a kept history every run would be a first run. The inputs are refused otherwise.
+- **Nothing is sent for a first run** (`history-status: EMPTY`): its detections are the starting point, not news. This also holds after the cache was evicted.
+- **Only the default branch delivers.** A pull request's run does not save its history, so its findings would be sent again on every push. There the output `delivery` is `skipped`.
+- Output `delivery` is `delivered`, `none` (nothing new), `skipped` or `failed`.
+- **A failed delivery fails the job**, after the history is saved. The finding is in that run's job summary, and a later run does not list it again, so a failed run is the signal to look.
+- An existing issue is used only when the repository opened it: `github-actions[bot]`, or an owner, member or collaborator. Anyone can open an issue with the same title; such an issue is ignored. With a personal access token from an outside account, each delivery would open a new issue.
+- The issue is looked for among the 300 most recently created open issues.
+- Package names and titles come from upstream. In the issue they are shown as code, so an `@name` or `#123` inside them neither notifies nor links. Only http(s) evidence URLs are kept. At most 50 findings are listed per delivery; the rest are counted.
+- GitHub Enterprise Server is not supported for the issue: the token is sent to `api.github.com` only.
 
 ## Watching the repositories of your dependencies (v0.21.0)
 

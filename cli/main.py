@@ -30,8 +30,7 @@ def _check_catalog() -> None:
         pass  # no catalog: identity resolution falls back to self, as documented
     except CatalogCollisionError as exc:
         raise click.ClickException(
-            f"{exc}. Fix data/canonical_projects.yaml so each alias and image "
-            "names one project."
+            f"{exc}. Fix data/canonical_projects.yaml so each alias and image names one project."
         ) from exc
 
 
@@ -58,8 +57,7 @@ def _warn_if_token_file_shared(path: str | None, stat=os.stat) -> None:
         return  # the read that follows reports it
     if mode & 0o077:
         _echo(
-            f"warning: GitHub token file {path} is readable by other users; "
-            f"run chmod 600 {path}",
+            f"warning: GitHub token file {path} is readable by other users; run chmod 600 {path}",
             err=True,
         )
 
@@ -403,9 +401,7 @@ def _attest_trust(deps, private_names, base_keys=None):
     unique = {key for _, _, key in eligible}
     lookups = agent_tools.Lookups(
         cache_dir=agent_tools.default_cache_dir(),
-        budget=min(
-            _ATTEST_TRUST_MAX_LOOKUPS, _ATTEST_TRUST_LOOKUPS_PER_DEP * len(unique) + 10
-        ),
+        budget=min(_ATTEST_TRUST_MAX_LOOKUPS, _ATTEST_TRUST_LOOKUPS_PER_DEP * len(unique) + 10),
     )
     blocks: dict[Any, Any] = {}
     out: dict[int, Any] = {}
@@ -523,9 +519,7 @@ def _dependency_repository_events(deps, store, key_file, previous_file):
             err=True,
         )
     for failure in result["failures"]:
-        _echo(
-            f"! repository not observed: {failure['repository']}: {failure['reason']}", err=True
-        )
+        _echo(f"! repository not observed: {failure['repository']}: {failure['reason']}", err=True)
     hidden = s["failed"] - len(result["failures"])
     if hidden > 0:
         _echo(f"! {hidden} more repository(s) not observed", err=True)
@@ -719,9 +713,7 @@ def _policy_violations(
             unchecked += [
                 dict(v, index=index) for v in _policy.unchecked(loaded, dep, records, private)
             ]
-        if key in locked and (
-            key not in digests or digests[key].get("status") == "NOT_PERFORMED"
-        ):
+        if key in locked and (key not in digests or digests[key].get("status") == "NOT_PERFORMED"):
             for rule in loaded.rules:
                 if _policy.CONDITIONS[rule.condition][0] == "digest_integrity" and (
                     not rule.packages or _policy._matches(rule.packages, dep)
@@ -1183,8 +1175,10 @@ def gate_command(
             lockfile = path if kind in ("npm", "poetry") else None
             base_lockfile = base if lockfile and base else None
             checked += len(deps)
-            added += len(deps) if base_keys is None else sum(
-                agent_tools._dependency_key(d) not in base_keys for d in deps
+            added += (
+                len(deps)
+                if base_keys is None
+                else sum(agent_tools._dependency_key(d) not in base_keys for d in deps)
             )
             violations += _policy_violations(
                 deps,
@@ -1433,6 +1427,97 @@ def history_audit_command(
         if hidden > 0:
             _echo(f"! and {hidden} more")
     if result["status"] == REFUSED:
+        raise SystemExit(1)
+
+
+@cli.command(name="deliver-new")
+@click.argument("new_findings", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--webhook",
+    default=None,
+    envvar="OPENPULSE_WEBHOOK_URL",
+    help="POST the new findings to a JSON-text webhook (e.g. Slack incoming); "
+    "https, public hosts only",
+)
+@click.option(
+    "--webhook-allow-http",
+    is_flag=True,
+    help="Opt in to plain-http webhooks (https is required by default)",
+)
+@click.option(
+    "--webhook-secret-file",
+    default=None,
+    type=click.Path(dir_okay=False),
+    help="Sign the webhook post with the secret on the first line of PATH "
+    "(or set OPENPULSE_WEBHOOK_SECRET); receivers verify X-OpenPulse-Signature",
+)
+@click.option(
+    "--issue",
+    "issue_repo",
+    default=None,
+    help="Open one issue in OWNER/NAME for the new findings, or comment on the open one "
+    "(token from GITHUB_TOKEN, with issues: write)",
+)
+@click.option("--issue-title", default=None, help="Title of that issue (it identifies it)")
+@click.option("--run-url", default=None, help="A link to the run, added to the message")
+def deliver_new_command(
+    new_findings,
+    webhook=None,
+    webhook_allow_http=False,
+    webhook_secret_file=None,
+    issue_repo=None,
+    issue_title=None,
+    run_url=None,
+):
+    """Send what a run recorded for the first time to a webhook or one issue (W5).
+
+    NEW_FINDINGS is the file `attest --ledger --new-findings` wrote. Nothing is
+    sent for a first run with a ledger or when nothing is new. Exit 1 when a
+    delivery failed: the detections are already recorded, so a later run will
+    not list them again.
+    """
+    from core import new_delivery
+
+    if not webhook and not issue_repo:
+        raise click.ClickException("nothing to deliver to: give --webhook or --issue")
+    try:
+        report = new_delivery.load_new_findings(new_findings)
+    except new_delivery.NewFindingsError as exc:
+        raise click.ClickException(str(exc)) from exc
+    signing_secret = _load_webhook_secret(webhook_secret_file) if webhook else None
+    if not new_delivery.deliverable(report):
+        reason = "a first run is the starting point" if report.get("baseline") else "nothing new"
+        _echo(f"deliver-new: nothing sent ({reason})")
+        return
+    failed = False
+    if webhook:
+        sent = new_delivery.deliver_webhook(
+            webhook,
+            report,
+            run_url=run_url,
+            allow_http=webhook_allow_http,
+            signing_secret=signing_secret,
+        )
+        if sent["ok"]:
+            _echo(f"deliver-new: webhook delivered ({len(report['new'])} new)")
+        else:
+            failed = True
+            _echo(f"deliver-new: webhook delivery failed: {sent['error']}", err=True)
+    if issue_repo:
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        sent = new_delivery.deliver_issue(
+            issue_repo,
+            report,
+            token=token,
+            title=issue_title or new_delivery.DEFAULT_ISSUE_TITLE,
+            run_url=run_url,
+        )
+        if sent["ok"]:
+            _echo(f"deliver-new: issue #{sent['number']} {sent['action']}")
+        else:
+            failed = True
+            _echo(f"deliver-new: issue delivery failed: {sent['error']}", err=True)
+    if failed:
         raise SystemExit(1)
 
 
@@ -1788,9 +1873,7 @@ def deprecation(ecosystem, name, version):
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
-def _observe_catalog_repositories(
-    catalog, store, history_key, previous_keys, fetch_json=None
-):
+def _observe_catalog_repositories(catalog, store, history_key, previous_keys, fetch_json=None):
     """Observe each catalog entry's GitHub repository; findings from its changes (C2).
 
     Failures (a rate limit, a refused history) are reported and skipped: a
@@ -1818,9 +1901,7 @@ def _observe_catalog_repositories(
         if any(f["event_type"] == "LICENSE_CHANGE" for f in found):
             # GitHub's license id is a heuristic: ask the registry (C5).
             registry = _registry_licenses(entry, fetch_json=fetch_json)
-            found = [
-                change_analyst.corroborate_repository_license(f, registry) for f in found
-            ]
+            found = [change_analyst.corroborate_repository_license(f, registry) for f in found]
         findings += found
     return findings
 
@@ -3478,8 +3559,7 @@ def _warnings_gate(built, fail_on, inspections) -> None:
     "private_names",
     type=click.Path(dir_okay=False),
     default=None,
-    help="With --trust: private-name list (default: .openpulse/private-packages.txt if "
-    "present)",
+    help="With --trust: private-name list (default: .openpulse/private-packages.txt if present)",
 )
 @click.option(
     "--base-manifest",
