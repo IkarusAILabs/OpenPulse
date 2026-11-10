@@ -47,9 +47,10 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `github-repo` | `${{ github.repository }}` | Used only when no path input is set: discovers dependency files through the GitHub API. It reads the **default branch**, so on `pull_request` use path inputs instead. |
 | `events` | curated set | Event JSON paths, separated by whitespace or newlines. The default is the curated events bundled with the action: Bitnami catalog, Bitnami Spark, Django 4.2 EOL and the iText license change. The other files under `data/fixtures/` are test scenarios, not defaults. |
 | `fail-on` | `action` | `affected`, `review`, `action`, `critical` or `none` |
-| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs. |
+| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs, unless `observe-repositories: on` needs it to read GitHub. |
 | `trust` | `off` | `off`, `pull-request` (dependencies a pull request adds or changes) or `all`. Live lookups; see *Trust checks and a trust policy* |
 | `registry-changes` | `off` | `off` or `all`: read npm and PyPI for each dependency's own release (live lookups); see *Registry changes of your dependencies* |
+| `observe-repositories` | `off` | `on` records the GitHub repository each npm and PyPI dependency names in the kept history and reports changes since the last run. Needs `history: on`; see *Watching the repositories of your dependencies* |
 | `policy` | (empty) | Trust policy file; empty uses `.openpulse/policy.yml` when present |
 | `gate` | (empty) | Dependency files for the pre-install gate. When set, the step runs only `openpulse gate`; see *Before install: the `gate` input* |
 | `base-sha` | the pull request's base | Base commit for `trust: pull-request` and `gate` |
@@ -91,7 +92,7 @@ A runner starts empty, so without help every run is a first run. With `history: 
 ```yaml
 on:
   schedule:
-    - cron: '17 6 * * 1'   # Mondays 06:17 UTC
+    - cron: '17 6 * * *'   # daily 06:17 UTC (a cache unused for 7 days is evicted)
 
 jobs:
   watch:
@@ -112,7 +113,32 @@ Make the key once with `openpulse history-key generate` and store it as an Actio
 
 What the audit cannot see: the whole history replaced by an older genuine copy of itself, such as an earlier cache entry left after the newer ones were deleted (deleting caches needs `actions: write`). Only a checkpoint kept outside the cache detects that: `openpulse anchor` and `openpulse verify --anchor` (`docs/SCHEDULED_CHECKS.md`).
 
-In v0.21.0 the history is filled by the steps that come next in this release: repository observations (W3) and new-only findings (W4).
+The history is filled by `observe-repositories: on` (below); new-only findings (W4) come next in this release.
+
+## Watching the repositories of your dependencies (v0.21.0)
+
+`observe-repositories: on` records, for each npm and PyPI dependency, the GitHub repository its registry metadata names as its source, in the kept history (`history: on`):
+
+- **The first run is a baseline.** Nothing can have changed yet, so it reports only what a repository already is: archived, or answering under another owner than the one the package names.
+- **Later runs report what changed** between two observations: a license change, an archive, or a move to a new owner. Each is a `warning` under `openpulse/license-change`, `openpulse/project-archived` or `openpulse/ownership-change`, for every dependency that names the repository, with the repository as evidence. A change is reported once, in the run that sees it.
+- Results are `REVIEW`: they fail the step only with `fail-on: review` or `fail-on: affected`.
+- The link from package to repository is the publisher's claim, not verified here (the `repository_linkage` trust check does that).
+- The log counts what was not observed: packages naming no repository, registries or GitHub that gave no answer, and repositories past the limit of 300 per run. A failure records nothing and is never read as a change.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          observe-repositories: 'on'
+          registry-changes: all
+          fail-on: none
+```
+
+GitHub is read once per repository. The action passes `github-token` (the job token by default) to OpenPulse for this, so the reads count against the job's own rate limit instead of the anonymous one; the token is sent to `api.github.com` only. Without `observe-repositories` the token is still removed before `openpulse attest` runs on path inputs.
+
+**Run it more often than weekly.** GitHub evicts a cache entry not used for 7 days, so a weekly schedule can lose its history between runs and start again from a baseline. A daily schedule keeps it.
 
 ## Registry changes of your dependencies (v0.21.0)
 

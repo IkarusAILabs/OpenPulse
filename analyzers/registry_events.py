@@ -107,4 +107,69 @@ def registry_finding_to_event(
     )
 
 
-__all__ = ["event_id", "registry_finding_to_event"]
+def repository_finding_to_event(
+    finding: dict[str, Any],
+    purl: str,
+    project_slug: str,
+    repository: str,
+    today: date | None = None,
+) -> OSSEvent:
+    """A repository-history finding -> an event for one dependency (v0.21.0 W3).
+
+    ``repository`` is the GitHub repository the package's registry metadata
+    names as its source; the finding is a change OpenPulse saw between two
+    records of that repository's history (``analyze_repository_changes``).
+    The event is scoped to the package's purl and offered to that dependency
+    only, like a registry event. The link from package to repository is the
+    publisher's claim, not verified here, and the summary says so. The id
+    carries the day the change was first seen, so the same kind of change
+    seen again later is another event.
+    """
+    if not str(purl).startswith("pkg:"):
+        raise ValueError("a dependency event names its package as a purl")
+    event_type = str(finding.get("event_type") or "")
+    if event_type not in ("LICENSE_CHANGE", "PROJECT_ARCHIVED", "OWNERSHIP_CHANGE"):
+        raise ValueError(f"not a repository-history finding: {event_type!r}")
+    references = [r for r in finding.get("references") or [] if str(r).startswith("https://")]
+    observed = (today or date.today()).isoformat()
+    seen = _effective(finding.get("effective_at")) or observed
+    summary = (
+        f"{finding.get('summary') or ''} {purl} names {repository} as its source "
+        "repository on the registry; that link is the publisher's claim and is not "
+        "verified here."
+    ).strip()
+    return OSSEvent(
+        id="evt-repository-"
+        + "-".join(_id_part(p) for p in (event_type.lower(), repository, purl, seen)),
+        project_slug=str(project_slug or purl),
+        event_type=event_type,
+        title=str(finding.get("title") or ""),
+        summary=summary,
+        confidence=str(finding.get("confidence") or "EMERGING"),
+        impact="REVIEW",
+        affected_versions=["*"],
+        affected_artifacts=[
+            {"kind": "package", "ref": purl},
+            {"kind": "source-repository", "ref": f"github.com/{repository}"},
+        ],
+        evidences=[
+            {
+                "source": {
+                    "name": "github.com",
+                    "url": references[0] if references else f"https://github.com/{repository}",
+                    "authority": "primary",
+                    "fetched_at": f"{observed}T00:00:00Z",
+                    "acquisition_method": "https-collector",
+                },
+                "excerpt": summary[:2000],
+                "effective_date": seen,
+                "announcement_date": None,
+                "relation": "supports",
+            }
+        ],
+        scope={"kind": "package", "packages": [purl], "versions": []},
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+__all__ = ["event_id", "registry_finding_to_event", "repository_finding_to_event"]
