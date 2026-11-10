@@ -830,6 +830,17 @@ def durable_fact_from_cause(
         }
     if cause.get("cause") != "upstream_change":
         return None
+    event_id = str(cause.get("event_id") or "")
+    if event_id.startswith(ledger.CHANGE_EVENT_PREFIXES):
+        # A registry or repository change built for this dependency (W4):
+        # its event id is its identity. Checked before the lifecycle rule,
+        # because a registry DEPRECATION is not a release-cycle fact.
+        return {
+            "project": project,
+            "finding_class": ledger.CHANGE,
+            "subject": event_id,
+            "scope": [],
+        }
     event_type = str(cause.get("event_type") or "")
     if event_type not in _LIFECYCLE_EVENT_TYPES:
         return None  # distribution changes keep observation-history detection

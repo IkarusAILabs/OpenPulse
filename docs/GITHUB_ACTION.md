@@ -63,7 +63,7 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `history-previous-keys` | (empty) | Retired history keys, one per line, from a secret (key rotation) |
 | `history-id` | `default` | Names the cached history, so jobs that watch different things keep separate ones |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`), and with `history: on` also `new-findings` (how many detections are new since the last run) and `new-findings-file` (a JSON list of them).
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
@@ -113,7 +113,30 @@ Make the key once with `openpulse history-key generate` and store it as an Actio
 
 What the audit cannot see: the whole history replaced by an older genuine copy of itself, such as an earlier cache entry left after the newer ones were deleted (deleting caches needs `actions: write`). Only a checkpoint kept outside the cache detects that: `openpulse anchor` and `openpulse verify --anchor` (`docs/SCHEDULED_CHECKS.md`).
 
-The history is filled by `observe-repositories: on` (below); new-only findings (W4) come next in this release.
+The history is filled by the detection ledger (*New since the last run*) and by `observe-repositories: on` (both below).
+
+## New since the last run (v0.21.0)
+
+With `history: on` the action records each run's detections in the kept ledger and says which ones it had not seen before:
+
+- The job summary gets a **New since the last run** section: a table of the new detections, "Nothing new", or on a first run "First run with this history".
+- Output `new-findings` is the number of detections recorded for the first time, and `new-findings-file` is a JSON file listing them (dependency, type, title, impact, evidence URLs), for a later step to post or file.
+- The SARIF and the contracts are unchanged: they always describe everything the run found, so Code Scanning keeps tracking each alert. Gates (`fail-on`) also cover everything, not only what is new.
+- "New" means new to this history. If the cache was evicted, the next run is a first run again; nothing is backdated.
+
+```yaml
+      - id: openpulse
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          observe-repositories: 'on'
+          fail-on: none
+      - if: steps.openpulse.outputs.new-findings != '0' && steps.openpulse.outputs.history-status == 'OK'
+        run: cat "${{ steps.openpulse.outputs.new-findings-file }}"
+```
 
 ## Watching the repositories of your dependencies (v0.21.0)
 

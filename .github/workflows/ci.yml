@@ -265,6 +265,9 @@ jobs:
           GATE_BLOCK_BREACHED: ${{ steps.gate-block.outputs.threshold-breached }}
           HISTORY_OK_OUTCOME: ${{ steps.history-ok.outcome }}
           HISTORY_OK_STATUS: ${{ steps.history-ok.outputs.history-status }}
+          HISTORY_OK_NEW: ${{ steps.history-ok.outputs.new-findings }}
+          HISTORY_OK_NEW_FILE: ${{ steps.history-ok.outputs.new-findings-file }}
+          PASS_NEW: ${{ steps.pass.outputs.new-findings }}
           HISTORY_REFUSED_OUTCOME: ${{ steps.history-refused.outcome }}
           HISTORY_REFUSED_SARIF: ${{ steps.history-refused.outputs.sarif-file }}
           HISTORY_NO_KEY_OUTCOME: ${{ steps.history-no-key.outcome }}
@@ -273,6 +276,10 @@ jobs:
           set -euo pipefail
           test "$HISTORY_OK_OUTCOME" = success
           test "$HISTORY_OK_STATUS" = OK
+          # v0.21.0 W4: with a kept history the run says what is new; without, nothing.
+          [[ "$HISTORY_OK_NEW" =~ ^[0-9]+$ ]]
+          test -f "$HISTORY_OK_NEW_FILE"
+          test -z "$PASS_NEW"
           test "$HISTORY_REFUSED_OUTCOME" = failure
           # A refused history stops the run before attest: nothing is written.
           test -z "$HISTORY_REFUSED_SARIF"
