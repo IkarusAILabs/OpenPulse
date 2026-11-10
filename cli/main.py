@@ -1278,6 +1278,60 @@ def history_key_generate():
     _echo(f"key_id: {key_id}", err=True)
 
 
+@cli.command(name="history-audit")
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--require-keyed",
+    is_flag=True,
+    help="Also refuse anything not keyed with a supplied history key (needs a key)",
+)
+@click.option("--json", "as_json", is_flag=True, help="Print the result as JSON")
+@_history_key_option
+def history_audit_command(
+    store,
+    ledger_root,
+    require_keyed=False,
+    as_json=False,
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
+    """Audit every stored history before using it; exit 1 on anything refused (W2).
+
+    For a history restored from somewhere others can write, such as the
+    Actions cache: a broken, rolled-back, downgraded or foreign history is
+    refused, with what and why. An older genuine copy of the whole store is
+    not detectable here; `openpulse verify --anchor` is.
+    """
+    import json as _json
+
+    from core.history_audit import REFUSED, audit_history
+
+    keys = _history_keyring(history_key_file, history_previous_keys_file, store, ledger_root)
+    if require_keyed and not keys:
+        raise click.ClickException(
+            "--require-keyed needs a history key (OPENPULSE_HISTORY_KEY or --history-key-file)"
+        )
+    result = audit_history(store, ledger_root, keys, require_keyed=require_keyed)
+    if as_json:
+        click.echo(_json.dumps(result, indent=2, sort_keys=True))
+    else:
+        _echo(
+            f"history audit: {result['status']} ({result['histories']} observation "
+            f"history(s), {result['ledger_entries']} ledger entry(s))"
+        )
+        for problem in result["problems"]:
+            _echo(
+                f"! {problem['kind']} {problem['subject']}: {problem['status']} - "
+                f"{problem['detail']}"
+            )
+        hidden = result["problems_total"] - len(result["problems"])
+        if hidden > 0:
+            _echo(f"! and {hidden} more")
+    if result["status"] == REFUSED:
+        raise SystemExit(1)
+
+
 @cli.command(name="anchor")
 @click.option("--store", default=".openpulse/observations", help="Observation history root")
 @click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")

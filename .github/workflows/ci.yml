@@ -182,6 +182,60 @@ jobs:
         with:
           gate: data/fixtures/manifests/requirements.txt
           policy: ${{ runner.temp }}/policy.yml
+      # Threat: a restored history used without its audit (v0.21.0 W2). A
+      # throwaway key (masked; it guards nothing) MACs a ledger entry written
+      # by `check`; the action must pass that history, refuse it once an
+      # entry is backdated, and refuse history without a key. The history id
+      # is per run, so no earlier run's cache is ever restored here.
+      - name: Write a keyed history
+        id: history-key
+        run: |
+          set -euo pipefail
+          key="$("$OPENPULSE_BIN/openpulse" history-key generate 2>/dev/null)"
+          echo "::add-mask::$key"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          OPENPULSE_HISTORY_KEY="$key" "$OPENPULSE_BIN/openpulse" check             --manifest data/fixtures/manifests/requirements.txt             --event data/fixtures/django-eol/event.json > /dev/null
+          ls .openpulse/detections/*/*.json > /dev/null
+      - id: history-ok
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          history-key: ${{ steps.history-key.outputs.key }}
+          history-id: ci-${{ github.run_id }}-${{ matrix.os }}
+          sarif-file: ${{ runner.temp }}/history.sarif
+          contracts-file: ${{ runner.temp }}/history.jsonl
+      - name: Backdate a ledger entry
+        run: |
+          set -euo pipefail
+          entry="$(ls .openpulse/detections/*/*.json | head -n 1)"
+          "$OPENPULSE_BIN/python" - "$entry" <<'PY'
+          import json, sys
+          entry = json.load(open(sys.argv[1], encoding="utf-8"))
+          entry["first_seen"] = "2020-01-01T00:00:00+00:00"
+          json.dump(entry, open(sys.argv[1], "w", encoding="utf-8"))
+          PY
+      - id: history-refused
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          history-key: ${{ steps.history-key.outputs.key }}
+          history-id: ci-${{ github.run_id }}-${{ matrix.os }}-refused
+          sarif-file: ${{ runner.temp }}/refused.sarif
+          contracts-file: ${{ runner.temp }}/refused.jsonl
+      - id: history-no-key
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          sarif-file: ${{ runner.temp }}/no-key.sarif
+          contracts-file: ${{ runner.temp }}/no-key.jsonl
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
@@ -197,8 +251,20 @@ jobs:
           GATE_DIGEST_OUTCOME: ${{ steps.gate-digest.outcome }}
           GATE_BLOCK_OUTCOME: ${{ steps.gate-block.outcome }}
           GATE_BLOCK_BREACHED: ${{ steps.gate-block.outputs.threshold-breached }}
+          HISTORY_OK_OUTCOME: ${{ steps.history-ok.outcome }}
+          HISTORY_OK_STATUS: ${{ steps.history-ok.outputs.history-status }}
+          HISTORY_REFUSED_OUTCOME: ${{ steps.history-refused.outcome }}
+          HISTORY_REFUSED_SARIF: ${{ steps.history-refused.outputs.sarif-file }}
+          HISTORY_NO_KEY_OUTCOME: ${{ steps.history-no-key.outcome }}
         run: |
           set -euo pipefail
+          test "$HISTORY_OK_OUTCOME" = success
+          test "$HISTORY_OK_STATUS" = OK
+          test "$HISTORY_REFUSED_OUTCOME" = failure
+          # A refused history stops the run before attest: nothing is written.
+          test -z "$HISTORY_REFUSED_SARIF"
+          test ! -e "$RUNNER_TEMP/refused.sarif"
+          test "$HISTORY_NO_KEY_OUTCOME" = failure
           test "$GATE_PASS_OUTCOME" = success
           test "$GATE_PASS_BREACHED" = false
           test -z "$GATE_PASS_SARIF"
