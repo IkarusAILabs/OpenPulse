@@ -139,6 +139,30 @@ inputs:
     required: false
     default: 'default'
 
+  notify-webhook:
+    description: >-
+      Send what is new since the last run to this webhook URL as JSON text
+      (Slack incoming webhooks and most receivers accept it). Pass it from a
+      secret. https and public hosts only. Needs history on; sent only from
+      the default branch, and never for a first run.
+    required: false
+    default: ''
+  notify-webhook-secret:
+    description: >-
+      Sign the webhook post (X-OpenPulse-Signature, HMAC-SHA256 with a
+      timestamp) with this secret, at least 32 characters. Pass it from a
+      secret.
+    required: false
+    default: ''
+  notify-issue:
+    description: >-
+      Keep one issue in this repository for what is new since the last run:
+      'on' opens it the first time and comments on it afterwards; off
+      (default). Needs history on and a github-token with issues: write. Only
+      from the default branch, and never for a first run.
+    required: false
+    default: 'off'
+
 outputs:
   sarif-file:
     description: Path of the SARIF log
@@ -172,6 +196,12 @@ outputs:
       With `history: on`: a JSON file listing the detections first recorded in
       this run (dependency, type, title, impact, evidence URLs)
     value: ${{ steps.run.outputs.new-findings-file }}
+
+  delivery:
+    description: >-
+      With notify-webhook or notify-issue: delivered, none (nothing new, or a
+      first run), skipped (not the default branch) or failed
+    value: ${{ steps.deliver.outputs.delivery }}
 
 runs:
   using: composite
@@ -305,6 +335,9 @@ runs:
         IN_TRUST: ${{ inputs.trust }}
         IN_REGISTRY_CHANGES: ${{ inputs.registry-changes }}
         IN_OBSERVE: ${{ inputs.observe-repositories }}
+        IN_NOTIFY_ISSUE: ${{ inputs.notify-issue }}
+        # Only whether a URL was given: the URL itself is not in this step.
+        IN_NOTIFY_WEBHOOK_SET: ${{ inputs.notify-webhook != '' }}
         HISTORY_ENABLED: ${{ steps.history-setup.outputs.enabled }}
         # The history key MACs what observe-repositories records; env only.
         OPENPULSE_HISTORY_KEY: ${{ inputs.history-key }}
@@ -430,6 +463,16 @@ runs:
           *) echo "::error title=OpenPulse::unknown registry-changes '$IN_REGISTRY_CHANGES' (off, all)"; exit 2 ;;
         esac
 
+        # Delivery (v0.21.0 W5) sends what the kept ledger had not seen.
+        case "$IN_NOTIFY_ISSUE" in
+          off|''|on) ;;
+          *) echo "::error title=OpenPulse::unknown notify-issue '$IN_NOTIFY_ISSUE' (off, on)"; exit 2 ;;
+        esac
+        if [ "$HISTORY_ENABLED" != "true" ] && { [ "$IN_NOTIFY_ISSUE" = on ] || [ "$IN_NOTIFY_WEBHOOK_SET" = "true" ]; }; then
+          echo "::error title=OpenPulse::notify-webhook and notify-issue need history: on and history-key"
+          exit 2
+        fi
+
         # New since the last run (v0.21.0 W4): with a kept history, detections
         # are recorded in its ledger and the first-time ones listed.
         ledger=()
@@ -486,6 +529,48 @@ runs:
           } >> "$GITHUB_OUTPUT"
         fi
 
+    # Delivery (v0.21.0 W5). Threats: a pull request's findings posted as news
+    # (only the default branch delivers: its history is the one that is
+    # saved, so each finding is sent once); secrets in argv (the URL, the
+    # signing secret and the token are env only); a failed post that nobody
+    # notices (the job fails at the end, after the history is saved).
+    - id: deliver
+      if: >-
+        steps.run.outputs.new-findings-file != ''
+        && (inputs.notify-webhook != '' || inputs.notify-issue == 'on')
+      name: Deliver new findings
+      shell: bash
+      env:
+        NEW_FILE: ${{ steps.run.outputs.new-findings-file }}
+        ON_DEFAULT_BRANCH: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        OPENPULSE_WEBHOOK_URL: ${{ inputs.notify-webhook }}
+        OPENPULSE_WEBHOOK_SECRET: ${{ inputs.notify-webhook-secret }}
+        IN_NOTIFY_ISSUE: ${{ inputs.notify-issue }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ISSUE_REPO: ${{ github.repository }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        if [ "$ON_DEFAULT_BRANCH" != "true" ]; then
+          echo "OpenPulse: new findings are delivered only from the default branch"
+          echo "delivery=skipped" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        news="$("$OPENPULSE_BIN/python" -c 'import sys; from core.new_delivery import deliverable, load_new_findings; print("yes" if deliverable(load_new_findings(sys.argv[1])) else "no")' "$NEW_FILE")"
+        if [ "$news" != "yes" ]; then
+          echo "OpenPulse: nothing new to deliver"
+          echo "delivery=none" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        target=(--run-url "$RUN_URL")
+        [ "$IN_NOTIFY_ISSUE" = on ] && target+=(--issue "$ISSUE_REPO")
+        if "$OPENPULSE_BIN/openpulse" deliver-new "$NEW_FILE" "${target[@]}"; then
+          echo "delivery=delivered" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error title=OpenPulse::a new finding could not be delivered (see the log); it is in this run's job summary and will not be listed again"
+          echo "delivery=failed" >> "$GITHUB_OUTPUT"
+        fi
+
     # Threat: an unpinned upload action - pinned by SHA like ci.yml.
     - if: inputs.upload-sarif == 'true' && inputs.gate == ''
       uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
@@ -518,6 +603,13 @@ runs:
         else
           echo "::error title=OpenPulse::gate failed: fail-on $IN_FAIL_ON threshold or a trust policy violation (see the job summary and log)"
         fi
+        exit 1
+
+    - name: Report a failed delivery
+      if: steps.deliver.outputs.delivery == 'failed'
+      shell: bash
+      run: |
+        echo "::error title=OpenPulse::new findings were not delivered (see the Deliver new findings step)"
         exit 1
 
     - name: Enforce the gate
