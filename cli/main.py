@@ -442,6 +442,81 @@ def _registry_changes_option(func):
     )(func)
 
 
+def _observe_repositories_option(func):
+    """--observe-repositories and its store: the repositories your dependencies name (W3)."""
+    func = click.option(
+        "--observation-store",
+        "observation_store",
+        default=".openpulse/observations",
+        show_default=True,
+        callback=_store_root,
+        help="History root for --observe-repositories (shared with `observe-github`)",
+    )(func)
+    return click.option(
+        "--observe-repositories",
+        "observe_repositories",
+        is_flag=True,
+        help="Also record the GitHub repository each npm and PyPI package names as its "
+        "source in a verifiable history (live lookups), and report a license change, an "
+        "archive or a move to a new owner since the last run as a REVIEW finding. The "
+        "first run is a baseline. Use a history key to prove when a change was first seen",
+    )(func)
+
+
+def _dependency_repository_events(deps, store, key_file, previous_file):
+    """{dependency index: [events]} from observing each dependency's repository (W3).
+
+    What was not observed is said on stderr, never dropped silently.
+    """
+    from core.dependency_repositories import observe_dependency_repositories
+
+    history_key, previous_keys = _load_history_key(key_file, previous_file, store)
+    result = observe_dependency_repositories(
+        deps, store_root=store, history_key=history_key, previous_keys=previous_keys
+    )
+    s = result["summary"]
+    _echo(
+        f"repositories: {s['observed']} of {s['repositories']} observed "
+        f"({s['baselines']} for the first time), {s['changes']} change(s), "
+        f"{s['findings']} finding(s)",
+        err=True,
+    )
+    _echo(
+        f"repositories: {s['packages']} npm and PyPI package(s) read; {s['no_repository']} "
+        f"name no GitHub repository, {s['registry_unanswered']} had no registry answer, "
+        f"{s['unsupported']} dependency(s) of other ecosystems not read",
+        err=True,
+    )
+    if history_key is None:
+        _echo(
+            "repositories: no history key, so the history is not keyed and no "
+            "first-detection time is proven (openpulse history-key generate)",
+            err=True,
+        )
+    for failure in result["failures"]:
+        _echo(
+            f"! repository not observed: {failure['repository']}: {failure['reason']}", err=True
+        )
+    hidden = s["failed"] - len(result["failures"])
+    if hidden > 0:
+        _echo(f"! {hidden} more repository(s) not observed", err=True)
+    if s["not_observed"]:
+        _echo(
+            f"! {s['not_observed']} repository(s) not observed: over the per-run limit",
+            err=True,
+        )
+    return result["events"]
+
+
+def _merge_own_events(*groups):
+    """One {dependency index: [events]} from several."""
+    merged: dict[int, list[Any]] = {}
+    for group in groups:
+        for index, events in group.items():
+            merged.setdefault(index, []).extend(events)
+    return merged
+
+
 def _dependency_registry_events(deps, today=None):
     """{dependency index: [events]} for the registry changes of each release (W1).
 
@@ -2679,6 +2754,7 @@ def _load_check_inputs(
 @_policy_option
 @_history_key_option
 @_registry_changes_option
+@_observe_repositories_option
 def check(
     watchlist,
     sbom,
@@ -2707,6 +2783,8 @@ def check(
     history_previous_keys_file=None,
     policy_path=None,
     registry_changes=False,
+    observe_repositories=False,
+    observation_store=".openpulse/observations",
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
@@ -2737,6 +2815,13 @@ def check(
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
     # Registry changes (W1) are built per dependency and judged with it alone.
     own_events = _dependency_registry_events(deps) if registry_changes else {}
+    if observe_repositories:
+        own_events = _merge_own_events(
+            own_events,
+            _dependency_repository_events(
+                deps, observation_store, history_key_file, history_previous_keys_file
+            ),
+        )
     results = [
         check_dependency(
             dep,
@@ -3366,6 +3451,8 @@ def _warnings_gate(built, fail_on, inspections) -> None:
 )
 @_policy_option
 @_registry_changes_option
+@_observe_repositories_option
+@_history_key_option
 def attest(
     watchlist,
     sbom,
@@ -3392,6 +3479,10 @@ def attest(
     base_manifest=None,
     base_lockfile=None,
     registry_changes=False,
+    observe_repositories=False,
+    observation_store=".openpulse/observations",
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """Emit one evidence-contract document per dependency × event pair.
 
@@ -3577,6 +3668,13 @@ def attest(
     labels: dict[int, str] = {}
     # Registry changes (W1): events built for one dependency, attested with it alone.
     own_events = _dependency_registry_events(deps) if registry_changes else {}
+    if observe_repositories:
+        own_events = _merge_own_events(
+            own_events,
+            _dependency_repository_events(
+                deps, observation_store, history_key_file, history_previous_keys_file
+            ),
+        )
     for index, (dep, uri) in enumerate(zip(deps, uris, strict=True)):
         for event in [*loaded_events, *own_events.get(index, [])]:
             verdict = check_dependency(

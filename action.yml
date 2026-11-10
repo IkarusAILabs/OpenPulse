@@ -68,6 +68,15 @@ inputs:
       affected.
     required: false
     default: 'off'
+  observe-repositories:
+    description: >-
+      Record the GitHub repository each npm and PyPI dependency names as its
+      source in the kept history, and report a license change, an archive or
+      a move to a new owner since the last run (live lookups). off (default)
+      or on. Needs history on. The first run is a baseline. Uses github-token
+      to read GitHub.
+    required: false
+    default: 'off'
   policy:
     description: >-
       Trust policy file (docs/TRUST_POLICY.md). Empty: .openpulse/policy.yml
@@ -285,6 +294,11 @@ runs:
         IN_CONTRACTS: ${{ inputs.contracts-file }}
         IN_TRUST: ${{ inputs.trust }}
         IN_REGISTRY_CHANGES: ${{ inputs.registry-changes }}
+        IN_OBSERVE: ${{ inputs.observe-repositories }}
+        HISTORY_ENABLED: ${{ steps.history-setup.outputs.enabled }}
+        # The history key MACs what observe-repositories records; env only.
+        OPENPULSE_HISTORY_KEY: ${{ inputs.history-key }}
+        OPENPULSE_HISTORY_KEYS_PREVIOUS: ${{ inputs.history-previous-keys }}
         IN_POLICY: ${{ inputs.policy }}
         IN_BASE_SHA: ${{ inputs.base-sha }}
         IN_TOKEN: ${{ inputs.github-token }}
@@ -373,6 +387,22 @@ runs:
             fi ;;
           *) echo "::error title=OpenPulse::unknown trust '$IN_TRUST' (off, pull-request, all)"; exit 2 ;;
         esac
+        # Repositories of your dependencies (v0.21.0 W3): recorded in the kept
+        # history. Without one every run would be a first observation.
+        observe=()
+        case "$IN_OBSERVE" in
+          off|'') ;;
+          on)
+            if [ "$HISTORY_ENABLED" != "true" ]; then
+              echo "::error title=OpenPulse::observe-repositories: on needs history: on and history-key"
+              exit 2
+            fi
+            observe=(--observe-repositories)
+            # GitHub is read once per repository: the token (read-only use,
+            # sent to api.github.com only) lifts the anonymous rate limit.
+            if [ -n "$IN_TOKEN" ]; then export GITHUB_TOKEN="$IN_TOKEN"; fi ;;
+          *) echo "::error title=OpenPulse::unknown observe-repositories '$IN_OBSERVE' (off, on)"; exit 2 ;;
+        esac
         unset IN_TOKEN
         policy=()
         if [ -n "$base_policy" ]; then
@@ -403,7 +433,7 @@ runs:
         set +e
         # ${a[@]+...}: empty arrays under `set -u` on bash 3.2 (macOS).
         "$OPENPULSE_BIN/openpulse" attest "${args[@]}" "${events[@]}" ${gate[@]+"${gate[@]}"} \
-          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"} \
+          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"}           ${observe[@]+"${observe[@]}"} \
           --output "$IN_CONTRACTS" --sarif "$IN_SARIF" --summary "$summary"
         rc=$?
         set -e

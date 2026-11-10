@@ -236,6 +236,18 @@ jobs:
           history: 'on'
           sarif-file: ${{ runner.temp }}/no-key.sarif
           contracts-file: ${{ runner.temp }}/no-key.jsonl
+      # Threat: observing repositories with no kept history (v0.21.0 W3): every
+      # run would be a first observation, so nothing could ever be reported.
+      # The input is refused before anything runs (offline: no lookup is made).
+      - id: observe-no-history
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          observe-repositories: 'on'
+          sarif-file: ${{ runner.temp }}/observe.sarif
+          contracts-file: ${{ runner.temp }}/observe.jsonl
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
@@ -256,6 +268,7 @@ jobs:
           HISTORY_REFUSED_OUTCOME: ${{ steps.history-refused.outcome }}
           HISTORY_REFUSED_SARIF: ${{ steps.history-refused.outputs.sarif-file }}
           HISTORY_NO_KEY_OUTCOME: ${{ steps.history-no-key.outcome }}
+          OBSERVE_NO_HISTORY_OUTCOME: ${{ steps.observe-no-history.outcome }}
         run: |
           set -euo pipefail
           test "$HISTORY_OK_OUTCOME" = success
@@ -265,6 +278,8 @@ jobs:
           test -z "$HISTORY_REFUSED_SARIF"
           test ! -e "$RUNNER_TEMP/refused.sarif"
           test "$HISTORY_NO_KEY_OUTCOME" = failure
+          test "$OBSERVE_NO_HISTORY_OUTCOME" = failure
+          test ! -e "$RUNNER_TEMP/observe.sarif"
           test "$GATE_PASS_OUTCOME" = success
           test "$GATE_PASS_BREACHED" = false
           test -z "$GATE_PASS_SARIF"
