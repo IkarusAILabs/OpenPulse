@@ -14,7 +14,7 @@ Every answer is evidence, not a decision. It names its sources, lists what it co
 ## Install
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.20.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.21.0"
 openpulse mcp --help
 ```
 

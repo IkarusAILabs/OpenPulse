@@ -2,7 +2,9 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
-## Unreleased
+## 0.21.0 "Your Dependencies, Watched" — 2026-11-12
+
+Phase 15 (M6): the v0.20.0 change checks reach the dependencies a project actually uses, and a scheduled run remembers what it saw. `check`, `attest` and the Action read the registry for each npm and PyPI dependency in your own files and observe the repositories they name; the Action keeps its history between runs and audits it on restore; a run says which detections are new since the last one, and can send them to a webhook or one issue. Everything new is opt-in, and a first run is a starting point, never a list of news. No contract version change. Composer and NuGet lockfiles are read (part of #153).
 
 ### Added
 
@@ -18,7 +20,7 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 ### Upgrade notes
 
 - **No gate changes by default.** `--registry-changes`, `registry-changes`, `--observe-repositories` and `observe-repositories` are opt-in. Turned on, a registry change is a `REVIEW` result: it fails a run only under `--fail-on review` or `--fail-on affected` (`--strict` and `--fail-on action` stay as they were).
-- **The first finding of a project that began clean is now reported as new.** A run that detected nothing left the ledger without entries, so the next run looked like a first run and took its findings for the starting point: they were never listed as new or delivered. Every run that records now leaves a marker (a file named `STARTED`) in the ledger, also when it found nothing. `check` therefore creates `.openpulse/detections/` on a clean run too. Found by the W6 end-to-end test, before any release contained W4.
+- **A run with the ledger on leaves a marker in it.** Every run that records writes a file named `STARTED` at the ledger root, also when it found nothing, so the first finding of a project that began clean is reported as new and not taken for the starting point. `check` therefore creates `.openpulse/detections/` on a clean run too.
 - **`check` prints one more line when it records detections.** With the ledger on (the default) and at least one durable detection, the output ends with a `new since the last run` or `first run with this ledger` line. `check --registry-changes` now writes a ledger entry per registry change.
 - **The agent tools read the registry for each live dependency.** `dependency_status` and `check_dependency_file` with live lookups now spend two more lookups per npm or PyPI dependency (one for deprecation flags, one for release licenses), under the same session budget, and report deprecations and license changes among `causes`.
 

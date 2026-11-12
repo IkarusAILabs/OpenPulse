@@ -49,7 +49,7 @@ What makes the evidence usable:
 **For AI coding agents.** `openpulse mcp` is an [MCP](https://modelcontextprotocol.io) server, so Claude Code, Cursor, Copilot and other clients can ask before they change a dependency:
 
 ```bash
-pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.20.0"
+pip install "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.21.0"
 claude mcp add openpulse -- openpulse mcp      # Claude Code
 ```
 
@@ -91,7 +91,7 @@ permissions:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with: {persist-credentials: false}
-  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+  - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
     with:
       manifest: requirements.txt
       fail-on: action        # fail only on ACTION/CRITICAL upstream findings
@@ -203,6 +203,15 @@ The full list, including what an attacker with write access to local history can
 - **Quality:** more than 2,100 offline tests (count reported by CI), `ruff` clean, CI on Linux and Windows with CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret tripwire. Every install is hash-checked against complete locks.
 
 ## What's new
+
+**v0.21.0 "Your Dependencies, Watched":** the change checks for your own dependencies, on a schedule, told once.
+
+- **Your own dependencies:** `--registry-changes` on `check` and `attest` (and the Action's `registry-changes: all`) reports a deprecated or yanked release, an Inactive project and a license change for each npm and PyPI dependency in your files.
+- **Their repositories:** `--observe-repositories` records the GitHub repository each dependency names and reports a license change, an archive or a move to a new owner between two runs.
+- **History between runs:** the Action's `history: on` keeps the keyed history in the Actions cache and audits it before use (`openpulse history-audit`); a broken, rolled-back or foreign history is refused.
+- **Only what is new:** a run says which detections it had not seen (`check --new-only`, the job summary, the `new-findings` outputs). A first run is the starting point.
+- **Delivery:** `openpulse deliver-new`, `notify-webhook` and `notify-issue` send the new findings to a signed webhook or one issue, once.
+- **More lockfiles:** `composer.lock` and NuGet `packages.lock.json` are read.
 
 **v0.20.0 "Change Evidence Beyond Lifecycle":** changes that are not end-of-life dates, each with the evidence it rests on.
 
