@@ -47,8 +47,10 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `github-repo` | `${{ github.repository }}` | Used only when no path input is set: discovers dependency files through the GitHub API. It reads the **default branch**, so on `pull_request` use path inputs instead. |
 | `events` | curated set | Event JSON paths, separated by whitespace or newlines. The default is the curated events bundled with the action: Bitnami catalog, Bitnami Spark, Django 4.2 EOL and the iText license change. The other files under `data/fixtures/` are test scenarios, not defaults. |
 | `fail-on` | `action` | `affected`, `review`, `action`, `critical` or `none` |
-| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs. |
+| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs, unless `observe-repositories: on` needs it to read GitHub. |
 | `trust` | `off` | `off`, `pull-request` (dependencies a pull request adds or changes) or `all`. Live lookups; see *Trust checks and a trust policy* |
+| `registry-changes` | `off` | `off` or `all`: read npm and PyPI for each dependency's own release (live lookups); see *Registry changes of your dependencies* |
+| `observe-repositories` | `off` | `on` records the GitHub repository each npm and PyPI dependency names in the kept history and reports changes since the last run. Needs `history: on`; see *Watching the repositories of your dependencies* |
 | `policy` | (empty) | Trust policy file; empty uses `.openpulse/policy.yml` when present |
 | `gate` | (empty) | Dependency files for the pre-install gate. When set, the step runs only `openpulse gate`; see *Before install: the `gate` input* |
 | `base-sha` | the pull request's base | Base commit for `trust: pull-request` and `gate` |
@@ -56,8 +58,12 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `contracts-file` | `openpulse-contracts.jsonl` | Where to write the evidence-contract JSONL |
 | `upload-sarif` | `false` | Upload the SARIF to Code Scanning (needs `security-events: write`) |
 | `python-version` | `3.11` | Python version that runs OpenPulse, in an isolated venv |
+| `history` | `off` | `on` keeps OpenPulse's history between runs in the Actions cache; see *Keeping history between runs* |
+| `history-key` | (empty) | The history key, from a secret (`openpulse history-key generate`). Needed with `history: on` |
+| `history-previous-keys` | (empty) | Retired history keys, one per line, from a secret (key rotation) |
+| `history-id` | `default` | Names the cached history, so jobs that watch different things keep separate ones |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) and `threshold-breached` (`true` when `fail-on` or the trust policy failed the step).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`), and with `history: on` also `new-findings` (how many detections are new since the last run) and `new-findings-file` (a JSON list of them), and with `notify-webhook` or `notify-issue` also `delivery`.
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
@@ -69,10 +75,149 @@ Grant the least privilege you need:
 permissions:
   contents: read          # always enough for path inputs and public-repo discovery
   security-events: write  # ONLY when upload-sarif: true (or a separate upload step)
+  issues: write           # ONLY when notify-issue: on
 ```
 
 On pull requests from forks, the token is read-only and SARIF upload fails. Keep `upload-sarif: false` there and rely on the job summary.
 
+
+## Keeping history between runs (v0.21.0)
+
+A runner starts empty, so without help every run is a first run. With `history: on` the action keeps OpenPulse's history (`.openpulse/observations` and `.openpulse/detections`) in the Actions cache:
+
+1. **Restore** the newest saved history for this `history-id`.
+2. **Audit** it with `openpulse history-audit --require-keyed`, before anything else runs. The step fails, naming what and why, on a history whose chain is broken, that was rolled back or downgraded, that has a record or ledger entry not keyed with your key, or that was keyed with another key. A refused history is not used and not saved; after checking why, delete the cache entry the error names (`gh cache delete <key>`) to start a new history.
+3. **Run** as usual.
+4. **Save** the history under a new cache key, but only on the default branch, only after a passed audit, and only when there is something to save. A pull request reads the default branch's history but never writes the one scheduled runs build on.
+
+```yaml
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily 06:17 UTC (a cache unused for 7 days is evicted)
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          fail-on: none
+```
+
+Make the key once with `openpulse history-key generate` and store it as an Actions secret. The key reaches OpenPulse only as an environment variable. Output `history-status` is `OK` (a history was restored and passed) or `EMPTY` (a first run, or a cache GitHub evicted after 7 days unused: the history starts again, and nothing is backdated).
+
+What the audit cannot see: the whole history replaced by an older genuine copy of itself, such as an earlier cache entry left after the newer ones were deleted (deleting caches needs `actions: write`). Only a checkpoint kept outside the cache detects that: `openpulse anchor` and `openpulse verify --anchor` (`docs/SCHEDULED_CHECKS.md`).
+
+The history is filled by the detection ledger (*New since the last run*) and by `observe-repositories: on` (both below).
+
+## New since the last run (v0.21.0)
+
+With `history: on` the action records each run's detections in the kept ledger and says which ones it had not seen before:
+
+- The job summary gets a **New since the last run** section: a table of the new detections, "Nothing new", or on a first run "First run with this history".
+- Output `new-findings` is the number of detections recorded for the first time, and `new-findings-file` is a JSON file listing them (dependency, type, title, impact, evidence URLs), for a later step to post or file.
+- The SARIF and the contracts are unchanged: they always describe everything the run found, so Code Scanning keeps tracking each alert. Gates (`fail-on`) also cover everything, not only what is new.
+- "New" means new to this history. If the cache was evicted, the next run is a first run again; nothing is backdated.
+
+```yaml
+      - id: openpulse
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          observe-repositories: 'on'
+          fail-on: none
+      - if: steps.openpulse.outputs.new-findings != '0' && steps.openpulse.outputs.history-status == 'OK'
+        run: cat "${{ steps.openpulse.outputs.new-findings-file }}"
+```
+
+## Delivering what is new (v0.21.0)
+
+The job summary always has the *New since the last run* section. To be told without opening the run, add one or both:
+
+- `notify-issue: on` keeps **one issue** in the repository. The first new finding opens it (title "OpenPulse: new findings in your dependencies"); later ones are added as comments, so watchers are notified. If you close it, the next new finding opens another. The job needs `issues: write`.
+- `notify-webhook` posts the new findings as JSON text (`{"text": ...}`: Slack incoming webhooks and most receivers accept it). Pass the URL from a secret. With `notify-webhook-secret` (at least 32 characters) the post is signed; see *Signed posts* in [SCHEDULED_CHECKS.md](SCHEDULED_CHECKS.md).
+
+```yaml
+    permissions:
+      contents: read
+      issues: write           # ONLY for notify-issue: on
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          fail-on: none
+          notify-issue: 'on'
+          notify-webhook: ${{ secrets.OPENPULSE_WEBHOOK_URL }}
+          notify-webhook-secret: ${{ secrets.OPENPULSE_WEBHOOK_SECRET }}
+```
+
+What to expect:
+
+- Both need `history: on`; without a kept history every run would be a first run. The inputs are refused otherwise.
+- **Nothing is sent for a first run** (`history-status: EMPTY`): its detections are the starting point, not news. This also holds after the cache was evicted.
+- **Only the default branch delivers.** A pull request's run does not save its history, so its findings would be sent again on every push. There the output `delivery` is `skipped`.
+- Output `delivery` is `delivered`, `none` (nothing new), `skipped` or `failed`.
+- **A failed delivery fails the job**, after the history is saved. The finding is in that run's job summary, and a later run does not list it again, so a failed run is the signal to look.
+- An existing issue is used only when the repository opened it: `github-actions[bot]`, or an owner, member or collaborator. Anyone can open an issue with the same title; such an issue is ignored. With a personal access token from an outside account, each delivery would open a new issue.
+- The issue is looked for among the 300 most recently created open issues.
+- Package names and titles come from upstream. In the issue they are shown as code, so an `@name` or `#123` inside them neither notifies nor links. Only http(s) evidence URLs are kept. At most 50 findings are listed per delivery; the rest are counted.
+- GitHub Enterprise Server is not supported for the issue: the token is sent to `api.github.com` only.
+
+## Watching the repositories of your dependencies (v0.21.0)
+
+`observe-repositories: on` records, for each npm and PyPI dependency, the GitHub repository its registry metadata names as its source, in the kept history (`history: on`):
+
+- **The first run is a baseline.** Nothing can have changed yet, so it reports only what a repository already is: archived, or answering under another owner than the one the package names.
+- **Later runs report what changed** between two observations: a license change, an archive, or a move to a new owner. Each is a `warning` under `openpulse/license-change`, `openpulse/project-archived` or `openpulse/ownership-change`, for every dependency that names the repository, with the repository as evidence. A change is reported once, in the run that sees it.
+- Results are `REVIEW`: they fail the step only with `fail-on: review` or `fail-on: affected`.
+- The link from package to repository is the publisher's claim, not verified here (the `repository_linkage` trust check does that).
+- The log counts what was not observed: packages naming no repository, registries or GitHub that gave no answer, and repositories past the limit of 300 per run. A failure records nothing and is never read as a change.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          observe-repositories: 'on'
+          registry-changes: all
+          fail-on: none
+```
+
+GitHub is read once per repository. The action passes `github-token` (the job token by default) to OpenPulse for this, so the reads count against the job's own rate limit instead of the anonymous one; the token is sent to `api.github.com` only. Without `observe-repositories` the token is still removed before `openpulse attest` runs on path inputs.
+
+**Run it more often than weekly.** GitHub evicts a cache entry not used for 7 days, so a weekly schedule can lose its history between runs and start again from a baseline. A daily schedule keeps it.
+
+## Registry changes of your dependencies (v0.21.0)
+
+`registry-changes: all` reads npm and PyPI for each npm and PyPI dependency's own release:
+
+- the publisher's deprecation (npm `deprecated`) of the package or of your release;
+- a yanked release (PEP 592) and a project that declares itself Inactive (PyPI);
+- license changes in the releases after yours, which an upgrade would bring.
+
+Each is a `warning` result under `openpulse/deprecation` or `openpulse/license-change`, with the registry page as evidence and an evidence contract like any other result. It is a `REVIEW` result, so it fails the step only with `fail-on: review` or `fail-on: affected`. A flag on one release is reported for that release only. The log says how many dependencies were read and names any whose registry gave no answer; other ecosystems are counted, not read. Off by default: an existing workflow stays offline and unchanged.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        with:
+          lockfile: package-lock.json
+          registry-changes: all
+          fail-on: action          # report registry changes, do not fail on them
+```
 
 ## Trust checks and a trust policy (v0.14.0)
 

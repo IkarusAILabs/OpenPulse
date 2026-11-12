@@ -59,6 +59,24 @@ inputs:
       against the base branch's copy of manifest and lockfile), or all.
     required: false
     default: 'off'
+  registry-changes:
+    description: >-
+      Registry changes for each npm and PyPI dependency's own release (live
+      lookups): the publisher's deprecation or yank, an Inactive project, and
+      license changes in later releases. off (default) or all. Each is a
+      REVIEW result, so it fails the step only with fail-on review or
+      affected.
+    required: false
+    default: 'off'
+  observe-repositories:
+    description: >-
+      Record the GitHub repository each npm and PyPI dependency names as its
+      source in the kept history, and report a license change, an archive or
+      a move to a new owner since the last run (live lookups). off (default)
+      or on. Needs history on. The first run is a baseline. Uses github-token
+      to read GitHub.
+    required: false
+    default: 'off'
   policy:
     description: >-
       Trust policy file (docs/TRUST_POLICY.md). Empty: .openpulse/policy.yml
@@ -94,6 +112,56 @@ inputs:
     description: Python used to run OpenPulse
     required: false
     default: '3.11'
+  history:
+    description: >-
+      Keep OpenPulse's history (observation history and detection ledger)
+      between runs in the Actions cache. off (default) or on. Needs
+      history-key. The restored history is audited before anything runs: a
+      broken, rolled-back, unkeyed or foreign history fails the step. Saved
+      only on the default branch.
+    required: false
+    default: 'off'
+  history-key:
+    description: >-
+      The history key that MACs the history, from a secret
+      (`openpulse history-key generate`). Passed to OpenPulse as an
+      environment variable only.
+    required: false
+    default: ''
+  history-previous-keys:
+    description: Retired history keys, one per line, from a secret (key rotation)
+    required: false
+    default: ''
+  history-id:
+    description: >-
+      Names the cached history, so jobs that watch different things keep
+      separate histories. Letters, digits, '.', '_' and '-'.
+    required: false
+    default: 'default'
+
+  notify-webhook:
+    description: >-
+      Send what is new since the last run to this webhook URL as JSON text
+      (Slack incoming webhooks and most receivers accept it). Pass it from a
+      secret. https and public hosts only. Needs history on; sent only from
+      the default branch, and never for a first run.
+    required: false
+    default: ''
+  notify-webhook-secret:
+    description: >-
+      Sign the webhook post (X-OpenPulse-Signature, HMAC-SHA256 with a
+      timestamp) with this secret, at least 32 characters. Pass it from a
+      secret.
+    required: false
+    default: ''
+  notify-issue:
+    description: >-
+      Keep one issue in this repository for what is new since the last run:
+      'on' opens it the first time and comments on it afterwards; off
+      (default). Needs history on and a github-token with issues: write. Only
+      from the default branch, and never for a first run.
+    required: false
+    default: 'off'
 
 outputs:
   sarif-file:
@@ -113,6 +181,27 @@ outputs:
       With `gate`: the directory of gate receipts, one per gated file. Verify it
       immediately before install: `openpulse gate --verify-receipt <dir> FILE...`
     value: ${{ steps.gate.outputs.receipts }}
+  history-status:
+    description: >-
+      With `history: on`: OK (a history was restored and passed the audit) or
+      EMPTY (nothing restored: a first run, or an evicted cache)
+    value: ${{ steps.history-audit.outputs.status }}
+  new-findings:
+    description: >-
+      With `history: on`: how many detections this run recorded for the first
+      time. On a first run (history-status EMPTY) every detection is new.
+    value: ${{ steps.run.outputs.new-findings }}
+  new-findings-file:
+    description: >-
+      With `history: on`: a JSON file listing the detections first recorded in
+      this run (dependency, type, title, impact, evidence URLs)
+    value: ${{ steps.run.outputs.new-findings-file }}
+
+  delivery:
+    description: >-
+      With notify-webhook or notify-issue: delivered, none (nothing new, or a
+      first run), skipped (not the default branch) or failed
+    value: ${{ steps.deliver.outputs.delivery }}
 
 runs:
   using: composite
@@ -143,6 +232,70 @@ runs:
         "$bin/python" -m pip install --disable-pip-version-check -q \
           --no-deps -e "$ACTION_ROOT"
         echo "OPENPULSE_BIN=$bin" >> "$GITHUB_ENV"
+
+    # History between runs (v0.21.0 W2). Threat: a restored cache is input
+    # others can write - it is audited with the key before anything runs,
+    # and saved only from the default branch.
+    - id: history-setup
+      if: inputs.history != 'off'
+      name: Check the history inputs
+      shell: bash
+      env:
+        IN_HISTORY: ${{ inputs.history }}
+        IN_HISTORY_ID: ${{ inputs.history-id }}
+        IN_GATE: ${{ inputs.gate }}
+        HAS_KEY: ${{ inputs.history-key != '' }}
+      run: |
+        set -euo pipefail
+        case "$IN_HISTORY" in
+          on) ;;
+          *) echo "::error title=OpenPulse history::unknown history '$IN_HISTORY' (off, on)"; exit 2 ;;
+        esac
+        if [ -n "$IN_GATE" ]; then
+          echo "::warning title=OpenPulse history::history is not used with gate, which keeps none"
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ "$HAS_KEY" != "true" ]; then
+          echo "::error title=OpenPulse history::history: on needs history-key (a secret; openpulse history-key generate)"
+          exit 2
+        fi
+        if ! [[ "$IN_HISTORY_ID" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
+          echo "::error title=OpenPulse history::history-id must be 1-64 letters, digits, '.', '_' or '-'"
+          exit 2
+        fi
+        echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+    - id: history-restore
+      if: steps.history-setup.outputs.enabled == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          .openpulse/observations
+          .openpulse/detections
+        key: openpulse-history-v1-${{ inputs.history-id }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: openpulse-history-v1-${{ inputs.history-id }}-
+
+    - id: history-audit
+      if: steps.history-setup.outputs.enabled == 'true'
+      name: Audit the restored history
+      shell: bash
+      env:
+        OPENPULSE_HISTORY_KEY: ${{ inputs.history-key }}
+        OPENPULSE_HISTORY_KEYS_PREVIOUS: ${{ inputs.history-previous-keys }}
+        RESTORED: ${{ steps.history-restore.outputs.cache-matched-key }}
+      run: |
+        set -euo pipefail
+        set +e
+        "$OPENPULSE_BIN/openpulse" history-audit --require-keyed
+        rc=$?
+        set -e
+        if [ "$rc" -ne 0 ]; then
+          echo "::error title=OpenPulse history::the restored history was refused (see the log). It was not used and will not be saved. After checking why, delete the cache entry to start a new history: gh cache delete '$RESTORED'"
+          exit 1
+        fi
+        status="$("$OPENPULSE_BIN/openpulse" history-audit --require-keyed --json | "$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(sys.stdin)["status"])')"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
 
     # Pre-install gate (v0.15.0 Z3): only `openpulse gate`, before anything
     # is installed. Threat: a pull request weakening its own gate - the base
@@ -180,6 +333,15 @@ runs:
         IN_SARIF: ${{ inputs.sarif-file }}
         IN_CONTRACTS: ${{ inputs.contracts-file }}
         IN_TRUST: ${{ inputs.trust }}
+        IN_REGISTRY_CHANGES: ${{ inputs.registry-changes }}
+        IN_OBSERVE: ${{ inputs.observe-repositories }}
+        IN_NOTIFY_ISSUE: ${{ inputs.notify-issue }}
+        # Only whether a URL was given: the URL itself is not in this step.
+        IN_NOTIFY_WEBHOOK_SET: ${{ inputs.notify-webhook != '' }}
+        HISTORY_ENABLED: ${{ steps.history-setup.outputs.enabled }}
+        # The history key MACs what observe-repositories records; env only.
+        OPENPULSE_HISTORY_KEY: ${{ inputs.history-key }}
+        OPENPULSE_HISTORY_KEYS_PREVIOUS: ${{ inputs.history-previous-keys }}
         IN_POLICY: ${{ inputs.policy }}
         IN_BASE_SHA: ${{ inputs.base-sha }}
         IN_TOKEN: ${{ inputs.github-token }}
@@ -268,6 +430,22 @@ runs:
             fi ;;
           *) echo "::error title=OpenPulse::unknown trust '$IN_TRUST' (off, pull-request, all)"; exit 2 ;;
         esac
+        # Repositories of your dependencies (v0.21.0 W3): recorded in the kept
+        # history. Without one every run would be a first observation.
+        observe=()
+        case "$IN_OBSERVE" in
+          off|'') ;;
+          on)
+            if [ "$HISTORY_ENABLED" != "true" ]; then
+              echo "::error title=OpenPulse::observe-repositories: on needs history: on and history-key"
+              exit 2
+            fi
+            observe=(--observe-repositories)
+            # GitHub is read once per repository: the token (read-only use,
+            # sent to api.github.com only) lifts the anonymous rate limit.
+            if [ -n "$IN_TOKEN" ]; then export GITHUB_TOKEN="$IN_TOKEN"; fi ;;
+          *) echo "::error title=OpenPulse::unknown observe-repositories '$IN_OBSERVE' (off, on)"; exit 2 ;;
+        esac
         unset IN_TOKEN
         policy=()
         if [ -n "$base_policy" ]; then
@@ -275,6 +453,34 @@ runs:
           policy=(--policy "$base_policy")
         elif [ -n "$IN_POLICY" ]; then
           policy=(--policy "$IN_POLICY")
+        fi
+
+        # Registry changes of each dependency's release (v0.21.0 W1).
+        changes=()
+        case "$IN_REGISTRY_CHANGES" in
+          off|'') ;;
+          all) changes=(--registry-changes) ;;
+          *) echo "::error title=OpenPulse::unknown registry-changes '$IN_REGISTRY_CHANGES' (off, all)"; exit 2 ;;
+        esac
+
+        # Delivery (v0.21.0 W5) sends what the kept ledger had not seen.
+        case "$IN_NOTIFY_ISSUE" in
+          off|''|on) ;;
+          *) echo "::error title=OpenPulse::unknown notify-issue '$IN_NOTIFY_ISSUE' (off, on)"; exit 2 ;;
+        esac
+        if [ "$HISTORY_ENABLED" != "true" ] && { [ "$IN_NOTIFY_ISSUE" = on ] || [ "$IN_NOTIFY_WEBHOOK_SET" = "true" ]; }; then
+          echo "::error title=OpenPulse::notify-webhook and notify-issue need history: on and history-key"
+          exit 2
+        fi
+
+        # New since the last run (v0.21.0 W4): with a kept history, detections
+        # are recorded in its ledger and the first-time ones listed.
+        ledger=()
+        new_file=""
+        if [ "$HISTORY_ENABLED" = "true" ]; then
+          new_file="$RUNNER_TEMP/openpulse-new-findings.json"
+          rm -f "$new_file"
+          ledger=(--ledger .openpulse/detections --new-findings "$new_file")
         fi
 
         gate=()
@@ -290,7 +496,7 @@ runs:
         set +e
         # ${a[@]+...}: empty arrays under `set -u` on bash 3.2 (macOS).
         "$OPENPULSE_BIN/openpulse" attest "${args[@]}" "${events[@]}" ${gate[@]+"${gate[@]}"} \
-          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} \
+          ${trust[@]+"${trust[@]}"} ${policy[@]+"${policy[@]}"} ${changes[@]+"${changes[@]}"}           ${observe[@]+"${observe[@]}"} ${ledger[@]+"${ledger[@]}"} \
           --output "$IN_CONTRACTS" --sarif "$IN_SARIF" --summary "$summary"
         rc=$?
         set -e
@@ -315,6 +521,55 @@ runs:
           echo "inspection-coverage=$coverage"
           echo "threshold-breached=$breached"
         } >> "$GITHUB_OUTPUT"
+        if [ -n "$new_file" ] && [ -f "$new_file" ]; then
+          new_count="$("$OPENPULSE_BIN/python" -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["new_facts"])' "$new_file")"
+          {
+            echo "new-findings=$new_count"
+            echo "new-findings-file=$new_file"
+          } >> "$GITHUB_OUTPUT"
+        fi
+
+    # Delivery (v0.21.0 W5). Threats: a pull request's findings posted as news
+    # (only the default branch delivers: its history is the one that is
+    # saved, so each finding is sent once); secrets in argv (the URL, the
+    # signing secret and the token are env only); a failed post that nobody
+    # notices (the job fails at the end, after the history is saved).
+    - id: deliver
+      if: >-
+        steps.run.outputs.new-findings-file != ''
+        && (inputs.notify-webhook != '' || inputs.notify-issue == 'on')
+      name: Deliver new findings
+      shell: bash
+      env:
+        NEW_FILE: ${{ steps.run.outputs.new-findings-file }}
+        ON_DEFAULT_BRANCH: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        OPENPULSE_WEBHOOK_URL: ${{ inputs.notify-webhook }}
+        OPENPULSE_WEBHOOK_SECRET: ${{ inputs.notify-webhook-secret }}
+        IN_NOTIFY_ISSUE: ${{ inputs.notify-issue }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ISSUE_REPO: ${{ github.repository }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        if [ "$ON_DEFAULT_BRANCH" != "true" ]; then
+          echo "OpenPulse: new findings are delivered only from the default branch"
+          echo "delivery=skipped" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        news="$("$OPENPULSE_BIN/python" -c 'import sys; from core.new_delivery import deliverable, load_new_findings; print("yes" if deliverable(load_new_findings(sys.argv[1])) else "no")' "$NEW_FILE")"
+        if [ "$news" != "yes" ]; then
+          echo "OpenPulse: nothing new to deliver"
+          echo "delivery=none" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        target=(--run-url "$RUN_URL")
+        [ "$IN_NOTIFY_ISSUE" = on ] && target+=(--issue "$ISSUE_REPO")
+        if "$OPENPULSE_BIN/openpulse" deliver-new "$NEW_FILE" "${target[@]}"; then
+          echo "delivery=delivered" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error title=OpenPulse::a new finding could not be delivered (see the log); it is in this run's job summary and will not be listed again"
+          echo "delivery=failed" >> "$GITHUB_OUTPUT"
+        fi
 
     # Threat: an unpinned upload action - pinned by SHA like ci.yml.
     - if: inputs.upload-sarif == 'true' && inputs.gate == ''
@@ -323,6 +578,19 @@ runs:
         sarif_file: ${{ steps.run.outputs.sarif-file }}
         category: openpulse
 
+    # Saved even when a gate failed (the history is still true), never after a
+    # refused audit, and only on the default branch: a pull request's history
+    # never becomes the one scheduled runs build on.
+    - if: >-
+        !cancelled() && steps.history-audit.outcome == 'success'
+        && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        && hashFiles('.openpulse/observations/**', '.openpulse/detections/**') != ''
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          .openpulse/observations
+          .openpulse/detections
+        key: openpulse-history-v1-${{ inputs.history-id }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Enforce fail-on
       if: steps.run.outputs.threshold-breached == 'true'
       shell: bash
@@ -335,6 +603,13 @@ runs:
         else
           echo "::error title=OpenPulse::gate failed: fail-on $IN_FAIL_ON threshold or a trust policy violation (see the job summary and log)"
         fi
+        exit 1
+
+    - name: Report a failed delivery
+      if: steps.deliver.outputs.delivery == 'failed'
+      shell: bash
+      run: |
+        echo "::error title=OpenPulse::new findings were not delivered (see the Deliver new findings step)"
         exit 1
 
     - name: Enforce the gate

@@ -67,6 +67,13 @@ _LOCK_WAIT_SECONDS = 30.0
 #: covered - per issue #41 each has a stable subject.
 LIFECYCLE = "lifecycle"
 SECURITY = "security"
+#: A registry or repository change found for one dependency (v0.21.0 W4):
+#: a deprecation, a yank, a license change, an archive, a move. Its subject
+#: is the id of the event built for that dependency. It carries no deadline,
+#: so it is remembered for "new since the last run" and never for lead time.
+CHANGE = "change"
+#: Event ids of the per-dependency events ``analyzers.registry_events`` builds.
+CHANGE_EVENT_PREFIXES = ("evt-registry-", "evt-repository-")
 
 #: Event types whose findings describe a *durable* lifecycle fact -
 #: re-detectable across runs, and the ledger is what makes their first

@@ -158,7 +158,12 @@ def build_digest(
             fact = durable_fact_from_cause(cause, events_by_id)
             first_detected = (
                 _first_seen_day(fact, ledger_root, history_keys)
-                if fact and ledger_root and history_keys
+                # Lead time is a lifecycle claim (C5): a registry or repository
+                # change (W4) has a first sighting but no deadline it preceded.
+                if fact
+                and fact["finding_class"] == ledger.LIFECYCLE
+                and ledger_root
+                and history_keys
                 else None
             )
             lead_time = (
