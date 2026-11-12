@@ -226,6 +226,16 @@ def load_cargo_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
     return deps, skipped
 
 
+def is_composer_branch_version(version: str) -> bool:
+    """True for composer branch aliases: `dev-main`, `dev-master`, `1.0.x-dev`.
+
+    Those are moving branches, not releases: there is no version to check, so
+    they are skipped with a reason instead of being passed on as a version.
+    """
+    lowered = version.strip().lower()
+    return lowered.startswith("dev-") or lowered.endswith("-dev")
+
+
 def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed composer.lock into pinned Packagist dep entries.
 
@@ -259,6 +269,11 @@ def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], l
             version = entry.get("version")
             if not isinstance(version, str) or not version:
                 skipped.append(f"`{label}`: no pinned version - skipped, never range-guessed")
+                continue
+            if is_composer_branch_version(version):
+                skipped.append(
+                    f"`{label}`: branch version `{version}` - skipped, never range-guessed"
+                )
                 continue
             clean_ver = (
                 version[1:]
@@ -296,6 +311,9 @@ def load_nuget_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
         for name, entry in packages.items():
             if not isinstance(entry, dict):
                 skipped.append(f"`{name}` ({tfm}): not a mapping")
+                continue
+            if entry.get("type") == "Project":
+                skipped.append(f"`{name}` ({tfm}): project reference, not a package")
                 continue
             resolved = entry.get("resolved")
             if not isinstance(resolved, str) or not resolved:
@@ -340,7 +358,7 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     if isinstance(doc, dict):
         if isinstance(doc.get("lockfileVersion"), int):
             return (*load_package_lock_doc(doc), "npm")
-        if "packages" in doc and isinstance(doc.get("packages"), list):
+        if any(isinstance(doc.get(section), list) for section in ("packages", "packages-dev")):
             return (*load_composer_lock_doc(doc), "composer")
         if isinstance(doc.get("version"), int) and isinstance(doc.get("dependencies"), dict):
             return (*load_nuget_lock_doc(doc), "nuget")
@@ -377,7 +395,10 @@ def lockfile_digests(path: str) -> LockedDigests:
     Kept apart from ``read_lockfile`` on purpose: the dependency entries the
     verdict engine, contracts and ledger consume stay exactly as they were.
     Values are returned as written; ``core.digest_integrity`` validates them
-    before any use. Other formats (Cargo.lock) yield nothing yet.
+    before any use. Only the ecosystems ``digest_integrity`` can check have a
+    branch here: npm and PyPI. Composer and NuGet lockfiles are read for
+    dependencies, but their digests are not verified yet, so returning them
+    would make every PHP/.NET package change fail the gate as unchecked.
     """
     data = read_bytes(path, MAX_LOCKFILE_BYTES, "lockfile")
     try:
@@ -395,45 +416,6 @@ def lockfile_digests(path: str) -> LockedDigests:
                 if isinstance(version, str) and isinstance(integrity, str):
                     name = _npm_package_name(str(key), entry)
                     out[("npm", name, version)] = {"integrity": integrity.split()}
-        return out
-    if isinstance(doc, dict) and "packages" in doc and isinstance(doc.get("packages"), list):
-        for section in ("packages", "packages-dev"):
-            for entry in doc.get(section) or []:
-                if not isinstance(entry, dict):
-                    continue
-                name, version = entry.get("name"), entry.get("version")
-                if not isinstance(name, str) or not isinstance(version, str):
-                    continue
-                clean_ver = (
-                    version[1:]
-                    if version.startswith("v") and len(version) > 1 and version[1].isdigit()
-                    else version
-                )
-                dist = entry.get("dist")
-                if isinstance(dist, dict) and dist.get("shasum"):
-                    shasum = str(dist["shasum"]).strip()
-                    if shasum:
-                        out[("Packagist", name, clean_ver)] = {"sha1": [shasum]}
-        return out
-    if (
-        isinstance(doc, dict)
-        and isinstance(doc.get("version"), int)
-        and isinstance(doc.get("dependencies"), dict)
-    ):
-        for packages in doc.get("dependencies", {}).values():
-            if not isinstance(packages, dict):
-                continue
-            for name, entry in packages.items():
-                if not isinstance(entry, dict):
-                    continue
-                resolved, content_hash = entry.get("resolved"), entry.get("contentHash")
-                if (
-                    isinstance(name, str)
-                    and isinstance(resolved, str)
-                    and isinstance(content_hash, str)
-                    and content_hash
-                ):
-                    out[("NuGet", name, resolved)] = {"sha512": [content_hash]}
         return out
     try:
         toml_doc = _toml_module().loads(data.decode("utf-8"))

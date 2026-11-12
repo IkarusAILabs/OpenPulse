@@ -34,6 +34,7 @@ clean error instead of pulling a parser in.
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
 
@@ -704,7 +705,9 @@ def _looks_like_go_mod(text: str) -> bool:
     return False
 
 
-def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
+def read_manifest(
+    path: str, name: str | None = None
+) -> tuple[list[dict[str, Any]], list[str], str]:
     """One manifest from disk -> (dependencies, skipped, format).
 
     Format is detected from unambiguous structural markers, never
@@ -716,7 +719,12 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     with a clean error naming what was tried - never guessed. The
     read is bounded by the SBOM cap (multi-MB pom.xml/Cargo.toml
     are legitimate; the cap keeps reads bounded, not unbounded).
+
+    ``name`` is the file's real name when ``path`` is a temporary copy of
+    it (``read_manifest_from_content``): the name-specific refusals below
+    must see ``build.gradle``, not ``tmpab12cdbuild.gradle``.
     """
+    basename = (name or os.path.basename(path)).lower()
     data = read_bytes(path, MAX_MANIFEST_BYTES, "manifest")
     try:
         # utf-8-sig = utf-8 that tolerates a leading BOM: the BOM is
@@ -746,10 +754,9 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
                 toml_doc.get("workspace"), dict
             ):
                 return (*load_cargo_toml_doc(toml_doc), "cargo")
-    if _looks_like_requirements(text):
-        return (*load_requirements_txt_doc(text), "requirements")
-    import os
-    basename = os.path.basename(path).lower()
+    # Name-specific refusals come before the requirements fallback: a file
+    # named build.gradle must say so, even if its text happens to read like
+    # pinned requirements.
     if basename in ("build.gradle", "build.gradle.kts"):
         raise ValueError(
             "Gradle build script: dependencies are resolved at build time; add gradle.lockfile"
@@ -762,6 +769,8 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
         raise ValueError(
             "Composer manifest: dependencies are declared as ranges; add composer.lock"
         )
+    if _looks_like_requirements(text):
+        return (*load_requirements_txt_doc(text), "requirements")
     raise ValueError(
         "input has none of the manifest structural markers "
         "(pom.xml `<project>` root, go.mod `module` directive, pyproject "

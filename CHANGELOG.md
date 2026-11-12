@@ -2,6 +2,13 @@
 
 All notable changes to OpenPulse. Versions follow semver; while the project is `0.x`, minor versions may change behavior and are called out under **Upgrade notes**. Intelligence-schema and evidence-contract versions are tracked separately (see `docs/EVIDENCE_CONTRACT.md`).
 
+## Unreleased
+
+### Added
+
+- **Composer and NuGet lockfiles are read (part of #153).** `composer.lock` (Packagist) and `packages.lock.json` (NuGet, all target frameworks) join npm, poetry and Cargo: each pinned entry becomes a checkable dependency, and every entry that cannot be checked is skipped with its reason. Composer branch aliases (`dev-main`, `1.0.x-dev`) are skipped as branches rather than passed on as versions, and a NuGet entry of `"type": "Project"` is named a project reference instead of a missing version. A `composer.json` is covered by the `composer.lock` beside it, as `package.json` already is by `package-lock.json`, and a manifest read from repository content now sees its real file name, so `build.gradle` and `Package.swift` keep their specific "add a lockfile" reason instead of the generic one. Packagist and NuGet are mapped to their OSV ecosystems, so these packages get a vulnerability lookup.
+- No digests are returned for the new formats yet: `core.digest_integrity` checks npm and PyPI only, so reporting composer `shasum`/NuGet `contentHash` values would make every PHP or .NET package change fail the gate as an unchecked digest with the default `unchecked: fail`. Verifying those digests is a separate change.
+
 ## 0.20.0 "Change Evidence Beyond Lifecycle" — 2026-11-09
 
 Phase 14 (M2): changes that are not end-of-life dates become findings with the evidence they rest on. A repository's GitHub history, the licenses npm and PyPI record per release, and the deprecation and withdrawal flags publishers set on the registry each yield findings for review; every finding states its confidence and evidence basis, and each class is backed by a verified, replayable case in `docs/DISCOVERIES.md` or ships as experimental. No contract version change: `LICENSE_CHANGE` and `DEPRECATION` were already in every schema's vocabulary.

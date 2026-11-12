@@ -441,3 +441,67 @@ class TestCheckCliLockfile:
         out = self._run("--lockfile", POETRY_FIXTURE, "--digest")
         assert out.exit_code == 0, out.output
         assert "lockfile (poetry.lock): 2 pinned package(s), 1 skipped" in out.output
+
+
+class TestIssue153ReviewFollowUps:
+    """What the review of #343 asked for: no unverifiable digests, honest skips."""
+
+    def test_composer_and_nuget_lockfiles_yield_no_digests(self):
+        from core.lockfile_reader import lockfile_digests
+
+        # digest_integrity cannot check these ecosystems yet, so returning
+        # digests would turn every PHP/.NET package change into an unchecked
+        # gate failure. They are read for dependencies only.
+        assert lockfile_digests(COMPOSER_FIXTURE) == {}
+        assert lockfile_digests(NUGET_FIXTURE) == {}
+
+    def test_a_composer_branch_alias_is_skipped_with_its_reason(self):
+        deps, skipped = load_composer_lock_doc(
+            {
+                "packages": [
+                    {"name": "acme/lib", "version": "dev-main"},
+                    {"name": "acme/other", "version": "1.0.x-dev"},
+                    {"name": "acme/ok", "version": "1.2.3"},
+                ]
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("acme/ok", "1.2.3")]
+        assert sum("branch version" in s for s in skipped) == 2
+
+    def test_a_nuget_project_reference_is_not_a_missing_version(self):
+        deps, skipped = load_nuget_lock_doc(
+            {
+                "version": 1,
+                "dependencies": {
+                    "net8.0": {
+                        "My.Project": {"type": "Project"},
+                        "Serilog": {"type": "Direct", "resolved": "3.1.1"},
+                    }
+                },
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("Serilog", "3.1.1")]
+        assert any("project reference, not a package" in s for s in skipped)
+
+    def test_a_composer_lock_with_only_packages_dev_is_detected(self, tmp_path):
+        lock = tmp_path / "composer.lock"
+        lock.write_text(
+            json.dumps({"packages-dev": [{"name": "phpunit/phpunit", "version": "9.5.20"}]})
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "composer"
+        assert [(d["package"], d["version"]) for d in deps] == [("phpunit/phpunit", "9.5.20")]
+
+
+class TestIssue153Cli(TestCheckCliLockfile):
+    def test_check_reads_a_composer_lock_end_to_end(self):
+        out = self._run(
+            "--lockfile", COMPOSER_FIXTURE, "--event", "data/fixtures/django-eol/event.json"
+        )
+
+        assert out.exit_code == 0, out.output
+        assert "lockfile (composer.lock): 3 pinned package(s), 1 skipped" in out.output

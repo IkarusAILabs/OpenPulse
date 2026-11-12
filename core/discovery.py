@@ -146,6 +146,8 @@ OSV_ECOSYSTEMS = {
     "maven": "Maven",
     "go": "Go",
     "crates.io": "crates.io",
+    "packagist": "Packagist",
+    "nuget": "NuGet",
 }
 
 #: A bundle file name: one or more safe path segments, never `..` or absolute.

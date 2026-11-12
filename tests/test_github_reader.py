@@ -1,5 +1,7 @@
 """Tests for GitHub repository dependency reader."""
 
+import json
+
 import pytest
 
 from core.github_reader import (
@@ -802,3 +804,44 @@ class TestRequirementsVariants:
 
         assert inspection.coverage == COVERAGE_COMPLETE
         assert [d["path"] for d in inspection.dependencies] == ["requirements.txt"]
+
+
+class TestIssue153ContentReads:
+    """The review's items 2 and 3: real names and a covered composer.json."""
+
+    _inspect = TestUnsupportedDependencyFiles._inspect
+
+    def test_the_real_name_reaches_the_manifest_reader(self):
+        from core.github_reader import read_manifest_from_content
+
+        # The temp copy is named `tmpab12cdbuild.gradle`; the refusal must
+        # still name Gradle rather than fall through to "no markers".
+        with pytest.raises(ValueError, match="Gradle build script"):
+            read_manifest_from_content("plugins { id 'java' }\n", "app/build.gradle")
+
+    def test_a_gradle_script_in_a_repository_keeps_its_specific_reason(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch, ["build.gradle"], blobs={"build.gradle": "plugins { id 'java' }\n"}
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any("Gradle build script" in r for r in inspection.coverage_reasons), (
+            inspection.coverage_reasons
+        )
+
+    def test_a_php_repository_with_composer_lock_inspects_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["composer.json", "composer.lock"],
+            blobs={
+                "composer.json": '{"require": {"monolog/monolog": "^2.0"}}',
+                "composer.lock": json.dumps(
+                    {"packages": [{"name": "monolog/monolog", "version": "2.9.1"}]}
+                ),
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert [(d["package"], d["version"]) for d in inspection.dependencies] == [
+            ("monolog/monolog", "2.9.1")
+        ]

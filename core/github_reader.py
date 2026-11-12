@@ -689,6 +689,11 @@ def discover_dependency_files(
         for e in entries
         if e.get("type") == "blob" and e.get("path", "").rpartition("/")[2] == "package-lock.json"
     }
+    composer_lock_dirs = {
+        e.get("path", "").rpartition("/")[0]
+        for e in entries
+        if e.get("type") == "blob" and e.get("path", "").rpartition("/")[2] == "composer.lock"
+    }
 
     for entry in entries:
         if entry.get("type") != "blob":
@@ -705,6 +710,10 @@ def discover_dependency_files(
             continue
 
         filename = parts[-1]
+        if filename == "composer.json" and "/".join(parts[:-1]) in composer_lock_dirs:
+            # Covered by the composer.lock beside it: reading the manifest
+            # instead would report the same packages as range declarations.
+            continue
         is_supported, file_type = _is_dependency_file(filename)
         if not is_supported and _is_requirements_variant(path):
             is_supported, file_type = True, "requirements"
@@ -906,7 +915,9 @@ def read_manifest_from_content(
         f.write(content)
         tmp_path = f.name
     try:
-        return read_manifest(tmp_path)
+        # The temp path is `tmpab12cdbuild.gradle`: pass the real name so the
+        # name-specific refusals see it (issue #153 review).
+        return read_manifest(tmp_path, name=basename)
     finally:
         try:
             os.unlink(tmp_path)

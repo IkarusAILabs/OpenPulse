@@ -285,3 +285,24 @@ def test_check_says_what_was_searched(monkeypatch):
     assert "from 42 tree entries; skipped directories: node_modules (7); limits reached: none" in (
         out.output
     )
+
+
+def test_packagist_and_nuget_packages_reach_osv():
+    """#343 review: OSV indexes both, so a PHP/.NET dependency is queryable."""
+    from core.discovery import DiscoveryResult, osv_packages
+
+    result = DiscoveryResult()
+    deps = [
+        {
+            "kind": "package",
+            "package": "monolog/monolog",
+            "ecosystem": "Packagist",
+            "version": "2.9.1",
+        },
+        {"kind": "package", "package": "Serilog", "ecosystem": "NuGet", "version": "3.1.1"},
+    ]
+
+    targets = osv_packages(deps, result)
+
+    assert set(targets) == {("Packagist", "monolog/monolog"), ("NuGet", "Serilog")}
+    assert not result.unmapped
