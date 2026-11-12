@@ -167,7 +167,7 @@ The job summary always has the *New since the last run* section. To be told with
 What to expect:
 
 - Both need `history: on`; without a kept history every run would be a first run. The inputs are refused otherwise.
-- **Nothing is sent for a first run** (`history-status: EMPTY`): its detections are the starting point, not news. This also holds after the cache was evicted.
+- **Nothing is sent for the first run with a history**: its detections are the starting point, not news. This also holds after the cache was evicted. A first run that finds nothing still counts: the first finding after it is news.
 - **Only the default branch delivers.** A pull request's run does not save its history, so its findings would be sent again on every push. There the output `delivery` is `skipped`.
 - Output `delivery` is `delivered`, `none` (nothing new), `skipped` or `failed`.
 - **A failed delivery fails the job**, after the history is saved. The finding is in that run's job summary, and a later run does not list it again, so a failed run is the signal to look.
@@ -337,40 +337,67 @@ jobs:
           upload-sarif: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
 ```
 
-## Example: weekly schedule (catches upstream changes with no PR)
+## Example: a scheduled watch (catches upstream changes with no PR)
 
-Upstream changes happen whether or not you touch your dependencies. A scheduled run catches them.
+Upstream changes happen whether or not you touch your dependencies: a publisher deprecates the release you locked, a repository is archived, a license changes. A scheduled run with a kept history catches them and tells you once.
+
+One-time setup:
+
+1. Make a history key: `openpulse history-key generate` (it prints the key and writes no file).
+2. Store it as the Actions secret `OPENPULSE_HISTORY_KEY`.
 
 ```yaml
-name: openpulse-weekly
+name: openpulse-watch
 on:
   schedule:
-    - cron: '17 6 * * 1'   # Mondays 06:17 UTC
+    - cron: '17 6 * * *'   # daily 06:17 UTC
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  openpulse:
+  watch:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
+      issues: write            # for notify-issue
+      security-events: write   # for upload-sarif
     steps:
-      # With no path inputs, the action discovers dependency files on the
-      # default branch through the GitHub API. The checkout is only there
-      # so the SARIF upload can resolve the commit and file paths.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all         # deprecated, yanked, relicensed releases
+          observe-repositories: 'on'    # archived, moved, relicensed repositories
+          notify-issue: 'on'            # one issue, a comment per run with news
           upload-sarif: 'true'
-          fail-on: none            # report, do not fail the scheduled run
+          fail-on: none                 # report, do not fail the scheduled run
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openpulse-contracts
           path: ${{ steps.openpulse.outputs.contracts-file }}
 ```
+
+What each run does:
+
+| Run | What you see |
+|---|---|
+| The first | Everything found is recorded as the starting point. The job summary says "First run with this history". Nothing is delivered. |
+| A run with nothing new | The summary says "Nothing new". Nothing is delivered. Code Scanning still shows every finding that holds. |
+| A run after an upstream change | The summary lists the new finding, and it is added to the issue. Later runs do not list it again. |
+
+Choices to make:
+
+- **Daily, or at least twice a week.** GitHub evicts a cache that was not used for 7 days. A weekly run sits on that limit, and after an eviction the next run is a first run again: it reports nothing as new. Daily runs are cheap, because a run with nothing new delivers nothing.
+- **Without `lockfile`** (or another path input) the action discovers dependency files on the default branch through the GitHub API, as before.
+- **A webhook instead of, or with, the issue:** `notify-webhook` and `notify-webhook-secret` (*Delivering what is new*, above).
+- **`fail-on: none`** keeps a scheduled run green; delivery is what tells you. A failed delivery still fails the run.
+- **Lead times** for end-of-life events need the keyed history too; they come from the same ledger.
+
+The two halves of this example are tested end to end over recorded registry responses (`tests/test_scheduled_watch_e2e.py`): a deprecation and an archive between two runs are reported exactly once.
 
 ## Limits (current)
 
