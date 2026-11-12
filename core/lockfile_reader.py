@@ -236,6 +236,20 @@ def is_composer_branch_version(version: str) -> bool:
     return lowered.startswith("dev-") or lowered.endswith("-dev")
 
 
+def is_composer_lock_doc(doc: dict[str, Any]) -> bool:
+    """True for a composer.lock: Composer's own hash beside a package list.
+
+    A `packages` list alone is not a marker: an SPDX JSON document has one
+    too, and read as a composer.lock it would yield no dependency and no
+    error. Composer writes `content-hash` (`hash` before Composer 1.3) in
+    every lock.
+    """
+    hashed = any(isinstance(doc.get(k), str) and doc.get(k) for k in ("content-hash", "hash"))
+    return hashed and any(
+        isinstance(doc.get(section), list) for section in ("packages", "packages-dev")
+    )
+
+
 def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed composer.lock into pinned Packagist dep entries.
 
@@ -265,6 +279,12 @@ def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], l
             label = str(name) if name is not None else f"{section} #{i}"
             if not name or not isinstance(name, str):
                 skipped.append(f"{section} #{i}: no name")
+                continue
+            dist = entry.get("dist")
+            if isinstance(dist, dict) and dist.get("type") == "path":
+                # A directory on the machine that wrote the lock, not a
+                # Packagist release: its name proves nothing about Packagist.
+                skipped.append(f"`{label}`: local path package, not a Packagist release")
                 continue
             version = entry.get("version")
             if not isinstance(version, str) or not version:
@@ -358,13 +378,13 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     if isinstance(doc, dict):
         if isinstance(doc.get("lockfileVersion"), int):
             return (*load_package_lock_doc(doc), "npm")
-        if any(isinstance(doc.get(section), list) for section in ("packages", "packages-dev")):
+        if is_composer_lock_doc(doc):
             return (*load_composer_lock_doc(doc), "composer")
         if isinstance(doc.get("version"), int) and isinstance(doc.get("dependencies"), dict):
             return (*load_nuget_lock_doc(doc), "nuget")
         raise ValueError(
-            "valid JSON but no integer `lockfileVersion`, composer `packages` list, "
-            "or NuGet `dependencies` mapping - not a recognised lockfile"
+            "valid JSON but no integer `lockfileVersion`, composer `content-hash` with a "
+            "`packages` list, or NuGet `dependencies` mapping - not a recognised lockfile"
         )
     tomllib = _toml_module()
     try:

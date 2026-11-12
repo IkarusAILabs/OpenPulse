@@ -488,7 +488,12 @@ class TestIssue153ReviewFollowUps:
     def test_a_composer_lock_with_only_packages_dev_is_detected(self, tmp_path):
         lock = tmp_path / "composer.lock"
         lock.write_text(
-            json.dumps({"packages-dev": [{"name": "phpunit/phpunit", "version": "9.5.20"}]})
+            json.dumps(
+                {
+                    "content-hash": "2b6dbdf3408f6dcf7f53a473f324ad72",
+                    "packages-dev": [{"name": "phpunit/phpunit", "version": "9.5.20"}],
+                }
+            )
         )
 
         deps, skipped, fmt = read_lockfile(str(lock))
@@ -505,3 +510,58 @@ class TestIssue153Cli(TestCheckCliLockfile):
 
         assert out.exit_code == 0, out.output
         assert "lockfile (composer.lock): 3 pinned package(s), 1 skipped" in out.output
+
+
+class TestComposerDetection:
+    """A `packages` list alone is not a composer.lock."""
+
+    def test_an_spdx_document_is_not_read_as_a_composer_lock(self, tmp_path):
+        spdx = tmp_path / "sbom.spdx.json"
+        spdx.write_text(
+            json.dumps(
+                {
+                    "spdxVersion": "SPDX-2.3",
+                    "packages": [{"name": "monolog/monolog", "versionInfo": "2.9.1"}],
+                }
+            )
+        )
+
+        with pytest.raises(ValueError, match="not a recognised lockfile"):
+            read_lockfile(str(spdx))
+
+    def test_a_composer_lock_is_detected_under_another_name(self, tmp_path):
+        lock = tmp_path / "deps.json"  # wrong name on purpose
+        lock.write_text(
+            json.dumps({"hash": "abc123", "packages": [{"name": "psr/log", "version": "1.1.4"}]})
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "composer"
+        assert [(d["package"], d["version"]) for d in deps] == [("psr/log", "1.1.4")]
+
+    def test_a_nuget_lock_is_detected_under_another_name(self, tmp_path):
+        lock = tmp_path / "deps.json"  # wrong name on purpose
+        lock.write_text(
+            json.dumps(
+                {"version": 1, "dependencies": {"net8.0": {"Serilog": {"resolved": "3.1.1"}}}}
+            )
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "nuget"
+        assert [(d["package"], d["version"]) for d in deps] == [("Serilog", "3.1.1")]
+
+    def test_a_local_path_package_is_not_a_packagist_release(self):
+        deps, skipped = load_composer_lock_doc(
+            {
+                "packages": [
+                    {"name": "acme/local", "version": "1.0.0", "dist": {"type": "path"}},
+                    {"name": "acme/ok", "version": "1.2.3", "dist": {"type": "zip"}},
+                ]
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("acme/ok", "1.2.3")]
+        assert skipped == ["`acme/local`: local path package, not a Packagist release"]

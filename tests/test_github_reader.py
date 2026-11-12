@@ -836,7 +836,10 @@ class TestIssue153ContentReads:
             blobs={
                 "composer.json": '{"require": {"monolog/monolog": "^2.0"}}',
                 "composer.lock": json.dumps(
-                    {"packages": [{"name": "monolog/monolog", "version": "2.9.1"}]}
+                    {
+                        "content-hash": "2b6dbdf3408f6dcf7f53a473f324ad72",
+                        "packages": [{"name": "monolog/monolog", "version": "2.9.1"}],
+                    }
                 ),
             },
         )
