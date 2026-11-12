@@ -11,10 +11,17 @@ lifecycle event for a release cycle, a CVE, or a registry or repository
 change built for one dependency. A fact shared by several dependencies is
 recorded once and reported for each of them.
 
-"New" means new to this ledger. On a ledger with no entries (a first run,
+"New" means new to this ledger. On a ledger no run has used (a first run,
 or a cache that was evicted), everything is new: ``baseline`` says so, and
 nothing is backdated. ``first_seen`` is given only for an entry written
 under a history key, since an unkeyed entry proves no date.
+
+A run that detects nothing still leaves a marker (``STARTED_MARKER``) in the
+ledger. Without it a ledger with no entries would look unused, and the first
+finding of a project that began clean would be taken for a starting point
+and never reported as new. The marker carries no key: removing it can only
+turn the next run into a starting point, which removing the whole ledger
+does as well.
 """
 
 from __future__ import annotations
@@ -26,13 +33,32 @@ from core.detections import ledger
 from core.risk.check import DependencyVerdict, durable_fact_from_cause
 from core.schema.models import OSSEvent
 
+#: Written at the ledger root by every run that recorded, even with no entry.
+STARTED_MARKER = "STARTED"
+
 
 def ledger_is_empty(ledger_root: str | Path) -> bool:
-    """True when the ledger holds no entry (a first run, or an evicted cache)."""
+    """True when no run has used the ledger (a first run, or an evicted cache)."""
     base = Path(ledger_root)
     if not base.is_dir():
         return True
+    if (base / STARTED_MARKER).is_file():
+        return False
     return not any(p.is_file() and not p.name.startswith(".") for p in base.glob("*/*.json"))
+
+
+def _mark_started(ledger_root: str | Path) -> None:
+    """Leave the marker, so a later run is not a first run. Never raises."""
+    marker = Path(ledger_root) / STARTED_MARKER
+    try:
+        if not marker.is_file():
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text(
+                '{"note": "a run has used this ledger; later runs report what is new"}\n',
+                encoding="utf-8",
+            )
+    except OSError:
+        pass
 
 
 def _item(verdict: DependencyVerdict, cause: dict[str, Any], event: OSSEvent | None) -> dict:
@@ -105,6 +131,7 @@ def record_new_detections(
             listed.add(mark)
             item = _item(verdict, cause, events_by_id.get(str(cause.get("event_id") or "")))
             new.append({**item, "finding_class": fact["finding_class"], "first_seen": first_seen})
+    _mark_started(ledger_root)
     return {"baseline": baseline, "new": new, "facts": len(grouped), "new_facts": new_facts}
 
 

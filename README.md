@@ -83,7 +83,7 @@ openpulse gate requirements.txt poetry.lock --base-ref origin/main   # CI, befor
 
 Only dependencies added or changed since the ref are checked; the blocklist covers everything. Exit 0 passes, 1 is a violation, 2 is a usage error or a file it cannot read. A prohibited check that could not run fails the gate unless the policy says `unchecked: pass`. The same gate runs as a pre-commit hook (add the `openpulse-gate` hook from this repository to your `.pre-commit-config.yaml`) and as the GitHub Action's `gate` input, which reads the policy from the base branch so a pull request cannot weaken its own gate. Conditions, labels and bypass routes: [docs/TRUST_POLICY.md](docs/TRUST_POLICY.md).
 
-**In GitHub Actions.** Run OpenPulse on every pull request that touches a dependency file, and weekly to catch upstream changes no pull request triggered. You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
+**In GitHub Actions.** Run OpenPulse on every pull request that touches a dependency file, and on a schedule to catch upstream changes no pull request triggered ([a scheduled watch](docs/GITHUB_ACTION.md#example-a-scheduled-watch-catches-upstream-changes-with-no-pr) tells you once about each). You get a job summary, SARIF for Code Scanning and evidence contracts. Pin the action to a full commit SHA:
 
 ```yaml
 permissions:

@@ -316,3 +316,14 @@ def test_the_action_records_only_with_a_kept_history():
     assert 'ledger=(--ledger .openpulse/detections --new-findings "$new_file")' in guarded
     assert script.count("--ledger .openpulse/detections") == 1
     assert '${ledger[@]+"${ledger[@]}"}' in script
+
+
+def test_a_run_that_finds_nothing_still_ends_the_first_run(tmp_path):
+    """A project that begins clean: its first finding later is news, not a starting point."""
+    root = tmp_path / "detections"
+    clean = record_new_detections([], [], ledger_root=root, history_key=KEY)
+    assert clean == {"baseline": True, "new": [], "facts": 0, "new_facts": 0}
+    assert not ledger_is_empty(root)
+
+    report = _record(tmp_path, [OLD])
+    assert report["baseline"] is False and report["new_facts"] == 1

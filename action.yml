@@ -189,7 +189,8 @@ outputs:
   new-findings:
     description: >-
       With `history: on`: how many detections this run recorded for the first
-      time. On a first run (history-status EMPTY) every detection is new.
+      time. On the first run with a history every detection is new, and none
+      is delivered.
     value: ${{ steps.run.outputs.new-findings }}
   new-findings-file:
     description: >-
