@@ -2651,7 +2651,13 @@ def _load_check_inputs(
             lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
         except ValueError as e:
             raise click.ClickException(f"{lockfile}: {e}")
-        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
+        label = {
+            "npm": "package-lock",
+            "poetry": "poetry.lock",
+            "cargo": "Cargo.lock",
+            "composer": "composer.lock",
+            "nuget": "packages.lock.json",
+        }.get(lock_format, lock_format)
         if lock_deps:
             _echo(
                 f"lockfile ({label}): {len(lock_deps)} pinned package(s), "

@@ -7,6 +7,8 @@ import pytest
 from core.lockfile_reader import (
     MAX_LOCKFILE_BYTES,
     load_cargo_lock_doc,
+    load_composer_lock_doc,
+    load_nuget_lock_doc,
     load_package_lock_doc,
     load_poetry_lock_doc,
     read_lockfile,
@@ -17,6 +19,8 @@ from core.schema.models import OSSEvent
 NPM_FIXTURE = "data/fixtures/lockfiles/package-lock.json"
 POETRY_FIXTURE = "data/fixtures/lockfiles/poetry.lock"
 CARGO_FIXTURE = "data/fixtures/lockfiles/Cargo.lock"
+COMPOSER_FIXTURE = "data/fixtures/lockfiles/composer.lock"
+NUGET_FIXTURE = "data/fixtures/lockfiles/packages.lock.json"
 MALFORMED_FIXTURE = "data/fixtures/lockfiles/malformed.txt"
 
 
@@ -186,6 +190,62 @@ class TestCargoReader:
         deps, skipped = load_cargo_lock_doc(doc)
         assert [d["package"] for d in deps] == ["real"]
         assert len(skipped) == 1
+
+
+class TestComposerReader:
+    def test_fixture_pins_three_packages_and_skips_unpinned(self):
+        deps, skipped, fmt = read_lockfile(COMPOSER_FIXTURE)
+        assert fmt == "composer"
+        assert deps == [
+            {
+                "kind": "package",
+                "package": "monolog/monolog",
+                "ecosystem": "Packagist",
+                "version": "2.9.1",
+            },
+            {"kind": "package", "package": "psr/log", "ecosystem": "Packagist", "version": "1.1.4"},
+            {
+                "kind": "package",
+                "package": "phpunit/phpunit",
+                "ecosystem": "Packagist",
+                "version": "9.5.20",
+            },
+        ]
+        assert len(skipped) == 1
+        assert "`unpinned/pkg`: no pinned version" in skipped[0]
+
+    def test_zero_package_composer_lock_is_valid(self):
+        deps, skipped = load_composer_lock_doc({"packages": []})
+        assert deps == [] and skipped == []
+
+    def test_invalid_composer_doc_raises_error(self):
+        with pytest.raises(ValueError, match="needs a `packages` list"):
+            load_composer_lock_doc({"invalid": True})
+
+
+class TestNuGetReader:
+    def test_fixture_pins_two_packages_and_skips_unresolved(self):
+        deps, skipped, fmt = read_lockfile(NUGET_FIXTURE)
+        assert fmt == "nuget"
+        assert deps == [
+            {
+                "kind": "package",
+                "package": "Newtonsoft.Json",
+                "ecosystem": "NuGet",
+                "version": "13.0.3",
+            },
+            {"kind": "package", "package": "Serilog", "ecosystem": "NuGet", "version": "3.1.1"},
+        ]
+        assert len(skipped) == 1
+        assert "`UnresolvedPackage` (net8.0): no resolved version" in skipped[0]
+
+    def test_zero_dependency_nuget_lock_is_valid(self):
+        deps, skipped = load_nuget_lock_doc({"version": 1, "dependencies": {}})
+        assert deps == [] and skipped == []
+
+    def test_invalid_nuget_doc_raises_error(self):
+        with pytest.raises(ValueError, match="needs an integer `version`"):
+            load_nuget_lock_doc({"dependencies": {}})
 
 
 class TestFormatDetection:
@@ -381,3 +441,127 @@ class TestCheckCliLockfile:
         out = self._run("--lockfile", POETRY_FIXTURE, "--digest")
         assert out.exit_code == 0, out.output
         assert "lockfile (poetry.lock): 2 pinned package(s), 1 skipped" in out.output
+
+
+class TestIssue153ReviewFollowUps:
+    """What the review of #343 asked for: no unverifiable digests, honest skips."""
+
+    def test_composer_and_nuget_lockfiles_yield_no_digests(self):
+        from core.lockfile_reader import lockfile_digests
+
+        # digest_integrity cannot check these ecosystems yet, so returning
+        # digests would turn every PHP/.NET package change into an unchecked
+        # gate failure. They are read for dependencies only.
+        assert lockfile_digests(COMPOSER_FIXTURE) == {}
+        assert lockfile_digests(NUGET_FIXTURE) == {}
+
+    def test_a_composer_branch_alias_is_skipped_with_its_reason(self):
+        deps, skipped = load_composer_lock_doc(
+            {
+                "packages": [
+                    {"name": "acme/lib", "version": "dev-main"},
+                    {"name": "acme/other", "version": "1.0.x-dev"},
+                    {"name": "acme/ok", "version": "1.2.3"},
+                ]
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("acme/ok", "1.2.3")]
+        assert sum("branch version" in s for s in skipped) == 2
+
+    def test_a_nuget_project_reference_is_not_a_missing_version(self):
+        deps, skipped = load_nuget_lock_doc(
+            {
+                "version": 1,
+                "dependencies": {
+                    "net8.0": {
+                        "My.Project": {"type": "Project"},
+                        "Serilog": {"type": "Direct", "resolved": "3.1.1"},
+                    }
+                },
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("Serilog", "3.1.1")]
+        assert any("project reference, not a package" in s for s in skipped)
+
+    def test_a_composer_lock_with_only_packages_dev_is_detected(self, tmp_path):
+        lock = tmp_path / "composer.lock"
+        lock.write_text(
+            json.dumps(
+                {
+                    "content-hash": "2b6dbdf3408f6dcf7f53a473f324ad72",
+                    "packages-dev": [{"name": "phpunit/phpunit", "version": "9.5.20"}],
+                }
+            )
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "composer"
+        assert [(d["package"], d["version"]) for d in deps] == [("phpunit/phpunit", "9.5.20")]
+
+
+class TestIssue153Cli(TestCheckCliLockfile):
+    def test_check_reads_a_composer_lock_end_to_end(self):
+        out = self._run(
+            "--lockfile", COMPOSER_FIXTURE, "--event", "data/fixtures/django-eol/event.json"
+        )
+
+        assert out.exit_code == 0, out.output
+        assert "lockfile (composer.lock): 3 pinned package(s), 1 skipped" in out.output
+
+
+class TestComposerDetection:
+    """A `packages` list alone is not a composer.lock."""
+
+    def test_an_spdx_document_is_not_read_as_a_composer_lock(self, tmp_path):
+        spdx = tmp_path / "sbom.spdx.json"
+        spdx.write_text(
+            json.dumps(
+                {
+                    "spdxVersion": "SPDX-2.3",
+                    "packages": [{"name": "monolog/monolog", "versionInfo": "2.9.1"}],
+                }
+            )
+        )
+
+        with pytest.raises(ValueError, match="not a recognised lockfile"):
+            read_lockfile(str(spdx))
+
+    def test_a_composer_lock_is_detected_under_another_name(self, tmp_path):
+        lock = tmp_path / "deps.json"  # wrong name on purpose
+        lock.write_text(
+            json.dumps({"hash": "abc123", "packages": [{"name": "psr/log", "version": "1.1.4"}]})
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "composer"
+        assert [(d["package"], d["version"]) for d in deps] == [("psr/log", "1.1.4")]
+
+    def test_a_nuget_lock_is_detected_under_another_name(self, tmp_path):
+        lock = tmp_path / "deps.json"  # wrong name on purpose
+        lock.write_text(
+            json.dumps(
+                {"version": 1, "dependencies": {"net8.0": {"Serilog": {"resolved": "3.1.1"}}}}
+            )
+        )
+
+        deps, skipped, fmt = read_lockfile(str(lock))
+
+        assert fmt == "nuget"
+        assert [(d["package"], d["version"]) for d in deps] == [("Serilog", "3.1.1")]
+
+    def test_a_local_path_package_is_not_a_packagist_release(self):
+        deps, skipped = load_composer_lock_doc(
+            {
+                "packages": [
+                    {"name": "acme/local", "version": "1.0.0", "dist": {"type": "path"}},
+                    {"name": "acme/ok", "version": "1.2.3", "dist": {"type": "zip"}},
+                ]
+            }
+        )
+
+        assert [(d["package"], d["version"]) for d in deps] == [("acme/ok", "1.2.3")]
+        assert skipped == ["`acme/local`: local path package, not a Packagist release"]
