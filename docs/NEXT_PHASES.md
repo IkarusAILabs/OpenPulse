@@ -384,7 +384,7 @@ No contract version change: `LICENSE_CHANGE` and `DEPRECATION` are already in ev
 
 **Exit:** a license change, an archive or ownership transition and a package deprecation are each reported from verifiable evidence, with the time OpenPulse first saw it and an evidence strength that says how it was seen; each class has a verified case or is labelled experimental.
 
-## Phase 15 — v0.21.0 "Your Dependencies, Watched" (M6; approved 2026-11-09) — ACTIVE
+## Phase 15 — v0.21.0 "Your Dependencies, Watched" (M6; approved 2026-11-09) — DONE, released 2026-11-12
 
 Goal: the v0.20.0 checks reach the dependencies people actually use, and a scheduled run remembers what it saw. Two gaps after v0.20.0: deprecation and license-change detection ran only on catalog packages (`report --with-sweep`), never on a project's own lockfile, the Action, the gate or the agent tools; and repository history needs repeated observations, but the Action kept nothing between runs, so even a weekly schedule could not see a change. This closes M6's remaining "scheduling and CI/PR integration".
 

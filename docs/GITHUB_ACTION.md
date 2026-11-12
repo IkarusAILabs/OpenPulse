@@ -102,7 +102,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@<full-commit-sha>
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           lockfile: package-lock.json
           history: 'on'
@@ -127,7 +127,7 @@ With `history: on` the action records each run's detections in the kept ledger a
 
 ```yaml
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           lockfile: package-lock.json
           history: 'on'
@@ -187,7 +187,7 @@ What to expect:
 - The log counts what was not observed: packages naming no repository, registries or GitHub that gave no answer, and repositories past the limit of 300 per run. A failure records nothing and is never read as a change.
 
 ```yaml
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           lockfile: package-lock.json
           history: 'on'
@@ -212,7 +212,7 @@ GitHub is read once per repository. The action passes `github-token` (the job to
 Each is a `warning` result under `openpulse/deprecation` or `openpulse/license-change`, with the registry page as evidence and an evidence contract like any other result. It is a `REVIEW` result, so it fails the step only with `fail-on: review` or `fail-on: affected`. A flag on one release is reported for that release only. The log says how many dependencies were read and names any whose registry gave no answer; other ecosystems are counted, not read. Off by default: an existing workflow stays offline and unchanged.
 
 ```yaml
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           lockfile: package-lock.json
           registry-changes: all
@@ -238,7 +238,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -270,7 +270,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           gate: requirements.txt poetry.lock
       # ... other steps ...
@@ -297,7 +297,7 @@ jobs:
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -329,7 +329,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.20.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
