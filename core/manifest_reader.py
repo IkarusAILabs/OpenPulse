@@ -34,6 +34,7 @@ clean error instead of pulling a parser in.
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
 
@@ -391,7 +392,7 @@ def load_pom_xml_doc(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     if _DOCTYPE_RE.search(text):
         raise ValueError("pom.xml declares a DOCTYPE - refused (POMs need no DTD)")
     try:
-        root = ET.fromstring(text)
+        root = ET.fromstring(text)  # noqa: S314 - DOCTYPE refused above, so no entities; str input, bounded size
     except ET.ParseError as e:
         raise ValueError(f"pom.xml is not parseable XML: {e}") from None
     if _local_name(root.tag) != "project":
@@ -640,9 +641,13 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
 
     `[dependencies]` / `[dev-dependencies]` / `[build-dependencies]`
     are read; path/git/workspace specs are skipped with reasons,
-    exactly like the lockfile reader's discipline. A Cargo.toml
-    with none of the three tables is refused (a manifest declaring
-    nothing) rather than read as empty.
+    exactly like the lockfile reader's discipline. A workspace root
+    (v0.18.0 S5) also has its `[workspace.dependencies]` read, and a
+    virtual manifest (`[workspace]` without `[package]`) that declares
+    no dependencies is read as empty with a note: its members and the
+    Cargo.lock beside it carry the dependencies. Any other Cargo.toml
+    with none of the tables is refused (a manifest declaring nothing)
+    rather than read as empty.
     """
     if not isinstance(doc, dict):
         raise ValueError("Cargo.toml must be a mapping")
@@ -653,8 +658,13 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
     deps: list[dict[str, Any]] = []
     skipped: list[str] = []
     saw_table = False
-    for section in ("dependencies", "dev-dependencies", "build-dependencies"):
-        table = doc.get(section)
+    workspace = doc.get("workspace") if has_workspace else {}
+    sections = [
+        (section, doc.get(section))
+        for section in ("dependencies", "dev-dependencies", "build-dependencies")
+    ]
+    sections.append(("workspace.dependencies", workspace.get("dependencies")))
+    for section, table in sections:
         if table is None:
             continue
         saw_table = True
@@ -668,6 +678,11 @@ def load_cargo_toml_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
             else:
                 deps.append(dep)
     if not saw_table:
+        if has_workspace and not has_package:
+            return deps, [
+                "virtual workspace manifest: its members' Cargo.toml files and the "
+                "Cargo.lock carry the dependencies"
+            ]
         raise ValueError(
             "Cargo.toml declares no `[dependencies]`/`[dev-dependencies]`/"
             "`[build-dependencies]` table"
@@ -690,7 +705,9 @@ def _looks_like_go_mod(text: str) -> bool:
     return False
 
 
-def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
+def read_manifest(
+    path: str, name: str | None = None
+) -> tuple[list[dict[str, Any]], list[str], str]:
     """One manifest from disk -> (dependencies, skipped, format).
 
     Format is detected from unambiguous structural markers, never
@@ -702,7 +719,12 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     with a clean error naming what was tried - never guessed. The
     read is bounded by the SBOM cap (multi-MB pom.xml/Cargo.toml
     are legitimate; the cap keeps reads bounded, not unbounded).
+
+    ``name`` is the file's real name when ``path`` is a temporary copy of
+    it (``read_manifest_from_content``): the name-specific refusals below
+    must see ``build.gradle``, not ``tmpab12cdbuild.gradle``.
     """
+    basename = (name or os.path.basename(path)).lower()
     data = read_bytes(path, MAX_MANIFEST_BYTES, "manifest")
     try:
         # utf-8-sig = utf-8 that tolerates a leading BOM: the BOM is
@@ -732,6 +754,21 @@ def read_manifest(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
                 toml_doc.get("workspace"), dict
             ):
                 return (*load_cargo_toml_doc(toml_doc), "cargo")
+    # Name-specific refusals come before the requirements fallback: a file
+    # named build.gradle must say so, even if its text happens to read like
+    # pinned requirements.
+    if basename in ("build.gradle", "build.gradle.kts"):
+        raise ValueError(
+            "Gradle build script: dependencies are resolved at build time; add gradle.lockfile"
+        )
+    if basename == "package.swift":
+        raise ValueError(
+            "Swift package manifest: dependencies are resolved at build time; add Package.resolved"
+        )
+    if basename == "composer.json":
+        raise ValueError(
+            "Composer manifest: dependencies are declared as ranges; add composer.lock"
+        )
     if _looks_like_requirements(text):
         return (*load_requirements_txt_doc(text), "requirements")
     raise ValueError(

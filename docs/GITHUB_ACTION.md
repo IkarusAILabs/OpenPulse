@@ -4,7 +4,7 @@ Runs `openpulse attest` on your dependency files in CI. It reports which upstrea
 
 - **Job summary**: a Markdown table in `$GITHUB_STEP_SUMMARY` (verdict, impact, evidence links, contract hash).
 - **SARIF 2.1.0**: a log you can upload to GitHub Code Scanning.
-- **Evidence contracts**: one schema-valid v1.2 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
+- **Evidence contracts**: one schema-valid 2.1 JSON document per dependency × event pair (see `docs/EVIDENCE_CONTRACT.md`).
 
 The action needs no install step and no secrets. It runs on Linux, macOS and Windows runners.
 
@@ -20,9 +20,20 @@ The action needs no install step and no secrets. It runs on Linux, macOS and Win
 | RELATED, AFFECTS_PROJECT, UNKNOWN | `note` | never |
 | NOT_AFFECTED | omitted (counted in the summary) | never |
 
+**Trust checks** (`trust` input, v0.14.0) are separate results under `openpulse/trust/<check>`, one per file, dependency, check and status. They are never verdicts, and the level is never a risk score:
+
+| Trust record | SARIF level |
+|---|---|
+| Prohibited by the trust policy (including a blocklisted package) | `error`, and the step fails |
+| CONFIRMED_MALICIOUS or VERIFIED_FAILURE, not prohibited | `warning` |
+| SUSPICIOUS_INCONCLUSIVE, not prohibited | `note` |
+| MISSING_EVIDENCE, VERIFIED_RELATIONSHIP, NOT_PERFORMED | omitted, unless the policy prohibits them |
+
+The job summary lists them in their own *Trust checks* table.
+
 Every result carries the evidence URLs and the `provenance.content_hash` of the contract it renders. You can recompute the hash from the contract's content.
 
-**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is not `COMPLETE`, you get a warning annotation and the SARIF carries a tool notification. Partial coverage is never reported as a pass.
+**Unknown stays unknown.** If no event applies to a dependency, the action reports it once as a `note` under `openpulse/no-applicable-evidence`. It is never dropped. If repository inspection coverage is `PARTIAL` or `FAILED`, you get a warning annotation and the SARIF carries a tool notification. Both, and the job summary's coverage line, name what was not inspected by category with counts (unsupported dependency files, files over the size limit, a truncated tree, ...), and the SARIF run properties carry them as `inspection_coverage_categories` (v0.18.0). Partial coverage is never reported as a pass. With any `fail-on` other than `none`, FAILED coverage (a repository OpenPulse could not read) fails the job.
 
 ## Inputs
 
@@ -36,13 +47,23 @@ Every result carries the evidence URLs and the `provenance.content_hash` of the 
 | `github-repo` | `${{ github.repository }}` | Used only when no path input is set: discovers dependency files through the GitHub API. It reads the **default branch**, so on `pull_request` use path inputs instead. |
 | `events` | curated set | Event JSON paths, separated by whitespace or newlines. The default is the curated events bundled with the action: Bitnami catalog, Bitnami Spark, Django 4.2 EOL and the iText license change. The other files under `data/fixtures/` are test scenarios, not defaults. |
 | `fail-on` | `action` | `affected`, `review`, `action`, `critical` or `none` |
-| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery only. It is passed as env `GITHUB_TOKEN`, never in argv, and is unset when you use path inputs. |
+| `github-token` | `${{ github.token }}` | Used for `github-repo` discovery and, with `trust: pull-request`, to read the base copies of the path inputs (needs `contents: read`). It is passed as an environment variable, never in argv, and is unset before `openpulse attest` runs with path inputs, unless `observe-repositories: on` needs it to read GitHub. |
+| `trust` | `off` | `off`, `pull-request` (dependencies a pull request adds or changes) or `all`. Live lookups; see *Trust checks and a trust policy* |
+| `registry-changes` | `off` | `off` or `all`: read npm and PyPI for each dependency's own release (live lookups); see *Registry changes of your dependencies* |
+| `observe-repositories` | `off` | `on` records the GitHub repository each npm and PyPI dependency names in the kept history and reports changes since the last run. Needs `history: on`; see *Watching the repositories of your dependencies* |
+| `policy` | (empty) | Trust policy file; empty uses `.openpulse/policy.yml` when present |
+| `gate` | (empty) | Dependency files for the pre-install gate. When set, the step runs only `openpulse gate`; see *Before install: the `gate` input* |
+| `base-sha` | the pull request's base | Base commit for `trust: pull-request` and `gate` |
 | `sarif-file` | `openpulse.sarif` | Where to write the SARIF log |
 | `contracts-file` | `openpulse-contracts.jsonl` | Where to write the evidence-contract JSONL |
 | `upload-sarif` | `false` | Upload the SARIF to Code Scanning (needs `security-events: write`) |
 | `python-version` | `3.11` | Python version that runs OpenPulse, in an isolated venv |
+| `history` | `off` | `on` keeps OpenPulse's history between runs in the Actions cache; see *Keeping history between runs* |
+| `history-key` | (empty) | The history key, from a secret (`openpulse history-key generate`). Needed with `history: on` |
+| `history-previous-keys` | (empty) | Retired history keys, one per line, from a secret (key rotation) |
+| `history-id` | `default` | Names the cached history, so jobs that watch different things keep separate ones |
 
-**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`) and `threshold-breached` (`true`/`false`).
+**Outputs:** `sarif-file`, `contracts-file`, `inspection-coverage` (`COMPLETE`/`PARTIAL`/`FAILED`, or `NOT_APPLICABLE` when the run inspected no repository) `threshold-breached` (`true` when `fail-on` or the trust policy failed the step) and `history-status` (with `history: on`: `OK` or `EMPTY`), and with `history: on` also `new-findings` (how many detections are new since the last run) and `new-findings-file` (a JSON list of them), and with `notify-webhook` or `notify-issue` also `delivery`.
 
 The action installs OpenPulse's runtime dependencies from its own checkout with `pip install --require-hashes -r requirements-runtime.lock`, so every package is hash-checked against the reviewed lock, and then OpenPulse itself with `--no-deps`. The install goes into a venv under `$RUNNER_TEMP`, and the action exports that venv's path as `OPENPULSE_BIN`.
 
@@ -54,16 +75,229 @@ Grant the least privilege you need:
 permissions:
   contents: read          # always enough for path inputs and public-repo discovery
   security-events: write  # ONLY when upload-sarif: true (or a separate upload step)
+  issues: write           # ONLY when notify-issue: on
 ```
 
 On pull requests from forks, the token is read-only and SARIF upload fails. Keep `upload-sarif: false` there and rely on the job summary.
+
+
+## Keeping history between runs (v0.21.0)
+
+A runner starts empty, so without help every run is a first run. With `history: on` the action keeps OpenPulse's history (`.openpulse/observations` and `.openpulse/detections`) in the Actions cache:
+
+1. **Restore** the newest saved history for this `history-id`.
+2. **Audit** it with `openpulse history-audit --require-keyed`, before anything else runs. The step fails, naming what and why, on a history whose chain is broken, that was rolled back or downgraded, that has a record or ledger entry not keyed with your key, or that was keyed with another key. A refused history is not used and not saved; after checking why, delete the cache entry the error names (`gh cache delete <key>`) to start a new history.
+3. **Run** as usual.
+4. **Save** the history under a new cache key, but only on the default branch, only after a passed audit, and only when there is something to save. A pull request reads the default branch's history but never writes the one scheduled runs build on.
+
+```yaml
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily 06:17 UTC (a cache unused for 7 days is evicted)
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          fail-on: none
+```
+
+Make the key once with `openpulse history-key generate` and store it as an Actions secret. The key reaches OpenPulse only as an environment variable. Output `history-status` is `OK` (a history was restored and passed) or `EMPTY` (a first run, or a cache GitHub evicted after 7 days unused: the history starts again, and nothing is backdated).
+
+What the audit cannot see: the whole history replaced by an older genuine copy of itself, such as an earlier cache entry left after the newer ones were deleted (deleting caches needs `actions: write`). Only a checkpoint kept outside the cache detects that: `openpulse anchor` and `openpulse verify --anchor` (`docs/SCHEDULED_CHECKS.md`).
+
+The history is filled by the detection ledger (*New since the last run*) and by `observe-repositories: on` (both below).
+
+## New since the last run (v0.21.0)
+
+With `history: on` the action records each run's detections in the kept ledger and says which ones it had not seen before:
+
+- The job summary gets a **New since the last run** section: a table of the new detections, "Nothing new", or on a first run "First run with this history".
+- Output `new-findings` is the number of detections recorded for the first time, and `new-findings-file` is a JSON file listing them (dependency, type, title, impact, evidence URLs), for a later step to post or file.
+- The SARIF and the contracts are unchanged: they always describe everything the run found, so Code Scanning keeps tracking each alert. Gates (`fail-on`) also cover everything, not only what is new.
+- "New" means new to this history. If the cache was evicted, the next run is a first run again; nothing is backdated.
+
+```yaml
+      - id: openpulse
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          observe-repositories: 'on'
+          fail-on: none
+      - if: steps.openpulse.outputs.new-findings != '0' && steps.openpulse.outputs.history-status == 'OK'
+        run: cat "${{ steps.openpulse.outputs.new-findings-file }}"
+```
+
+## Delivering what is new (v0.21.0)
+
+The job summary always has the *New since the last run* section. To be told without opening the run, add one or both:
+
+- `notify-issue: on` keeps **one issue** in the repository. The first new finding opens it (title "OpenPulse: new findings in your dependencies"); later ones are added as comments, so watchers are notified. If you close it, the next new finding opens another. The job needs `issues: write`.
+- `notify-webhook` posts the new findings as JSON text (`{"text": ...}`: Slack incoming webhooks and most receivers accept it). Pass the URL from a secret. With `notify-webhook-secret` (at least 32 characters) the post is signed; see *Signed posts* in [SCHEDULED_CHECKS.md](SCHEDULED_CHECKS.md).
+
+```yaml
+    permissions:
+      contents: read
+      issues: write           # ONLY for notify-issue: on
+    steps:
+      - uses: actions/checkout@<full-commit-sha>
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all
+          fail-on: none
+          notify-issue: 'on'
+          notify-webhook: ${{ secrets.OPENPULSE_WEBHOOK_URL }}
+          notify-webhook-secret: ${{ secrets.OPENPULSE_WEBHOOK_SECRET }}
+```
+
+What to expect:
+
+- Both need `history: on`; without a kept history every run would be a first run. The inputs are refused otherwise.
+- **Nothing is sent for the first run with a history**: its detections are the starting point, not news. This also holds after the cache was evicted. A first run that finds nothing still counts: the first finding after it is news.
+- **Only the default branch delivers.** A pull request's run does not save its history, so its findings would be sent again on every push. There the output `delivery` is `skipped`.
+- Output `delivery` is `delivered`, `none` (nothing new), `skipped` or `failed`.
+- **A failed delivery fails the job**, after the history is saved. The finding is in that run's job summary, and a later run does not list it again, so a failed run is the signal to look.
+- An existing issue is used only when the repository opened it: `github-actions[bot]`, or an owner, member or collaborator. Anyone can open an issue with the same title; such an issue is ignored. With a personal access token from an outside account, each delivery would open a new issue.
+- The issue is looked for among the 300 most recently created open issues.
+- Package names and titles come from upstream. In the issue they are shown as code, so an `@name` or `#123` inside them neither notifies nor links. Only http(s) evidence URLs are kept. At most 50 findings are listed per delivery; the rest are counted.
+- GitHub Enterprise Server is not supported for the issue: the token is sent to `api.github.com` only.
+
+## Watching the repositories of your dependencies (v0.21.0)
+
+`observe-repositories: on` records, for each npm and PyPI dependency, the GitHub repository its registry metadata names as its source, in the kept history (`history: on`):
+
+- **The first run is a baseline.** Nothing can have changed yet, so it reports only what a repository already is: archived, or answering under another owner than the one the package names.
+- **Later runs report what changed** between two observations: a license change, an archive, or a move to a new owner. Each is a `warning` under `openpulse/license-change`, `openpulse/project-archived` or `openpulse/ownership-change`, for every dependency that names the repository, with the repository as evidence. A change is reported once, in the run that sees it.
+- Results are `REVIEW`: they fail the step only with `fail-on: review` or `fail-on: affected`.
+- The link from package to repository is the publisher's claim, not verified here (the `repository_linkage` trust check does that).
+- The log counts what was not observed: packages naming no repository, registries or GitHub that gave no answer, and repositories past the limit of 300 per run. A failure records nothing and is never read as a change.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          observe-repositories: 'on'
+          registry-changes: all
+          fail-on: none
+```
+
+GitHub is read once per repository. The action passes `github-token` (the job token by default) to OpenPulse for this, so the reads count against the job's own rate limit instead of the anonymous one; the token is sent to `api.github.com` only. Without `observe-repositories` the token is still removed before `openpulse attest` runs on path inputs.
+
+**Run it more often than weekly.** GitHub evicts a cache entry not used for 7 days, so a weekly schedule can lose its history between runs and start again from a baseline. A daily schedule keeps it.
+
+## Registry changes of your dependencies (v0.21.0)
+
+`registry-changes: all` reads npm and PyPI for each npm and PyPI dependency's own release:
+
+- the publisher's deprecation (npm `deprecated`) of the package or of your release;
+- a yanked release (PEP 592) and a project that declares itself Inactive (PyPI);
+- license changes in the releases after yours, which an upgrade would bring.
+
+Each is a `warning` result under `openpulse/deprecation` or `openpulse/license-change`, with the registry page as evidence and an evidence contract like any other result. It is a `REVIEW` result, so it fails the step only with `fail-on: review` or `fail-on: affected`. A flag on one release is reported for that release only. The log says how many dependencies were read and names any whose registry gave no answer; other ecosystems are counted, not read. Off by default: an existing workflow stays offline and unchanged.
+
+```yaml
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          lockfile: package-lock.json
+          registry-changes: all
+          fail-on: action          # report registry changes, do not fail on them
+```
+
+## Trust checks and a trust policy (v0.14.0)
+
+Two inputs bring track T's trust checks into the job. Both are off by default, so an existing workflow stays offline and unchanged.
+
+| Input | Values | What it does |
+|---|---|---|
+| `trust` | `off` (default), `pull-request`, `all` | Trust checks with live lookups: known-malicious records, registry existence, provenance, repository linkage, lookalike names, and the reputation indicators (publisher change, moved repository, young repository with many stars). `pull-request` checks only the dependencies a pull request adds or changes, compared with the base branch's copy of `manifest` and `lockfile`. `all` checks every dependency on every run. Results are recorded in each contract's `trust_assurance` (evidence contract 2.4.0) |
+| `policy` | a path, or empty | A trust policy ([`docs/TRUST_POLICY.md`](TRUST_POLICY.md)). Empty uses `.openpulse/policy.yml` when the repository has one. A prohibited condition fails the step, even with `fail-on: none` |
+
+```yaml
+on: pull_request
+permissions:
+  contents: read          # the base copies of the dependency files
+jobs:
+  openpulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          manifest: requirements.txt
+          lockfile: poetry.lock
+          trust: pull-request
+          policy: .openpulse/policy.yml
+```
+
+How `trust: pull-request` works:
+- **Base copies:** the action reads each file's base copy (`base-sha`, by default the pull request's base commit) through the GitHub contents API with `github-token`. The token goes to that one step as an environment variable and is unset before `openpulse attest` runs.
+- **New files:** a file the pull request adds has no base copy, so all its dependencies count as added.
+- **Unreadable base:** if a base copy can't be read for any other reason, the action warns and checks **every** dependency. A failure never narrows the checks.
+- **Other events:** without a base commit (on `push` or `schedule`), trust checks are skipped with a notice. Use `trust: all` there.
+- **Blocklist:** the policy's blocklist always applies to every dependency, since it needs no lookups.
+- **Gate settings from the base branch:** the action also reads the base branch's copy of the policy (`.openpulse/policy.yml`, or the `policy` path) and of `.openpulse/private-packages.txt`, and uses them when they exist, so a pull request cannot weaken its own gate. If they can't be read, the action warns and uses the pull request's copies. Make the OpenPulse job a required status check so that removing the step blocks the merge. See *Bypass routes* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
+- **`threshold-breached`:** this output is `true` when either `fail-on` or the policy failed the step. The log names each violation (`policy: PROHIBITED <condition>: <dependency>`).
+
+## Before install: the `gate` input (v0.15.0)
+
+Put the action before the step that installs dependencies, with `gate` naming the dependency files. It then runs only [`openpulse gate`](TRUST_POLICY.md#before-install-openpulse-gate): the trust policy, with no events, contracts or SARIF. A violation fails the step, so nothing is installed:
+
+```yaml
+on: pull_request
+permissions:
+  contents: read          # the base copies and the base branch's policy
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - id: openpulse
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
+        with:
+          gate: requirements.txt poetry.lock
+      # ... other steps ...
+      - name: Install what the gate passed (verify first)
+        env:
+          RECEIPTS: ${{ steps.openpulse.outputs.receipts }}
+        run: |
+          "$OPENPULSE_BIN/openpulse" gate --verify-receipt "$RECEIPTS" \
+            --require-receipt-for 'requirements*.txt' --require-receipt-for poetry.lock
+          pip install --require-hashes -r requirements.txt
+```
+
+- **Pull requests:** each file is compared with its copy on the base commit, read through the contents API like `trust: pull-request`. A shallow checkout is enough. Only dependencies the pull request adds or changes are trust-checked. A file the pull request adds is checked in full.
+- **Unreadable base:** the action warns and checks every dependency in that file. A failure never narrows the checks.
+- **Settings from the base branch:** the policy (`.openpulse/policy.yml`, or a repository-relative `policy` path) and `.openpulse/private-packages.txt` come from the base branch when it has them. A pull request that weakens or deletes its policy is still gated by the base branch's.
+- **Other events:** without a base commit (`push`, `schedule`), every dependency is checked.
+- **Isolation:** OpenPulse runs in its own virtual environment, installed from its hash-locked runtime set, so the gate itself installs none of your dependencies. The job token reads the base files only and is removed before the trust lookups.
+- **Outputs:** `threshold-breached` is `true` on a violation. `receipts` is the directory of gate receipts, one per gated file (v0.17.0 item G2). `sarif-file`, `contracts-file` and `inspection-coverage` are empty, and `upload-sarif` is ignored.
+- **Verify before install:** the gate judges the files as they are when it runs. Run `openpulse gate --verify-receipt` on the `receipts` directory and the same files in the step that installs, so a file a later step changed is refused (exit 1) instead of installed. `--require-receipt-for` adds every existing file matching a pattern, so a dependency file a build step generated after the gate is refused too (v0.17.0 item G4). If the build generates a lockfile, put the action after that step. The action's virtual environment stays on `$OPENPULSE_BIN` for the rest of the job. See *Verify before install* in [`docs/TRUST_POLICY.md`](TRUST_POLICY.md).
+- **Without a policy** the gate passes and says so.
 
 ## Pinning
 
 Pin the action to a full commit SHA, as `.github/workflows/ci.yml` does for every action it uses:
 
 ```yaml
-- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
+- uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
 ```
 
 The action pins its own dependencies by SHA too: `actions/setup-python` and `github/codeql-action/upload-sarif`.
@@ -95,7 +329,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
-      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
+      - uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
           manifest: requirements.txt
           lockfile: poetry.lock
@@ -103,44 +337,73 @@ jobs:
           upload-sarif: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
 ```
 
-## Example: weekly schedule (catches upstream changes with no PR)
+## Example: a scheduled watch (catches upstream changes with no PR)
 
-Upstream changes happen whether or not you touch your dependencies. A scheduled run catches them.
+Upstream changes happen whether or not you touch your dependencies: a publisher deprecates the release you locked, a repository is archived, a license changes. A scheduled run with a kept history catches them and tells you once.
+
+One-time setup:
+
+1. Make a history key: `openpulse history-key generate` (it prints the key and writes no file).
+2. Store it as the Actions secret `OPENPULSE_HISTORY_KEY`.
 
 ```yaml
-name: openpulse-weekly
+name: openpulse-watch
 on:
   schedule:
-    - cron: '17 6 * * 1'   # Mondays 06:17 UTC
+    - cron: '17 6 * * *'   # daily 06:17 UTC
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  openpulse:
+  watch:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
+      issues: write            # for notify-issue
+      security-events: write   # for upload-sarif
     steps:
-      # With no path inputs, the action discovers dependency files on the
-      # default branch through the GitHub API. The checkout is only there
-      # so the SARIF upload can resolve the commit and file paths.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - id: openpulse
-        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.8.0
+        uses: IkarusAILabs/OpenPulse@<full-commit-sha> # v0.21.0
         with:
+          lockfile: package-lock.json
+          history: 'on'
+          history-key: ${{ secrets.OPENPULSE_HISTORY_KEY }}
+          registry-changes: all         # deprecated, yanked, relicensed releases
+          observe-repositories: 'on'    # archived, moved, relicensed repositories
+          notify-issue: 'on'            # one issue, a comment per run with news
           upload-sarif: 'true'
-          fail-on: none            # report, do not fail the scheduled run
+          fail-on: none                 # report, do not fail the scheduled run
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openpulse-contracts
           path: ${{ steps.openpulse.outputs.contracts-file }}
 ```
 
+What each run does:
+
+| Run | What you see |
+|---|---|
+| The first | Everything found is recorded as the starting point. The job summary says "First run with this history". Nothing is delivered. |
+| A run with nothing new | The summary says "Nothing new". Nothing is delivered. Code Scanning still shows every finding that holds. |
+| A run after an upstream change | The summary lists the new finding, and it is added to the issue. Later runs do not list it again. |
+
+Choices to make:
+
+- **Daily, or at least twice a week.** GitHub evicts a cache that was not used for 7 days. A weekly run sits on that limit, and after an eviction the next run is a first run again: it reports nothing as new. Daily runs are cheap, because a run with nothing new delivers nothing.
+- **Without `lockfile`** (or another path input) the action discovers dependency files on the default branch through the GitHub API, as before.
+- **A webhook instead of, or with, the issue:** `notify-webhook` and `notify-webhook-secret` (*Delivering what is new*, above).
+- **`fail-on: none`** keeps a scheduled run green; delivery is what tells you. A failed delivery still fails the run.
+- **Lead times** for end-of-life events need the keyed history too; they come from the same ledger.
+
+The two halves of this example are tested end to end over recorded registry responses (`tests/test_scheduled_watch_e2e.py`): a deprecation and an archive between two runs are reported exactly once.
+
 ## Limits (current)
 
 - The gate counts ACTION/CRITICAL causes. Phase C3 asks for causes *backed by keyed-valid evidence*, which depends on keyed integrity (Phase B3), and that has not shipped yet. Until it does, the gate trusts the event's evidence as `attest` validates it today.
 - Results are anchored to the input file, not to a line. Code Scanning shows them at file level.
 - Image refs can produce `note` (RELATED) results for events scoped to packages: the engine cannot compare them, so it says so instead of guessing.
+- Gate receipts are not signed: they prove, within one job, that the files installed are the ones the gate passed. Verify them in the same job that wrote them (the `receipts` output), never from an artifact a pull request controls.
+- `--verify-receipt` checks the files it is given and those its `--require-receipt-for` patterns match. An install command that rewrites its lockfile while installing (`npm install`, not `npm ci`) changes it after the check.
 - Not published to the GitHub Marketplace yet. That needs a tagged release.

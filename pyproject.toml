@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ikarus-openpulse"
-version = "0.8.0"
+version = "0.21.0"
 description = "OpenPulse - research software for evidence-based dependency decisions (Ikarus AI Labs)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,13 +36,16 @@ packages = [
 package-dir = {"openpulse_data" = "data", "openpulse_schemas" = "schemas"}
 
 [tool.setuptools.package-data]
-openpulse_data = ["*.yaml", "fixtures/*/event.json"]
+openpulse_data = ["*.yaml", "fixtures/*/event.json", "reference/*.json"]
 openpulse_schemas = ["evidence-contract/*/schema.json"]
 
 [project.optional-dependencies]
 dev = ["pytest>=9.1.1", "ruff>=0.17.1"]
 # MCP server for AI coding agents (`openpulse mcp`); pins in requirements-mcp.lock.
 mcp = ["mcp>=2.3.0"]
+# PyPI provenance verification (track T, T-B1); pins in requirements-provenance.lock.
+# Python 3.11+, like mcp: sigstore's README and its metadata disagree on 3.10.
+provenance = ["pypi-attestations>=0.0.30; python_version >= '3.11'"]
 
 [project.scripts]
 openpulse = "cli.main:cli"
@@ -51,8 +54,15 @@ openpulse = "cli.main:cli"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "S"]
 ignore = ["SIM115", "SIM102", "BLE001"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: pytest asserts (S101), fixed-argv git/python/node subprocesses
+# (S603, S607) and placeholder tokens such as token="t" (S105, S106).
+# Everywhere else an S finding is fixed or carries a per-line reason.
+"tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+"**/test_*.py" = ["S101", "S105", "S106", "S603", "S607"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

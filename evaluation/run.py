@@ -51,7 +51,11 @@ LABELS = (metrics.IN, metrics.OUT, metrics.UNDET)
 def _commit() -> str | None:
     try:
         out = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
+            ["git", "rev-parse", "HEAD"],  # noqa: S607 - fixed git argv; git from PATH, as the user runs it
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
         )
     except (OSError, subprocess.CalledProcessError):
         return None

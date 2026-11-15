@@ -62,6 +62,75 @@ from core.verdict_meaning import scope_completeness, verdict_meaning
 #: semantics and is therefore a 2.0.0 change under the versioning policy.
 CONTRACT_VERSION = "1.2.0"
 
+#: 2.0.0 (v0.9.0, B7): the same shape as 1.2 plus
+#: ``provenance.content_hash_method``; ``content_hash`` is SHA-256 over the
+#: RFC 8785 (JCS) form of the whole document, so any consumer with a JCS
+#: library recomputes it. Breaking under the versioning policy because the
+#: hash computation changes. ``openpulse attest`` emits 2.0.0; the 1.x
+#: builder stays as it was (the frozen evaluation uses it).
+CONTRACT_V2_VERSION = "2.0.0"
+CONTENT_HASH_METHOD = "jcs-sha256"
+
+#: 2.1.0 (v0.10.0, V3, #109): additive. ``inspection_coverage.status`` may
+#: be NOT_APPLICABLE: the run inspected no repository, so a watchlist,
+#: SBOM, lockfile, manifest or image verdict no longer claims COMPLETE
+#: coverage of a scan that never happened. Hash and shape are 2.0's.
+#: ``openpulse attest`` emits 2.1.0.
+CONTRACT_V2_1_VERSION = "2.1.0"
+COVERAGE_NOT_APPLICABLE = "NOT_APPLICABLE"
+
+#: 2.2.0 (v0.13.0, X5, track T T-F2): additive. A required top-level
+#: ``trust_assurance``: null when the run did not check trust, otherwise the
+#: dependency's track T records in a fixed shape (check, T-F1 status, fixed
+#: statement, checked_at, reference URIs) with a per-status summary and
+#: ``used_in_verdict: false``. Hash and the rest of the shape are 2.1's.
+#: ``openpulse attest`` emitted 2.2.0 in v0.13-v0.15.
+CONTRACT_V2_2_VERSION = "2.2.0"
+
+#: 2.3.0 (v0.16.0, Q5, track T T-C): additive. ``trust_assurance.checks[].check``
+#: may also name the reputation indicators ``publisher_change``,
+#: ``repository_moved`` and ``young_popular_repository``. Hash and the rest of
+#: the shape are 2.2's; the 2.2 schema is published unchanged beside it.
+#: ``openpulse attest`` emitted 2.3.0 in v0.16-v0.17.
+CONTRACT_V2_3_VERSION = "2.3.0"
+
+#: 2.4.0 (v0.18.0, S3): additive. A required ``inspection_coverage.scope``:
+#: what the repository inspection searched (ref and commit, file patterns,
+#: skipped directories with counts, the limits and which applied, files
+#: found and read), or null when no repository was inspected. Hash and the
+#: rest of the shape are 2.3's; the 2.3 schema is published unchanged
+#: beside it. ``openpulse attest`` emits 2.4.0.
+CONTRACT_V2_4_VERSION = "2.4.0"
+TRUST_CHECKS_2_2 = (
+    "malicious",
+    "registry_existence",
+    "provenance",
+    "repository_linkage",
+    "dependency_confusion",
+    "lookalike",
+)
+TRUST_CHECKS = (
+    *TRUST_CHECKS_2_2,
+    "publisher_change",
+    "repository_moved",
+    "young_popular_repository",
+)
+TRUST_STATUSES = (
+    "CONFIRMED_MALICIOUS",
+    "VERIFIED_FAILURE",
+    "SUSPICIOUS_INCONCLUSIVE",
+    "MISSING_EVIDENCE",
+    "VERIFIED_RELATIONSHIP",
+    "NOT_PERFORMED",
+)
+MAX_TRUST_STATEMENT = 500
+MAX_TRUST_REFERENCES = 10
+
+#: Fields outside the v2 content hash: the hash itself, the build time,
+#: and the signature family a later signature will cover.
+_V2_UNHASHED_TOP = ("signature", "signing_key_id", "trust_root")
+_V2_UNHASHED_PROVENANCE = ("content_hash", "generation_timestamp")
+
 #: The current JSON Schema, shipped with the repo, published BESIDE the
 #: untouched older minors (``v1/`` is 1.0, ``v1.1/`` is 1.1): older
 #: documents keep validating against their own schema. Loaded lazily so
@@ -70,6 +139,11 @@ _SCHEMA_ROOT = schema_path("evidence-contract")  # checkout or installed wheel
 SCHEMA_PATH = _SCHEMA_ROOT / "v1.2" / "schema.json"
 SCHEMA_V1_1_PATH = _SCHEMA_ROOT / "v1.1" / "schema.json"
 SCHEMA_V1_0_PATH = _SCHEMA_ROOT / "v1" / "schema.json"
+SCHEMA_V2_PATH = _SCHEMA_ROOT / "v2" / "schema.json"
+SCHEMA_V2_1_PATH = _SCHEMA_ROOT / "v2.1" / "schema.json"
+SCHEMA_V2_2_PATH = _SCHEMA_ROOT / "v2.2" / "schema.json"
+SCHEMA_V2_3_PATH = _SCHEMA_ROOT / "v2.3" / "schema.json"
+SCHEMA_V2_4_PATH = _SCHEMA_ROOT / "v2.4" / "schema.json"
 
 #: v1 outward block names for the #60 inward ones. The builder is a
 #: rename layer; every value path is shared with core.attestation.
@@ -89,6 +163,31 @@ def contract_version() -> str:
 def load_schema() -> dict[str, Any]:
     """The v1.2 JSON Schema (current builder output), parsed."""
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_3_schema() -> dict[str, Any]:
+    """The 2.3 schema (``openpulse attest`` output in v0.16-v0.17)."""
+    return json.loads(SCHEMA_V2_3_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_4_schema() -> dict[str, Any]:
+    """The 2.4 schema (``openpulse attest`` output)."""
+    return json.loads(SCHEMA_V2_4_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_2_schema() -> dict[str, Any]:
+    """The 2.2 schema (``openpulse attest`` output in v0.13-v0.15)."""
+    return json.loads(SCHEMA_V2_2_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_1_schema() -> dict[str, Any]:
+    """The 2.1 schema (``openpulse attest`` output up to v0.12)."""
+    return json.loads(SCHEMA_V2_1_PATH.read_text(encoding="utf-8"))
+
+
+def load_v2_schema() -> dict[str, Any]:
+    """The 2.0 schema (``openpulse attest`` output in v0.9)."""
+    return json.loads(SCHEMA_V2_PATH.read_text(encoding="utf-8"))
 
 
 def load_v1_1_schema() -> dict[str, Any]:
@@ -183,7 +282,7 @@ def _rename_blocks(base: EvidenceContract) -> dict[str, Any]:
 #: the planned (always-null) signature family, with the two
 #: clock/hash-dependent provenance values pinned during hashing so
 #: the digest is a function of the evidence content only.
-_V1_BODY_FIELDS = (
+_V1_0_BODY_FIELDS = (
     "contract_version",
     "event_context",
     "identity",
@@ -195,18 +294,24 @@ _V1_BODY_FIELDS = (
     "unknowns",
     "recommendation",
     "provenance",
-    "inspection_coverage",
 )
+
+#: 1.1 added inspection_coverage and hashes it.
+_V1_BODY_FIELDS = (*_V1_0_BODY_FIELDS, "inspection_coverage")
 
 #: 1.2 hashes its additive blocks too, with the same computation.
 _V1_2_BODY_FIELDS = (*_V1_BODY_FIELDS, "verdict_meaning", "evaluation_context")
+
+#: The fields each 1.x version's hash covers, by contract_version.
+_V1_HASHED = {"1.0.0": _V1_0_BODY_FIELDS, "1.1.0": _V1_BODY_FIELDS, "1.2.0": _V1_2_BODY_FIELDS}
 
 
 def _hash_body(doc: dict[str, Any]) -> str:
     """Digest over the v1 body with content_hash and the generation
     timestamp pinned: same logical content -> same hash, always.
-    The covered fields follow the document's own contract_version."""
-    fields = _V1_2_BODY_FIELDS if doc.get("contract_version") == "1.2.0" else _V1_BODY_FIELDS
+    The covered fields follow the document's own contract_version: a 1.0
+    document hashes the 1.0 fields (it has no inspection_coverage)."""
+    fields = _V1_HASHED.get(str(doc.get("contract_version")), _V1_BODY_FIELDS)
     body: dict[str, Any] = {name: doc[name] for name in fields}
     body["provenance"] = dict(body["provenance"])
     body["provenance"]["content_hash"] = attestation._HASH_PLACEHOLDER
@@ -225,6 +330,150 @@ def verify_v1_content_hash(doc: dict[str, Any]) -> bool:
         return _hash_body(doc) == doc["provenance"]["content_hash"]
     except (KeyError, TypeError):
         return False
+
+
+# ---------------------------------------------------------------------------
+# Contract 2.0.0 (B7): JCS content hash
+# ---------------------------------------------------------------------------
+
+
+def build_contract(
+    event: OSSEvent,
+    verdict: Any,
+    finding: dict[str, Any] | None = None,
+    inspection_coverage: dict[str, Any] | None = None,
+    *,
+    as_of: datetime | None = None,
+    max_evidence_age: timedelta | None = None,
+    trust_assurance: dict[str, Any] | None = None,
+    inspection_scope: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """(event, verdict[, finding]) -> one schema-valid 2.4.0 document.
+
+    The 1.2 document (``build_v1_contract``, same arguments), restamped
+    2.4.0, with ``provenance.content_hash_method`` and a JCS content hash.
+    Pass ``inspection_coverage={"status": "NOT_APPLICABLE", "reasons": []}``
+    when the run inspected no repository (2.1), ``trust_assurance``
+    from :func:`trust_assurance_block` when the run checked trust (2.2;
+    null otherwise; 2.3 adds the reputation check names), and
+    ``inspection_scope`` (``RepoInspection.scope``) when it inspected a
+    repository (2.4; null otherwise). Every other value is the 1.2 builder's.
+    """
+    doc = build_v1_contract(
+        event,
+        verdict,
+        finding,
+        inspection_coverage,
+        as_of=as_of,
+        max_evidence_age=max_evidence_age,
+    )
+    doc["contract_version"] = CONTRACT_V2_4_VERSION
+    doc["provenance"]["contract_version"] = CONTRACT_V2_4_VERSION
+    doc["inspection_coverage"] = {**doc["inspection_coverage"], "scope": inspection_scope}
+    doc["trust_assurance"] = trust_assurance
+    doc["provenance"]["content_hash_method"] = CONTENT_HASH_METHOD
+    doc["provenance"]["content_hash"] = v2_content_hash(doc)
+    return doc
+
+
+def trust_assurance_block(checks: dict[str, Any]) -> dict[str, Any]:
+    """Track T records (``core.agent_tools.trust_checks``) -> the 2.3 block.
+
+    Only the fixed fields cross into the contract: check, T-F1 status, the
+    fixed-template statement (capped), ``checked_at`` and reference URIs
+    taken from validated evidence. Free-form evidence stays out, so the
+    public shape does not move with each check's internals.
+    """
+    records: list[dict[str, Any]] = []
+    for check in TRUST_CHECKS:
+        found = checks.get(check)
+        if found is None:
+            continue
+        for record in found if isinstance(found, list) else [found]:
+            checked_at = record.get("checked_at")
+            records.append(
+                {
+                    "check": check,
+                    "status": record["status"],
+                    "statement": str(record["statement"])[:MAX_TRUST_STATEMENT],
+                    "checked_at": checked_at if _is_datetime(str(checked_at or "")) else None,
+                    "references": _trust_references(record),
+                }
+            )
+    summary = dict.fromkeys(TRUST_STATUSES, 0)
+    for record in records:
+        summary[record["status"]] += 1
+    return {"checks": records, "summary": summary, "used_in_verdict": False}
+
+
+def _trust_references(record: dict[str, Any]) -> list[str]:
+    """https URIs a record cites: its source, OSV records, the claimed repository."""
+    evidence = record.get("evidence") or {}
+    candidates = [
+        record.get("source"),
+        evidence.get("source"),
+        evidence.get("url"),
+        *(r.get("url") for r in evidence.get("records") or [] if isinstance(r, dict)),
+    ]
+    found: list[str] = []
+    for value in candidates:
+        if isinstance(value, str) and value.startswith("https://") and _is_uri(value):
+            if value not in found:
+                found.append(value)
+    return found[:MAX_TRUST_REFERENCES]
+
+
+def v2_content_hash(doc: dict[str, Any]) -> str:
+    """SHA-256 over the JCS form of the document minus the unhashed fields.
+
+    Recompute it anywhere: drop ``signature``, ``signing_key_id`` and
+    ``trust_root``, drop ``provenance.content_hash`` and
+    ``provenance.generation_timestamp``, canonicalize with RFC 8785, hash.
+    """
+    import hashlib
+
+    from core.jcs import canonicalize
+
+    body = {k: v for k, v in doc.items() if k not in _V2_UNHASHED_TOP}
+    body["provenance"] = {
+        k: v for k, v in dict(doc["provenance"]).items() if k not in _V2_UNHASHED_PROVENANCE
+    }
+    return "sha256:" + hashlib.sha256(canonicalize(body)).hexdigest()
+
+
+def verify_content_hash(doc: dict[str, Any]) -> bool:
+    """True when ``provenance.content_hash`` recomputes, for any contract version.
+
+    2.x uses the JCS hash (``content_hash_method`` must say so); 1.x the
+    original computation (``verify_v1_content_hash``).
+    """
+    try:
+        if str(doc.get("contract_version", "")).startswith("2."):
+            if doc["provenance"].get("content_hash_method") != CONTENT_HASH_METHOD:
+                return False
+            return v2_content_hash(doc) == doc["provenance"]["content_hash"]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+    return verify_v1_content_hash(doc)
+
+
+def validate_contract(doc: Any) -> list[str]:
+    """Validate against the schema of the document's own contract_version."""
+    loaders = {
+        CONTRACT_V2_4_VERSION: load_v2_4_schema,
+        CONTRACT_V2_3_VERSION: load_v2_3_schema,
+        CONTRACT_V2_2_VERSION: load_v2_2_schema,
+        CONTRACT_V2_1_VERSION: load_v2_1_schema,
+        CONTRACT_V2_VERSION: load_v2_schema,
+        "1.2.0": load_schema,
+        "1.1.0": load_v1_1_schema,
+        "1.0.0": load_v1_0_schema,
+    }
+    version = doc.get("contract_version") if isinstance(doc, dict) else None
+    loader = loaders.get(str(version))
+    if loader is None:
+        return [f"$.contract_version: unsupported contract_version {version!r}"]
+    return validate_v1_contract(doc, loader())
 
 
 # ---------------------------------------------------------------------------

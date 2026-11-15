@@ -10,7 +10,7 @@
 
 Use this framing without claiming that the combined model is already proven. The combined assurance experiment is hypothesised, not established.
 
-Status (2026-10-31): track T, AI Dependency Trust Assurance, is added as a planned, separate future study (see below). It changes neither track R nor R's precedence. Status (2026-10-30): research track R (below) takes precedence until the TR-2026-01 journal submission. Earlier status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
+Status (2026-11-02): track T is being implemented release by release (v0.12.0 to v0.21.0 released); see the track T section and `docs/NEXT_PHASES.md`. Status (2026-11-01): **product development continues alongside track R** (owner decision; see "Amendment 2026-11-01" below). v0.9.0 "Anchored Trust" and v0.10.0 "Verified Releases & Safe Gates" are released; M6 is no longer paused. Status (2026-10-31): track T, AI Dependency Trust Assurance, is added as a planned, separate future study (see below). It changes neither track R nor R's precedence. Status (2026-10-30): research track R (below) takes precedence until the TR-2026-01 journal submission. Earlier status (2026-10-28): v0.7.0 "Channels" released (MCP server for AI coding agents, DefectDojo export, Dependency-Track upload, release-line verdict fix #133, install name `ikarus-openpulse`); v0.7.1 adds collector response caps (#155) and hash-locked installs (#156); Phase A correctness and leak fixes merged (#112, #113, #115–#120); intelligence schema 0.5.0, evidence contract v1.1, CI on Linux + Windows, deterministic SBOM archived. Test count is reported by CI. Next phases: `docs/NEXT_PHASES.md`. This reset supersedes the 2026-10-02 M1–M8 sequence: the milestones below re-baseline it against implementation reality and the research programme, they do not discard it.
 
 Status words used in this document: DONE, ACTIVE, VALIDATION, NEXT, FUTURE, RESEARCH, PAUSED. Research claims are additionally qualified as observed, implemented, validated, hypothesised, or planned — hypotheses are never described as established capabilities.
 
@@ -20,7 +20,9 @@ An external recommendation on TR-2026-01 (assessment: `papers/tr-2026-01/RECOMME
 
 - Target: "Level 2", an empirically strengthened manuscript. It needs a precise contribution, independent validation, labelled historical cases and a comparative evaluation. Level 3 (multiple ecosystems, longitudinal and practitioner studies) is not a prerequisite.
 - TR-2026-01 itself may be published now as a technical report, with its claims as they stand. The journal version waits for R-C.
-- Rule for R: build only what an experiment needs. Every R item names the research question it serves. Product features that serve no R question wait.
+- Rule for R: build only what an experiment needs. Every R item names the research question it serves.
+
+**Amendment 2026-11-01 (owner decision): product development is not frozen for the paper.** Track R stays the research priority, but product features no longer wait for the journal submission; they are planned on their own merits, release by release. One guardrail stays: product work never changes the frozen evaluation (`evaluation/`, `build_v1_contract`, the freeze tags) or the verdict semantics the registered study depends on without an explicit owner decision. The table below records what this un-pauses.
 
 ### R-A — Research design (contribution and protocol)
 STATUS: ACTIVE
@@ -100,13 +102,13 @@ STATUS: FUTURE (after R-C)
 
 | Work | Disposition | Reason |
 |---|---|---|
-| M6 hosted surfaces, dashboards, notifications, delivery state | PAUSED | Product maturity is not evidence. Resume after R-D. |
+| M6 hosted surfaces, dashboards, notifications, delivery state | UN-PAUSED 2026-11-01 (was PAUSED) | Product maturity is not evidence, so M6 never feeds the paper's claims; it now proceeds alongside R (amendment above). |
 | M7 Intelligence Network | FUTURE (unchanged) | |
 | M9, and SafeAI integration in this paper | DEFERRED | It widens scope and complicates attribution. It stays a separate future study. |
-| v0.9.0 Anchored Trust (keyed history, external anchoring) | NEXT after R-C | Needed for lead-time claims. The applicability evaluation does not rest on them. The paper keeps lead times as caveated observations. |
+| v0.9.0 Anchored Trust (keyed history, external anchoring) | DONE 2026-11-01 (released ahead of R-C) | Needed for lead-time claims. The applicability evaluation does not rest on them, and the frozen evaluation is unchanged. The paper keeps lead times as caveated observations. |
 | E1–E5 external developments | E5 (comparator runs) folded into R-C3; E1–E4 LATER | |
-| Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue only where they fix a false clear or false impact | |
-| Track T, AI Dependency Trust Assurance (added 2026-10-31) | FUTURE: Phase 0 (docs only) may run now; code waits | It is a separate study, outside the TR-2026-01 registration (§13: discovery and the agent interface are outside the study). It must not change verdicts or the frozen evaluation. |
+| Security-review items (Phase B in `docs/NEXT_PHASES.md`) | Continue (since 2026-11-01, no longer limited to false clears and false impacts) | |
+| Track T, AI Dependency Trust Assurance (added 2026-10-31) | Phase 0 (design) first; code may follow without waiting for the submission (2026-11-01) | It is a separate study, outside the TR-2026-01 registration (§13: discovery and the agent interface are outside the study). It must not change verdicts or the frozen evaluation. |
 
 ## Product thesis (kept)
 
@@ -196,7 +198,7 @@ The evidence foundation. Existing architecture is strong; do not expand it witho
 - identity trust (VERIFIED / REVIEW_REQUIRED / UNVERIFIED)
 - version applicability, explicit NOT_AFFECTED
 - confidence model with match strength vs evidence strength separated
-- registry observations, corruption-detecting (unkeyed hash-chained) observation history - keyed integrity and rollback detection are the v0.9.0 "Anchored Trust" work, the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
+- registry observations, tamper-evident (keyed) observation history since v0.9.0 "Anchored Trust" (corruption-detecting without a history key) - the one M1 expansion with a concrete requirement (lead-time claims rest on this history)
 - first-detection semantics, deterministic reports
 - security hardening (SSRF policy, redaction, lock-drift check, secret tripwire)
 
@@ -237,7 +239,7 @@ ACTION
 Shipped: YAML watchlists, CycloneDX + SPDX SBOM input (`core/sbom_reader.py`), container image inventories (`core/image_inventory.py`), lockfile input - package-lock.json/poetry.lock/Cargo.lock (`core/lockfile_reader.py`), package manifests - requirements.txt/pyproject.toml/pom.xml/go.mod/Cargo.toml (`core/manifest_reader.py`), and GitHub repository input (`core/github_reader.py`). All inputs converge on the same canonical identity and applicability semantics — never a second matching engine, never generic SCA coverage-chasing. GitHub inspection is bounded, commit-pinned, and reports partial/unsupported coverage rather than treating absence as proof of no dependencies.
 
 ## M6 — Early Warning
-STATUS: PAUSED 2026-10-30 for track R (was ACTIVE / OPERATIONALIZATION)
+STATUS: NEXT (un-paused 2026-11-01; paused 2026-10-30 for track R; was ACTIVE / OPERATIONALIZATION)
 
 Continuous monitoring, alerts, digests, dashboards, warning deadlines, first-detection history, event timeline, CI/PR checks. Implemented foundation: durable per-entity first-detection ledger (`core/detections/ledger.py`), lead time defined as `effective_date − first_trustworthy_detection`, never estimated, never averaged for marketing; alert digest (`core/digest.py`) and ranked warning deadlines with severity bands (`core/warnings.py`), plus replayable lead-time case studies (`docs/LEAD_TIME_CASES.md`). Research question stays: “What is changing in MY software?”
 
@@ -308,7 +310,7 @@ Checked against recent research and open-source tools. Items are adopted only wh
 Considered and not adopted: dependency-discovery benchmarking (inventory generation is Syft's and the SBOM producer's job; OpenPulse consumes inventories); vulnerability-feed accuracy and freshness as a product metric (a property of OSV and NVD, not a differentiator — temporal coverage stays the P0 audit item); a reachability or call-graph engine (generic SCA); malicious-package detection. Track T below keeps that decision: it cites confirmed-malicious records published by others and reports transparent indicators, but it does not detect malware.
 
 ## Track T — AI Dependency Trust Assurance: Know Why You Trust Your Dependencies
-STATUS: FUTURE (planned 2026-10-31; a separate future study; nothing in this section is implemented)
+STATUS: ACTIVE (planned 2026-10-31 as a separate future study; since implemented in phases: registry existence, provenance, lookalike names and lockfile digests in v0.12.0, malicious records, dependency confusion, repository linkage and contract 2.2.0 in v0.13.0, trust policy and measurements in v0.14.0, pre-install gates in v0.15.0, reputation indicators and contract 2.3.0 in v0.16.0. See `CHANGELOG.md` and `docs/NEXT_PHASES.md`. The study's research questions remain open.)
 
 **The question.** When a person or a coding agent is about to add a dependency, what evidence shows that:
 
@@ -320,7 +322,7 @@ And which of these did nobody check at all?
 
 Track T extends layers 2 (evidence), 3 (identity) and 9 (AI-mediated change). It is planned as its own study, with its own design, registration and evaluation.
 
-**Relationship to track R.** Track T does not touch track R. It is not part of the TR-2026-01 registration: the registration's §13 already lists discovery and the agent interface as outside that study. It does not change R's hypotheses, thresholds, population, scope or precedence. R stays first until the journal submission. Until then, track T is limited to Phase 0 below, which is design and desk research only.
+**Relationship to track R.** Track T does not touch track R. It is not part of the TR-2026-01 registration: the registration's §13 already lists discovery and the agent interface as outside that study. It does not change R's hypotheses, thresholds, population, scope or precedence. Since 2026-11-01, product work no longer waits for the journal submission: track T starts with Phase 0 below, which is design and desk research only.
 
 Three rules apply to later T code:
 
@@ -341,14 +343,16 @@ Track T does **not** make OpenPulse any of the following:
 
 There is no composite score and no SAFE status. Every statement names the check that produced it, its source and when it ran. Principle 12 holds: no model sits in the trusted decision path, and no model sits in the enforcement path either.
 
-### Available today vs planned (verified against `main` @ `f16c8aa`)
+### Baseline when track T was planned (verified against `main` @ `f16c8aa`, 2026-10-31)
+
+This table is the starting point the plan was written against, kept as a record. It is not the current state: most of the "Planned" column has since been implemented (see the STATUS line above).
 
 | Capability | Today | Planned in track T |
 |---|---|---|
 | Package identity | Curated catalog with per-ecosystem `packages` and VERIFIED / REVIEW_REQUIRED / UNVERIFIED status (`core/entities/identity.py`, `core/entities/catalog.py`). An uncatalogued package is unresolved, not cleared (F1–F4). | Registry existence (T-A1), lookalike indicators (T-A2), dependency confusion (T-A3), repository linkage (T-A4) |
 | Registry facts | Docker Hub only (`collectors/registries/docker.py`). Attestation and signature tags are excluded from observations, not verified. No PyPI or npm registry collector exists. | PyPI and npm registry metadata, for T-A and T-B only |
 | Artifact provenance | None. Signature fields in the evidence contract are always `null`. OpenPulse's own release signing (`docs/NEXT_PHASES.md` D2) is a separate item about OpenPulse's own supply chain. | Verification of PyPI (PEP 740) and npm attestations, and lockfile digests (T-B) |
-| Malicious-package records | Not distinguished. OSV is queried only for catalogued packages, and an OSV `MAL-` record would be counted as an ordinary advisory. | A CONFIRMED_MALICIOUS status that cites the record (T-F1). Detection stays out of scope. |
+| Malicious-package records | Since v0.13.0 (X1): OSV `MAL-` records are asked for any PyPI or npm name and give CONFIRMED_MALICIOUS with the record cited, in the MCP `trust` block and contract 2.2.0. Catalogued advisories still count a `MAL-` record as an ordinary advisory. | A CONFIRMED_MALICIOUS status that cites the record (T-F1). Detection stays out of scope. |
 | Reputation | GitHub repository metadata (archived flag, last push, license), shown as context and never used in the verdict | Transparent indicators (T-C) |
 | Agent interface | `dependency_status`, `check_dependency_file` and `project_lifecycle`: read-only, confined to the server root, with a freshness bound (PR #200), `verdict.meaning` and `not_established` (`core/agent_tools.py`, `docs/MCP.md`) | An additive trust-evidence block in the same tools (T-D) |
 | Enforcement | `openpulse check --fail-on` / `--fail-on-partial` and the GitHub Action. They gate on lifecycle and applicability verdicts only, after resolution, not before installation. | Policy conditions on trust statuses, then pre-installation controls (T-E) |
@@ -357,20 +361,20 @@ There is no composite score and no SAFE status. Every statement names the check 
 
 ### Initial threat model
 
-The table separates two things: whether a technique has been **demonstrated** (incidents or published research), and whether its **prevalence** has been measured. Prevalence among agent-selected dependencies is unmeasured for every row. That is a research question here, not an assumption. The references are starting points, to be re-verified in the Phase 0 literature review.
+The table separates two things: whether a technique has been **demonstrated** (incidents or published research), and whether its **prevalence** has been measured. Prevalence among agent-selected dependencies is unmeasured for every row. That is a research question here, not an assumption. The references were re-verified on 2026-11-01 in the Phase 0 review (`docs/research/TRACK_T_PHASE0.md`, section 1), which also lists newer sources.
 
 | # | Threat | Demonstrated? | Prevalence | What OpenPulse could establish | Workstream |
 |---|---|---|---|---|---|
 | T1 | Typosquatting and lookalike names (edit distance, homoglyphs, separators, npm scopes) | Yes: repeated registry takedowns | Measured for some registries by others; unmeasured for agent selection | The candidate resembles a named reference package, and by which rule. It cannot establish intent. | T-A2 |
-| T2 | Hallucinated package names that an attacker can register ("slopsquatting") | Hallucination rates measured in a lab study (Spracklen et al., USENIX Security 2025). Registration by attackers: isolated reports. | In-the-wild exploitation unmeasured | The name or version did not exist in the registry at time *t* | T-A1 |
+| T2 | Hallucinated package names that an attacker can register ("slopsquatting") | Hallucination rates measured in a lab study (Spracklen et al., USENIX Security 2025). Registration by attackers: isolated vendor reports (e.g. Koi PhantomRaven, Oct 2025), intent inferred; `huggingface-cli` (Lasso, 2024) was a researcher's benign test. | In-the-wild exploitation unmeasured | The name or version did not exist in the registry at time *t* | T-A1 |
 | T3 | Dependency confusion (a public package shadows an internal name) | Yes (Birsan, 2021) | Unmeasured here | A name on the user's private list also exists publicly | T-A3 |
 | T4 | Starjacking: registry metadata claims a popular repository | Yes (reported by Checkmarx, 2022) | Unmeasured | The claimed repository does or does not name the package back, or provenance binds the artifact elsewhere | T-A4, T-B |
-| T5 | Manufactured reputation (fake stars, download inflation) | Fake stars measured on GitHub (He et al., 2024, "4.5 Million (Suspected) Fake Stars") | Effect on agent or human selection unmeasured | Indicator facts (bursts, inconsistent signals) with their inputs. Never a verdict of manipulation. | T-C |
+| T5 | Manufactured reputation (fake stars, download inflation) | Fake stars measured on GitHub (He et al., ICSE 2026, "Six Million (Suspected) Fake Stars in GitHub"; the 2024 preprint said 4.5 million) | Effect on agent or human selection unmeasured | Indicator facts (bursts, inconsistent signals) with their inputs. Never a verdict of manipulation. | T-C |
 | T6 | Maintainer account or token takeover, then a malicious release | Yes (for example ua-parser-js, 2021; the npm "Shai-Hulud" worm, 2025) | Incident counts only | A maintainer-set change since the last observation; a release built outside the attested workflow | T-C, T-B |
-| T7 | A compromised build or publish pipeline produces malicious artifacts with valid provenance | Yes (for example Ultralytics, 2024) | Incident counts only | Little. Provenance shows where and how an artifact was built, not that it is benign. This limit is stated in every provenance answer. | T-B (limit) |
+| T7 | A compromised build or publish pipeline produces malicious artifacts with valid provenance | Yes (for example Ultralytics, Dec 2024: the first malicious releases went out through the project's own Trusted Publishing workflow) | Incident counts only | Little. Provenance shows where and how an artifact was built, not that it is benign. This limit is stated in every provenance answer. | T-B (limit) |
 | T8 | An artifact is substituted between build and install (digest mismatch, mirror tampering) | The technique is known. Major registries serve over TLS with hashes. | Unmeasured | The lockfile digest does or does not equal the registry digest; a signature does or does not verify | T-B4 |
 | T9 | A long-term malicious maintainer (xz-utils, 2024) | Yes | Rare and unmeasured | **Out of reach.** Identity, provenance and reputation would all look legitimate. This is stated, not hidden. | none |
-| T10 | Instructions injected through package metadata, READMEs or advisory text, read by an agent | Indirect prompt injection is demonstrated in research. For package metadata specifically: proofs of concept. | Unmeasured | That upstream text never reaches fixed-template fields | T-F3 |
+| T10 | Instructions injected through package metadata, READMEs or advisory text, read by an agent | Indirect prompt injection is demonstrated in research (issues, READMEs, docs). For package metadata specifically: proofs of concept; no documented in-the-wild agent compromise. | Unmeasured | That upstream text never reaches fixed-template fields | T-F3 |
 | T11 | An agent ignores, skips or is talked out of an advisory warning | Expected: advisory output has no enforcement | Unmeasured (RQ4, RQ5) | Nothing by itself. This is why T-E works without the model. | T-D, T-E |
 | T12 | Attacks on OpenPulse's own evidence: poisoned reference lists, stale caches, forged records | In scope under `SECURITY.md` | n/a | Pinned and hashed reference snapshots; freshness bounds; existing history integrity (Anchored Trust) | T-F |
 
@@ -488,13 +492,13 @@ Phase 4  independent enforcement: T-E1 ─► T-E2 (needs T-F1 and measured fals
 
 | Phase | Content | Depends on | Exit |
 |---|---|---|---|
-| 0 — Threat model and feasibility | <ul><li>Re-verify the threat model's references.</li><li>Check, with dates, which registries expose attestations and which libraries verify them.</li><li>Check rate limits.</li><li>Choose the reference-list sources and their licences.</li><li>Design notes for T-F1 and T-F3.</li><li>A separate study design and registration plan.</li></ul> | none (docs only) | The owner approves the design note and the ecosystem table |
+| 0 — Threat model and feasibility (DONE: approved 2026-11-01, `docs/research/TRACK_T_PHASE0.md`) | <ul><li>Re-verify the threat model's references.</li><li>Check, with dates, which registries expose attestations and which libraries verify them.</li><li>Check rate limits.</li><li>Choose the reference-list sources and their licences.</li><li>Design notes for T-F1 and T-F3.</li><li>A separate study design and registration plan.</li></ul> | none (docs only) | The owner approves the design note and the ecosystem table |
 | 1 — Identity and provenance foundation | T-F1, T-F3, T-A1, T-B4, T-B1, T-B2, T-A2, with offline tests on synthetic fixtures | Phase 0; the R implementation freeze tag exists | PyPI and npm answers carry existence, digest and provenance statuses; no verdict changes |
 | 2 — Reputation integrity | T-C indicators, T-A4, T-A3 | T-F1, and T-A1's registry metadata | Each indicator is documented, with a measured false-positive rate on the organic fixture set |
 | 3 — AI decision integration | T-D in the MCP tools; T-F2 contract block; M8 recording | Phase 1 (Phase 2 optional) | Agent answers carry the trust block. The contract minor is published beside 1.2. |
 | 4 — Independent enforcement | T-E1, then T-E2 | T-F1, Phase 1, and the false-positive results of the evaluation | Prohibited conditions block in CI without any model involved. Bypass tests pass. |
 
-**First milestone, kept deliberately small: T-M1, "Does this package exist?"** After Phase 0, `dependency_status` answers whether a PyPI or npm package and version exist in their registry, with the T-F1 status, the registry and the time checked. It also applies the T-F3 rule to every new field.
+**First milestone, kept deliberately small: T-M1, "Does this package exist?"** (ACTIVE 2026-11-01: `core/registry_existence.py`.) After Phase 0, `dependency_status` answers whether a PyPI or npm package and version exist in their registry, with the T-F1 status, the registry and the time checked. It also applies the T-F3 rule to every new field.
 
 T-M1 is limited in three ways:
 
@@ -582,6 +586,19 @@ This study can share infrastructure with E4, the dependency-decision experiment 
 - DONE 2026-10-19: repository coverage assurance (v0.6.0, #100) - blob-SHA-pinned GitHub inspection with COMPLETE/PARTIAL/FAILED coverage, evidence contract v1.1.
 - DONE 2026-10-21: v0.6.1 correctness slice - namespaced pom.xml (#112), registry-port identity (#113), webhook secret redaction (#115), OS advisory locks (#116), GitHub-repo SBOM ingestion (#117), bounded reads (#118), identifier validation (#119), `SECURITY.md` (#120), certifi PYSEC-2026-4320.
 - DONE 2026-10-28: collector response caps (A6b, #155) and hash-locked installs (#110, #156). NEXT: v0.9.0 Anchored Trust before M6 runs unattended - see `docs/NEXT_PHASES.md`.
+- DONE 2026-11-01: v0.9.0 "Anchored Trust" - derived authority (#224) and independence (#227), clock trust (#223), keyed history with rotation and adoption (#229-#232, #235), rollback and downgrade detection (#233), anchors (#234), evidence contract 2.0.0 (#236).
+- DONE 2026-11-06: v0.17.0 "Gate-to-Install Integrity" (#315, #322, #323, #325-#327): gate receipts verified before install, lockfile digests always checked by the gate, adversarial end-to-end install tests.
+- DONE 2026-11-07: v0.18.0 "Inspection Coverage Assurance" (#331-#334; S1 in v0.16.0): no silent omissions, recorded discovery scope (contract 2.4.0), no all-clear over PARTIAL coverage, monorepos. The `--fail-on` default (decision 15) stays open.
+- DONE 2026-11-12: v0.21.0 "Your Dependencies, Watched" (M6, decision 20; #354-#359, with #343): registry changes for a project's own npm and PyPI dependencies (`--registry-changes`), the Action's history kept between runs and audited on restore (`history: on`, `openpulse history-audit`), observation of the repositories dependencies name (`--observe-repositories`), new-only reporting (`--new-only`, `new-findings`), delivery to a signed webhook or one issue (`deliver-new`, `notify-webhook`, `notify-issue`), a scheduled-watch example with an end-to-end test of two runs, and Composer and NuGet lockfiles (part of #153) - see `docs/NEXT_PHASES.md` Phase 15.
+- DONE 2026-11-09: v0.20.0 "Change Evidence Beyond Lifecycle" (M2; #347-#352): a keyed GitHub repository history whose license, archive and owner changes are findings (experimental until a live firing), license changes between npm and PyPI releases, npm deprecations and PyPI yanks and Inactive classifiers, each finding stating its confidence and evidence basis, lead time kept for lifecycle events, and six verified cases in `docs/DISCOVERIES.md` - see `docs/NEXT_PHASES.md` Phase 14.
+- DONE 2026-11-08: v0.19.0 "Evidence Consumer and Portability" (#336-#341): a standalone consumer with no OpenPulse code that validates exact versions, verifies 1.x and 2.x hashes and summarises outcomes without a pass, tested on documents from every released contract version; OpenPulse's 1.0 verification fixed. R-C stays the critical dependency for any empirical claim - see `docs/NEXT_PHASES.md` Phases 11-13.
+- DONE 2026-11-03: v0.16.0 "Reputation Evidence" = track T Phase 2, T-C (#301-#307, #311): organic measurements first, then the publisher-change, moved-repository and young-popular-repository indicators, never a verdict, with evidence contract 2.3.0; plus the gate failing closed, refused tracked state (#306) and no silent coverage omissions (#310) - see `docs/NEXT_PHASES.md` Phase 10.
+- DONE 2026-11-02: v0.15.0 "Pre-Install Gates" = track T Phase 4, T-E2 (#295-#298): `openpulse gate`, the `openpulse-gate` pre-commit hook, the Action's `gate` input before install with base-branch settings, and pre-install bypass tests (`--no-verify` caught in CI) - see `docs/NEXT_PHASES.md` Phase 9.
+- DONE 2026-11-02: v0.14.0 "Enforced Trust" = track T Phase 4, T-E1 (#287-#292): measured false-positive rates first, then a trust policy for check, attest and the Action, the Action on pull requests with base-branch gate settings, trust in SARIF and DefectDojo without a risk score, bypass tests (two bypasses fixed), and removal of the deprecated v0.12 fields - see `docs/NEXT_PHASES.md` Phase 8.
+- DONE 2026-11-02: v0.13.0 "Agent Trust Evidence" = track T Phase 3 (#279-#284): known-malicious records, dependency confusion (T-A3), repository linkage (T-A4), the `trust` block with selection context (T-D), evidence contract 2.2.0 `trust_assurance` (T-F2), opt-in MCP recording (M8) - see `docs/NEXT_PHASES.md` Phase 7.
+- DONE 2026-11-02: v0.12.0 "Trusted Inputs" = track T Phase 1 (#260-#264, #272-#276): untrusted-text fixes, digest integrity, PyPI provenance, lookalike indicators, trust checks on added dependencies - see `docs/NEXT_PHASES.md` Phase 6.
+- DONE 2026-11-01: v0.11.0 "Early Warning Operations" (#252-#257, M6 un-paused): persistent alert delivery with dedup, retry and dead-letter (#78), a `warnings` severity gate, signed webhooks, MCP hardening, track T Phase 0 (approved) and its first milestone T-M1, registry existence (#257) - see `docs/NEXT_PHASES.md` Phase 5.
+- DONE 2026-11-01: v0.10.0 "Verified Releases & Safe Gates" (#240-#249): attested tag-triggered releases (#111), gates that fail on FAILED coverage (#101), `NOT_APPLICABLE` coverage (#109, #102), DNS-pinned webhooks (M5) and hardening issues - see `docs/NEXT_PHASES.md` Phase 3. Product work continues alongside track R (amendment 2026-11-01).
 
 ## Next 8–16 weeks (re-baselined 2026-10-30; supersedes the 2026-10-21 list)
 

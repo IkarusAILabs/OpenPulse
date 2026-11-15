@@ -15,7 +15,7 @@ research-team commitments, not a commercial service level.
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| latest 0.8.x release | ✅ |
+| the latest release | ✅ |
 | older releases | ❌ (upgrade to the latest release) |
 
 ## Reporting a vulnerability
@@ -48,8 +48,8 @@ What to expect:
 - **Outbound requests.** Webhook SSRF, credential leakage in errors or
   logs, and token handling for GitHub and the registries.
 - **Local history.** The observation chain and the detection ledger.
-  Today these are corruption-detecting, not keyed; see "Known
-  limitations" below.
+  Corruption-detecting without a history key; see "Known limitations"
+  below.
 - **Evidence contract.** Documents that validate but misstate what
   OpenPulse established.
 - **The project's own supply chain.** CI workflows, the lockfile and the
@@ -66,22 +66,35 @@ What to expect:
 
 ## Known limitations (documented, not silent)
 
-- **Unkeyed local history.** The observation chain and the detection ledger
-  use unkeyed hashes. An adversary with write access to `.openpulse/` can
-  recompute them, and a deleted `tip.json` is adopted. Keyed integrity and
-  rollback detection are planned for v0.9.0 (`docs/NEXT_PHASES.md`).
-- **Webhook DNS rebinding.** The webhook SSRF check resolves DNS before
-  connecting, so it is open to DNS rebinding. A DNS-pinned transport is
-  planned for v0.10.0.
+- **Local history without a key.** Without a history key, the observation
+  chain and the detection ledger use unkeyed hashes, which an adversary
+  with write access to `.openpulse/` can recompute. Since v0.9.0, a
+  history key MACs the history, rollback and downgrade are
+  refused, and `openpulse anchor` / `verify` detect deletions against a
+  checkpoint kept outside the store. A holder of the key can still forge
+  history between two anchors (`docs/KEYED_INTEGRITY.md`).
 - **Unsigned contracts.** Evidence-contract documents are not signed. Their
   `signature` fields are always `null` in v1.
-- **No package-trust checks.** OpenPulse does not detect malicious
-  packages. It does not verify artifact signatures or provenance (Sigstore,
-  SLSA, PEP 740), does not check that a package exists in its registry, and
-  does not flag lookalike names or manipulated reputation. An answer
-  without findings is not a statement that a package is safe. MCP answers
-  are advice to the agent, not a security boundary. These checks are
-  planned as track T in `docs/ROADMAP.md`.
+- **Package-trust checks are evidence, not a safety verdict.** Since
+  v0.12.0 (track T), OpenPulse checks PyPI and npm packages for published
+  malicious-package records (OSV `MAL-`), registry existence, PEP 740
+  provenance, lockfile digests, repository linkage, dependency confusion
+  and lookalike names, and since v0.16.0 reports reputation indicators.
+  It does not detect malicious code itself, and an answer without
+  findings is not a statement that a package is safe: there is no SAFE
+  status. MCP answers are advice to the agent, not a security boundary;
+  enforcement comes from a trust policy (`docs/TRUST_POLICY.md`) in
+  `openpulse gate`, `check` or the GitHub Action.
+- **Limits of the gate.** `openpulse gate` judges only the files it is
+  given and only exactly pinned PyPI and npm entries (others are listed
+  as not checked). A prohibited check that could not run fails the gate
+  unless the policy says `unchecked: pass`; in `check` and `attest` it is
+  reported, not failed. A pre-commit hook can be skipped locally, so run
+  the gate in CI as a required check.
+- **Local history must stay local.** Observation history, the detection
+  ledger and webhook delivery state are refused when git tracks them:
+  state committed to the repository could be forged by anyone who can
+  commit.
 
 ## Hardening already in place
 
@@ -89,9 +102,18 @@ What to expect:
 - TLS verification is on everywhere, and collectors never follow
   redirects.
 - GitHub inspection is pinned to commit and blob SHAs, with bounds.
-- Webhooks are https-only, with an IP blocklist and a body cap.
+- Webhooks are https-only, with an IP blocklist and a body cap, and connect
+  only to the addresses that passed the check. With a webhook secret, every
+  post carries an HMAC signature a receiver can verify (v0.11.0).
 - Every file read is bounded, and every collector HTTP response is size-capped while it streams (decoded bytes, so compressed bombs are caught).
 - Every install in CI and in the GitHub Action is hash-checked (`--require-hashes`) against complete, hash-pinned locks; CI fails on any installed package the lock doesn't list.
 - CI actions are pinned by SHA and run with least privilege. CI also runs
   CodeQL, pip-audit, a lock-drift check, a deterministic SBOM and a secret
   tripwire.
+- From v0.10.0, every release is built by `.github/workflows/release.yml`
+  from its tag with hash-locked tools. The workflow refuses a tag that
+  differs from the package version. The sdist, wheel, CycloneDX SBOM and
+  `SHA256SUMS` on the GitHub release carry Sigstore-signed build
+  provenance. Check a downloaded file with
+  `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+  Releases are not on PyPI yet.

@@ -252,7 +252,7 @@ def main() -> int:
     (HERE / "cases").mkdir(exist_ok=True)
     (HERE / "cases" / "retro-2026-11.draft.json").write_text(json.dumps(dataset, indent=1) + "\n", encoding="utf-8")
 
-    rng = random.Random(SAMPLE_SEED)
+    rng = random.Random(SAMPLE_SEED)  # noqa: S311 - seeded, reproducible sampling; not a secret
     by_event: dict[str, list[str]] = {}
     for c in cases:
         by_event.setdefault(c["events"][0], []).append(c["id"])

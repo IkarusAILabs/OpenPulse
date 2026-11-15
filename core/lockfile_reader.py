@@ -48,6 +48,12 @@ def _name_from_lock_path(key: str) -> str:
     return key.rsplit("node_modules/", 1)[1]
 
 
+def _npm_package_name(path: str, entry: dict[str, Any]) -> str:
+    """Aliases use an install-path name different from their registry identity."""
+    name = entry.get("name")
+    return name if isinstance(name, str) and name else _name_from_lock_path(path)
+
+
 def load_package_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed package-lock.json into pinned dep entries.
 
@@ -88,6 +94,7 @@ def load_package_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], li
             if entry.get("link"):
                 skipped.append(f"`{name}`: workspace link - no pinned registry version")
                 continue
+            name = _npm_package_name(str(key), entry)
             version = entry.get("version")
             if not isinstance(version, str) or not version:
                 skipped.append(f"`{name}`: no resolved version - skipped, never range-guessed")
@@ -132,6 +139,12 @@ def _walk_v1_dependencies(
             stack.append(iter(nested.items()))
 
 
+def _has_poetry_lock_version(doc: dict[str, Any]) -> bool:
+    """Poetry stores its marker in metadata; retain root-marker compatibility."""
+    metadata = doc.get("metadata")
+    return "lock-version" in doc or (isinstance(metadata, dict) and "lock-version" in metadata)
+
+
 def load_poetry_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a parsed poetry.lock into pinned dep entries.
 
@@ -143,7 +156,7 @@ def load_poetry_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], lis
     """
     if not isinstance(doc, dict):
         raise ValueError("poetry.lock must be a mapping")
-    if "lock-version" not in doc:
+    if not _has_poetry_lock_version(doc):
         raise ValueError(
             "poetry.lock needs a `lock-version` marker (Poetry 1.1+); "
             "older formats are refused rather than guessed at"
@@ -213,6 +226,129 @@ def load_cargo_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list
     return deps, skipped
 
 
+def is_composer_branch_version(version: str) -> bool:
+    """True for composer branch aliases: `dev-main`, `dev-master`, `1.0.x-dev`.
+
+    Those are moving branches, not releases: there is no version to check, so
+    they are skipped with a reason instead of being passed on as a version.
+    """
+    lowered = version.strip().lower()
+    return lowered.startswith("dev-") or lowered.endswith("-dev")
+
+
+def is_composer_lock_doc(doc: dict[str, Any]) -> bool:
+    """True for a composer.lock: Composer's own hash beside a package list.
+
+    A `packages` list alone is not a marker: an SPDX JSON document has one
+    too, and read as a composer.lock it would yield no dependency and no
+    error. Composer writes `content-hash` (`hash` before Composer 1.3) in
+    every lock.
+    """
+    hashed = any(isinstance(doc.get(k), str) and doc.get(k) for k in ("content-hash", "hash"))
+    return hashed and any(
+        isinstance(doc.get(section), list) for section in ("packages", "packages-dev")
+    )
+
+
+def load_composer_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate a parsed composer.lock into pinned Packagist dep entries.
+
+    Returns (dependencies, skipped). Reads `packages` (runtime) and
+    `packages-dev` (development). Each entry requires a name and a resolved
+    version. A lock with zero packages is valid state (project has no deps).
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("composer.lock must be a mapping")
+    if "packages" not in doc and "packages-dev" not in doc:
+        raise ValueError("composer.lock needs a `packages` list")
+    deps: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for section in ("packages", "packages-dev"):
+        pkgs = doc.get(section)
+        if not pkgs:
+            continue
+        if not isinstance(pkgs, list):
+            skipped.append(f"`{section}` is not a list")
+            continue
+        for i, entry in enumerate(pkgs):
+            if not isinstance(entry, dict):
+                skipped.append(f"{section} #{i}: not a mapping")
+                continue
+            name = entry.get("name")
+            label = str(name) if name is not None else f"{section} #{i}"
+            if not name or not isinstance(name, str):
+                skipped.append(f"{section} #{i}: no name")
+                continue
+            dist = entry.get("dist")
+            if isinstance(dist, dict) and dist.get("type") == "path":
+                # A directory on the machine that wrote the lock, not a
+                # Packagist release: its name proves nothing about Packagist.
+                skipped.append(f"`{label}`: local path package, not a Packagist release")
+                continue
+            version = entry.get("version")
+            if not isinstance(version, str) or not version:
+                skipped.append(f"`{label}`: no pinned version - skipped, never range-guessed")
+                continue
+            if is_composer_branch_version(version):
+                skipped.append(
+                    f"`{label}`: branch version `{version}` - skipped, never range-guessed"
+                )
+                continue
+            clean_ver = (
+                version[1:]
+                if version.startswith("v") and len(version) > 1 and version[1].isdigit()
+                else version
+            )
+            key = (name.lower(), clean_ver)
+            if key in seen:
+                continue
+            seen.add(key)
+            deps.append(_pinned_dep(str(name), "Packagist", clean_ver))
+    return deps, skipped
+
+
+def load_nuget_lock_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate a parsed packages.lock.json (NuGet) into pinned dep entries.
+
+    Structure: dependencies.<tfm>.<package_name>.resolved.
+    Returns (dependencies, skipped).
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("packages.lock.json must be a mapping")
+    if not isinstance(doc.get("version"), int):
+        raise ValueError("packages.lock.json needs an integer `version`")
+    deps_section = doc.get("dependencies")
+    if not isinstance(deps_section, dict):
+        raise ValueError("packages.lock.json needs a `dependencies` mapping")
+    deps: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for tfm, packages in deps_section.items():
+        if not isinstance(packages, dict):
+            skipped.append(f"framework `{tfm}`: not a mapping")
+            continue
+        for name, entry in packages.items():
+            if not isinstance(entry, dict):
+                skipped.append(f"`{name}` ({tfm}): not a mapping")
+                continue
+            if entry.get("type") == "Project":
+                skipped.append(f"`{name}` ({tfm}): project reference, not a package")
+                continue
+            resolved = entry.get("resolved")
+            if not isinstance(resolved, str) or not resolved:
+                skipped.append(
+                    f"`{name}` ({tfm}): no resolved version - skipped, never range-guessed"
+                )
+                continue
+            key = (str(name).lower(), resolved)
+            if key in seen:
+                continue
+            seen.add(key)
+            deps.append(_pinned_dep(str(name), "NuGet", resolved))
+    return deps, skipped
+
+
 def _toml_module() -> Any:
     """stdlib tomllib (3.11+); on 3.10 refuse instead of adding a dependency."""
     try:
@@ -230,7 +366,7 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
 
     Format is detected from unambiguous structural markers, never
     from the filename: JSON with an integer `lockfileVersion` is npm;
-    TOML with `lock-version` is poetry; TOML with an integer root
+    TOML with `metadata.lock-version` is poetry; TOML with an integer root
     `version` is Cargo. Anything else is refused with a clean error
     naming what was tried. Both branches share the SBOM-sized cap.
     """
@@ -242,7 +378,14 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
     if isinstance(doc, dict):
         if isinstance(doc.get("lockfileVersion"), int):
             return (*load_package_lock_doc(doc), "npm")
-        raise ValueError("valid JSON but no integer `lockfileVersion` - not a package-lock.json")
+        if is_composer_lock_doc(doc):
+            return (*load_composer_lock_doc(doc), "composer")
+        if isinstance(doc.get("version"), int) and isinstance(doc.get("dependencies"), dict):
+            return (*load_nuget_lock_doc(doc), "nuget")
+        raise ValueError(
+            "valid JSON but no integer `lockfileVersion`, composer `content-hash` with a "
+            "`packages` list, or NuGet `dependencies` mapping - not a recognised lockfile"
+        )
     tomllib = _toml_module()
     try:
         text = data.decode("utf-8")
@@ -252,7 +395,7 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
         toml_doc = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"lockfile is neither npm JSON nor valid TOML: {e}") from None
-    if "lock-version" in toml_doc:
+    if _has_poetry_lock_version(toml_doc):
         return (*load_poetry_lock_doc(toml_doc), "poetry")
     if isinstance(toml_doc.get("version"), int):
         return (*load_cargo_lock_doc(toml_doc), "cargo")
@@ -260,3 +403,55 @@ def read_lockfile(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
         "TOML input with neither a poetry `lock-version` marker nor a Cargo "
         "root `version` - refusing to guess the lockfile format"
     )
+
+
+#: (ecosystem, name, version) -> {"sha256": [...]} (PyPI) or {"integrity": [...]} (npm)
+LockedDigests = dict[tuple[str, str, str], dict[str, list[str]]]
+
+
+def lockfile_digests(path: str) -> LockedDigests:
+    """The digests a poetry.lock or package-lock.json pins, per package (T-B4).
+
+    Kept apart from ``read_lockfile`` on purpose: the dependency entries the
+    verdict engine, contracts and ledger consume stay exactly as they were.
+    Values are returned as written; ``core.digest_integrity`` validates them
+    before any use. Only the ecosystems ``digest_integrity`` can check have a
+    branch here: npm and PyPI. Composer and NuGet lockfiles are read for
+    dependencies, but their digests are not verified yet, so returning them
+    would make every PHP/.NET package change fail the gate as unchecked.
+    """
+    data = read_bytes(path, MAX_LOCKFILE_BYTES, "lockfile")
+    try:
+        doc = loads_json(data, "lockfile")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        doc = None
+    out: LockedDigests = {}
+    if isinstance(doc, dict) and isinstance(doc.get("lockfileVersion"), int):
+        packages = doc.get("packages")
+        if isinstance(packages, dict):
+            for key, entry in packages.items():
+                if "node_modules/" not in str(key) or not isinstance(entry, dict):
+                    continue
+                version, integrity = entry.get("version"), entry.get("integrity")
+                if isinstance(version, str) and isinstance(integrity, str):
+                    name = _npm_package_name(str(key), entry)
+                    out[("npm", name, version)] = {"integrity": integrity.split()}
+        return out
+    try:
+        toml_doc = _toml_module().loads(data.decode("utf-8"))
+    except Exception:  # not TOML, not UTF-8, or no tomllib (3.10): no digests
+        return out
+    if not _has_poetry_lock_version(toml_doc):
+        return out
+    for entry in toml_doc.get("package") or []:
+        if not isinstance(entry, dict):
+            continue
+        name, version = entry.get("name"), entry.get("version")
+        hashes = [
+            str(f.get("hash"))
+            for f in entry.get("files") or []
+            if isinstance(f, dict) and str(f.get("hash", "")).startswith("sha256:")
+        ]
+        if isinstance(name, str) and isinstance(version, str) and hashes:
+            out[("PyPI", name, version)] = {"sha256": [h.split(":", 1)[1] for h in hashes]}
+    return out

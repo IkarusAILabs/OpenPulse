@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from core.claims import conflict_status
+from core.evidence.authority import derive_authority
 from core.evidence.independence import independent_count
 from core.schema.enums import Confidence, EventType, Impact
 from core.schema.models import OSSEvent
@@ -43,22 +44,28 @@ def gate(event: OSSEvent) -> list[str]:
     if imp in ("ACTION", "CRITICAL") and conf not in ("CONFIRMED", "CORROBORATED"):
         violations.append(f"{imp} requires CONFIRMED or CORROBORATED, got {conf}")
 
+    # Official is derived from the project's allowlist, never taken from
+    # the source's own claim (B1). Every rule below reads the derived value.
+    derived = [derive_authority(e.source, event.project_slug) for e in event.evidences]
+    authorities = [authority for authority, _ in derived]
+    downgrades = [reason for _, reason in derived if reason]
+
     # 2. CONFIRMED needs an official or primary source (primary for lifecycle events)
     if conf == "CONFIRMED":
         lifecycle_event_types = {"EOL", "EOS", "SUPPORT_CHANGE", "DEPRECATION"}
         if typ in lifecycle_event_types:
-            if not any(
-                e.source.authority in ("official", "primary") for e in event.evidences
-            ):
+            if not any(a in ("official", "primary") for a in authorities):
                 violations.append(
                     "CONFIRMED requires at least one evidence with "
                     "authority=official or primary for lifecycle events"
                 )
+                violations.extend(downgrades)
         else:
-            if not any(e.source.authority == "official" for e in event.evidences):
+            if "official" not in authorities:
                 violations.append(
                     "CONFIRMED requires at least one evidence with authority=official"
                 )
+                violations.extend(downgrades)
 
     # 3. CORROBORATED needs 2+ independent sources (families, not names;
     #    derived_from chains fold into their origin — see independence.py)
@@ -90,10 +97,8 @@ def gate(event: OSSEvent) -> list[str]:
         violations.append("unresolved conflicting evidence blocks ACTION/CRITICAL")
     if imp in ("ACTION", "CRITICAL"):
         proven = any(
-            e.source.authority in ("official", "primary")
-            or e.source.content_hash
-            or e.source.parser_version
-            for e in event.evidences
+            authority in ("official", "primary") or e.source.content_hash or e.source.parser_version
+            for authority, e in zip(authorities, event.evidences, strict=True)
         )
         if not proven:
             violations.append("ACTION/CRITICAL requires official/primary or hashed provenance")

@@ -536,3 +536,19 @@ class TestCheckCliManifest:
         out = self._run("--manifest", REQUIREMENTS_FIXTURE, "--digest")
         assert out.exit_code == 0, out.output
         assert "manifest (requirements.txt): 3 pinned package(s), 4 skipped" in out.output
+
+    def test_specific_unsupported_manifest_skip_reasons(self, tmp_path):
+        gradle = tmp_path / "build.gradle"
+        gradle.write_text("plugins { id 'java' }")
+        with pytest.raises(ValueError, match="Gradle build script: dependencies are resolved"):
+            read_manifest(str(gradle))
+
+        swift = tmp_path / "Package.swift"
+        swift.write_text("// swift-tools-version:5.5\nimport PackageDescription")
+        with pytest.raises(ValueError, match="Swift package manifest: dependencies are resolved"):
+            read_manifest(str(swift))
+
+        composer_json = tmp_path / "composer.json"
+        composer_json.write_text('{"require": {"php": ">=8.0"}}')
+        with pytest.raises(ValueError, match="Composer manifest: dependencies are declared"):
+            read_manifest(str(composer_json))

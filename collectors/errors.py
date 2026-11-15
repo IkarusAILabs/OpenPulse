@@ -43,9 +43,24 @@ _WEBHOOK_PATH_RE = re.compile(
 )
 
 
+#: C0/C1 controls (newlines and tabs included) become a space; bidi
+#: overrides and isolates, directional marks and zero-width characters
+#: are removed (track T, T-F3 fix C). Error text reaches terminals,
+#: webhooks and agents, where these can reorder or hide what is shown.
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]+")
+_INVISIBLE_RE = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿]")
+
+
+def strip_unsafe(text: str) -> str:
+    """Controls to one space per run; bidi, directional and zero-width characters removed."""
+    return _CONTROL_RE.sub(" ", _INVISIBLE_RE.sub("", text))
+
+
 def redact(text: str) -> str:
     """Strip paths, query strings, URL userinfo, webhook URL paths, and
-    secret-looking fragments (auth schemes, known token shapes)."""
+    secret-looking fragments (auth schemes, known token shapes), after
+    removing control, bidi and zero-width characters (``strip_unsafe``)."""
+    text = strip_unsafe(text)
     text = _WEBHOOK_PATH_RE.sub(r"\1/<redacted>", text)
     text = _PATH_RE.sub("<path>", text)
     text = _URL_USERINFO_RE.sub(r"\1<redacted>@", text)

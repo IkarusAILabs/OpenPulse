@@ -1,0 +1,31 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state"
+    ],
+    "content-hash": "2b6dbdf3408f6dcf7f53a473f324ad72",
+    "packages": [
+        {
+            "name": "monolog/monolog",
+            "version": "2.9.1",
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/fde8800ea575df5528148965162ba57774793f5b",
+                "reference": "fde8800ea575df5528148965162ba57774793f5b",
+                "shasum": "0123456789abcdef0123456789abcdef01234567"
+            }
+        },
+        {
+            "name": "psr/log",
+            "version": "v1.1.4"
+        },
+        {
+            "name": "unpinned/pkg"
+        }
+    ],
+    "packages-dev": [
+        {
+            "name": "phpunit/phpunit",
+            "version": "9.5.20"
+        }
+    ]
+}

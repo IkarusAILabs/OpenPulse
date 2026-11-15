@@ -77,7 +77,7 @@ class Bridge:
     def __init__(self, name: str, argv: list[str], cwd: Path):
         self.name = name
         self._next = 0
-        self._proc = subprocess.Popen(
+        self._proc = subprocess.Popen(  # noqa: S603 - argv from the pinned bridge table
             argv,
             cwd=cwd,
             stdin=subprocess.PIPE,
@@ -93,7 +93,8 @@ class Bridge:
     def call(self, request: dict[str, Any]) -> dict[str, Any]:
         self._next += 1
         request = {**request, "id": self._next}
-        assert self._proc.stdin is not None and self._proc.stdout is not None
+        if self._proc.stdin is None or self._proc.stdout is None:
+            raise ComparatorUnavailable(f"{self.name} bridge has no pipes")
         self._proc.stdin.write(json.dumps(request) + "\n")
         self._proc.stdin.flush()
         line = self._proc.stdout.readline()
@@ -114,8 +115,8 @@ class Bridge:
 
     def close(self) -> None:
         if self._proc.poll() is None:
-            assert self._proc.stdin is not None
-            self._proc.stdin.close()
+            if self._proc.stdin is not None:
+                self._proc.stdin.close()
             try:
                 self._proc.wait(timeout=10)
             except subprocess.TimeoutExpired:

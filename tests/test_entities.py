@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_legacy_aliases_preserved():
     from core.entities.resolve import resolve_project
 
@@ -19,6 +22,106 @@ def test_catalog_aliases():
     assert resolve_project("postgres:16") == "postgresql"
     assert resolve_project("docker.io/library/postgres:16") == "postgresql"
     assert resolve_project("apache/kafka") == "kafka"
+
+
+def test_catalog_alias_collision_names_both_slugs():
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map
+
+    with pytest.raises(
+        CatalogCollisionError, match=r"'shared' claimed by both 'slug-alpha' and 'slug-beta'"
+    ):
+        catalog_alias_map(
+            [
+                {"slug": "slug-alpha", "aliases": ["shared"]},
+                {"slug": "slug-beta", "aliases": ["shared"]},
+            ]
+        )
+
+
+def test_catalog_docker_image_collision_raises():
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map
+
+    with pytest.raises(CatalogCollisionError, match=r"'docker.io/acme/app'"):
+        catalog_alias_map(
+            [
+                {"slug": "slug-alpha", "docker_images": ["docker.io/acme/app"]},
+                {"slug": "slug-beta", "aliases": ["docker.io/acme/app"]},
+            ]
+        )
+
+
+def test_catalog_repeated_alias_within_one_slug_is_not_a_collision():
+    from core.entities.catalog import catalog_alias_map
+
+    alias_map = catalog_alias_map([{"slug": "solo", "aliases": ["x"], "docker_images": ["x"]}])
+    assert alias_map["x"] == "solo"
+
+
+def test_shipped_catalog_has_no_collisions():
+    from core.entities.catalog import catalog_alias_map, load_catalog
+
+    assert catalog_alias_map(load_catalog())
+
+
+def test_catalog_yaml_file_collision_raises(tmp_path):
+    import yaml
+
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map, load_catalog
+
+    path = tmp_path / "catalog.yaml"
+    path.write_text(
+        yaml.safe_dump([{"slug": "x", "aliases": ["dup"]}, {"slug": "y", "aliases": ["dup"]}]),
+        encoding="utf-8",
+    )
+    with pytest.raises(CatalogCollisionError, match=r"'dup' claimed by both 'x' and 'y'"):
+        catalog_alias_map(load_catalog(str(path)))
+
+
+@pytest.fixture
+def colliding_catalog(monkeypatch):
+    """The default catalog replaced by one with a collision, caches cleared."""
+    import core.entities.catalog as catalog_module
+    from core.entities import resolve
+
+    colliding = [
+        {"slug": "postgresql", "aliases": ["postgres"]},
+        {"slug": "impostor", "aliases": ["postgres"]},
+    ]
+    monkeypatch.setattr(catalog_module, "load_catalog", lambda path=None: colliding)
+    resolve._catalog_map.cache_clear()
+    yield
+    resolve._catalog_map.cache_clear()
+
+
+def test_collision_surfaces_in_resolution_not_as_an_empty_catalog(colliding_catalog):
+    from core.entities.catalog import CatalogCollisionError
+    from core.entities.resolve import resolve_project
+
+    # Before #144 the resolver swallowed this into {}, so every reference
+    # silently resolved to itself.
+    with pytest.raises(CatalogCollisionError):
+        resolve_project("postgres:16")
+
+
+def test_collision_surfaces_in_trust_resolution(colliding_catalog):
+    from core.entities.catalog import CatalogCollisionError
+    from core.entities.identity import resolution_trust
+
+    with pytest.raises(CatalogCollisionError):
+        resolution_trust("postgres:16")
+
+
+def test_cli_reports_a_collision_cleanly(colliding_catalog):
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    watchlist = "data/fixtures/watchlist_sample.yaml"
+    result = CliRunner().invoke(cli, ["check", "--watchlist", watchlist])
+    assert result.exit_code == 1
+    assert "catalog alias collision: 'postgres' claimed by both" in result.output
+    assert "Traceback" not in result.output
+    assert not isinstance(result.exception, ValueError)  # a clean ClickException exit
 
 
 def test_catalog_hygiene():
@@ -87,6 +190,54 @@ def test_identity_status_values_valid():
         block = entry.get("identity")
         if isinstance(block, dict) and "status" in block:
             assert str(block["status"]).upper() in VALID_STATUSES, entry.get("slug")
+
+
+def _legacy_catalog(**flat):
+    entry = {"slug": "acme", "aliases": ["acme-fork"], "docker_images": [], "packages": []}
+    return [{**entry, **flat}]
+
+
+def test_legacy_flat_identity_keys_respect_confidence():
+    """D5: flat keys are VERIFIED only with confidence high; before, any flat
+    key made the mapping VERIFIED, even confidence low or none."""
+    from core.entities.identity import (
+        REVIEW_REQUIRED,
+        VERIFIED,
+        identity_block_for_slug,
+        resolution_trust,
+    )
+
+    reviewed = {"identity_source": "upstream README", "reviewed_at": "2026-10-01"}
+    cases = {
+        "high": VERIFIED,
+        "HIGH": VERIFIED,
+        "medium": REVIEW_REQUIRED,
+        "low": REVIEW_REQUIRED,
+        "certain": REVIEW_REQUIRED,
+        None: REVIEW_REQUIRED,
+    }
+    for confidence, expected in cases.items():
+        flat = dict(reviewed, confidence=confidence) if confidence else dict(reviewed)
+        catalog = _legacy_catalog(**flat)
+        block = identity_block_for_slug("acme", catalog)
+        assert block["status"] == expected, confidence
+        assert block["source"] == "upstream README"
+        trust = resolution_trust("acme-fork", catalog)
+        assert (trust["via"], trust["identity_status"]) == ("catalog", expected), confidence
+    # One flat key alone is never a review.
+    only = _legacy_catalog(maintainer="someone")
+    assert identity_block_for_slug("acme", only)["status"] == REVIEW_REQUIRED
+    # The formal block still wins over flat keys.
+    both = _legacy_catalog(confidence="low", identity={"status": "VERIFIED", "confidence": "high"})
+    assert identity_block_for_slug("acme", both)["status"] == VERIFIED
+
+
+def test_the_shipped_catalog_uses_no_legacy_flat_identity_keys():
+    from core.entities.catalog import load_catalog
+    from core.entities.identity import _LEGACY_KEYS
+
+    for entry in load_catalog():
+        assert not any(k in entry for k in _LEGACY_KEYS), entry.get("slug")
 
 
 def test_purl_builder():
@@ -258,7 +409,6 @@ def test_registry_name_collisions_resolve_per_ecosystem():
         assert package_trust(name, ecosystem)["via"] == "self", (ecosystem, name)
 
 
-
 def test_normalize_ref_keeps_a_leading_npm_scope():
     from core.entities.resolve import normalize_ref
 
@@ -309,8 +459,6 @@ def test_derived_catalog_maps_follow_a_different_or_grown_catalog():
 
 
 def test_derived_catalog_maps_are_read_only():
-    import pytest
-
     from core.entities.catalog import catalog_alias_map, load_catalog, package_map
 
     with pytest.raises(TypeError):

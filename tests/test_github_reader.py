@@ -1,5 +1,7 @@
 """Tests for GitHub repository dependency reader."""
 
+import json
+
 import pytest
 
 from core.github_reader import (
@@ -190,7 +192,7 @@ class TestGetGitHubToken:
 
     def test_token_file_takes_priority_over_environment(self, monkeypatch, tmp_path):
         token_file = tmp_path / "github-token"
-        token_file.write_text("file_token\nignored second line\n", encoding="utf-8")
+        token_file.write_text("file_token\n", encoding="utf-8")
         monkeypatch.setenv("GITHUB_TOKEN", "env_token")
 
         assert get_github_token(token_file=str(token_file)) == "file_token"
@@ -220,8 +222,48 @@ class TestGetGitHubToken:
         token_file = tmp_path / "github-token"
         token_file.write_bytes(b"x" * 4097)
 
-        with pytest.raises(ValueError, match="exceeds 4096 bytes"):
+        with pytest.raises(ValueError, match="limit 4096"):
             get_github_token(token_file=str(token_file))
+
+    def test_token_file_skips_leading_blank_lines(self, tmp_path):
+        """#138: secret-manager templates may write a blank first line."""
+        token_file = tmp_path / "github-token"
+        token_file.write_text("\nghp_abc\n", encoding="utf-8")
+        assert get_github_token(token_file=str(token_file)) == "ghp_abc"
+
+    def test_token_file_with_two_tokens_is_refused(self, tmp_path):
+        token_file = tmp_path / "github-token"
+        token_file.write_text("ghp_a\nghp_b\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="more than one") as exc:
+            get_github_token(token_file=str(token_file))
+        assert "ghp_a" not in str(exc.value) and "ghp_b" not in str(exc.value)
+
+    @pytest.mark.parametrize(
+        "content",
+        ["ghp_secret part\n", "ghp_sécret\n", "ghp_tab\tsecret\n", "", "\n  \n"],
+        ids=["inner-space", "non-ascii", "control", "empty", "blank-lines"],
+    )
+    def test_malformed_token_files_never_echo_the_token(self, tmp_path, content):
+        token_file = tmp_path / "github-token"
+        token_file.write_text(content, encoding="utf-8")
+        with pytest.raises(ValueError) as exc:
+            get_github_token(token_file=str(token_file))
+        assert "secret" not in str(exc.value)
+        assert "GitHub token file" in str(exc.value)
+
+    def test_token_file_read_is_bounded_by_the_shared_helper(self, tmp_path, monkeypatch):
+        """#138: one bounded-read policy, core.bounded_io, not a second copy."""
+        from core import github_reader
+
+        seen = []
+
+        def fake_read_bytes(path, limit, label):
+            seen.append((limit, label))
+            return b"ghp_ok\n"
+
+        monkeypatch.setattr(github_reader, "read_bytes", fake_read_bytes)
+        assert get_github_token(token_file=str(tmp_path / "t")) == "ghp_ok"
+        assert seen == [(github_reader.MAX_GITHUB_TOKEN_FILE_BYTES, "GitHub token file")]
 
     def test_gh_token_fallback(self, monkeypatch):
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -543,6 +585,115 @@ class TestGitHubRepositoryIntegration:
         assert inspection.errors
 
 
+class TestUnsupportedDependencyFiles:
+    """S1: a recognised file OpenPulse cannot read is never dropped silently."""
+
+    def _inspect(self, monkeypatch, paths, blobs=None):
+        from core import github_reader
+
+        tree = [
+            {"type": "blob", "path": p, "size": 20, "sha": f"sha-{i}"} for i, p in enumerate(paths)
+        ]
+        contents = blobs or {}
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_revision",
+            lambda repo, token, timeout: ("main", "abc123"),
+        )
+        monkeypatch.setattr(
+            github_reader,
+            "_get_repo_tree",
+            lambda repo, token, revision, timeout=30.0: tree,
+        )
+        by_sha = {f"sha-{i}": contents[p] for i, p in enumerate(paths) if p in contents}
+        monkeypatch.setattr(
+            github_reader,
+            "_get_blob_content",
+            lambda repo, blob_sha, token, timeout=30.0: (by_sha.get(blob_sha), None),
+        )
+        return inspect_github_repo("owner/repo")
+
+    def test_reported_case_is_partial_not_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "yarn.lock", "uv.lock", "requirements-dev.txt"],
+            blobs={
+                "requirements.txt": "requests==2.32.0\n",
+                "requirements-dev.txt": "-r requirements.txt\npytest==8.0\n",
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        for name in ("yarn.lock", "uv.lock"):
+            assert any(
+                r.startswith(f"{name}: dependency file not supported")
+                for r in inspection.coverage_reasons
+            ), name
+        # S2: the requirements variant is read, not reported.
+        assert not any(r.startswith("requirements-dev.txt") for r in inspection.coverage_reasons)
+        assert sorted(d["package"] for d in inspection.dependencies) == ["pytest", "requests"]
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "uv.lock",
+            "Pipfile",
+            "Pipfile.lock",
+            "bun.lock",
+            "bun.lockb",
+            "gradle.lockfile",
+            "environment.yml",
+            "setup.py",
+            "setup.cfg",
+            "services/api/package.json",
+        ],
+    )
+    def test_only_unsupported_file_is_partial(self, monkeypatch, path):
+        inspection = self._inspect(monkeypatch, [path])
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.dependencies == []
+        assert inspection.coverage_reasons
+        assert inspection.coverage_reasons[0].startswith(f"{path}: dependency file not supported")
+
+    def test_package_json_beside_package_lock_is_covered(self, monkeypatch):
+        lock = (
+            '{"lockfileVersion": 3, "packages": {"": {}, '
+            '"node_modules/left-pad": {"version": "1.3.0"}}}'
+        )
+        inspection = self._inspect(
+            monkeypatch,
+            ["web/package.json", "web/package-lock.json"],
+            blobs={"web/package-lock.json": lock},
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert not inspection.coverage_reasons
+
+    def test_package_lock_elsewhere_does_not_cover_package_json(self, monkeypatch):
+        inspection = self._inspect(monkeypatch, ["package-lock.json", "web/package.json"])
+
+        assert any(r.startswith("web/package.json:") for r in inspection.coverage_reasons)
+        assert inspection.coverage != COVERAGE_COMPLETE
+
+    def test_unrelated_and_vendored_files_stay_quiet(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            [
+                "README.md",
+                "docs/notes.txt",
+                "node_modules/x/yarn.lock",
+                ".venv/lib/setup.py",
+            ],
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert not inspection.coverage_reasons
+
+
 class TestPathSafety:
     def test_accepts_normal_paths(self):
         assert _safe_repo_path("requirements.txt")
@@ -560,3 +711,140 @@ class TestGitBlobSha:
     def test_matches_git_object_id(self):
         # echo -n 'hi' | git hash-object --stdin
         assert _git_blob_sha1(b"hi\n") == "45b983be36b73c0788dc9cbcb76cbb80fc7bb057"
+
+
+class TestRequirementsVariants:
+    """S2 (v0.18.0): requirements variants are read, and their includes are accounted for."""
+
+    _inspect = TestUnsupportedDependencyFiles._inspect
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "requirements-dev.txt",
+            "requirements_test.txt",
+            "constraints.txt",
+            "constraints-py311.txt",
+            "requirements/base.txt",
+            "services/api/requirements/prod.txt",
+        ],
+    )
+    def test_a_variant_is_read_and_complete(self, monkeypatch, path):
+        inspection = self._inspect(monkeypatch, [path], blobs={path: "django==4.2\n"})
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert [(d["package"], d["version"], d["path"]) for d in inspection.dependencies] == [
+            ("django", "4.2", path)
+        ]
+
+    def test_a_file_of_only_includes_and_ranges_is_read_not_refused(self, monkeypatch):
+        """No pinned line: the format is known from the name, never guessed."""
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "requirements-dev.txt"],
+            blobs={
+                "requirements.txt": "django==4.2\n",
+                "requirements-dev.txt": "-r requirements.txt\npytest>=8\n",
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert any(s.startswith("requirements-dev.txt: line 2") for s in inspection.skipped)
+
+    def test_an_include_that_was_inspected_keeps_coverage_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements/base.txt", "requirements/dev.txt", "constraints.txt"],
+            blobs={
+                "requirements/base.txt": "-c ../constraints.txt\ndjango==4.2\n",
+                "requirements/dev.txt": "-r base.txt\n--requirement=base.txt\npytest==8.0\n",
+                "constraints.txt": "django==4.2\n",
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+
+    def test_an_include_that_was_not_inspected_makes_coverage_partial(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt"],
+            blobs={"requirements.txt": "-r deps/prod.txt\ndjango==4.2\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.coverage_reasons == [
+            "requirements.txt: includes deps/prod.txt (-r/-c), which was not inspected; "
+            "its dependencies were not inspected"
+        ]
+        assert inspection.dependencies[0]["inspection_coverage"] == COVERAGE_PARTIAL
+
+    @pytest.mark.parametrize(
+        "line",
+        ["-r https://example.com/r.txt", "-r ../../outside.txt", "-c /etc/constraints.txt"],
+    )
+    def test_an_include_outside_the_repository_makes_coverage_partial(self, monkeypatch, line):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements-dev.txt"],
+            blobs={"requirements-dev.txt": f"{line}\npytest==8.0\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert inspection.coverage_reasons == [
+            "requirements-dev.txt: includes a requirements file outside the repository "
+            "(-r/-c); its dependencies were not inspected"
+        ]
+
+    def test_other_text_files_are_not_dependency_files(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["requirements.txt", "docs/notes.txt", "requirements.in"],
+            blobs={"requirements.txt": "django==4.2\n"},
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE
+        assert [d["path"] for d in inspection.dependencies] == ["requirements.txt"]
+
+
+class TestIssue153ContentReads:
+    """The review's items 2 and 3: real names and a covered composer.json."""
+
+    _inspect = TestUnsupportedDependencyFiles._inspect
+
+    def test_the_real_name_reaches_the_manifest_reader(self):
+        from core.github_reader import read_manifest_from_content
+
+        # The temp copy is named `tmpab12cdbuild.gradle`; the refusal must
+        # still name Gradle rather than fall through to "no markers".
+        with pytest.raises(ValueError, match="Gradle build script"):
+            read_manifest_from_content("plugins { id 'java' }\n", "app/build.gradle")
+
+    def test_a_gradle_script_in_a_repository_keeps_its_specific_reason(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch, ["build.gradle"], blobs={"build.gradle": "plugins { id 'java' }\n"}
+        )
+
+        assert inspection.coverage == COVERAGE_PARTIAL
+        assert any("Gradle build script" in r for r in inspection.coverage_reasons), (
+            inspection.coverage_reasons
+        )
+
+    def test_a_php_repository_with_composer_lock_inspects_complete(self, monkeypatch):
+        inspection = self._inspect(
+            monkeypatch,
+            ["composer.json", "composer.lock"],
+            blobs={
+                "composer.json": '{"require": {"monolog/monolog": "^2.0"}}',
+                "composer.lock": json.dumps(
+                    {
+                        "content-hash": "2b6dbdf3408f6dcf7f53a473f324ad72",
+                        "packages": [{"name": "monolog/monolog", "version": "2.9.1"}],
+                    }
+                ),
+            },
+        )
+
+        assert inspection.coverage == COVERAGE_COMPLETE, inspection.coverage_reasons
+        assert [(d["package"], d["version"]) for d in inspection.dependencies] == [
+            ("monolog/monolog", "2.9.1")
+        ]

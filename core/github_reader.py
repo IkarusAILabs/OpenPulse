@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -19,9 +20,10 @@ from typing import Any
 import httpx
 
 from collectors.errors import as_error, redact
+from core.bounded_io import read_bytes
 from core.image_inventory import read_image_inventory
 from core.lockfile_reader import read_lockfile
-from core.manifest_reader import read_manifest
+from core.manifest_reader import load_requirements_txt_doc, read_manifest
 from core.sbom_reader import MAX_SBOM_BYTES, load_sbom_doc, load_spdx_doc
 
 GITHUB_API = "https://api.github.com"
@@ -86,6 +88,9 @@ class RepoInspection:
     coverage_reasons: list[str] = field(default_factory=list)
     branch: str = ""
     commit: str = ""
+    #: What was searched (v0.18.0 S3): see :func:`discovery_scope`. None
+    #: when the repository could not be enumerated at all.
+    scope: dict[str, Any] | None = None
 
 
 SUPPORTED_MANIFESTS = {
@@ -122,6 +127,26 @@ SUPPORTED_INVENTORIES = {
     "inventory.yaml",
 }
 
+# Dependency files OpenPulse recognises but cannot read. Discovery lists
+# each one as a skip reason so coverage degrades to PARTIAL instead of a
+# repository built on them reading COMPLETE (unknown stays unknown).
+UNSUPPORTED_DEPENDENCY_FILES = {
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "uv.lock",
+    "Pipfile",
+    "Pipfile.lock",
+    "bun.lock",
+    "bun.lockb",
+    "gradle.lockfile",
+    "environment.yml",
+    "environment.yaml",
+    "setup.py",
+    "setup.cfg",
+}
+
+UNSUPPORTED_REASON = "dependency file not supported; its dependencies were not inspected"
+
 # Files that indicate a project root (for monorepo detection)
 PROJECT_ROOT_INDICATORS = (
     SUPPORTED_MANIFESTS | SUPPORTED_LOCKFILES | SUPPORTED_SBOMS | SUPPORTED_INVENTORIES
@@ -140,9 +165,13 @@ SKIP_DIRS = {
     "target",
     ".gradle",
     "vendor",
-    "packages",
     ".terraform",
 }
+
+#: NuGet's restore folder (``packages/<Id>.<version>/``, packages.config
+#: layout). ``packages/`` itself is the conventional monorepo directory and is
+#: searched (v0.18.0 S5); only a restored NuGet package under it is skipped.
+_NUGET_RESTORE = re.compile(r"[A-Za-z0-9_.-]+?\.\d+(\.\d+){1,3}(-[A-Za-z0-9.-]+)?")
 
 
 def parse_github_repo(url_or_name: str) -> GitHubRepo:
@@ -191,14 +220,51 @@ _GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 
 
 def _valid_repo_parts(owner: str, name: str) -> bool:
+    # fullmatch: with re.match, "$" also matches before a trailing newline,
+    # so "owner\n" passed (T-F3 fix E).
     return (
-        bool(_GITHUB_OWNER_RE.match(owner))
-        and bool(_GITHUB_REPO_RE.match(name))
+        bool(_GITHUB_OWNER_RE.fullmatch(owner))
+        and bool(_GITHUB_REPO_RE.fullmatch(name))
         and name not in (".", "..")
     )
 
 
 MAX_GITHUB_TOKEN_FILE_BYTES = 4096
+
+
+#: A GitHub token is visible ASCII: no spaces, controls or non-ASCII.
+_TOKEN_SHAPE = re.compile(r"[\x21-\x7e]+")
+
+
+def _token_from_file(token_file: str) -> str:
+    """The one non-empty line of a token file, validated (#138).
+
+    Messages never contain the token: a malformed file may still hold
+    most of a real one.
+    """
+    raw = read_bytes(token_file, MAX_GITHUB_TOKEN_FILE_BYTES, "GitHub token file")
+    try:
+        # utf-8-sig: Windows editors (Notepad) write a BOM, which strip()
+        # keeps and which would make the Authorization header unencodable.
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("GitHub token file is not UTF-8 text") from exc
+    # Secret-manager templates may lead with a blank line; take the
+    # non-empty one, and refuse to guess between two.
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("GitHub token file does not contain a token")
+    if len(lines) > 1:
+        raise ValueError(
+            f"GitHub token file has more than one non-empty line ({len(lines)}); "
+            "keep only the token"
+        )
+    if not _TOKEN_SHAPE.fullmatch(lines[0]):
+        raise ValueError(
+            "GitHub token file does not hold a valid token: it contains spaces, "
+            "control characters or non-ASCII characters"
+        )
+    return lines[0]
 
 
 def get_github_token(cli_token: str | None = None, token_file: str | None = None) -> str | None:
@@ -209,19 +275,7 @@ def get_github_token(cli_token: str | None = None, token_file: str | None = None
     if cli_token:
         return cli_token
     if token_file:
-        with open(token_file, "rb") as handle:
-            raw = handle.read(MAX_GITHUB_TOKEN_FILE_BYTES + 1)
-        if len(raw) > MAX_GITHUB_TOKEN_FILE_BYTES:
-            raise ValueError(f"GitHub token file exceeds {MAX_GITHUB_TOKEN_FILE_BYTES} bytes")
-        try:
-            # utf-8-sig: Windows editors (Notepad) write a BOM, which strip()
-            # keeps and which would make the Authorization header unencodable.
-            token = raw.decode("utf-8-sig").splitlines()[0].strip() if raw else ""
-        except UnicodeDecodeError as exc:
-            raise ValueError("GitHub token file is not UTF-8 text") from exc
-        if not token:
-            raise ValueError("GitHub token file does not contain a token")
-        return token
+        return _token_from_file(token_file)
     return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
@@ -465,8 +519,116 @@ def _is_dependency_file(filename: str) -> tuple[bool, str | None]:
     return False, None
 
 
+def _is_requirements_variant(path: str) -> bool:
+    """A pip requirements file other than ``requirements.txt`` (v0.18.0 S2):
+    ``requirements*.txt`` (``requirements-dev.txt``, ``requirements_test.txt``),
+    ``constraints*.txt``, and any ``.txt`` in a ``requirements/`` directory,
+    the pre-commit hook's pattern widened to constraints and that directory.
+    """
+    directory, _, filename = path.rpartition("/")
+    if not filename.endswith(".txt") or filename == "requirements.txt":
+        return False
+    return (
+        filename.startswith(("requirements", "constraints"))
+        or directory.rpartition("/")[2] == "requirements"
+    )
+
+
+#: ``-r FILE`` / ``--requirement FILE`` and ``-c FILE`` / ``--constraint FILE``,
+#: with or without a space or ``=`` (pip's own spellings).
+_INCLUDE = re.compile(r"^(?:-r|-c|--requirement|--constraint)(?:\s*=\s*|\s+|(?<=-r)|(?<=-c))(\S+)")
+
+
+def requirements_includes(content: str) -> list[str]:
+    """The files a requirements file pulls in with ``-r`` or ``-c``, as written.
+
+    Their lines are never in this file, so the reader records the option
+    line as skipped; the caller checks that each target was inspected
+    itself, or coverage is PARTIAL.
+    """
+    found = []
+    for raw in content.splitlines():
+        line = raw.split(" #", 1)[0].strip()
+        match = _INCLUDE.match(line)
+        if match:
+            found.append(match.group(1))
+    return found
+
+
+def npm_workspace_members(content: str) -> list[str]:
+    """Directories a package-lock.json records as its workspace members
+    (``packages`` keys outside ``node_modules``), relative to the lockfile."""
+    try:
+        doc = json.loads(content)
+    except ValueError:
+        return []
+    packages = doc.get("packages") if isinstance(doc, dict) else None
+    if not isinstance(packages, dict):
+        return []
+    return sorted(
+        str(key)
+        for key in packages
+        if key and "node_modules/" not in str(key) and not str(key).startswith("node_modules")
+    )
+
+
+def _covered_by_workspace(path: str, files: list[dict[str, Any]]) -> bool:
+    """True when an ancestor directory's package-lock.json that was read lists
+    this package.json's directory as a workspace member."""
+    import posixpath
+
+    member = posixpath.dirname(path)
+    for file_info in files:
+        lock_dir = posixpath.dirname(file_info["path"])
+        for relative in file_info.get("npm_workspaces") or []:
+            if posixpath.normpath(posixpath.join(lock_dir, relative)) == member:
+                return True
+    return False
+
+
+def _include_target(path: str, target: str) -> str | None:
+    """The repository path ``target`` names from the file at ``path``, or None
+    when it names nothing inside the repository (a URL, an absolute path, a
+    path that climbs out)."""
+    import posixpath
+
+    if "://" in target or target.startswith(("/", "\\")) or ":" in target or "\\" in target:
+        return None
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target))
+    return resolved if _safe_repo_path(resolved) else None
+
+
+def _unsupported_reason(path: str, npm_lock_dirs: set[str]) -> str | None:
+    """Why a recognised but unreadable dependency file was not inspected.
+
+    Returns None for files that are not dependency files. ``package.json``
+    is read through the ``package-lock.json`` beside it, so it is only
+    reported when that lockfile is absent. Requirements variants are read
+    (v0.18.0 S2) and never reach here.
+    """
+    directory, _, filename = path.rpartition("/")
+    if filename in UNSUPPORTED_DEPENDENCY_FILES:
+        return f"{path}: {UNSUPPORTED_REASON}"
+    if filename == "package.json":
+        if directory in npm_lock_dirs:
+            return None
+        return f"{path}: {UNSUPPORTED_REASON} (no package-lock.json beside it)"
+    return None
+
+
 def _should_skip_dir(dirname: str) -> bool:
     return dirname in SKIP_DIRS or dirname.startswith(".")
+
+
+def _skipped_dir(parts: list[str]) -> str | None:
+    """The directory that excludes a path from discovery, or None."""
+    for index, part in enumerate(parts[:-1]):
+        if _should_skip_dir(part):
+            return part
+        if part == "packages" and index + 1 < len(parts) - 1:
+            if _NUGET_RESTORE.fullmatch(parts[index + 1]):
+                return "packages-nuget-restore"
+    return None
 
 
 @dataclass
@@ -477,6 +639,13 @@ class _Discovery:
     skip_reasons: list[str] = field(default_factory=list)
     truncated: bool = False
     error: dict[str, Any] | None = None
+    tree_entries: int = 0
+    #: skipped directory name -> files under it that were not looked at
+    skipped_dirs: dict[str, int] = field(default_factory=dict)
+    limits_reached: list[str] = field(default_factory=list)
+    #: (path, reason) of package.json files with no package-lock.json beside
+    #: them: covered if an ancestor's lockfile lists them as workspace members.
+    pending_package_json: list[tuple[str, str]] = field(default_factory=list)
 
 
 def discover_dependency_files(
@@ -489,8 +658,9 @@ def discover_dependency_files(
     Each returned file is ``{path, type, size, sha}`` where ``sha`` is
     the git blob id taken from the pinned tree - the exact object the
     content fetch must return. Every dropped file (oversize, cap, unsafe
-    path) is recorded as a skip reason so coverage can degrade to
-    PARTIAL instead of silently shrinking the inspected set.
+    path, recognised but unsupported format) is recorded as a skip reason
+    so coverage can degrade to PARTIAL instead of silently shrinking the
+    inspected set.
     """
     tree = _get_repo_tree(repo, token, revision)
     if tree and isinstance(tree[0], dict) and tree[0].get("error"):
@@ -510,7 +680,20 @@ def discover_dependency_files(
 
     files: list[dict[str, Any]] = []
     skip_reasons: list[str] = []
+    skipped_dirs: dict[str, int] = {}
+    pending_package_json: list[tuple[str, str]] = []
+    limits: list[str] = []
     total_size = 0
+    npm_lock_dirs = {
+        e.get("path", "").rpartition("/")[0]
+        for e in entries
+        if e.get("type") == "blob" and e.get("path", "").rpartition("/")[2] == "package-lock.json"
+    }
+    composer_lock_dirs = {
+        e.get("path", "").rpartition("/")[0]
+        for e in entries
+        if e.get("type") == "blob" and e.get("path", "").rpartition("/")[2] == "composer.lock"
+    }
 
     for entry in entries:
         if entry.get("type") != "blob":
@@ -521,12 +704,27 @@ def discover_dependency_files(
 
         # Check if in skipped directory
         parts = path.split("/")
-        if any(_should_skip_dir(p) for p in parts[:-1]):
+        skipped = _skipped_dir(parts)
+        if skipped is not None:
+            skipped_dirs[skipped] = skipped_dirs.get(skipped, 0) + 1
             continue
 
         filename = parts[-1]
+        if filename == "composer.json" and "/".join(parts[:-1]) in composer_lock_dirs:
+            # Covered by the composer.lock beside it: reading the manifest
+            # instead would report the same packages as range declarations.
+            continue
         is_supported, file_type = _is_dependency_file(filename)
+        if not is_supported and _is_requirements_variant(path):
+            is_supported, file_type = True, "requirements"
         if not is_supported:
+            reason = _unsupported_reason(path, npm_lock_dirs)
+            if reason is not None and filename == "package.json":
+                # Possibly an npm workspace member, read through an ancestor's
+                # package-lock.json (S5): decided once the lockfiles are read.
+                pending_package_json.append((path, reason))
+            elif reason is not None:
+                skip_reasons.append(reason)
             continue
 
         if not _safe_repo_path(path):
@@ -538,6 +736,8 @@ def discover_dependency_files(
             skip_reasons.append(
                 f"{path}: {size} bytes exceeds {MAX_BLOB_BYTES}-byte inspection limit"
             )
+            if "max_file_bytes" not in limits:
+                limits.append("max_file_bytes")
             continue
 
         total_size += size
@@ -546,6 +746,7 @@ def discover_dependency_files(
                 f"{path}: repository size cap ({MAX_DISCOVERED_BYTES} bytes) reached; "
                 "remaining dependency files not inspected"
             )
+            limits.append("max_total_bytes")
             break
 
         files.append({"path": path, "type": file_type, "size": size, "sha": entry.get("sha", "")})
@@ -554,9 +755,79 @@ def discover_dependency_files(
             skip_reasons.append(
                 f"file cap ({MAX_FILES}) reached; remaining dependency files not inspected"
             )
+            limits.append("max_files")
             break
 
-    return _Discovery(files=files, skip_reasons=skip_reasons, truncated=truncated)
+    return _Discovery(
+        files=files,
+        skip_reasons=skip_reasons,
+        truncated=truncated,
+        tree_entries=len(entries),
+        skipped_dirs=skipped_dirs,
+        limits_reached=limits,
+        pending_package_json=pending_package_json,
+    )
+
+
+#: What discovery looks for, in the order a reader would scan the list.
+DISCOVERY_PATTERNS = (
+    *sorted(SUPPORTED_MANIFESTS | SUPPORTED_LOCKFILES | SUPPORTED_SBOMS | SUPPORTED_INVENTORIES),
+    "*.csproj",
+    "*.lock.json",
+    "requirements*.txt",
+    "constraints*.txt",
+    "requirements/*.txt",
+)
+#: Skipped directories named in a scope, at most; the rest are summed.
+MAX_SCOPE_DIRS = 50
+_SCOPE_DIR = re.compile(r"[A-Za-z0-9._-]{1,100}")
+
+
+def discovery_scope(
+    repo: GitHubRepo,
+    branch: str,
+    commit: str,
+    discovery: _Discovery,
+    files_read: int,
+) -> dict[str, Any]:
+    """What one repository inspection searched (v0.18.0 S3), in a fixed shape.
+
+    The ref and commit, the file-name patterns read and the recognised
+    names that are not, the directories skipped with how many files each
+    held, the tree size, the limits and which of them applied, and how
+    many dependency files were found and read. A directory name outside a
+    plain character set is counted, not named.
+    """
+    named = sorted(
+        (d for d in discovery.skipped_dirs if _SCOPE_DIR.fullmatch(d)),
+        key=lambda d: (-discovery.skipped_dirs[d], d),
+    )[:MAX_SCOPE_DIRS]
+    other = sum(n for d, n in discovery.skipped_dirs.items() if d not in named)
+    skipped = [{"directory": d, "files": discovery.skipped_dirs[d]} for d in named]
+    if other:
+        skipped.append({"directory": None, "files": other})
+    limits = list(discovery.limits_reached)
+    if discovery.truncated:
+        limits.insert(0, "tree_truncated")
+    return {
+        "repository": str(repo),
+        "ref": branch,
+        "commit": commit,
+        "file_patterns": list(DISCOVERY_PATTERNS),
+        "recognised_not_read": sorted(UNSUPPORTED_DEPENDENCY_FILES)
+        + ["package.json (without package-lock.json)"],
+        "skipped_directories": skipped,
+        "tree_entries": discovery.tree_entries,
+        "limits": {
+            "max_tree_entries": MAX_TREE_ENTRIES,
+            "max_files": MAX_FILES,
+            "max_file_bytes": MAX_BLOB_BYTES,
+            "max_total_bytes": MAX_DISCOVERED_BYTES,
+        },
+        "limits_reached": limits,
+        "files_found": len(discovery.files),
+        "files_read": files_read,
+    }
 
 
 def parse_dependency_file(
@@ -583,8 +854,19 @@ def parse_dependency_file(
     deps: list[dict[str, Any]] = []
     skipped: list[str] = []
 
+    if file_type == "requirements" or path.rpartition("/")[2] == "requirements.txt":
+        file_info["includes"] = requirements_includes(content or "")
+    if path.rpartition("/")[2] == "package-lock.json":
+        file_info["npm_workspaces"] = npm_workspace_members(content or "")
+
     try:
-        if file_type == "manifest":
+        if file_type == "requirements":
+            # Known to be pip requirements by its name: parsed as such, so a
+            # file of only `-r base.txt` or unpinned lines is read, not refused.
+            parsed_deps, parsed_skipped = load_requirements_txt_doc(content)
+            deps.extend(parsed_deps)
+            skipped.extend([f"{path}: {s}" for s in parsed_skipped])
+        elif file_type == "manifest":
             parsed_deps, parsed_skipped, _ = read_manifest_from_content(content, path)
             deps.extend(parsed_deps)
             skipped.extend([f"{path}: {s}" for s in parsed_skipped])
@@ -633,7 +915,9 @@ def read_manifest_from_content(
         f.write(content)
         tmp_path = f.name
     try:
-        return read_manifest(tmp_path)
+        # The temp path is `tmpab12cdbuild.gradle`: pass the real name so the
+        # name-specific refusals see it (issue #153 review).
+        return read_manifest(tmp_path, name=basename)
     finally:
         try:
             os.unlink(tmp_path)
@@ -781,6 +1065,9 @@ def inspect_github_repo(
     coverage_reasons.extend(discovery.skip_reasons)
 
     if not discovery.files:
+        # No lockfile was read, so no package.json is covered by a workspace.
+        coverage_reasons.extend(reason for _path, reason in discovery.pending_package_json)
+        scope = discovery_scope(repo, default_branch, commit_sha, discovery, 0)
         if not coverage_reasons:
             return RepoInspection(
                 skipped=[
@@ -790,6 +1077,7 @@ def inspect_github_repo(
                 coverage=COVERAGE_COMPLETE,
                 branch=default_branch,
                 commit=commit_sha,
+                scope=scope,
             )
         return RepoInspection(
             skipped=list(coverage_reasons),
@@ -797,12 +1085,15 @@ def inspect_github_repo(
             coverage_reasons=list(coverage_reasons),
             branch=default_branch,
             commit=commit_sha,
+            scope=scope,
         )
 
     all_deps: list[dict[str, Any]] = []
     all_skipped: list[str] = []
+    files_read = 0
     for file_info in discovery.files:
         deps, skipped, readable = parse_dependency_file(repo, file_info, token)
+        files_read += readable
         if not readable:
             coverage_reasons.extend(skipped)
         for dep in deps:
@@ -810,6 +1101,29 @@ def inspect_github_repo(
             dep["repository_commit"] = commit_sha
         all_deps.extend(deps)
         all_skipped.extend(skipped)
+
+    # A package.json with no lockfile beside it is read through the lockfile
+    # of the workspace that lists it (S5); anything else was not inspected.
+    for path, reason in discovery.pending_package_json:
+        if not _covered_by_workspace(path, discovery.files):
+            coverage_reasons.append(reason)
+
+    # A `-r` / `-c` include pulls in lines this run read only if the target
+    # was itself inspected; anything else is unknown, so coverage is PARTIAL.
+    inspected = {f["path"] for f in discovery.files}
+    for file_info in discovery.files:
+        for target in file_info.get("includes") or []:
+            resolved = _include_target(file_info["path"], target)
+            if resolved is None:
+                coverage_reasons.append(
+                    f"{file_info['path']}: includes a requirements file outside the "
+                    "repository (-r/-c); its dependencies were not inspected"
+                )
+            elif resolved not in inspected:
+                coverage_reasons.append(
+                    f"{file_info['path']}: includes {resolved} (-r/-c), which was not "
+                    "inspected; its dependencies were not inspected"
+                )
 
     unique_deps = deduplicate_dependencies(all_deps)
 
@@ -826,6 +1140,7 @@ def inspect_github_repo(
         coverage_reasons=list(coverage_reasons),
         branch=default_branch,
         commit=commit_sha,
+        scope=discovery_scope(repo, default_branch, commit_sha, discovery, files_read),
     )
 
 

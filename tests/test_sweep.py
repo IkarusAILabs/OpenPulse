@@ -71,7 +71,7 @@ def test_parser_change_rebaselines_instead_of_diffing(tmp_path):
     not a diff source: windowed tag samples must never diff against
     full tag sets."""
     from core.observations.registry import RegistryObservation
-    from core.observations.store import load_all, save_observation
+    from core.observations.store import load_all, save_observation, write_tip
     from core.observations.sweep import observe_repository
 
     legacy = (
@@ -84,7 +84,8 @@ def test_parser_change_rebaselines_instead_of_diffing(tmp_path):
         .seal()
         .link(None)
     )
-    save_observation(legacy.model_dump(mode="json"), root=tmp_path)
+    saved = save_observation(legacy.model_dump(mode="json"), root=tmp_path)
+    write_tip(saved.parent, legacy.chain_hash)  # as the earlier run did (B4)
     probe = {
         "collector": "registries",
         "registry": "docker.io",

@@ -233,8 +233,20 @@ def test_evidence_assess():
     from analyzers.evidence_analyst import assess_confidence
     from core.schema.enums import Confidence
 
-    official = [{"source": {"name": "a", "authority": "official"}}]
-    assert assess_confidence(official) == Confidence.CONFIRMED
+    official = [
+        {
+            "source": {
+                "name": "a",
+                "authority": "official",
+                "url": "https://www.djangoproject.com/download/",
+            }
+        }
+    ]
+    assert assess_confidence(official, "django") == Confidence.CONFIRMED
+    # Official is derived (B1): no project, or a project whose allowlist
+    # does not cover the URL, means the claim is not taken.
+    assert assess_confidence(official) == Confidence.EMERGING
+    assert assess_confidence(official, "redis") == Confidence.EMERGING
     two = [
         {"source": {"name": "a", "authority": "secondary"}},
         {"source": {"name": "b", "authority": "secondary"}},

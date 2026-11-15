@@ -13,7 +13,573 @@ All notable changes to OpenPulse. Versions follow semver; while the project is `
 - **Agent and MCP answers carry the cause behind every verdict.** `dependency_status` and `check_dependency_file` listed only causes whose event belongs to the dependency's own project. A verdict could therefore arrive with no cause and no evidence URL: `docker.io/bitnami/redis:7.2` was AFFECTS_ARTIFACT through the `bitnami` event, with an empty `causes` list. Another project's cause is now listed when it is affected or unresolved, or when it is the only support for the verdict. Unrelated clearances are still left out.
 - **The registered analysis no longer adjusts rounded p-values, and no longer calls an empty population valid.** `evaluation/registration.py` passed 4-decimal p-values to Holm's procedure, so the smallest bootstrap p (1/4001) gave a Holm p of 0.0004 instead of 0.0005. A population with no pairs was reported `valid: true`. The H1 rule text now states the absolute rule that REGISTRATION.md registers.
 
-- **One large dependency file no longer uses up a repository's whole inspection budget (#103, #148).** The per-file cap was 50 MB, equal to the 50 MB total budget, so a single 50 MB lockfile left every other manifest in the repository uninspected. The per-file cap is now the smallest of three limits: the parser cap, GitHub's 100 MB blobs-API limit, and half the budget, which is 25 MB today. A larger file is skipped on its own, with a PARTIAL reason, and the rest are still read.
+## 0.21.0 "Your Dependencies, Watched" — 2026-11-12
+
+Phase 15 (M6): the v0.20.0 change checks reach the dependencies a project actually uses, and a scheduled run remembers what it saw. `check`, `attest` and the Action read the registry for each npm and PyPI dependency in your own files and observe the repositories they name; the Action keeps its history between runs and audits it on restore; a run says which detections are new since the last one, and can send them to a webhook or one issue. Everything new is opt-in, and a first run is a starting point, never a list of news. No contract version change. Composer and NuGet lockfiles are read (part of #153).
+
+### Added
+
+- **Your dependencies get the v0.20 registry checks (v0.21.0 item W1).** v0.20.0 read npm and PyPI for catalog packages only. With `--registry-changes` (`openpulse check`, `openpulse attest`, the Action's new `registry-changes: all` input), each npm and PyPI dependency's own release is read: the publisher's deprecation (npm `deprecated`), a yanked release (PEP 592), an Inactive project, and license changes in the releases after yours (what an upgrade would bring). Each is a `DEPRECATION` or `LICENSE_CHANGE` result at `REVIEW`, with the registry page as evidence, in the output, the evidence contracts, SARIF (`openpulse/deprecation`, `openpulse/license-change`) and the digest. The event behind it is built for that one dependency (`analyzers/registry_events.py`), so a flag on one release never reaches another release of the same package. What was not read is said on stderr: other ecosystems are counted, and an unreachable registry or a spent budget is named per dependency. The agent tools (`dependency_status`, `check_dependency_file`) do the same whenever live lookups are on, and say so in `sources` (`registry deprecations and release licenses`); a check that was not made is in `not_established`. Off by default in the CLI and the Action. No contract version change: both event types were already in every schema's vocabulary.
+
+- **The Action keeps its history between runs (v0.21.0 item W2).** New inputs `history: on`, `history-key` (a secret), `history-previous-keys` and `history-id` carry `.openpulse/observations` and `.openpulse/detections` from run to run in the Actions cache (`actions/cache` restore and save, pinned by commit). The restored history is audited before anything runs, by the new `openpulse history-audit --require-keyed`: a broken, rolled-back or downgraded history, a record or ledger entry that is not keyed, and one keyed with a key that was not supplied (a foreign history) fail the step with what and why, and are never used or saved. The history is saved only from the default branch, and only after a passed audit, so a pull request's history never becomes the one scheduled runs build on. New output `history-status` (`OK`, or `EMPTY` on a first run or an evicted cache). An older genuine copy of the whole history cannot be detected from the cache alone; `openpulse verify --anchor` with an anchor kept elsewhere does that (`docs/SCHEDULED_CHECKS.md`). In W2 nothing in the Action writes history yet: W3 (repository observations) and W4 (new findings only) do.
+- **The repositories your dependencies name are observed (v0.21.0 item W3).** With `--observe-repositories` (`openpulse check`, `openpulse attest`, the Action's `observe-repositories: on`), the GitHub repository each npm and PyPI dependency names as its source (npm `repository`, PyPI `project_urls`) is recorded in the verifiable history v0.20.0 introduced (`--observation-store`, default `.openpulse/observations`), once per repository. A first observation is a baseline: it reports only what the repository already is, by the snapshot rules (already archived, or answering under another owner than the one claimed). After that, a license change, an archive or a move to a new owner between two runs is a `LICENSE_CHANGE`, `PROJECT_ARCHIVED` or `OWNERSHIP_CHANGE` result at `REVIEW` for every dependency that names the repository, reported once, in the run that sees the difference. A GitHub license change is checked against the license the registry declares (C5). The link from package to repository is the publisher's claim and is not verified here; each result says so. Packages that name no repository, registries and GitHub that gave no answer, refused histories and repositories past the per-run limit (300) are counted on stderr and the failures named; a failure records nothing and is never a change. `attest` gains `--history-key-file` and `--history-previous-keys-file`. In the Action the input needs `history: on`, and the job token (`github-token`) is passed to `openpulse attest` for this case only, to read GitHub above the anonymous rate limit.
+- **A scheduled watch, documented and tested end to end (v0.21.0 item W6).** `docs/GITHUB_ACTION.md` has one workflow that puts the release together: a daily run over a lockfile with a kept history, registry changes, repository observation and one issue. `tests/test_scheduled_watch_e2e.py` runs the Action's steps (history audit, `attest` with the ledger, `deliver-new`) over recorded registry responses: a deprecation and a repository archive that happen between two runs are listed and delivered exactly once, a first run delivers nothing, and an evicted cache starts over without sending old news.
+- **Delivery of what is new (v0.21.0 item W5).** New findings can now reach a person without anyone opening the run. `openpulse deliver-new FILE` takes the file `attest --ledger --new-findings` wrote and sends it to a webhook (`--webhook` or `OPENPULSE_WEBHOOK_URL`, under the existing webhook policy, signed when `OPENPULSE_WEBHOOK_SECRET` or `--webhook-secret-file` is set) and/or to one GitHub issue (`--issue OWNER/NAME`, token from `GITHUB_TOKEN` with `issues: write`): the first delivery opens the issue and later ones comment on it. The Action gains `notify-webhook`, `notify-webhook-secret` and `notify-issue: on`, and the output `delivery` (`delivered`, `none`, `skipped`, `failed`). Nothing is sent for a first run or when nothing is new, and the Action delivers only from the default branch, whose history is the one that is kept. An existing issue is used only when `github-actions[bot]` or an owner, member or collaborator opened it, so an outsider's issue with the same title is never used. Upstream text is put in code spans in the issue, where `@name` and `#123` neither notify nor link, and only http(s) evidence URLs are kept. A failed delivery fails the job after the history is saved: the finding is in that run's job summary and is not listed again by a later run.
+- **Only what is new (v0.21.0 item W4).** A run now says which detections its ledger had not seen. `openpulse check` prints `new since the last run: N of M detection(s)` with each new one, `none` when everything was known, and on an empty ledger `first run with this ledger`, never a list of news. `check --new-only` lists only the dependencies with a new detection, while the counts and every gate still cover all of them. `openpulse attest` gains `--ledger PATH` (off by default) and `--new-findings PATH`, a JSON list of the detections first recorded in the run (dependency, type, title, impact, evidence URLs), and adds a "New since the last run" section to `--summary`; detections are recorded before a gate exits. With `history: on` the Action records into the kept ledger and exposes `new-findings` (a count) and `new-findings-file`. Registry and repository changes (W1, W3) are now remembered in the ledger under their own class (`change`, keyed by the event built for the dependency), so they are reported as new once; they still never get a lead time, which stays a lifecycle claim (C5). "New" means new to this ledger: after an evicted cache everything is new again, and nothing is backdated. A first-seen time is given only for an entry written under a history key.
+- **Composer and NuGet lockfiles are read (part of #153; #343, thanks @chiragjangiir).** `composer.lock` (Packagist) and `packages.lock.json` (NuGet, all target frameworks) join npm, poetry and Cargo: each pinned entry becomes a checkable dependency, and every entry that cannot be checked is skipped with its reason. Composer branch aliases (`dev-main`, `1.0.x-dev`) are skipped as branches rather than passed on as versions, and a NuGet entry of `"type": "Project"` is named a project reference instead of a missing version. A `composer.json` is covered by the `composer.lock` beside it, as `package.json` already is by `package-lock.json`, and a manifest read from repository content now sees its real file name, so `build.gradle` and `Package.swift` keep their specific "add a lockfile" reason instead of the generic one. Packagist and NuGet are mapped to their OSV ecosystems, so these packages get a vulnerability lookup. A lock is recognised by Composer's own `content-hash` beside the package list, so another JSON document with a `packages` list (an SPDX file) is refused, not read as an empty lock; a package installed from a local path is skipped as not a Packagist release. No digests are returned for the new formats yet: `core.digest_integrity` checks npm and PyPI only, so reporting composer `shasum`/NuGet `contentHash` values would make every PHP or .NET package change fail the gate as an unchecked digest with the default `unchecked: fail`. Verifying those digests is a separate change.
+
+### Upgrade notes
+
+- **No gate changes by default.** `--registry-changes`, `registry-changes`, `--observe-repositories` and `observe-repositories` are opt-in. Turned on, a registry change is a `REVIEW` result: it fails a run only under `--fail-on review` or `--fail-on affected` (`--strict` and `--fail-on action` stay as they were).
+- **A run with the ledger on leaves a marker in it.** Every run that records writes a file named `STARTED` at the ledger root, also when it found nothing, so the first finding of a project that began clean is reported as new and not taken for the starting point. `check` therefore creates `.openpulse/detections/` on a clean run too.
+- **`check` prints one more line when it records detections.** With the ledger on (the default) and at least one durable detection, the output ends with a `new since the last run` or `first run with this ledger` line. `check --registry-changes` now writes a ledger entry per registry change.
+- **The agent tools read the registry for each live dependency.** `dependency_status` and `check_dependency_file` with live lookups now spend two more lookups per npm or PyPI dependency (one for deprecation flags, one for release licenses), under the same session budget, and report deprecations and license changes among `causes`.
+
+## 0.20.0 "Change Evidence Beyond Lifecycle" — 2026-11-09
+
+Phase 14 (M2): changes that are not end-of-life dates become findings with the evidence they rest on. A repository's GitHub history, the licenses npm and PyPI record per release, and the deprecation and withdrawal flags publishers set on the registry each yield findings for review; every finding states its confidence and evidence basis, and each class is backed by a verified, replayable case in `docs/DISCOVERIES.md` or ships as experimental. No contract version change: `LICENSE_CHANGE` and `DEPRECATION` were already in every schema's vocabulary.
+
+### Added
+
+- **Repository observation history (v0.20.0 item C1).** `openpulse observe-github --repo owner/name` records what GitHub says about a repository (the path it answers with, `archived`, its license id, the last push and the default branch) as a hash-chained history beside the registry histories, with the same guarantees: verified on every append; tampered, rolled-back or downgraded histories refused until `--rebaseline --reason`; history-key MACs; covered by anchors. A 404 is recorded as `missing`; any other failure records nothing. Until now repository facts were judged from the current snapshot only, so a license change could not be seen; reading changes out of this history is C2. `core/observations/sweep.py`'s history checks now take the record type's verifier as a parameter; registry histories behave as before.
+- **Repository changes become findings (v0.20.0 item C2).** Two comparable records of a repository's history now yield its changes: a new license id (`LICENSE_CHANGE`), an archive (`PROJECT_ARCHIVED`) and a move to a new owner (`OWNERSHIP_CHANGE`) are findings, placed for review, carrying both records as evidence and the window between them. A license GitHub stops recognising (none, `NOASSERTION`) is lost evidence, never a relicense; an unarchive, a 404 and a restored repository are reported as changes but are not findings. `first_detected_at` comes from the history only when it is keyed (B3c). `openpulse observe-github` prints the changes and findings; `openpulse report --with-sweep` also observes each selected project's GitHub repository, and where its history reports an archive or a move, the snapshot rule's restatement of the same fact is dropped rather than shown twice. `LICENSE_CHANGE` now has its own placement rule (review, never automatic action) instead of falling through as unclassified.
+- **License changes between releases (v0.20.0 item C3).** `openpulse release-license --ecosystem npm|PyPI --package NAME [--version V]` compares the licenses the registry records per release: every change after your version, or the most recent one. npm lists every release's license in one document; PyPI is read for two releases (yours, or the one before the latest, and the latest), and a finding says when the releases between them were not compared. Releases are ordered by version, not publish time, so a backport never reads as a flip back; prereleases are left out. PyPI's license expression, `license` field and classifiers are compared only like with like, so "MIT" and "MIT License" are never a relicense. Each change is a `LICENSE_CHANGE` finding for review, scoped to the package's purl, dated by the release's publish time. `openpulse report --with-sweep` adds the catalog's npm and PyPI packages' changes published in the last 365 days. Live checks: React's BSD-3-Clause to MIT in 15.6.2 (2017), psycopg2 dropping ZPL.
+- **Deprecated and withdrawn packages (v0.20.0 item C4).** `openpulse deprecation --ecosystem npm|PyPI --package NAME [--version V]` reads three flags the publisher sets on the registry: npm's `deprecated` message, a yanked PyPI release (PEP 592; yanked when all its files are) and the "Development Status :: 7 - Inactive" classifier. A flag on the release npm installs by default, an inactive classifier, or every PyPI release yanked covers the package; a flag only on your version covers that release. Each flag is a `DEPRECATION` finding for review with the publisher's message (bounded, single-line); `DEPRECATION` now has its own placement rule instead of falling through as unclassified. The registry records no date for a flag, so `effective_at` stays empty. npm is read through version documents rather than the packument, so packages over the size cap (react-dom) are still checked. `openpulse report --with-sweep` adds the catalog's package-level flags. Live checks: request, tslint and @babel/polyfill deprecated; uuid 3.4.0 deprecated while the latest is not; urllib3 2.0.0 yanked; attrdict inactive.
+- **Evidence rules for change evidence (v0.20.0 item C5).** Each finding from repository history, release licenses and registry flags now states its `confidence` and its `evidence_basis`. A difference OpenPulse observed (two repository observations, two releases' licenses) is `EMERGING`. A flag the publisher set on the registry is the publisher's own statement: npm's `deprecated` and a PyPI yank are `CONFIRMED`; the Inactive classifier stays `EMERGING`. A license change GitHub reports is a heuristic over the license file: `openpulse report --with-sweep` asks the registry about the project's npm and PyPI packages, and only when one declares the new license is the finding `CORROBORATED`; otherwise it stays `EMERGING` and says what the registry declares.
+- **Verified cases before support is claimed (v0.20.0 item C6).** `docs/DISCOVERIES.md` Cases 11–16 back each new class with a replayable case confirmed by a source the detection did not use: React's relicense and psycopg2 dropping ZPL (release licenses), request and uuid 3.4.0 (npm `deprecated`), urllib3 2.0.0 (PyPI yank), attrdict (Inactive classifier). The registry responses are recorded under `data/fixtures/`, trimmed to the fields the checks read, and replay offline. Every finding from these classes carries `support: verified` and its case numbers. Repository history (C2) has no real change observed twice yet: its findings carry `support: experimental`, say so in their summary, and render as `[TYPE, experimental]`.
+
+### Changed
+
+- **Lint: ruff's `S` (bandit) rules are on (H13, D3).** Each finding outside the tests is fixed or carries its reason on the line. Fixed: four `assert`s that guarded real conditions (and vanish under `python -O`) are explicit checks, in the mutation runner, the ecosystem-version bridges and `scripts/compile_locks.py`; the reference-name refresh script and the prevalence collector refuse any URL that is not https (the npm tarball URL comes from registry metadata, and `urlopen` would open `file:`). Kept with a reason: seeded `random` for reproducible sampling, `git`/`gh`/`uv` with fixed arguments, and the `pom.xml` parse, which refuses any DOCTYPE before parsing. Tests are exempt only from `assert`, fixed-argument subprocesses and placeholder tokens. No behaviour of `openpulse` changes.
+
+### Fixed
+
+- **No lead time for changes that are not lifecycle events.** A repository change carries a keyed first detection and the day OpenPulse saw it as `effective_at`, so a report could print "Detection lead time before effective date: 0 days" for a relicense or an archive. Lead time is now claimed for lifecycle events only (EOL, EOS, DEPRECATION, SUPPORT_CHANGE); a finding without an event type is read as before.
+- **An empty observation store is refused.** `--store ""` on `observe`, `observe-github` and `report` meant the current directory, so history was written among the user's own files. It is now a usage error.
+- **Legacy flat identity keys no longer make a mapping VERIFIED on their own (D5).** A catalog entry with the pre-`identity:` flat keys (`identity_source`, `reviewed_at`, `maintainer`, `confidence`) was VERIFIED whatever its `confidence` said, even `low` or none, so a verdict resting on it was never capped. It is now VERIFIED only with `confidence: high`; anything else is REVIEW_REQUIRED and caps an affected verdict at EMERGING, as a formal `identity:` block does. The shipped catalog uses no flat keys (a test keeps it so), so no shipped verdict changes; a catalog passed to the library with flat keys may now see capped confidence.
+
+## 0.19.0 "Evidence Consumer and Portability" — 2026-11-08
+
+Phase 13 (M9 preparation, T-F2): an evidence contract means the same thing outside OpenPulse. A standalone consumer that imports nothing from OpenPulse validates each document against exactly the schema of the version it declares, recomputes its content hash, and summarises its outcomes without ever folding an UNKNOWN, a PARTIAL coverage or a MISSING_EVIDENCE into a pass. It is tested on documents written by every released contract version's own release. No contract version, verdict or gate changes.
+
+### Added
+
+- **Standalone evidence consumer (v0.19.0 item P1).** [`conformance/consumer/`](conformance/consumer/README.md) is a small Python package, `openpulse-evidence-consumer`, that validates OpenPulse evidence contracts without OpenPulse: it imports nothing from it, and its one runtime dependency is `jsonschema`, installed from a hash-pinned `requirements.lock` generated with the repository's own pins (decision 16). `openpulse-consumer check contracts.jsonl` validates every document against exactly the schema its `contract_version` names (1.0.0 to 2.4.0 bundled, copied from `schemas/evidence-contract/`); an unknown version, a non-JSON line, a missing or unexpected field, an unreadable or empty file are never a pass. A new `consumer` CI job installs it alone into its own environment, asserts OpenPulse is not importable there, and runs its tests and `check` from outside the checkout on what that commit's `attest` writes, on Linux and Windows. Exact-version rules, hash verification and the outcome summary are P2-P4.
+- **Exact versions (v0.19.0 item P2).** The consumer reads a document only as the exact version it declares: a version string with no published schema (`2.9.0`, `2.4`, `v2.4.0`) is refused, `provenance.contract_version` must equal the top-level version, every schema is closed, and `date`, `date-time` and `uri` are checked as OpenPulse checks them (standard library only). `conformance/evidence-contract/verify.mjs` now accepts only the published 2.x versions (it accepted any `2.` prefix) and refuses a mismatched `provenance.contract_version`; a test keeps its list equal to the published schemas. The consumer and OpenPulse's validator are tested to reject the same mutated documents, and the `consumer` CI job also runs `verify.mjs` on fresh `attest` output.
+- **Hash verification in the consumer (v0.19.0 item P3).** After the schema, `openpulse-consumer check` recomputes each document's content hash: 2.x with its own standard-library RFC 8785 (JCS) canonicalization, the rule `verify.mjs` uses; 1.x with the 1.0, 1.1 or 1.2 field list. A document changed after it was hashed is invalid. Tested with RFC 8785's own examples, tampering in every version, and agreement with OpenPulse's verifier on real documents.
+- **Outcome summary in the consumer (v0.19.0 item P4).** `openpulse-consumer summary [--json] contracts.jsonl` counts relationship (all seven values, zeros included), inspection coverage and trust records apart, and has no pass field. NOT_AFFECTED, RELATED and UNKNOWN stay three outcomes although each has `affected: false`; contract 1.0, which has no coverage field, is `NOT_REPORTED`, never COMPLETE; a run that did not check trust is "not checked", not a check that found nothing; trust is counted from the records, and a `summary` that disagrees with them is reported. Each document lists what it leaves open: an UNKNOWN or RELATED relationship, a NOT_AFFECTED whose scope does not admit a negative or that had no freshness bound, coverage PARTIAL, FAILED or NOT_REPORTED, and every trust status but VERIFIED_RELATIONSHIP (MISSING_EVIDENCE and NOT_PERFORMED included). Only documents that pass `check` are summarised. Tested with documents built to tempt each fold. The `consumer` CI job runs it on fresh `attest` output.
+- **Released-contract corpus (v0.19.0 item P5).** [`conformance/contracts/`](conformance/contracts/README.md) holds 24 documents written by the release that first emitted each contract version (1.0 from the untagged commit `d68f533`, 1.1 from v0.6.1, 1.2 from v0.8.0, 2.0 from v0.9.0, 2.1 from v0.10.0, 2.2 from v0.13.0, 2.3 from v0.16.0, 2.4 from v0.18.0), and 61 negatives that each break one rule, with the path each must be rejected at. `regenerate.py` rebuilds it by running each producer's own `attest` from its pinned commit, as an uninstalled source tree (so `provenance.openpulse_version` is the producer's own, never the OpenPulse installed in the running interpreter) with tokens and keys stripped from the environment; `--check` compares content hashes. The consumer, OpenPulse's validator and `verify.mjs` are tested to accept every document and reject every negative where `MANIFEST.json` says; the `consumer` CI job runs the consumer and `verify.mjs` over the corpus and the regeneration check.
+
+### Fixed
+
+- **`verify_content_hash` failed every genuine 1.0 contract.** It hashed 1.0 documents with the 1.1 field list, which includes `inspection_coverage`, a field 1.0 does not have, so a 1.0 document never verified. 1.0 now hashes its own eleven fields (`docs/EVIDENCE_CONTRACT.md`, *Integrity*). Found while writing the consumer's 1.x rule.
+
+## 0.18.0 "Inspection Coverage Assurance" — 2026-11-07
+
+Phase 12 (M5/M6): repository coverage that never overstates itself. More of a repository is read (requirements variants and their includes, monorepo members under `packages/`, npm and Cargo workspaces); every inspection states what it searched (evidence contract 2.4.0, `inspection_coverage.scope`); and no summary reads as an all-clear over PARTIAL or FAILED coverage. COMPLETE means every dependency file in the search was read; anything else is PARTIAL with each category named. Still open: whether `--fail-on` fails on PARTIAL by default (decision 15; `--fail-on-partial` does today), and readers for `pnpm-lock.yaml`, `yarn.lock` and `uv.lock`, which are listed as not inspected.
+
+### Added
+
+- **Requirements variants read in repository inspection (v0.18.0 item S2).** `--github-repo` and the Action's repository discovery now read `requirements-*.txt`, `requirements_*.txt`, `constraints*.txt` and any `.txt` in a `requirements/` directory with the requirements parser, instead of listing them as "dependency file not supported" (S1). They are parsed as requirements by their name, so a file of only `-r base.txt` and ranges is read, not refused. `-r` and `-c` includes are accounted for: an included file that is in the repository and was inspected keeps coverage COMPLETE; one that was not inspected, or a URL, absolute path or path outside the repository, makes coverage PARTIAL and is named in the coverage reasons. See "Repository inspection coverage" in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+- **What was searched is recorded (v0.18.0 item S3).** Every repository inspection states its scope: the ref and commit, the file patterns read and the recognised names not read, the directories skipped (`node_modules`, `vendor`, hidden directories, ...) with how many files each held, the tree size, the limits and which of them applied, and how many dependency files were found and read. `check --github-repo` and `attest --github-repo` print it as one line (`searched owner/repo main@<commit>: ...`). **Evidence contract 2.4.0** (additive) carries it as a required `inspection_coverage.scope`, null when no repository was inspected; the 2.3 schema is published unchanged beside it. See [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md).
+- **No all-clear over PARTIAL coverage (v0.18.0 item S4).** Every summary that could read as clear names what was not inspected, by category and count, before the details: `check`, `digest`, `warnings`, the webhook body, the SARIF notification and the Action's job summary. The categories are unsupported dependency files, requirements includes not inspected, files over the size limit, the repository size cap, the file-count cap, a truncated tree, unsafe paths, and files that could not be fetched or parsed. SARIF runs carry them as `inspection_coverage_categories`. `check` no longer ends on a bare "0/N dependencies affected" over PARTIAL or FAILED coverage. `--fail-on` behaviour is unchanged (decision 15 is open; `--fail-on-partial` fails on PARTIAL).
+- **Monorepos and nested workspaces (v0.18.0 item S5).** npm workspace members are read through the workspace's `package-lock.json` and no longer reported as unsupported; a `package.json` no read lockfile lists still is. A Cargo virtual workspace manifest is read (its `[workspace.dependencies]`, or a note when it declares none) instead of being refused, which made coverage PARTIAL. Tests pin npm and pnpm workspaces, Cargo workspaces, Poetry and uv projects in subdirectories, Go multi-module repositories and Maven multi-module builds (`tests/test_monorepos.py`).
+
+### Fixed
+
+- **`packages/` was never searched.** Repository discovery skipped every directory named `packages`, the conventional monorepo directory (npm, pnpm, Yarn and many Python and Go monorepos), so its members' dependency files were never read while coverage could read COMPLETE. It is searched now; only NuGet's restore folder under it (`packages/<Id>.<version>/`) is skipped, and the scope names it `packages-nuget-restore`.
+
+### Upgrade notes
+
+- Dependencies: CI actions bumped (`actions/setup-java` 6.2.0, the CodeQL action group); no runtime dependency changed.
+- **More dependencies from repositories.** A repository with requirements variants now yields their pinned dependencies, so `check --github-repo` may report findings it did not before, and coverage that was PARTIAL only because of those files may now be COMPLETE. A requirements file that includes a file OpenPulse did not inspect now makes coverage PARTIAL where it was COMPLETE.
+- **`openpulse attest` emits evidence contract 2.4.0.** A consumer that accepts exactly 2.3.0 rejects it; validate against `schemas/evidence-contract/v2.4/schema.json`. The only change is `inspection_coverage.scope`.
+- **More of a monorepo is read.** Repositories with members under `packages/` now report those members' dependencies (and possibly new findings), and may move from COMPLETE to PARTIAL where a member uses a format OpenPulse does not read yet (a pnpm or Yarn workspace, `uv.lock`).
+- **Coverage wording.** The coverage line in `digest`, `warnings`, webhook bodies and the SARIF notification now reads `<STATUS> - not inspected: <category> (<n>), ... Details: <reasons>.`; `check` prints `repository inspection coverage: <STATUS> - not inspected: ...`. A consumer that parsed the old `<STATUS> — <reasons>` text should read the SARIF `inspection_coverage` and `inspection_coverage_categories` properties instead.
+
+## 0.17.0 "Gate-to-Install Integrity" — 2026-11-06
+
+Track T Phase 4 (T-E2): what `openpulse gate` passed is what gets installed, or the install is refused. The gate writes a receipt of the bytes it judged; the install step verifies it immediately before installing, including dependency files a build step generated after the gate; and a lockfile hash edited in place fails the gate even under a policy that never mentions `digest_mismatch`. The whole route is tested end to end with a real `pip install --require-hashes`, offline, on Linux and Windows. Still not covered, and documented in the bypass table: an install from a file the gate was not given, a lockfile the install command itself rewrites, a receipt written by hand, and an install step that skips the verification. Receipts are integrity records within one pipeline run, not signatures.
+
+### Added
+
+- **Gate receipts (v0.17.0 item G1).** `openpulse gate --receipt PATH` writes what the gate judged, whatever the outcome:
+  - the SHA-256 of every named file (with its status: gated, unreadable or missing), of the policy and of the private-name list;
+  - the base it compared with, the OpenPulse version, and the decision with its exit code;
+  - every violation and unchecked check, as condition, check, status and dependency label, never a statement.
+
+  Each file is hashed before and after it is read; a file that changed in between fails the gate (exit 2). A receipt is an integrity record within one pipeline run, not a signature. See "Gate receipts" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). Verifying it before install is item G2.
+- **Verify before install (v0.17.0 item G2).** `openpulse gate --verify-receipt RECEIPT FILE...` exits 0 only when every named file was gated by a passing gate and still has the SHA-256 it recorded. A file that changed, was not gated, or comes from a gate that did not pass exits 1; an unreadable receipt exits 2. It takes a receipt or a directory of receipts, repeatable. The GitHub Action's `gate` input writes one receipt per file and names their directory in a new `receipts` output, so the install step can verify first. See "Verify before install" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
+- **Generated dependency files (v0.17.0 item G4).** `--verify-receipt` takes `--require-receipt-for PATTERN` (repeatable): every existing file matching the glob must be covered by a passing receipt, so a lockfile a build step generated or regenerated after the gate cannot reach install unverified. A pattern that matches nothing is noted, not refused. The generate-then-gate-then-verify order is documented under "Generated dependency files" in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md). `openpulse gate` with no file is now a usage error from the gate itself (exit 2, as before).
+- **End-to-end install tests (v0.17.0 item G5).** `tests/test_e2e_install.py` runs the pipeline offline in CI on Linux and Windows: wheels built in the test, a local `--find-links` index, PyPI's digests stubbed, then gate, verify and `pip install --require-hashes`. A clean change installs the published artifact; a lockfile swapped after the gate (G2), a hash edited in place under a policy without `digest_mismatch` (G3) and a lockfile regenerated after the gate (G4) install nothing; and `--require-hashes` refuses an artifact the gated hashes do not name. Both the accepted and the refused installs are asserted.
+- **Docs for the whole route (v0.17.0 item G6).** `docs/TRUST_POLICY.md` shows the generate, gate, verify, install order in CI, with the verification and the install in one command, and its bypass table now says what receipts cannot cover: a receipt written by hand, and an install step that skips the verification. `docs/GITHUB_ACTION.md` lists receipt limits; the README summarises v0.17.0 on `main`.
+
+### Changed
+
+- **`openpulse gate` always checks changed lockfile digests (v0.17.0 item G3, decision 14).** Once a policy exists, the gate enforces `digest_mismatch` for every package, whatever the policy says. A lockfile hash edited in place (same name and version, another artifact) can no longer pass a policy that forgot the rule. A scoped `digest_mismatch` rule is widened to every package in the gate. `check` and `attest` enforce the policy as written.
+
+### Fixed
+
+- **Poetry locks are read as Poetry writes them** (#319, thanks @arin30). Poetry puts `lock-version` under `[metadata]`; both lockfile readers looked for it at the document root, so a normal `poetry.lock` was rejected by `read_lockfile` and `lockfile_digests` returned no hashes. Root-level markers are still accepted.
+- **npm aliases are checked under their registry name** (#320, thanks @arin30). An alias such as `number-alias@npm:is-number@7.0.0` was checked, and its integrity hash filed, under the install name `number-alias`; the lockfile entry's `name` is now used when present, for dependencies and digests alike.
+
+### Docs and research
+
+- The monthly reports published at https://openpulse.ikaruslabs.net/ are linked from the README, `docs/ANALYSTS.md` and `docs/METHODOLOGY.md`.
+- Track T study, Part A, prepared and not yet run: star-history recorders, the organic and young organic sets, thresholds calibrated on organic data only, the pre-registered analysis code and the registration package (`docs/research/TRACK_T_STUDY_PROTOCOL.md`, `docs/research/TRACK_T_REGISTRATION.md`). Author-run with AI assistance; no held-out or labelled data has been read. No product behaviour depends on it.
+
+### Upgrade notes
+
+- **A gate with a policy now asks the registry about changed lockfile entries**, even when the policy does not prohibit `digest_mismatch`. If PyPI or npm cannot be reached, that check is unchecked and fails the gate, as any prohibited check does. Set `unchecked: pass` in the policy to restore passing on unchecked checks. A gate without a policy is unchanged.
+- **`openpulse gate` with no file** is rejected by the gate itself (exit 2, as before), since the file argument is optional with `--verify-receipt`.
+- **The Action's `gate` input writes receipts** into a fresh directory under `RUNNER_TEMP` and sets a new `receipts` output. Nothing else about the step changes; verify them in your install step (see `docs/GITHUB_ACTION.md`).
+- Evidence contract unchanged (2.3.0); verdicts unchanged.
+
+## 0.16.1 — 2026-11-03
+
+A patch for one crash. Nothing else changes; no upgrade notes.
+
+### Fixed
+
+- **`openpulse gate` no longer crashes when a private-name list is in use.** Since v0.15.0 the gate loaded `.openpulse/private-packages.txt` (or `--private-names`) and then passed the loaded names where a file path was expected, so any gate whose policy needs trust checks died with a `TypeError` (exit 1) instead of gating. The GitHub Action passes the base branch's list whenever it has one, so every Action gate in such a repository failed this way. `attest` now also tells the policy which dependencies are private, so they are no longer counted as unchecked. Regression tests in `tests/test_gate_command.py`.
+
+## 0.16.0 "Reputation Evidence" — 2026-11-03
+
+Track T Phase 2 (T-C): three reputation indicators, each measured on a recorded set of real, legitimate packages before it shipped, and each reported on its own, never summed and never a verdict.
+- **`publisher_change`:** a release published by an npm account, or a PyPI provenance publisher, that the earlier releases did not use, or without the trusted publishing or attestations they had.
+- **`repository_moved`:** the claimed repository answers on GitHub under another name (renamed or transferred).
+- **`young_popular_repository`:** a repository younger than 180 days with at least 1000 stars (experimental: too few young repositories to measure a rate).
+- **Where they appear:** the `trust` block, evidence contract 2.3.0 (additive; 2.2 unchanged beside it), the trust policy (scoped to named packages), SARIF and DefectDojo.
+
+The release also closes a security review: the gate fails closed, history committed to the repository is refused, and `--github-repo` no longer reports COMPLETE coverage after skipping files it cannot read. Verdicts and the frozen evaluation are unchanged. **Upgrade notes** below cover the stricter gate, refused tracked state and contract 2.3.0.
+
+### Upgrade notes
+
+- **`openpulse gate` fails closed.** A named file it cannot read exits 2 (it was skipped with exit 0). A check your policy prohibits that could not run (a source down, a spent lookup budget) fails the gate as `PROHIBITED unchecked <condition>`. To keep the old behaviour for unreachable sources, set `unchecked: pass` in `.openpulse/policy.yml`. Nothing changes without a policy except unreadable files.
+- **Tracked local history is refused.** `check`, `digest`, `warnings`, `report`, `observe` and `sweep` exit 2 when git tracks the observation store, the detection ledger or the webhook delivery state. Untrack the file, or point `--store`, `--ledger` or `--delivery-state` outside the repository.
+- **`openpulse attest` emits evidence contract 2.3.0.** A consumer that accepts exactly 2.2.0 rejects it; validate against `schemas/evidence-contract/v2.3/schema.json`. Documents without the three new check names are otherwise identical to 2.2.
+- **`--github-repo` may now read PARTIAL where it read COMPLETE.** Dependency files OpenPulse cannot read (`yarn.lock`, `uv.lock`, `requirements-dev.txt`, ...) are listed as not inspected. `check --fail-on-partial` therefore fails on such a repository; `--fail-on` and `--strict` still fail only on FAILED coverage.
+
+### Added
+
+- **The organic reputation set, measured first (track T Phase 2, T-C; v0.16.0 item Q1).** The reputation indicators (publisher change, moved repository, young repository claiming popularity) are measured on real, legitimate packages before they ship.
+  - **Recorder:** `benchmarks/record_reputation.py` records 60 npm packages (a fixed-stride sample of the pinned high-impact list) and 80 PyPI packages (the curated catalog and OpenPulse's own locked dependencies), each with its latest 10 releases and its GitHub repository, into `benchmarks/fixtures/reputation/organic-<date>.json`.
+  - **What is stored:** who published each release (npm accounts only as hashes; the trusted-publishing provider; PyPI's provenance publisher), whether it carries attestations, and the repository's answered name, age, stars and flags. Every upstream string is validated first; no account name or e-mail is stored.
+  - **Baseline:** `benchmarks/trust.py` reports the raw signal rates on the set (see [`docs/research/TRACK_T_MEASUREMENTS.md`](docs/research/TRACK_T_MEASUREMENTS.md)): the upper bounds each indicator rule has to improve on.
+- **`publisher_change`: was this release published by someone the earlier ones were not? (threat T6; v0.16.0 item Q2).** `core/publisher_change.py` compares one release with the releases before it and names each rule that fires, as `SUSPICIOUS_INCONCLUSIVE` (an indicator, never a takeover verdict):
+  - **npm `new_account`:** the publishing account published none of the previous 9 releases, and the release was not published through trusted publishing (which uses one shared service account).
+  - **npm `trusted_publishing_dropped`:** an earlier release used trusted publishing, this one did not.
+  - **PyPI `publisher_changed`:** the provenance names another publisher than the latest earlier attested release's (within 3 releases); the record says which fields changed.
+  - **PyPI `attestations_stopped`:** no provenance, after a release that had it.
+  - **Measured on the organic set:** `new_account` flags 4.6% of legitimate npm releases (projects with several maintainers), `publisher_changed` 0.3% and `attestations_stopped` 0.4% of PyPI releases, `trusted_publishing_dropped` none. Same publisher as before is `VERIFIED_RELATIONSHIP` (continuity, not evidence of a benign release). npm accounts are compared as hashes, never named.
+- **`repository_moved`: does the claimed repository answer under another name? (v0.16.0 item Q3).** `core/repository_moved.py` asks GitHub for the repository a package claims, following one redirect within `api.github.com` only.
+  - **Another name:** `SUSPICIOUS_INCONCLUSIVE`, naming both and whether it was `renamed` (same owner) or `transferred`. **Same name** (case ignored): `VERIFIED_RELATIONSHIP`, meaning only that the claim is current. No claim, or GitHub does not know the repository: `MISSING_EVIDENCE`.
+  - **Measured on the organic set:** 5 of 123 legitimate repositories (4.1%) were moved, all transferred to an organisation, so this is an indicator to scope, not a gate.
+- **`young_popular_repository`: many stars on a young repository? (threat T5; v0.16.0 item Q4).** `core/young_popular_repository.py` reads the creation date and star count of the repository a package claims (the same GitHub request as `repository_moved`).
+  - **Younger than 180 days with at least 1000 stars:** `SUSPICIOUS_INCONCLUSIVE`, with the age, the count and both thresholds. Anything else is `MISSING_EVIDENCE`: stars are inputs, never trust evidence, so no star count verifies anything.
+  - **Experimental:** the organic set holds one repository younger than 180 days, a legitimate project the rule flags (1 of 123, 0.8%). That is too few young repositories to measure a firing rate, so the indicator ships experimental.
+
+- **The reputation indicators in the trust results, evidence contract 2.3.0 and the trust policy (v0.16.0 item Q5).**
+  - **Trust block:** `dependency_status`, `check_dependency_file` and `openpulse trust` report `publisher_change`, `repository_moved` and `young_popular_repository` beside the existing checks, for PyPI and npm packages. A package on the private-name list gets `NOT_PERFORMED` for all three. Each spends one lookup from the session budget; `repository_moved` and `young_popular_repository` share one GitHub request. `attest --trust` allows 7 lookups per dependency (was 4).
+  - **Evidence contract 2.3.0:** additive. `trust_assurance` may name the three new checks; nothing else changes, and the 2.2 schema is published unchanged beside it. `openpulse attest` emits 2.3.0. See [`docs/EVIDENCE_CONTRACT.md`](docs/EVIDENCE_CONTRACT.md).
+  - **Trust policy:** three new conditions, each requiring `packages`: `publisher_change` and `repository_moved` (indicators, with the organic rates measured), and `young_popular_repository` (experimental: a policy that uses it gets a warning). See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
+  - **SARIF and DefectDojo:** the indicators appear as `openpulse/trust/<check>` notes, or errors where the policy prohibits them, like the other trust checks.
+  - **Measurements:** synthetic cases for the three checks (no false positive on the negatives) and the degraded runs (no claim without evidence when sources are down or the budget is spent).
+
+### Fixed
+
+- **`publisher_change` no longer reads npm trusted publishing as continuity (v0.16.0 item Q6).** A release published through trusted publishing carries npm's one shared service account, so matching an earlier trusted release's account was reported `VERIFIED_RELATIONSHIP` even when the trusted-publishing configuration had moved to another repository (npm's metadata names no repository or workflow to compare). Such a release is now `MISSING_EVIDENCE` ("trusted_publishing"). Dropping back from trusted publishing to a token still fires `trusted_publishing_dropped`. New synthetic case rp-3b.
+- **End-to-end echo, degraded-run and adversarial identity tests for the reputation indicators (v0.16.0 item Q6).** `tests/test_reputation_adversarial.py` runs the indicators through the trust block, contract 2.3.0, SARIF, the summary and DefectDojo:
+  - hostile repository names, publisher accounts, provider ids and repository metadata reach no output;
+  - GitHub or registry trouble is `NOT_PERFORMED`, and a prohibited indicator that did not run is reported unchecked;
+  - a claimed GitHub page (`sponsors`, `orgs`, `marketplace`, `*.github.io`, gists) is no repository and GitHub is never asked about it;
+  - a claim of someone else's popular repository verifies only that the claim is current: stars are no indicator, and `repository_linkage` flags the name mismatch;
+  - a transfer to an unrelated owner is an indicator, never a verdict.
+- **`--github-repo` no longer drops dependency files it cannot read (track T Phase 12, S1).** Discovery recognised exact file names only, so a repository whose dependencies live in `yarn.lock`, `pnpm-lock.yaml`, `uv.lock`, `Pipfile`, `Pipfile.lock`, `bun.lock`/`bun.lockb`, `gradle.lockfile`, `environment.yml`, `setup.py`, `setup.cfg`, a requirements variant (`requirements-dev.txt`, `requirements/*.txt`, `constraints*.txt`) or a `package.json` with no `package-lock.json` beside it was inspected with no skip reason and could read **COMPLETE**. Each such file is now listed as "dependency file not supported; its dependencies were not inspected" and coverage is **PARTIAL**. Nothing new is parsed; files under `node_modules`, `vendor` and hidden directories stay out of scope as before.
+- **`openpulse gate` fails closed (security review P1-1, P1-2).**
+  - **A file it cannot read** (a malformed `package-lock.json`, a broken `pyproject.toml`, any named file that is not a dependency file) now exits 2. It used to be skipped with exit 0, so a file pip or npm would still consume could pass the gate unchecked.
+  - **A prohibited check that did not run** (a source unreachable or rate-limited, a spent lookup budget) now fails the gate as `PROHIBITED unchecked <condition>`. It used to pass, so an OSV outage or a change with many dependencies switched off `confirmed_malicious`. Checks that do not apply (npm has no PyPI provenance, private names skip the public checks) never count. The policy key `unchecked: pass` restores the old behaviour; `check` and `attest` print the count and do not fail on it.
+  - **Entries it does not check are listed:** lines that are not exactly pinned packages (`flask>=2`, a requirements file of bare names) are printed as not checked instead of being skipped silently.
+- **Local history committed to the repository is refused (security review P1-3).** `check`, `digest`, `warnings`, `report`, `observe` and `sweep` exit 2 when git tracks the observation store, the detection ledger or the webhook delivery state: state from the repository could move lead-time claims or mark alerts as already delivered. Untrack it, or point `--store`, `--ledger` or `--delivery-state` elsewhere.
+- **`SECURITY.md` and the roadmap describe the current product (security review P1-4).** `SECURITY.md` no longer says there are no package-trust checks or that 0.11.x is the supported release; the track T roadmap section is marked active with what each release implemented.
+- **GitHub pages are no longer read as repositories.** A project URL such as `https://github.com/sponsors/<user>` (a Funding link) was parsed as the repository `sponsors/<user>`; GitHub's reserved paths (`sponsors`, `orgs`, `marketplace` and others) are now rejected. This affects `repository_linkage`, which could look up such a page as the claimed repository, and the reputation recorder, which now ranks claims like the checks do.
+
+## 0.15.0 "Pre-Install Gates" — 2026-11-02
+
+Track T Phase 4 (T-E2): the v0.14 trust policy now also applies where dependencies enter, before anything is installed. The same policy that fails CI fails a commit and a pre-install CI step, with no model involved.
+- **`openpulse gate`:** applies the policy to dependency files alone, comparing with a git ref so only what changed is trust-checked.
+- **Pre-commit hook:** `openpulse-gate` checks the dependencies a commit adds or changes.
+- **The Action's `gate` input:** runs before `pip install` or `npm ci`, with the base branch's files and policy, on a shallow checkout.
+- **Bypass routes:** `--no-verify` is caught by the CI gate. A lockfile regenerated after the gate, an ungated file, and file names outside the hook's pattern are documented limits, each with a workaround.
+
+Nothing new blocks without a policy, and verdicts, the evidence contract and the frozen evaluation are unchanged. No upgrade notes.
+
+### Added
+
+- **`openpulse gate`: the trust policy before install (track T, T-E2, v0.15.0 item Z1).** `openpulse gate FILE... [--base-ref REF | --base FILE...] [--policy PATH]` applies the trust policy to dependency files alone, with no events needed. It is for a CI step before `pip install` or `npm ci` (`--base-ref origin/main`), and for a pre-commit hook (`--base-ref HEAD`). See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Before install".
+  - **Comparison:** with `--base-ref`, each file's copy at that ref is read with `git show`, and trust checks run only for added or changed dependencies. A file new since the ref counts as added.
+  - **The same evaluation as `check` and `attest`:** the blocklist covers every dependency, lockfile hashes edited in place are caught, and `NOT_PERFORMED` never blocks.
+  - **Exit codes:** 0 pass, 1 violation, 2 usage error. Without a policy it passes and says so. Deleted and non-dependency files are skipped.
+- **Pre-commit hook `openpulse-gate` (v0.15.0 item Z2).** `.pre-commit-hooks.yaml` runs `openpulse gate --base-ref HEAD` on staged dependency files (`requirements*.txt`, `pyproject.toml`, `poetry.lock`, `package-lock.json`, `Cargo.toml`, `Cargo.lock`, `go.mod`, `pom.xml`), so a commit is checked only for the dependencies it adds or changes. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Pre-commit hook".
+  - **First commit:** `openpulse gate --base-ref HEAD` in a repository with no commits treats every file as new instead of failing. Any other unknown ref is still a usage error.
+- **The Action's `gate` input: the trust policy before install (v0.15.0 item Z3).** With `gate: <dependency files>`, the Action runs only `openpulse gate` (no events, contracts or SARIF), so it can sit before `pip install` or `npm ci`. See [`docs/GITHUB_ACTION.md`](docs/GITHUB_ACTION.md), "Before install".
+  - **Pull requests:** base copies come through the contents API (a shallow checkout is enough), and only added or changed dependencies are trust-checked. An unreadable base copy means that file is checked in full.
+  - **Settings:** the policy and the private-name list come from the base branch when it has them, so a pull request cannot weaken or delete its own gate.
+  - **Dogfood:** CI runs the gate input on every push, once passing and once blocked by the blocklist.
+  - **CLI without the Action:** `docs/TRUST_POLICY.md`, "In CI, before install".
+- **Pre-install bypass routes pinned by tests (v0.15.0 item Z4).** `tests/test_gate_bypass.py` now also covers the routes around the hook and the CI gate:
+  - **Covered:** `git commit --no-verify` is caught by the CI gate, which compares with the base branch.
+  - **Documented limits:** dependency files outside the hook's name pattern, a lockfile regenerated after the gate, and an install from a file the gate was not given.
+  - Each is listed with what to do instead in [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md), "Bypass routes".
+
+### Changed
+
+- **`openpulse gate`: a missing or invalid policy file is a usage error (exit 2),** not a violation (exit 1).
+
+## 0.14.0 "Enforced Trust" — 2026-11-02
+
+Track T Phase 4 (T-E1): trust conditions you prohibit now fail CI deterministically, with no model involved, because advisory answers to an agent are not a security boundary.
+- **Trust policy:** `.openpulse/policy.yml` prohibits trust conditions, read by `check`, `attest` and the GitHub Action. It is backed by measured false-positive rates: lookalike names fire on 18.8% of real popular npm names, so indicators must name the packages they apply to.
+- **The Action on pull requests:** it checks trust for the dependencies a pull request adds or changes, and uses the base branch's policy so a pull request cannot weaken its own gate.
+- **Exports:** trust results appear in SARIF, the job summary and DefectDojo, with levels set by your policy, never by a risk score.
+- **Bypass tests:** they found and closed two pull-request bypasses, and document the routes the gate cannot cover.
+
+Nothing new blocks without a policy, and verdicts and the frozen evaluation are unchanged. **One upgrade note:** `dependency_status` drops the v0.12 top-level trust fields, which were deprecated in v0.13.0; read `trust.checks`.
+
+### Upgrade notes
+
+- **`dependency_status` no longer repeats `registry_existence`, `provenance` and `lookalike` at the top level (v0.14.0 item Y6).** They were deprecated in v0.13.0. Read them from `trust.checks`, where they have been since v0.13.0 with the same values. The `deprecated` field is gone too. Nothing else in the answer changes, and verdicts are unchanged.
+
+### Security
+
+- **A lockfile hash edited in place no longer passes the pull-request gate (v0.14.0 item Y5).** With `--base-lockfile` (the Action's `trust: pull-request`), the digest check ran only for entries with a new name or version. A pull request that kept an entry's name and version but changed its hash, swapping the artifact, was never checked. Digests are now checked for every entry whose locked digests differ from the base. Found by the new bypass tests.
+- **A pull request can no longer weaken its own trust gate in the Action (v0.14.0 item Y5).** With `trust: pull-request`, the action used the pull request's own `.openpulse/policy.yml` and `.openpulse/private-packages.txt`, so a pull request could delete its prohibitions or list a malicious name as private. The action now uses the base branch's copies when they exist. A policy the pull request adds is still used, because there was nothing to weaken. If the base copies can't be read, the action warns and uses the pull request's.
+
+### Added
+
+- **Gate bypass tests (track T evaluation category 8, v0.14.0 item Y5).** `tests/test_gate_bypass.py` pins each route around the trust gate. `docs/TRUST_POLICY.md`, "Bypass routes", lists each route as covered or not, with what to do instead.
+  - **Covered:** lockfile-only additions, hashes edited in place, respelled blocklisted names, an agent ignoring the MCP warning, and a pull request weakening its own policy.
+  - **Not covered:** removing the workflow step (use a required status check), unpinned entries, version-pinned blocklist entries, sources that don't answer, installs outside the gated files, and internal names missing from the private-name list.
+
+- **Trust records in SARIF, the job summary and DefectDojo (track T, T-E1, v0.14.0 item Y4).** This answers an open question from the Phase 0 trust design: how T-F1 statuses map onto these outputs without implying a risk score.
+  - **Where they appear:** `attest --sarif` and `--defectdojo` (and the GitHub Action) report trust records from contract 2.2.0 `trust_assurance`, plus trust policy violations, as their own results under `openpulse/trust/<check>`. Each appears once per file, dependency, check and status, with the https references it cites.
+  - **Levels follow your policy, not a score:**
+    - prohibited by your policy (including the blocklist): SARIF `error`, DefectDojo High;
+    - otherwise CONFIRMED_MALICIOUS or VERIFIED_FAILURE: `warning`, Low;
+    - otherwise SUSPICIOUS_INCONCLUSIVE: `note`, Info;
+    - other statuses are omitted unless prohibited.
+
+    No `security-severity` is emitted.
+  - **Job summary:** a separate *Trust checks* table.
+  - **Consistency:** SARIF and DefectDojo share one item list and one identity per record. Verdict results are unchanged (tested).
+
+- **The GitHub Action checks trust on pull requests (track T, T-E1, v0.14.0 item Y3).** New action inputs, both off by default so existing workflows stay offline and unchanged:
+  - **`trust`:** `off`, `pull-request` or `all`. With `pull-request`, the action reads the base branch's copy of `manifest` and `lockfile` through the GitHub contents API with `github-token`. The token is in the environment of that one step only. Trust checks then run only for the dependencies the pull request adds or changes.
+    - **New files:** a file the pull request adds counts entirely as added.
+    - **Unreadable base:** if a base copy can't be read, every dependency is checked; a failure never narrows the checks.
+  - **`policy`:** a trust policy file (default `.openpulse/policy.yml` when present). A violation fails the step even with `fail-on: none`.
+  - **CLI:** `openpulse attest --base-manifest PATH --base-lockfile PATH` does the same from the command line. Trust checks and the policy's trust conditions apply to added or changed dependencies, and the blocklist to all of them.
+  - **CI:** the action job now dogfoods a blocklist policy that must fail the step.
+
+- **Trust policy: prohibited conditions fail the run (track T, T-E1, v0.14.0 item Y2).** `.openpulse/policy.yml` (or `--policy PATH`) is read by `openpulse check` and `openpulse attest` and evaluated without any model. See [`docs/TRUST_POLICY.md`](docs/TRUST_POLICY.md).
+  - **`prohibit`:** for any package, `confirmed_malicious`, `not_found_in_registry`, `digest_mismatch`, `provenance_failure` and `repository_mismatch`. For named packages only, `missing_provenance`, `lookalike_name`, `public_private_name` and `unconfirmed_repository`. A policy that names an indicator without packages is refused, because the Y1 measurements show lookalike fires on 18.8% of real popular npm names. Conditions with no organic false-positive set warn that they are experimental.
+  - **`blocklist`:** `ECOSYSTEM:NAME[==VERSION]` patterns; no lookups needed.
+  - **What never blocks:** silence. `NOT_PERFORMED` and `MISSING_EVIDENCE` never fail a run unless a scoped condition says so.
+  - **When it fails:** a violation exits 1 after every output is written, alongside `--fail-on`. With no policy, gates are unchanged.
+
+- **Track T measurements (v0.14.0 item Y1).** `python benchmarks/trust.py` measures every trust check offline and writes `benchmarks/results/trust.json` and `docs/research/TRACK_T_MEASUREMENTS.md`. The owner accepted these measurements as the false-positive prerequisite for policy gates (T-E1, decision 11). They are not the registered study.
+  - **Synthetic cases:** 33 cases with 37 labelled expectations, from the roadmap's evaluation plan (existence, lookalike, dependency confusion, provenance and repository linkage, digest integrity, known-malicious records). They run against a stub world in the reserved `opfx-` namespace. Every case gets its expected status, with no false positives on the synthetic negatives; that shows the checks do what they claim, not how often real attacks are caught.
+  - **Degraded sources:** with every source unreachable, or the budget spent, no live check claims anything (0 of 284 records).
+  - **Untrusted text:** hostile names are refused before any request and never echoed. An instruction in an OSV summary never reaches a record.
+  - **Organic control (the informative number):** leave-one-out lookalike over 1000 real popular npm names. 18.8% look like another popular name; 9.7% without the `scope` rule, which fires on legitimate `@types/<name>`-style packages. So lookalike stays an indicator: a policy should prohibit it only for a named scope.
+  - **Labels per policy condition:** each condition a policy can prohibit is labelled *measured*, *measured; indicator* or *experimental* (no organic set yet: dependency confusion, unconfirmed repository linkage).
+  - Tests run a quick sample and check that the committed report matches the committed results.
+
+## 0.13.0 "Agent Trust Evidence" — 2026-11-02
+
+Track T Phase 3: trust evidence reaches agents in one place and goes into the evidence contract, with three new checks that each hold or fail against a cited source.
+- **Known-malicious packages:** OSV `MAL-` records for any PyPI or npm name are the first `CONFIRMED_MALICIOUS` answers, always with the record cited.
+- **Dependency confusion:** checked against your own private-name list.
+- **Starjacking:** repository linkage checks whether a package is really from the repository it claims.
+- **One `trust` block** in `dependency_status`, with the agent's stated reasons (`intent`, `name_source`) recorded but never used.
+- **Evidence contract 2.2.0:** `openpulse attest --trust` records the trust checks in `trust_assurance`.
+- **Opt-in local recording** of agent questions and answers (`openpulse mcp --record`), for research on how agents choose dependencies.
+
+Verdicts and the frozen evaluation are unchanged. **Two upgrade notes:**
+- `attest` now emits contract 2.2.0;
+- agents should read trust results from `dependency_status`'s `trust.checks`. The v0.12 top-level copies stay until v0.14.0.
+
+### Upgrade notes
+
+- **`openpulse attest` emits evidence contract 2.2.0 (v0.13.0 item X5).** It is 2.1 plus one required field, `trust_assurance`, which is null unless you pass `--trust`. Validate against `schemas/evidence-contract/v2.2/schema.json`; a 2.1 validator rejects the new field. The hash rule is unchanged. The 2.1 schema stays published byte-for-byte.
+- **`dependency_status` gathers its trust checks into one `trust` block (v0.13.0 item X4).** Read them from `trust.checks`. The v0.12.0 top-level fields `registry_existence`, `provenance` and `lookalike` are still there with the same values, listed under `deprecated`, and are removed in v0.14.0. The checks added in v0.13.0 (`malicious`, `dependency_confusion`, `repository_linkage`) are only in `trust.checks`. File checks keep their own `trust` block unchanged. Verdicts are unchanged.
+
+### Added
+
+- **Opt-in local recording of agent questions and answers (M8, v0.13.0 item X6).** `openpulse mcp --record DIR` appends one JSON line per tool call to `DIR/mcp-<session>.jsonl`. Each line holds the tool, its arguments, the outcome and a research summary: verdict, trust statuses, and the agent's `intent` and `name_source`. The full answer is included unless it is over 256 KB. It is off by default and local only: nothing is sent anywhere. Recording never changes an answer, a write failure stops recording without failing a tool, and on POSIX the files are owner-only. This is the data source for the track T research questions on how agents choose dependencies (RQ1, RQ4).
+- **Evidence contract 2.2.0 with `trust_assurance` (track T, T-F2, v0.13.0 item X5).** `openpulse attest --trust` checks each PyPI and npm dependency once per run and records it in every contract for that dependency:
+  - **The checks:** malicious records, registry existence, provenance, repository linkage, dependency confusion and lookalike.
+  - **Record shape:** each record is fixed: check, T-F1 status, a fixed statement, `checked_at` and the https URIs it cites. A summary counts every status, and `used_in_verdict` is always `false`. Free-form evidence stays out, so the public shape is stable.
+  - **Hash:** the JCS content hash covers the block, so `verify.mjs` checks it with no change.
+  - **Budget:** at most 4 lookups per dependency and 2000 per run. `--private-names` names the private-name list (default `.openpulse/private-packages.txt` when present).
+  - **Never part of a verdict:** assessments are identical with and without `--trust` (tested).
+  - **Schema:** `schemas/evidence-contract/v2.2/` is derived from 2.1, which stays untouched, and its bytes are now pinned by a test.
+
+- **One trust block, and the agent's reasons (track T, T-D, v0.13.0 item X4).** `dependency_status` answers carry `trust`:
+  - `checks`: every trust record (`malicious`, `registry_existence`, `provenance`, `repository_linkage`, `dependency_confusion`, `lookalike`);
+  - `summary`: counts per status;
+  - `attention`: each `CONFIRMED_MALICIOUS`, `VERIFIED_FAILURE` or `SUSPICIOUS_INCONCLUSIVE` record, with its check and statement;
+  - `time_frame`: the records are live lookups at their `checked_at`, and in replay mode it says they are not as of the replay date.
+  - **`selection_context`:** agents may say why they ask. `intent` is a short sentence, stripped of control, bidi and zero-width characters and capped at 280 characters. `name_source` is one of `user_request`, `existing_code`, `documentation`, `search_result`, `model_suggestion` or `other`; any other value is recorded as `unrecognized`, not echoed. Both are recorded as `supplied_by: agent`, `used_in_status: false`, and never change a status or verdict (tested). This is the input for the M8 research questions on how agents choose dependencies.
+
+- **Repository linkage in `dependency_status` `trust.checks` (track T, T-A4, v0.13.0 item X3).** Registry metadata can claim any repository: npm `repository`, PyPI `project_urls`. A package that claims a popular one borrows its stars ("starjacking", threat T4). The new `repository_linkage` record checks whether the claim holds in either direction:
+  - **Verified PyPI provenance settles it**, without reading GitHub. If it names the claimed repository as publisher, the result is `VERIFIED_RELATIONSHIP`. If it names a different one, the result is `VERIFIED_FAILURE`: the artifact was not built from the repository it claims.
+  - **Otherwise the claimed repository's manifest is read** at its default branch (`package.json`, following npm's `repository.directory`, or `pyproject.toml` then `setup.cfg`). If it names the package back, the result is `VERIFIED_RELATIONSHIP`. If it names a different package, the result is `SUSPICIOUS_INCONCLUSIVE`, an indicator only, since monorepos and renames do this too.
+  - **`MISSING_EVIDENCE`:** no GitHub repository is claimed, or the repository has no readable manifest. **`NOT_PERFORMED`:** registry or GitHub trouble, offline, a spent budget, or a package on the private-name list.
+  - **Bounds and parsing:** one budgeted lookup per package, cached per session. Manifests are parsed and never executed (`setup.py` is never read), and capped at 1 MB. Repository names, directories and the manifest's name are validated before they appear. GitHub repositories only.
+  - **Trust block:** file checks run it for every non-private package in `trust`. Never part of a verdict (tested).
+
+- **Dependency confusion against your private-name list (track T, T-A3, v0.13.0 item X2).** List your internal package names in `.openpulse/private-packages.txt`, one `ecosystem:name` per line (`PyPI:acme-billing`, `npm:@acme/ui-kit`). OpenPulse asks the public registry about those names, and only those.
+  - **`SUSPICIOUS_INCONCLUSIVE`:** a public package has the name. If you did not publish it, an installer that also consults the public registry may resolve it instead of yours.
+  - **`MISSING_EVIDENCE`:** no public package has the name. It is unclaimed, which also means anyone can still register it.
+  - **`NOT_PERFORMED`:** the registry gave no usable answer, offline, budget spent, or the package is not on the list (or there is no list).
+  - **MCP:** `dependency_status` gains a `dependency_confusion` record in `trust.checks`, and the server reads the list from its project root on every call. A listed package skips the public-registry `registry_existence` and `provenance` checks, which describe someone else's package, so a private dependency no longer reads as a hallucinated name. `malicious` and `lookalike` still run.
+  - **Trust block:** `check_dependency_file` runs it for listed packages in `trust`.
+  - **CLI:** `openpulse confusion [LIST]` checks every listed name, and `openpulse trust --private-names LIST` uses a list (the default file when present). Both are report-only.
+  - **Validation:** names are validated against the registry grammars, PyPI spellings are normalized (PEP 503), and a bad line is skipped by line number without echoing its text. The list is capped at 500 names and 256 KB. Never part of a verdict (tested).
+
+- **Known-malicious records in `dependency_status` `trust.checks` (v0.13.0 item X1).** For any PyPI or npm package, catalogued or not, the new `malicious` record asks OSV whether it publishes a malicious-package record (`MAL-`, the OpenSSF malicious-packages feed) for that package and version.
+  - **`CONFIRMED_MALICIOUS`** cites each record by id and osv.dev URL (10 at most, with a total). This is the first check that can return this status, and only from a cited record, never from OpenPulse's own indicators. A record listed only under an alias counts; a withdrawn record does not.
+  - **`MISSING_EVIDENCE`:** no such record. The feed covers reported packages only, so this is not evidence of safety. There is no "verified" outcome.
+  - **`NOT_PERFORMED`:** OSV gave no usable answer, paged its answer without a record on the first page, offline, or a spent budget.
+  - **Trust checks:** `check_dependency_file` runs it too, on added dependencies or with `trust_all`, and lists a hit under `trust.attention`. So does `openpulse trust`.
+  - **Bounds:** one budgeted lookup per package, cached per session (failures never cached), and a capped response. Record ids are validated before they appear, and no advisory text is echoed. Never part of a verdict (tested).
+
+ — 2026-11-02
+
+Track T Phase 1: for PyPI and npm, MCP answers now carry checks on whether a dependency can be trusted, so an AI coding agent sees them before it adds or changes one.
+- **Registry digests:** locked digests are compared with what the registry publishes.
+- **PyPI provenance:** attestations are verified with the new optional `[provenance]` extra.
+- **Lookalike names:** names that resemble popular packages are flagged as indicators.
+- **Added dependencies:** a file check against an earlier copy checks only what was added or changed, and `openpulse trust` does the same from the CLI.
+- **Untrusted text:** text from files and upstreams never reaches an agent unvalidated.
+
+Every check uses the closed T-F1 status vocabulary and is never part of a verdict. Verdicts, contracts and the frozen evaluation are unchanged. No upgrade steps are needed. The new `trust`, `provenance`, `lookalike` and `digest_integrity` fields are additive.
+
+### Added
+
+- **Trust checks on added dependencies (track T, v0.12.0 item U5).** `check_dependency_file` takes an earlier copy of the file as `base_path`; the PyPI and npm dependencies added or changed since then get registry existence, provenance (PyPI) and lookalike indicators in a new `trust` block. It holds counts per check and status, and lists every `CONFIRMED_MALICIOUS`, `VERIFIED_FAILURE` or `SUSPICIOUS_INCONCLUSIVE` record under `attention`.
+  - `trust_all` checks every dependency instead. With neither, `trust` is null and nothing extra is fetched.
+  - **Budget:** trust checks run before the file-wide lookups, so the additions get the session budget first. The live checks are capped at 40 packages per file (the W4 bound), and the rest are counted as capped. Lookalike is local data, so every package gets it.
+  - **MCP:** `base_path` is confined to the project root like `path`.
+  - **CLI:** `openpulse trust FILE [--base EARLIER] [--offline] [--json]` prints the same block. It is report-only and never exits non-zero.
+  - Never part of a verdict (tested). PyPI spelling variants (`Zope_Interface`, `zope.interface`) are the same dependency, not an addition.
+  - **Not yet:** the GitHub Action on pull requests. It needs the base file from git, and gating on trust statuses is T-E1 (track T Phase 4).
+
+- **Lookalike-name indicators in `dependency_status` (track T, T-A2, v0.12.0 item U4).** A PyPI or npm name is compared with the curated catalog and a pinned popular-name list. Every rule that fires is named, with the reference it matched:
+  - `separator`: equal once `-`, `_` and `.` are removed;
+  - `edit_distance`: within 1 edit, or 2 for names of 10+ characters, where a swap counts as one;
+  - `confusable`: equal under the UTS #39 skeleton restricted to ASCII;
+  - `scope`: npm `@x/name` where `name` is a reference.
+  - **Outcomes:** `SUSPICIOUS_INCONCLUSIVE` is an indicator, never a typosquat verdict. A reference name is `VERIFIED_RELATIONSHIP`. Nothing firing is `MISSING_EVIDENCE`, not evidence of authenticity. Local data only: no network, no budget, never part of a verdict.
+  - **Reference data (owner-approved sources),** each built and pinned by the new `scripts/refresh_reference_names.py` and listed in the new `NOTICE`:
+    - `npm-high-impact` 1.13.0 (MIT, 17,335 names), checked against npm's sha512 integrity and read as text, never executed;
+    - the ASCII mappings of UTS #39 `confusables.txt` 18.0.0 (Unicode License v3), pinned by sha256.
+  - **PyPI's popular list:** a dated BigQuery query over the CC BY 4.0 download dataset, printed by the tool for a maintainer with a Google Cloud account to run. Until then, PyPI names are compared with the curated catalog only, and answers show the empty list.
+- **PyPI provenance in `dependency_status` (track T, T-B1, v0.12.0 item U3).** For a PyPI package with a version, the new `provenance` field verifies the release's PEP 740 attestations from PyPI's Integrity API, for up to 4 files (wheels first), each against the file's sha256. Verification uses `pypi-attestations` (Sigstore), never cryptography of our own.
+  - **Repository cross-check:** for curated packages, the attestation's publisher is compared with the catalog's GitHub repository; a different repository is `VERIFIED_FAILURE` (starjacking).
+  - **Other outcomes:** an attestation that doesn't verify is `VERIFIED_FAILURE`. No published provenance is `MISSING_EVIDENCE`, never a failure, because most packages publish none. `VERIFIED_RELATIONSHIP` says where and how the files were built, never that they are benign (Ultralytics' first malicious releases carried valid provenance).
+  - **Untrusted text:** publisher fields and file names are validated before they appear or reach a URL.
+  - **New optional extra `[provenance]`** (owner-approved, Phase 0 decision 5), Python 3.11+: `pypi-attestations` and its ~24 dependencies, hash-locked in the new `requirements-provenance.lock`, which `scripts/compile_locks.py` generates, constrained to the core, mcp and audit-tool pins. Without the extra, the field is `NOT_PERFORMED` with how to enable it. A new CI `provenance` job installs it from the lock, checks drift, audits it and runs its tests.
+  - **Lock checker fixes:** `scripts/check_lock.py` now reads the provenance lock and parses `>=` floors that carry an environment marker.
+  - **Unchanged:** verdicts.
+- **Digest integrity for lockfiles (track T, T-B4, v0.12.0 item U2).** `check_dependency_file` (MCP) compares each digest a `package-lock.json` (`integrity`) or `poetry.lock` (`files[].hash`) pins with what npm (`dist.integrity`, or `dist.shasum` for old sha1 locks) or PyPI (`urls[].digests.sha256`) publishes for that version. A locked digest the registry doesn't publish is `VERIFIED_FAILURE`, listed under `digest_integrity.failures`: the locked artifact is not the one the registry serves (substituted, re-uploaded or tampered).
+  - **Other outcomes:** no usable locked digest is `MISSING_EVIDENCE`, and no usable registry answer is `NOT_PERFORMED`, never a failure.
+  - **Safety:** lockfile digests are validated before use, and names before any URL. Each check spends one lookup from the session budget, under the 40-per-file cap.
+  - **Reader output unchanged:** `core.lockfile_reader.lockfile_digests` reads the digests separately, so the dependency entries the verdict engine, contracts and ledger use are untouched.
+  - **Unchanged:** verdicts. No new dependency; hashing only.
+### Security
+
+- **Reader skip messages never carry file text to an agent (track T, T-F3, v0.12.0 item U1).** `check_dependency_file` (MCP) passed the readers' skip messages through as written. Those messages quote the file's own lines, and the agent writes the files it asks about. A quoted value is now shown only when it has a requirement shape (`requests>=2.31.0`, `junit:junit`, `^4.2`: no whitespace, no Markdown link). Any other value becomes `<not shown>`, and messages are stripped of control, bidi and zero-width characters and capped at 240 characters. The CLI keeps the full messages for humans, stripped of control and bidi characters.
+
+## 0.11.1 — 2026-11-01
+
+A patch release:
+- **Complete monthly reports.** Whole-catalog reports no longer lose NVD advisories to NVD's rate limit. Requests are paced, retried, and can use `NVD_API_KEY`. A source that still fails is named in the report as "unknown, not absent" instead of reading as "nothing found". The November 2026 report run, and the 2026-10-30 early edition before it, each silently lost a different set of projects' advisories.
+- **Five untrusted-text hardening fixes for the MCP tools** (track T, T-F3).
+
+No contract or verdict changes.
+
+### Security
+
+- **Lifecycle cycle strings and engine reasons are checked at the agent boundary (track T, T-F3 fix B, v0.12.0 item U1).** Release-cycle names come from endoflife.date and become event scope versions, which the engine interpolates into `reason` strings returned to MCP agents. A bridged lifecycle event whose scope isn't version-shaped is now withheld from the answer. It is counted under `sources` (`status: withheld`) and in `not_established`, never dropped silently. `verdict.reason` and `causes[].reason` also go through `strip_unsafe`. This is checked in `core/agent_tools` on purpose: `analyzers/lifecycle_events.py` is imported by the frozen evaluation's replay, so the engine, the CLI and the evaluation are unchanged. Every real cycle in the bundled fixtures (24) is version-shaped.
+- **Error text carries no control, bidi or zero-width characters (track T, T-F3 fix C, v0.12.0 item U1).** `collectors.errors.redact`, and with it `safe_message`, every collector error record, the GitHub reader's skip reasons and webhook delivery errors, now turns C0/C1 control characters into a space and removes bidi overrides and isolates, directional marks and zero-width characters (`strip_unsafe`). This error text reaches terminals, webhooks and MCP agents, where those characters could reorder or hide what is shown. Stripping runs before redaction, so a hidden character can't split a secret past it.
+- **Repository metadata is validated field by field (track T, T-F3 fix E, v0.12.0 item U1).** The MCP answer's `repository` block passed GitHub's `full_name`, `url`, `license` and `pushed_at` through as given. Each now must have its shape (the GitHub owner/name grammar, an SPDX-style id, an ISO timestamp) or it is `null`. The URL is built from the validated name, never taken from the API. The GitHub repository grammar also used `re.match` with `$`, which accepted a trailing newline (`"owner
+"`). It now uses `fullmatch`.
+- **Advisory ids are validated before they are listed or put in a URL (track T, T-F3 fix D, v0.12.0 item U1).** The MCP answer's `advisories` listed every advisory id and built `https://osv.dev/vulnerability/<id>` from it. These ids are upstream strings. Only an id with the OSV `<DB>-<ENTRYID>` shape (CVE, GHSA, PYSEC, RUSTSEC, GO, MAL, RHSA…) is now listed, percent-encoded in its URL. Anything else is withheld and counted in the new `ids_withheld` field. The verdict and `affecting_this_version_count` are unchanged.
+- **Agent inputs must be identifiers, and are never echoed (track T, T-F3 fix A, v0.12.0 item U1).** The MCP tools took package names, versions, ecosystems and image refs as free text and repeated them in `dependency`, `verdict.reason` and `causes[].reason`. So an agent, or text injected into it, could make OpenPulse return arbitrary instructions inside fields the agent trusts.
+  - **What's accepted:** these values must now match a general identifier shape (letters, digits and `@ / . _ : + ~ -` for names; similar sets for versions, ecosystems and image refs). Every ecosystem's real names fit, including legacy npm names with capitals.
+  - **Tool arguments:** a failing argument is refused with a reason that doesn't repeat it.
+  - **File entries:** `check_dependency_file` skips a failing entry like an unpinned one ("entry N: package is not an identifier - skipped, value not shown"). The agent writes the files it asks about.
+  - **Unchanged:** every dependency in the bundled fixtures passes the shape.
+
+### Fixed
+
+- **NVD requests stay inside NVD's rate limit, are retried, and can use an API key (`NVD_API_KEY`).** A whole-catalog `openpulse report` makes one NVD request per project, unpaced and keyless. NVD allows 5 requests per 30 s without a key and answers the excess with 403, so each run silently lost a different set of projects' advisories: vitess in November 2026, timescaledb in the early edition.
+  - **Pacing:** requests are now paced process-wide, 6.5 s apart without a key and 0.7 s with one.
+  - **Retry:** a 403, 429 or 503 is retried up to 3 times, honouring `Retry-After` or waiting out NVD's 30 s window.
+  - **Key:** read from `NVD_API_KEY` when none is passed, and never logged.
+  - **Cost:** a keyless whole-catalog report takes about 12 minutes longer; a key (free from NVD) removes most of that.
+- **The monthly report names sources that did not answer, instead of reading them as "nothing found".** The November 2026 run lost vitess's NVD advisories to NVD's rate limit, and the report showed vitess as having no security changes. Each project's failed sources (name, error category and HTTP status, never the error text) are now listed in the executive summary and in "Data gaps and limitations", as "unknown, not absent", and counted in the metadata sidecar under `coverage.source_errors`. A report without failures is unchanged.
+
+## 0.11.0 "Early Warning Operations" — 2026-11-01
+
+Scheduled alerts an operator can leave running, and a first track T check for AI coding agents.
+- **Webhooks:** a scheduled webhook posts each alert once. Failed posts are retried and dead-lettered, not lost, and with a secret every post is signed.
+- **CI:** jobs can gate on upcoming deadlines (`warnings --fail-on`).
+- **MCP:** answers state their lookup limits, and `dependency_status` says whether a PyPI or npm package and version exist.
+
+**This release changes webhook output:** a scheduled `check --webhook` posts only new alerts, so cache `.openpulse/deliveries` in CI. Verdicts, contracts and the frozen evaluation are unchanged. Read the upgrade notes before upgrading scheduled jobs.
+
+### Upgrade notes
+
+- **A scheduled `check --webhook` posts each alert once (#78, v0.11.0 item W1).** It used to post the whole digest on every run. It now posts only alerts not delivered before, and nothing when there are none. An alert is one affected cause of a verdict (dependency, event, relationship, impact and the event's content), or a repository whose inspection was not COMPLETE. State is kept in `.openpulse/deliveries/alerts.json`; in GitHub Actions, carry it in the cache like the ledger (`docs/SCHEDULED_CHECKS.md`). `--delivery-state ''` restores the old behaviour. Terminal output, verdicts and exit codes are unchanged.
+
+### Added
+
+- **Does this package exist? (track T, T-M1).** `dependency_status` (MCP) now reports whether a PyPI or npm package and version exist in their registry (`registry_existence`). The common hallucination shapes are covered: an invented package, and a real package with an invented version.
+  - **Statuses:** records use the closed T-F1 vocabulary. A 404 is `VERIFIED_FAILURE`, an identity fact and never evidence of malice. Anything else (a 5xx, 429, redirect, timeout, offline, a spent budget, an unsupported ecosystem) is `NOT_PERFORMED`, never "absent".
+  - **Untrusted text (T-F3):** names and versions are validated against the ecosystem's grammar before they go into a URL, and refused otherwise. Requests are HEAD only, so no upstream text is read. Statements are fixed templates.
+  - **Limits:** each check spends one lookup from the session budget (W4). It is cached per session, and `NOT_PERFORMED` is never cached.
+  - **Unchanged:** the verdict, the contract and the frozen evaluation. No new dependency.
+- **MCP: stated lookup limits and a cross-session cache (v0.11.0 item W4, C5).**
+  - **Budget:** one server session makes at most 200 live lookups; cached answers are free. Every tool answer carries a `lookups` block (budget, used, remaining, per-source timeout, cache TTL).
+  - **Past the budget:** no lookup is made. The answer lists it under `not_established` with the reason, and `project_lifecycle` returns a tool error that says so.
+  - **Per-file cap:** `check_dependency_file` names the projects its 40-project cap skipped (`live_lookups_capped`). It used to skip them silently.
+  - **Cache:** `project_lifecycle` caches successful lookups on disk across sessions (`OPENPULSE_CACHE_DIR`; empty disables) with the session's one-hour TTL. Failures are never cached, and an answer served from the cache gives its age (`cached_age_seconds`).
+- **Signed webhook payloads (#78, v0.11.0 item W3).** With `OPENPULSE_WEBHOOK_SECRET` or `--webhook-secret-file` (at least 32 characters), every `check --webhook` post carries `X-OpenPulse-Timestamp` and `X-OpenPulse-Signature: v1=<hex>`, an HMAC-SHA256 over `"<timestamp>." + body` on the exact bytes sent. `core/webhook_signing.verify_webhook_signature` (stdlib only) verifies it over the raw body, in constant time, and rejects a timestamp more than 300 seconds off, which bounds replay. The secret is never printed or stored. Without a secret, posts are byte-for-byte unchanged.
+- **`warnings --fail-on {overdue,critical,high,medium,low}` (#78, v0.11.0 item W2).** A CI job can fail on deadlines. The command exits 1 when a warning at or above the severity is in the window; the order is OVERDUE > CRITICAL > HIGH > MEDIUM > LOW, so `critical` includes OVERDUE. As with every gate, it also exits 1 on FAILED repository coverage. The reason goes to stderr, so `--output json` stays parseable. Without the flag, `warnings` only reports, as before.
+- **Persistent alert delivery state (#78, v0.11.0 item W1, C1).** `core/delivery.py` gives each alert a stable ID and records its delivery.
+  - **Retry:** a failed post is retried once in the run, then left `pending`. Later runs retry it after a backoff (5 minutes, doubling, at most 6 hours).
+  - **Dead letter:** after 5 failed runs the alert becomes `dead_letter`. It is kept with its last (redacted) error and never posted again, and the run says so.
+  - **One run at a time:** the state is written atomically under an OS lock held across load, post and save, so two runs at once can't both send. A corrupt state file is moved aside, never overwritten.
+  - **Configuration:** `--delivery-state` / `OPENPULSE_DELIVERY_STATE`.
+
+## 0.10.0 "Verified Releases & Safe Gates" — 2026-11-01
+
+Every release is now built from its tag with hash-locked tools and carries signed build provenance, and no output or CI gate treats an input OpenPulse did not fully read as clean. **This release changes outputs and gates**:
+- `--fail-on` (CLI and Action) now fails on a repository it could not read.
+- `openpulse attest` emits evidence contract 2.1.0, where runs with no repository say `NOT_APPLICABLE` coverage.
+- A token file with two non-empty lines is refused.
+
+Webhooks connect only to the address that passed the SSRF check. Verdicts and the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.
+
+### Upgrade notes
+
+- **`openpulse attest` emits evidence contract 2.1.0, and runs with no repository say `NOT_APPLICABLE` coverage (#109, v0.10.0 item V3).** Contracts from `--watchlist`, `--sbom`, `--spdx`, `--lockfile`, `--manifest` or `--images` runs said `inspection_coverage.status: COMPLETE` although no repository was scanned; they now say `NOT_APPLICABLE`. A consumer validating against the 2.0 schema must switch to `schemas/evidence-contract/v2.1/schema.json`, and one that switches on the status must accept the new value. Runs with `--github-repo` are unchanged. The Action's `inspection-coverage` output can be `NOT_APPLICABLE`, which raises no warning. Hash and every other value are unchanged.
+- **`--github-token-file` accepts exactly one non-empty line, holding a visible-ASCII token (#138, v0.10.0 item V5).** A leading blank line is now skipped instead of rejected. A file with two non-empty lines, which used the first and ignored the rest, is now refused, because it's ambiguous which line is the token. A token with a space, a control character or a non-ASCII character is refused with a clear message, instead of failing later inside the HTTP client. No message contains the token. The read goes through the shared bounded reader (`core.bounded_io`), so its size error now reads "is N bytes (limit 4096)".
+- **`--fail-on` now fails on FAILED repository coverage (#101, v0.10.0 item V2).** `check --fail-on`, `attest --fail-on` and the GitHub Action's `fail-on` exited 0 when a `--github-repo` scan FAILED, so a CI gate could pass on a repository OpenPulse could not read. They now exit 1 (after writing every output, for `attest`), as `--strict` already did, and say why. PARTIAL coverage is unchanged: it fails only `--fail-on-partial`. Without a gating flag, FAILED coverage stays report-only.
+- **Webhook delivery ignores `HTTP(S)_PROXY` (finding M5, v0.10.0 item V4, #242).** A proxy resolves the webhook host itself, which would undo the DNS pinning below, so `--webhook` delivery now connects directly. A host that can only reach the webhook through a proxy can no longer deliver.
+
+### Security
+
+- **DNS-pinned webhook transport (finding M5, v0.10.0 item V4, #242).** The webhook SSRF check resolved the host, then httpx connected by hostname and resolved it again, so a resolver that answered with a public address first and `127.0.0.1` or `169.254.169.254` second (DNS rebinding) steered delivery past the check. The host is now resolved once, every returned address is checked, and the connection goes to a validated IP while TLS SNI, certificate verification and the `Host` header stay on the original hostname (a custom httpcore network backend under httpx's transport; no new dependency). IPv4-mapped (`::ffff:a.b.c.d`), 6to4 (`2002::/16`) and NAT64 (`64:ff9b::/96`, `64:ff9b:1::/48`) addresses are unwrapped first, and a refusal names the embedded IPv4 and its wrapping. The rest of the policy is unchanged: https only unless `--webhook-allow-http`, no redirects, capped response bodies, and no URL path in output.
+
+### Added
+
+- **A warning when the GitHub token file is readable by other users (#139, v0.10.0 item V5).** On POSIX, if the file's mode grants group or other access (`mode & 0o077`), `check`, `digest`, `warnings`, `attest` and `discover` print `warning: GitHub token file <path> is readable by other users; run chmod 600 <path>` to stderr. The run continues; the warning prints the path, never the token. The README example now runs `chmod 600`.
+- **Attested releases (#111, v0.10.0 item V1).** A `v*` tag runs `.github/workflows/release.yml`.
+  - **Build:** `scripts/build_release.py` builds the sdist and wheel from the tagged tree. It uses setuptools' own PEP 517 hooks with the hash-locked setuptools from `.github/ci-tools.lock`, without build isolation, so no build tool is fetched at build time.
+  - **Refused builds:** a tag that differs from the package version, and a locked setuptools below `[build-system].requires`.
+  - **Checks before publishing:** the wheel is smoke-tested in a clean venv from outside the checkout, and the deterministic SBOM is regenerated twice and compared.
+  - **Provenance:** every file gets Sigstore-signed SLSA build provenance (`actions/attest-build-provenance`); verify with `gh attestation verify <file> --repo IkarusAILabs/OpenPulse`.
+  - **On the GitHub release:** the sdist, wheel, `sbom.cdx.json` and `SHA256SUMS`, attached without replacing files that are already there.
+  - **Permissions:** each job gets only what it needs: `id-token` only for the job that signs, `contents: write` only for the job that attaches.
+  - **Not done:** nothing is published to PyPI; that waits on owner decision 7.
+
+### Fixed
+
+- **Digest, warnings and the webhook body now say when a repository was not fully read (#102, v0.10.0 item V3).** With a FAILED or PARTIAL `--github-repo` scan, `openpulse digest` and `openpulse warnings` used to drop the inspection result. Their body read "Nothing upcoming or newly-effective within the warning window", with no hint that the repository was never read, and `check --digest --webhook` posted the same. All three now carry `> ⚠️ Repository inspection coverage: <status> — <reasons>. Results are not a clean bill of health.` in the rendered body (and `coverage_note` in `--output json`), so it reaches the webhook too. Output is unchanged when coverage is COMPLETE or no repository is inspected.
+- **The CI tools lock now satisfies the build floor.** Dependabot raised `[build-system].requires` to `setuptools>=84.2.1`, while `.github/ci-tools.lock` stayed at 84.1.0. The lock now pins 84.2.1, with the hashes PyPI publishes, and a test fails if the two drift apart again.
+
+## 0.9.0 "Anchored Trust" — 2026-11-01
+
+Authority, independence and history integrity now rest on verifiable facts or a secret key, never on strings the caller supplies. With a history key, regular `openpulse anchor` checkpoints kept outside `.openpulse/` and `openpulse verify` in the schedule, local history is **tamper-evident**; without a key it stays corruption-detecting. **This release changes outputs**: without a history key no lead time or sweep first-detection date is published, `openpulse attest` emits evidence contract 2.0.0 with a new content hash, and a chained history with no tip is refused. Verdicts of the frozen evaluation are unchanged. Read the upgrade notes before upgrading CI gates or contract consumers.
+
+### Upgrade notes
+
+- **`openpulse attest` emits evidence contract 2.0.0 (v0.9.0 item B7).** A consumer that validates against the 1.2 schema must switch to `schemas/evidence-contract/v2/schema.json`, because a 2.0 document fails the 1.2 `contract_version` const. A consumer that checks `provenance.content_hash` must recompute it with RFC 8785 (JCS), as `docs/EVIDENCE_CONTRACT.md` describes. Every other value is unchanged. SARIF, DefectDojo and Dependency-Track exports read contract fields and need no change.
+- **Sweeps without a history key no longer publish first-detection dates (completes v0.9.0 item B3c).** `sweep`, `observe` and `report --with-sweep` now give a change a `first_detected_at` only when the repository's observation history verifies under a history key (VALID_KEYED), and never earlier than its adoption. Without a key, distribution findings carry no first detection or lead time, and the monthly report narrates them with "First detected by OpenPulse: Unknown", leaves them out of the lead-time list under "Upcoming Changes", and adds the unkeyed note. Stored records keep their dates; only the published claim is withheld. Change detection, diffs and findings are unchanged.
+- **A chained observation history with no tip pointer is now refused (v0.9.0 item B4).** It was adopted silently, so a truncated history with its `tip.json` deleted went unnoticed. `observe` and `sweep` now report it as ROLLBACK_SUSPECTED and write nothing. A history saved by an OpenPulse old enough to write no tip is refused the same way. Accept it once, after checking it, with `openpulse observe --namespace <ns> --repo <repo> --rebaseline --reason "..."`.
+- **Lead times now come only from keyed history (v0.9.0 item B3c).** `digest`, `warnings`, `report` and `check` publish a first detection and a lead time only from detection-ledger entries that verify under a history key. **Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), no lead time is published**, and the digest, warnings and report say so in a note. Verdicts, deadlines and severities are unchanged. Make a key with `openpulse history-key generate`; the next keyed `check --ledger` run adopts existing entries, and their lead times count from that adoption. The GitHub Action gains its `history-key` input in B3d.
+
+### Added
+
+- **Evidence contract 2.0.0: an RFC 8785 (JCS) content hash (v0.9.0 item B7, finding L8).**
+  - **The hash:** `content_hash` is SHA-256 over the JCS form of the document, without the hash itself, the build time and the signature fields. Any consumer with a JCS library recomputes it without OpenPulse's serializer. The new required `provenance.content_hash_method` is `jcs-sha256`.
+  - **Code:** `core/jcs.py` is an RFC 8785 encoder (stdlib only). It rejects what JCS cannot represent: NaN, infinities, integers beyond 2**53, lone surrogates and non-string keys. `build_contract`, `v2_content_hash`, `verify_content_hash` and `validate_contract` are new; the last two dispatch on `contract_version`.
+  - **Verifier:** `conformance/evidence-contract/verify.mjs` is a standalone Node verifier with no dependencies.
+  - **Unchanged:** the 1.0, 1.1 and 1.2 schemas, and the 1.x builder `build_v1_contract`, which the frozen evaluation uses.
+- **History anchors: `openpulse anchor` and `openpulse verify` (v0.9.0 item B5, finding H2).** They catch deletions that take their own evidence with them, which the store cannot see from inside: a repository's whole history folder (tip included), a ledger entry, the rotation log.
+  - **`openpulse anchor [--out FILE]`** writes a checkpoint with:
+    - each observation history's tip, record count and re-baseline count;
+    - one leaf per ledger entry (`first_seen`, `adopted_at`), plus an RFC 6962 Merkle root over the leaves;
+    - a hash of each rotation-log entry.
+
+    With a history key it is MACed (`key_id`, `mac`). It refuses to write inside `.openpulse/`: keep it in git or as a CI artifact.
+  - **`openpulse verify --anchor FILE`** exits 1 on any violation: an anchored tip no longer in its chain (ROLLBACK), a wiped history (WIPED), a deleted or backdated ledger entry (LEDGER_DELETED, LEDGER_REWRITTEN), a dropped rotation or re-baseline log entry, or an anchor whose MAC fails.
+    - Growth after the anchor is fine.
+    - A re-baseline after the anchor is a notice only when its log entry verifies under the key.
+    - `--require-signed` also refuses an anchor the supplied key did not sign. `--json` prints the result.
+  - **Docs:** `docs/SCHEDULED_CHECKS.md` adds anchoring to the scheduled CI recipe. README, METHODOLOGY and SECURITY now say that local history is tamper-evident with a history key plus anchors kept out of the store, and corruption-detecting without a key.
+- **Rollback and downgrade detection for observation history (v0.9.0 item B4, finding H2).**
+  - **New refusals:** ROLLBACK_SUSPECTED, for a chained history whose tip pointer is missing (before, it was adopted). DOWNGRADE, for an unchained record after chained ones, or an unkeyed record after keyed ones. They join ROLLBACK and BROKEN, and the refusal message says how to re-baseline.
+  - **Explicit re-baseline:** `openpulse observe --rebaseline --reason "..."` (one line, up to 500 characters). A rollback whose remaining chain verifies is accepted at its current tip. A broken or downgraded history, or a tip with no data, is moved to `quarantine-<time>/`, never deleted, and the chain restarts at genesis.
+  - **Logging:** every re-baseline is logged in `rebaselines.json` (time, reason, previous status, accepted tip or quarantine folder), MACed under the history key when one is set. The new record is a baseline: no change claims cross a re-baseline.
+  - **Not covered:** a full wipe of a repository's folder, tip included, still looks like a first run. So does deleting the ledger's `rotations.json`. Detecting those needs an anchor outside the store (B5).
+- **Lead times now come only from keyed history (v0.9.0 item B3c).** `digest`, `warnings`, `report` and `check` publish a first detection and a lead time only from detection-ledger entries that verify under a history key. **Without `OPENPULSE_HISTORY_KEY` (or `--history-key-file`), no lead time is published**, and the digest, warnings and report say so in a note. Verdicts, deadlines and severities are unchanged. Make a key with `openpulse history-key generate`; the next keyed `check --ledger` run adopts existing entries, and their lead times count from that adoption. The GitHub Action is unaffected: it runs `attest`, which neither records nor publishes lead times (corrected in B3d; the B3c note said otherwise). Scheduled CI that runs `check --ledger` needs the key as a secret and a ledger carried between runs: see `docs/SCHEDULED_CHECKS.md`.
+
+### Added
+
+- **Keyed history in scheduled CI, documented (v0.9.0 item B3d).** `docs/SCHEDULED_CHECKS.md` shows how to keep the history key in an Actions secret, carry `.openpulse/` between scheduled runs with `actions/cache`, and rotate the key. B3d was planned as a `history-key` input on the GitHub Action; the Action runs `attest`, which keeps no history, so such an input would do nothing and is not added. It is reconsidered if the Action ever records history.
+- **Keyed adoption of older history (v0.9.0 item B3c, finding H2).** History written before a key existed is adopted, never re-MACed as if it had always been keyed.
+  - **Observations:** unkeyed records followed only by keyed ones now verify VALID_KEYED. The first keyed record's chain hash pins the older records, and `verify_keyed_history` reports its `observed_at` as `adopted_at`. An unkeyed record after a keyed one is still VALID_UNKEYED. A change's `first_detected_at` from a keyed sweep is never earlier than the adoption.
+  - **Ledger:** a keyed write to an unkeyed entry adopts it. It keeps `first_seen` as context, gains `adopted_at` (covered by the MAC), and later keyed writes keep that time. The new `keyed_first_seen(..., keys)` returns the later of `first_seen` and `adopted_at`, and only for a VALID_KEYED entry, with the rotation log applied.
+  - **Readers:** `build_digest`, `build_warnings`, `prepare_report` and `build_report` take `history_keys`. `digest` and `warnings` gain `--history-key-file` and `--history-previous-keys-file`. Without keys they publish no lead time and set `lead_time_note`.
+- **History key rotation (v0.9.0 item B3b, finding H2).** A key can now be retired without losing its history, and a leaked retired key cannot extend it.
+  - Retired keys are verify-only: `OPENPULSE_HISTORY_KEYS_PREVIOUS` (comma- or space-separated) or `--history-previous-keys-file` (one per line, `#` comments) on `observe`, `sweep`, `report` and `check`. They need a current key. New records are always MACed with the current key.
+  - **Observations:** when a history's newest keyed run is under a retired key, the next record is a handover: it carries `previous_key_id` and `handover_mac`, a MAC under the retired key. `verify_keyed_history` now walks keyed runs. A record under the retired key after its handover, a key change without a handover, or a handover that does not follow its key's run is BROKEN. A history keyed with a key that is neither current nor supplied as retired is still refused (`KEY_MISMATCH`).
+  - **Ledger:** an entry under a retired key is verified with it and rewritten under the current key, and the handover is logged once in `rotations.json` at the ledger root, MACed by both keys. `entry_integrity(entry, keys, rotations)` treats an entry under a retired key with a sighting after its rotation as BROKEN. Forged log entries are ignored. Deleting the log cannot be detected locally; B5's external anchors are what detect it (corrected in B4).
+  - Without a key, nothing changes. No golden, fixture or verdict changes.
+- **Keyed history integrity, first slice (v0.9.0 item B3a, finding H2).** Local history used unkeyed SHA-256, so anyone who could write `.openpulse/` could edit a record, recompute its hashes and still verify as VALID.
+  - A history key (`OPENPULSE_HISTORY_KEY`, or `--history-key-file` on `observe`, `sweep`, `report` and `check`) adds an HMAC-SHA256 to every new observation record (`key_id`, `history_mac`, over the chain hash and `first_detected_at`) and every new detection-ledger entry (over its content hash). `openpulse history-key generate` prints a fresh 32-byte key; nothing is written.
+  - New states: VALID_KEYED, VALID_UNKEYED, BROKEN, UNKNOWN (`verify_keyed_history`, `ledger.entry_integrity`). `observe` prints the history's state.
+  - A keyed history is never appended to without its key (`KEY_REQUIRED`, `KEY_MISMATCH`), and a keyed ledger entry is left as it is. Records and entries written before the key stay unkeyed: keyed adoption, with lead times clamped to it, is the next slice (B3c).
+  - A key shorter than 32 bytes, or a key file inside `.openpulse/` or a history store, is refused. The key is never printed or stored in history.
+  - Stdlib only. Without a key, nothing changes. Reports do not yet restrict lead times to keyed history (B3c), and the README keeps calling history corruption-detecting until B3–B5 hold.
+
+### Fixed
+
+- **Two pages on one site no longer count as two independent sources (v0.9.0 item B2, finding M2).** Independence fell back to the source name, so renamed copies, or different declared families on one site, could reach CORROBORATED.
+  - Each source's URL now gives it a family: its registrable domain (`blog.redis.io` and `redis.io` are both `redis.io`), or the host plus owner on shared hosts (`github.com/bitnami`).
+  - Sources are grouped when their URL families, declared families or names match, or one is `derived_from` the other. A declared family can merge sources but never split one site.
+  - No public-suffix dependency: the registrable domain is the last two labels, or three under a short list of two-level suffixes (`co.uk`, `github.io`, …). An unlisted suffix only makes a family wider, which withholds corroboration and never grants it.
+  - The gate's CORROBORATED rule and `assess_confidence` use the new count. No fixture, golden or dependency verdict changes.
+- **A source's `official` authority is derived, not taken on trust (v0.9.0 item B1, finding M1).** Before, any source that said `authority: official` could carry an event to CONFIRMED.
+  - A source now counts as official only when its URL is https and names a location on the event project's allowlist, in the new `data/official_domains.yaml`. An entry is a host, which also covers its subdomains, or a host with a path, such as `github.com/django`. Shared hosts are only listed with a path.
+  - Lookalike hosts (`evil-redis.io`, `redis.io.evil.com`), `http://`, userinfo, other ports and non-ASCII hosts never match. A project with no entry has no official sources.
+  - A source that fails is read as `secondary`. The gate's CONFIRMED rule and its ACTION/CRITICAL provenance rule read the derived value, and a gate failure names each downgraded source. `assess_confidence` (now taking the project slug) and the lifecycle bridge derive CONFIRMED the same way.
+  - The first allowlist covers the six projects with curated official fixtures: bitnami, bitnami-spark, django, itext, react and terraform. All their fixtures still pass the gate. The synthetic `pypi-package-removal` fixture (`leftpad`) no longer passes `validate --strict`, because its only official source is a GitHub user page.
+  - No dependency verdict changes: `check` reads an event file's stated confidence and does not run the gate.
+- **Detection-ledger stamps are bound to the wall clock (clock trust, finding L7, v0.9.0 item B6).** A lead time is only as trustworthy as the first-detection date behind it.
+  - `record_detection` refuses a stamp more than five minutes from UTC wall-clock time, or one that is not an ISO-8601 time, with `ClockSkewError`, and writes nothing. Before, a caller could pass any `detected_at`, including a backdated one or garbage.
+  - An entry's `first_seen` is fixed when the entry is created. A re-detection stamped earlier than that is a sighting the ledger never witnessed, so it no longer moves `first_seen` earlier.
+  - The observation store's fallback stamp is UTC, not naive local time.
+  - `openpulse check --ledger` always stamped the current time, so CLI runs are unaffected. Existing ledger entries are kept as they are; keyed history (B3) is what will tell a legitimate old entry from a rewritten one.
+- **One large dependency file no longer uses up a repository's whole inspection budget (#103, #148, thanks @Tejas5405).** The per-file cap was 50 MB, equal to the 50 MB total budget, so a single 50 MB lockfile left every other manifest in the repository uninspected. The per-file cap is now the smallest of three limits: the parser cap, GitHub's 100 MB blobs-API limit, and half the budget, which is 25 MB today. A larger file is skipped on its own, with a PARTIAL reason, and the rest are still read.
+- **A catalog alias collision now fails loudly instead of resolving to the first entry (#144, #151, thanks @SatriaBagusNurhadianto).** If two entries in `data/canonical_projects.yaml` claim the same alias or Docker image, `catalog_alias_map` raises `CatalogCollisionError`, naming the alias and both slugs.
+  - The resolver no longer turns a broken catalog into an empty one. Before, one bad entry silently made every reference resolve to itself. Now `{}` is used only when the catalog file is missing.
+  - Every CLI command, including `openpulse mcp`, checks the catalog at start-up and exits with a one-line message instead of a traceback.
 
 ### Documentation
 
@@ -148,7 +714,7 @@ OpenPulse reaches the places where dependency decisions are made: AI coding agen
 
 ### Added
 
-- **`python -m cli`** (#146) runs OpenPulse through the interpreter, for MCP clients that can't find the `openpulse` executable. Configure it as `["-I", "-m", "cli", "mcp"]`, or `-P` on Python 3.11+. Without the flag, the working directory is searched first, so a project's own `cli/` package would run instead of OpenPulse: in an untrusted repository, that means its code runs. See [`docs/MCP.md`](docs/MCP.md), which also shows the Windows interpreter path. Help and usage text read `openpulse` either way.
+- **`python -m cli`** (#146, thanks @chiragjangiir) runs OpenPulse through the interpreter, for MCP clients that can't find the `openpulse` executable. Configure it as `["-I", "-m", "cli", "mcp"]`, or `-P` on Python 3.11+. Without the flag, the working directory is searched first, so a project's own `cli/` package would run instead of OpenPulse: in an untrusted repository, that means its code runs. See [`docs/MCP.md`](docs/MCP.md), which also shows the Windows interpreter path. Help and usage text read `openpulse` either way.
 - **`openpulse mcp`: an MCP server for AI coding agents** (optional extra, `pip install "openpulse[mcp]"`). It provides three read-only tools:
   - `dependency_status`: end-of-life/end-of-support status, curated upstream changes and version-specific OSV advisories for one dependency.
   - `check_dependency_file`: the same checks for every pinned entry in a project file.

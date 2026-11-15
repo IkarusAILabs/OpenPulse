@@ -20,7 +20,7 @@ import json
 import os
 import tempfile
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -50,9 +50,57 @@ def _lock_path(directory: Path) -> Path:
 #: Tip pointer: {"tip": <latest chain/content hash>}. Rollback
 #: tripwire — deleting the newest data file without updating the tip
 #: is detected on the next run. The hash chain remains the primary
-#: mechanism; the tip only catches partial wipes. A missing or corrupt
-#: tip is adopted (pre-upgrade histories), never fatal.
+#: mechanism; the tip only catches partial wipes. Since B4 a chained
+#: history with a missing tip is ROLLBACK_SUSPECTED, never adopted
+#: silently: only an explicit, reasoned re-baseline accepts it.
 _TIP_FILENAME = "tip.json"
+
+
+#: Re-baseline log (B4): every explicit, reasoned acceptance of a rolled-back
+#: or broken history. Lives beside the data; never an observation file.
+_REBASELINES_FILENAME = "rebaselines.json"
+
+#: Prefix of the folder a re-baseline moves a broken history into.
+QUARANTINE_PREFIX = "quarantine-"
+
+
+def read_rebaselines(directory: Path) -> list[dict[str, Any]]:
+    """Recorded re-baselines, oldest first (empty when none or unreadable)."""
+    try:
+        data = json.loads((directory / _REBASELINES_FILENAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    entries = data.get("rebaselines") if isinstance(data, dict) else None
+    return [e for e in entries or [] if isinstance(e, dict)]
+
+
+def append_rebaseline(directory: Path, entry: dict[str, Any]) -> None:
+    """Atomically append one re-baseline record. Raises on I/O failure:
+    an unrecorded re-baseline must not proceed."""
+    entries = [*read_rebaselines(directory), entry]
+    payload = json.dumps({"rebaselines": entries}, indent=2, sort_keys=True)
+    fd, tmp = tempfile.mkstemp(dir=str(directory), prefix=".tmp-", suffix=".rebaseline")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        os.replace(tmp, str(directory / _REBASELINES_FILENAME))
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+
+
+def quarantine_history(directory: Path, stamp: str) -> Path:
+    """Move every observation file and the tip into ``quarantine-<stamp>/``.
+
+    Nothing is deleted: the old history stays on disk as evidence.
+    """
+    target = directory / f"{QUARANTINE_PREFIX}{stamp}"
+    target.mkdir(parents=True, exist_ok=False)
+    for path in directory.glob("*.json"):
+        if path.is_file() and path.name != _REBASELINES_FILENAME:
+            os.replace(path, target / path.name)
+    return target
 
 
 def read_tip(directory: Path) -> dict[str, Any] | None:
@@ -83,7 +131,7 @@ def repo_lock(
     registry: str,
     namespace: str,
     repository: str,
-    wait_seconds: float = _LOCK_WAIT_SECONDS,
+    wait_seconds: float | None = None,
 ) -> Iterator[None]:
     """Per-repository exclusive lock across load-diff-save.
 
@@ -97,7 +145,9 @@ def repo_lock(
     directory = repo_dir(root, registry, namespace, repository)
     directory.mkdir(parents=True, exist_ok=True)
     lock = _lock_path(directory)
-    with exclusive_lock(lock, wait_seconds, "observation"):
+    # Read at call time, so the module constant is the one place to tune it.
+    wait = _LOCK_WAIT_SECONDS if wait_seconds is None else wait_seconds
+    with exclusive_lock(lock, wait, "observation"):
         yield
 
 
@@ -108,7 +158,7 @@ def save_observation(obs: dict[str, Any], root: str | Path = ".openpulse/observa
     timestamp never collide: concurrent writers under the repo lock
     still produce distinct, linearly-linked files.
     """
-    observed = obs.get("observed_at") or datetime.now().isoformat()
+    observed = obs.get("observed_at") or datetime.now(timezone.utc).isoformat()
     stamp = str(observed).replace(":", "").replace("-", "").replace("+0000", "Z")
     stamp = "".join(c if c.isalnum() or c in ("T", "Z", ".") else "" for c in stamp)
     digest = str(obs.get("chain_hash") or obs.get("content_hash") or "unhashed")
@@ -137,13 +187,31 @@ def save_observation(obs: dict[str, Any], root: str | Path = ".openpulse/observa
 def list_observations(
     registry: str, namespace: str, repository: str, root: str | Path = ".openpulse/observations"
 ) -> list[Path]:
-    directory = repo_dir(root, registry, namespace, repository)
+    return observation_files(repo_dir(root, registry, namespace, repository))
+
+
+def observation_files(directory: Path) -> list[Path]:
+    """Observation files in one repository folder, in filename order."""
     if not directory.is_dir():
         return []
     return sorted(
         p
         for p in directory.glob("*.json")
-        if p.is_file() and not p.name.startswith(".") and p.name != _TIP_FILENAME
+        if p.is_file()
+        and not p.name.startswith(".")
+        and p.name not in (_TIP_FILENAME, _REBASELINES_FILENAME)
+    )
+
+
+def repo_dirs(root: str | Path) -> list[Path]:
+    """Every repository folder under a store root ({registry}/{namespace}/{repository})."""
+    base = Path(root)
+    if not base.is_dir():
+        return []
+    return sorted(
+        d
+        for d in base.glob("*/*/*")
+        if d.is_dir() and not d.name.startswith(QUARANTINE_PREFIX)
     )
 
 

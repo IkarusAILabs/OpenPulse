@@ -1,0 +1,14 @@
+# OpenPulse pre-commit hook (track T, T-E2, v0.15.0 item Z2).
+#
+# pre-commit passes the staged dependency files and hides unstaged changes,
+# so the working tree is the commit being made; `--base-ref HEAD` then checks
+# only the dependencies that commit adds or changes. Policy and private-name
+# list: .openpulse/policy.yml and .openpulse/private-packages.txt at the
+# repository root (see docs/TRUST_POLICY.md, "Before install").
+- id: openpulse-gate
+  name: OpenPulse trust gate
+  description: Apply the trust policy to added or changed dependencies before they are committed.
+  entry: openpulse gate --base-ref HEAD
+  language: python
+  pass_filenames: true
+  files: (^|/)(requirements[^/]*\.txt|pyproject\.toml|poetry\.lock|package-lock\.json|Cargo\.(toml|lock)|go\.mod|pom\.xml)$

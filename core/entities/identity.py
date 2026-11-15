@@ -40,6 +40,9 @@ UNVERIFIED = "UNVERIFIED"
 
 VALID_STATUSES = (VERIFIED, REVIEW_REQUIRED, UNVERIFIED)
 
+#: Pre-``identity:`` catalog keys, still read for back-compat (D5).
+_LEGACY_KEYS = ("identity_source", "reviewed_at", "maintainer", "confidence")
+
 #: How a self-resolved (unmapped) reference is read. "undetermined" is the
 #: specification (TR-2026-01 D10, D13): it is neither excluded nor
 #: unrelated. "unrelated" reads self-resolution as a different project,
@@ -69,7 +72,11 @@ def identity_block_for_slug(
     """Normalized identity metadata: {status, source, reviewed_at,
     maintainer, confidence, note}. Reads the formal ``identity:`` block
     first, then legacy flat keys (identity_source/reviewed_at/
-    maintainer/confidence). Absent metadata -> {} (caller decides)."""
+    maintainer/confidence). A flat entry is VERIFIED only with
+    ``confidence: high``; medium, low, absent or any other value is
+    REVIEW_REQUIRED, so it caps the verdict like a formal block would
+    (absent metadata means unreviewed, never assume reviewed). Absent
+    metadata -> {} (caller decides)."""
     entry = catalog_entry_for_slug(slug, catalog)
     block = entry.get("identity")
     if isinstance(block, dict):
@@ -82,9 +89,12 @@ def identity_block_for_slug(
             "confidence": block.get("confidence"),
             "note": block.get("note"),
         }
-    if any(k in entry for k in ("identity_source", "reviewed_at", "maintainer", "confidence")):
+    if any(k in entry for k in _LEGACY_KEYS):
+        confidence = str(entry.get("confidence") or "").strip().lower()
         return {
-            "status": VERIFIED,
+            # D5: a flat entry is VERIFIED only when it says so (confidence
+            # high); anything else was never stated as reviewed.
+            "status": VERIFIED if confidence == "high" else REVIEW_REQUIRED,
             "source": entry.get("identity_source"),
             "reviewed_at": entry.get("reviewed_at"),
             "maintainer": entry.get("maintainer"),

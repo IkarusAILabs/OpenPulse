@@ -1,0 +1,11 @@
+{
+ "captured": "2026-11-09",
+ "response": {
+  "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+  "license": "Apache-2.0",
+  "name": "request",
+  "version": "2.88.2"
+ },
+ "source_url": "https://registry.npmjs.org/request/latest",
+ "trimmed": "only the fields the check reads, values verbatim"
+}

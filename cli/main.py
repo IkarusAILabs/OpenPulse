@@ -1,12 +1,14 @@
 """openpulse CLI — validate + pulse + analyze + demo-bitnami."""
 
 import json
+import os
 import sys
 from typing import Any
 
 import click
 
 from analyzers import change_analyst, report_analyst, security_analyst
+from collectors.errors import strip_unsafe
 from core.entities.resolve import resolve_project
 from core.schema.models import OSSEvent
 from core.version import openpulse_version
@@ -15,12 +17,49 @@ from core.version import openpulse_version
 @click.group()
 @click.version_option(version=openpulse_version(), prog_name="openpulse")
 def cli():
-    pass
+    _check_catalog()
+
+
+def _check_catalog() -> None:
+    """Fail every command cleanly on a broken catalog, before any verdict (#144)."""
+    from core.entities.catalog import CatalogCollisionError, catalog_alias_map, load_catalog
+
+    try:
+        catalog_alias_map(load_catalog())
+    except FileNotFoundError:
+        pass  # no catalog: identity resolution falls back to self, as documented
+    except CatalogCollisionError as exc:
+        raise click.ClickException(
+            f"{exc}. Fix data/canonical_projects.yaml so each alias and image names one project."
+        ) from exc
 
 
 MAX_INPUT_BYTES = 1_000_000
 MAX_EVIDENCES = 100
 MAX_ARTIFACTS = 500
+
+
+#: Whether the platform has POSIX permission bits worth checking (#139).
+_POSIX_MODES = os.name != "nt"
+
+
+def _warn_if_token_file_shared(path: str | None, stat=os.stat) -> None:
+    """Warn when other accounts can read or write the token file (#139).
+
+    ssh refuses a private key in that state; OpenPulse warns instead, so
+    existing setups keep working. Only the path is printed, never the token.
+    """
+    if not path or not _POSIX_MODES:
+        return
+    try:
+        mode = stat(path).st_mode
+    except OSError:
+        return  # the read that follows reports it
+    if mode & 0o077:
+        _echo(
+            f"warning: GitHub token file {path} is readable by other users; run chmod 600 {path}",
+            err=True,
+        )
 
 
 def _resolve_github_token(
@@ -42,12 +81,71 @@ def _resolve_github_token(
         )
     if not github_repo:
         return None
+    if not github_token:
+        _warn_if_token_file_shared(github_token_file)
     try:
         return get_github_token(github_token, github_token_file)
     except OSError as exc:
         raise click.ClickException(f"cannot read GitHub token file: {exc.strerror or exc}") from exc
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
+
+
+def _history_key_option(func):
+    """--history-key-file and --history-previous-keys-file (B3, B3b)."""
+    func = click.option(
+        "--history-previous-keys-file",
+        default=None,
+        type=click.Path(dir_okay=False),
+        help=(
+            "File of retired history keys, one per line, used only to verify "
+            "and hand over (else OPENPULSE_HISTORY_KEYS_PREVIOUS)"
+        ),
+    )(func)
+    return click.option(
+        "--history-key-file",
+        default=None,
+        type=click.Path(dir_okay=False),
+        help=(
+            "File holding the history key that MACs local history "
+            "(else OPENPULSE_HISTORY_KEY; see: openpulse history-key generate)"
+        ),
+    )(func)
+
+
+def _load_history_key(key_file: str | None, previous_file: str | None, *store_roots: str):
+    """(current key or None, retired keys). Never echoes key material."""
+    from core.history_key import (
+        HistoryKeyError,
+        key_file_warning,
+        load_history_key,
+        load_previous_keys,
+    )
+
+    roots = tuple(r for r in store_roots if r)
+    try:
+        key = load_history_key(key_file, roots)
+        previous = load_previous_keys(previous_file, roots, current=key)
+    except OSError as exc:
+        raise click.ClickException(f"cannot read history key file: {exc.strerror or exc}") from exc
+    except HistoryKeyError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if previous and key is None:
+        raise click.ClickException(
+            "previous history keys need a current key (OPENPULSE_HISTORY_KEY or "
+            "--history-key-file): retired keys only verify and hand over"
+        )
+    for path in (key_file, previous_file):
+        if path and (warning := key_file_warning(path)):
+            _echo(warning, err=True)
+    return key, previous
+
+
+def _history_keyring(key_file: str | None, previous_file: str | None, *store_roots: str):
+    """key_id -> HistoryKey (current and retired) for reading keyed history."""
+    from core.history_key import keyring
+
+    return keyring(*_load_history_key(key_file, previous_file, *(r for r in store_roots if r)))
 
 
 def _sarif_uri(path: str) -> str:
@@ -242,7 +340,15 @@ def analyze(project, raw_bundle, project_version):
     is_flag=True,
     help="No network: answer from the bundled curated events only",
 )
-def mcp_command(root, offline):
+@click.option(
+    "--record",
+    "record",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Opt-in: append each question and answer as JSON lines to a file in this "
+    "local directory (research on how agents use dependency evidence); never sent anywhere",
+)
+def mcp_command(root, offline, record):
     """MCP server (stdio) for AI coding agents: dependency evidence as tools.
 
     Needs the optional `mcp` extra (see docs/MCP.md).
@@ -257,7 +363,911 @@ def mcp_command(root, offline):
         ) from None
     from cli.mcp_server import run
 
-    run(root=root, live=not offline)
+    if record:
+        _echo(f"openpulse mcp: recording questions and answers under {record}", err=True)
+    run(root=root, live=not offline, record=record)
+
+
+#: Live lookups per dependency for `attest --trust` (malicious, existence,
+#: provenance, linkage, and the three reputation indicators of v0.16.0), and
+#: the most one run may make.
+_ATTEST_TRUST_LOOKUPS_PER_DEP = 7
+_ATTEST_TRUST_MAX_LOOKUPS = 2000
+
+
+def _attest_trust(deps, private_names, base_keys=None):
+    """{dependency index: 2.3 trust_assurance block}; each dependency checked once.
+
+    With ``base_keys`` (the dependencies of the base files), only dependencies
+    added or changed since the base are checked; the others get no block.
+    """
+    from core import agent_tools
+    from core.evidence_contract import trust_assurance_block
+
+    names = _private_name_list(private_names)
+    eligible = [
+        (i, dep, agent_tools._dependency_key(dep))
+        for i, dep in enumerate(deps)
+        if agent_tools._refused_entry(dep) is None
+    ]
+    if base_keys is not None:
+        before = len({key for _, _, key in eligible})
+        eligible = [e for e in eligible if e[2] not in base_keys]
+        _echo(
+            f"trust: {len({key for _, _, key in eligible})} of {before} dependencies are "
+            "added or changed since the base",
+            err=True,
+        )
+    unique = {key for _, _, key in eligible}
+    lookups = agent_tools.Lookups(
+        cache_dir=agent_tools.default_cache_dir(),
+        budget=min(_ATTEST_TRUST_MAX_LOOKUPS, _ATTEST_TRUST_LOOKUPS_PER_DEP * len(unique) + 10),
+    )
+    blocks: dict[Any, Any] = {}
+    out: dict[int, Any] = {}
+    for index, dep, key in eligible:
+        if key not in blocks:
+            blocks[key] = trust_assurance_block(agent_tools.trust_checks(dep, lookups, names))
+        out[index] = blocks[key]
+    _echo(
+        f"trust: {len(blocks)} dependencies checked, {lookups.used} of {lookups.budget} "
+        "lookups used",
+        err=True,
+    )
+    return out
+
+
+#: Registry change reads (v0.21.0 W1): a deprecation and a release-license
+#: record per dependency, under one budget for the run.
+_REGISTRY_CHANGES_LOOKUPS_PER_DEP = 2
+_REGISTRY_CHANGES_MAX_LOOKUPS = 2000
+#: Dependencies named one by one when they could not be read; the rest are counted.
+_REGISTRY_CHANGES_NAMED = 20
+
+
+def _registry_changes_option(func):
+    """--registry-changes: the v0.20.0 registry checks for each dependency's own release."""
+    return click.option(
+        "--registry-changes",
+        "registry_changes",
+        is_flag=True,
+        help="Also read npm and PyPI for each package's own release (live lookups): the "
+        "publisher's deprecation or yank, an Inactive project, and license changes in later "
+        "releases. Each is a REVIEW finding, so it fails a run only under --fail-on review "
+        "or --fail-on affected",
+    )(func)
+
+
+def _echo_new(report, err=False) -> None:
+    """What this run recorded for the first time (W4); nothing when no fact is tracked."""
+    if report is None or not report["facts"]:
+        return
+    if report["baseline"]:
+        _echo(
+            f"first run with this ledger: {report['new_facts']} detection(s) recorded; "
+            "later runs say what is new",
+            err=err,
+        )
+        return
+    if not report["new"]:
+        _echo(
+            f"new since the last run: none ({report['facts']} detection(s) already known)",
+            err=err,
+        )
+        return
+    _echo(
+        f"new since the last run: {report['new_facts']} of {report['facts']} detection(s)",
+        err=err,
+    )
+    for item in report["new"]:
+        _echo(
+            f"  + {strip_unsafe(item['dependency'])}: {strip_unsafe(item['title'])} "
+            f"[{item['impact']}]",
+            err=err,
+        )
+
+
+def _observe_repositories_option(func):
+    """--observe-repositories and its store: the repositories your dependencies name (W3)."""
+    func = click.option(
+        "--observation-store",
+        "observation_store",
+        default=".openpulse/observations",
+        show_default=True,
+        callback=_store_root,
+        help="History root for --observe-repositories (shared with `observe-github`)",
+    )(func)
+    return click.option(
+        "--observe-repositories",
+        "observe_repositories",
+        is_flag=True,
+        help="Also record the GitHub repository each npm and PyPI package names as its "
+        "source in a verifiable history (live lookups), and report a license change, an "
+        "archive or a move to a new owner since the last run as a REVIEW finding. The "
+        "first run is a baseline. Use a history key to prove when a change was first seen",
+    )(func)
+
+
+def _dependency_repository_events(deps, store, key_file, previous_file):
+    """{dependency index: [events]} from observing each dependency's repository (W3).
+
+    What was not observed is said on stderr, never dropped silently.
+    """
+    from core.dependency_repositories import observe_dependency_repositories
+
+    history_key, previous_keys = _load_history_key(key_file, previous_file, store)
+    result = observe_dependency_repositories(
+        deps, store_root=store, history_key=history_key, previous_keys=previous_keys
+    )
+    s = result["summary"]
+    _echo(
+        f"repositories: {s['observed']} of {s['repositories']} observed "
+        f"({s['baselines']} for the first time), {s['changes']} change(s), "
+        f"{s['findings']} finding(s)",
+        err=True,
+    )
+    _echo(
+        f"repositories: {s['packages']} npm and PyPI package(s) read; {s['no_repository']} "
+        f"name no GitHub repository, {s['registry_unanswered']} had no registry answer, "
+        f"{s['unsupported']} dependency(s) of other ecosystems not read",
+        err=True,
+    )
+    if history_key is None:
+        _echo(
+            "repositories: no history key, so the history is not keyed and no "
+            "first-detection time is proven (openpulse history-key generate)",
+            err=True,
+        )
+    for failure in result["failures"]:
+        _echo(f"! repository not observed: {failure['repository']}: {failure['reason']}", err=True)
+    hidden = s["failed"] - len(result["failures"])
+    if hidden > 0:
+        _echo(f"! {hidden} more repository(s) not observed", err=True)
+    if s["not_observed"]:
+        _echo(
+            f"! {s['not_observed']} repository(s) not observed: over the per-run limit",
+            err=True,
+        )
+    return result["events"]
+
+
+def _merge_own_events(*groups):
+    """One {dependency index: [events]} from several."""
+    merged: dict[int, list[Any]] = {}
+    for group in groups:
+        for index, events in group.items():
+            merged.setdefault(index, []).extend(events)
+    return merged
+
+
+def _dependency_registry_events(deps, today=None):
+    """{dependency index: [events]} for the registry changes of each release (W1).
+
+    Each npm and PyPI dependency is read once and gets the events built for it
+    alone. What was not read is said on stderr, never dropped silently: other
+    ecosystems are counted, and a dependency whose registry gave no answer, or
+    that the budget did not reach, is named (the first few) and counted.
+    """
+    from core import agent_tools
+
+    packages = [
+        (i, dep, agent_tools._dependency_key(dep))
+        for i, dep in enumerate(deps)
+        if dep.get("kind") == "package" and agent_tools._refused_entry(dep) is None
+    ]
+    unique = {key for _, _, key in packages}
+    lookups = agent_tools.Lookups(
+        budget=min(
+            _REGISTRY_CHANGES_MAX_LOOKUPS,
+            _REGISTRY_CHANGES_LOOKUPS_PER_DEP * len(unique) + 10,
+        )
+    )
+    answers: dict[Any, Any] = {}
+    out: dict[int, list[Any]] = {}
+    for index, dep, key in packages:
+        if key not in answers:
+            answers[key] = (dep, *agent_tools.registry_change_events(dep, lookups, today))
+        _, events, status = answers[key]
+        if events and status["status"] != "unsupported":
+            out[index] = events
+    read = [a for a in answers.values() if a[2]["status"] != "unsupported"]
+    unread = [a for a in read if a[2]["status"] not in ("ok",)]
+    unsupported = sum(1 for a in answers.values() if a[2]["status"] == "unsupported")
+    found = sum(len(a[1]) for a in read)
+    _echo(
+        f"registry changes: {len(read) - len(unread)} of {len(read)} npm and PyPI "
+        f"dependencies read, {found} change(s) found, {lookups.used} of {lookups.budget} "
+        "lookups used",
+        err=True,
+    )
+    if unsupported:
+        _echo(
+            f"registry changes: {unsupported} dependency(s) of other ecosystems not read "
+            "(npm and PyPI only)",
+            err=True,
+        )
+    for dep, _, status in unread[:_REGISTRY_CHANGES_NAMED]:
+        label = f"{dep['package']}=={dep.get('version') or '?'}"
+        _echo(f"! registry changes not fully read for {label}: {status.get('detail')}", err=True)
+    if len(unread) > _REGISTRY_CHANGES_NAMED:
+        _echo(
+            f"! registry changes not fully read for {len(unread) - _REGISTRY_CHANGES_NAMED} "
+            "more dependency(s)",
+            err=True,
+        )
+    return out
+
+
+def _policy_option(func):
+    """--policy: trust conditions that fail the run (T-E1)."""
+    return click.option(
+        "--policy",
+        "policy_path",
+        type=click.Path(dir_okay=False),
+        default=None,
+        help="Trust policy: prohibited conditions fail the run, with no model involved "
+        "(default: .openpulse/policy.yml if present; see docs/TRUST_POLICY.md)",
+    )(func)
+
+
+def _load_policy(path):
+    """An explicit policy must exist; the default one is used only when present."""
+    from core import trust_policy as _policy
+
+    if path is None:
+        if not _policy.DEFAULT_POLICY.is_file():
+            return None
+        path = str(_policy.DEFAULT_POLICY)
+    elif not os.path.isfile(path):
+        raise click.ClickException(f"{path}: policy file not found")
+    try:
+        loaded = _policy.load(path)
+    except (ValueError, UnicodeDecodeError) as e:
+        raise click.ClickException(str(e)) from e
+    _echo(f"policy: {path}", err=True)
+    for condition in loaded.experimental:
+        _echo(
+            f"policy: {condition} is experimental (no organic false-positive measurement; "
+            "docs/research/TRACK_T_MEASUREMENTS.md)",
+            err=True,
+        )
+    return loaded
+
+
+def _policy_violations(
+    deps,
+    loaded,
+    lockfile=None,
+    blocks=None,
+    base_keys=None,
+    base_lockfile=None,
+    private_names=None,
+    fail_unchecked=False,
+):
+    """Every policy violation across the run's dependencies, deterministically.
+
+    With ``base_keys``, trust conditions apply to added or changed
+    dependencies only; the blocklist always applies to every dependency.
+    With ``base_lockfile``, digests are checked for every lockfile entry
+    whose locked digests differ from the base, including an existing entry
+    whose hash was edited in place (same name and version).
+
+    A prohibited check that applied but did not run (a source down, a spent
+    budget) is unchecked: with ``fail_unchecked`` (``openpulse gate``, unless
+    the policy says ``unchecked: pass``) each one is a violation; otherwise
+    the count is printed.
+    """
+    from core import agent_tools, registry_existence
+    from core import trust_policy as _policy
+
+    if loaded is None:
+        return []
+    if loaded.needs_trust and blocks is None:
+        blocks = _attest_trust(deps, private_names, base_keys)
+    digests: dict[Any, Any] = {}
+    locked: dict[Any, Any] = {}
+    if loaded.needs_digests and lockfile:
+        from core.lockfile_reader import lockfile_digests
+
+        locked = lockfile_digests(lockfile)
+        if base_lockfile:
+            before = lockfile_digests(base_lockfile)
+            locked = {
+                key: value
+                for key, value in locked.items()
+                if _digest_set(before.get(key)) != _digest_set(value)
+            }
+        elif base_keys is not None:
+            locked = {
+                key: value
+                for key, value in locked.items()
+                if agent_tools._dependency_key(
+                    {"kind": "package", "ecosystem": key[0], "package": key[1], "version": key[2]}
+                )
+                not in base_keys
+            }
+        lookups = agent_tools.Lookups(
+            cache_dir=agent_tools.default_cache_dir(),
+            budget=min(_ATTEST_TRUST_MAX_LOOKUPS, len(locked) + 10),
+        )
+        for key, values in locked.items():
+            try:
+                digests[key] = lookups.digest_integrity(*key, values)
+            except agent_tools.BudgetExhausted:
+                break
+    violations = []
+    unchecked = []
+    for index, dep in enumerate(deps):
+        records = list((blocks or {}).get(index, {}).get("checks", []))
+        key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
+        if key in digests:
+            records.append({"check": "digest_integrity", **digests[key]})
+        violations += [dict(v, index=index) for v in _policy.evaluate(loaded, dep, records)]
+        gated = (
+            dep.get("kind") == "package"
+            and registry_existence.ecosystem_of(dep.get("ecosystem")) in ("PyPI", "npm")
+            and (base_keys is None or agent_tools._dependency_key(dep) not in base_keys)
+        )
+        if gated and loaded.needs_trust:
+            private = agent_tools._is_private(dep, private_names)
+            unchecked += [
+                dict(v, index=index) for v in _policy.unchecked(loaded, dep, records, private)
+            ]
+        if key in locked and (key not in digests or digests[key].get("status") == "NOT_PERFORMED"):
+            for rule in loaded.rules:
+                if _policy.CONDITIONS[rule.condition][0] == "digest_integrity" and (
+                    not rule.packages or _policy._matches(rule.packages, dep)
+                ):
+                    statement = (digests.get(key) or {}).get("statement") or (
+                        "the lookup budget was spent before this digest was checked"
+                    )
+                    unchecked.append(
+                        dict(
+                            _policy.unchecked_violation(
+                                rule.condition, dep, "digest_integrity", statement
+                            ),
+                            index=index,
+                        )
+                    )
+                    break
+    if fail_unchecked and loaded.unchecked == "fail":
+        violations += unchecked
+    elif unchecked:
+        _echo(
+            f"policy: {len(unchecked)} prohibited check(s) did not run (a source was down "
+            "or the lookup budget was spent); not a violation here, `openpulse gate` fails "
+            "on them",
+            err=True,
+        )
+    return violations
+
+
+def _digest_set(locked):
+    """Locked digests as a comparable value, independent of order."""
+    return {name: sorted(values) for name, values in (locked or {}).items()}
+
+
+def _base_keys(base_files):
+    """Dependency keys of the base copies of the run's files, or None without any."""
+    from core import agent_tools
+
+    paths = [p for p in base_files if p]
+    if not paths:
+        return None
+    keys = set()
+    for path in paths:
+        try:
+            deps, _, _ = agent_tools._read_dependency_file(path)
+        except (ValueError, OSError, UnicodeDecodeError) as e:
+            raise click.ClickException(f"{path}: cannot read the base file: {e}") from e
+        keys |= {agent_tools._dependency_key(d) for d in deps}
+    return keys
+
+
+def _untracked(_ctx, param, value):
+    """Click callback: refuse a local state store that git tracks.
+
+    Observation history, the detection ledger and webhook delivery state are
+    local history: records of what this machine saw and sent. A copy committed
+    to the repository comes from whoever can commit, so it could move lead-time
+    claims or mark alerts as already delivered. Outside a git checkout, or
+    without git, there is nothing to check.
+    """
+    import subprocess
+
+    if not value:
+        return value
+    try:
+        tracked = subprocess.run(  # noqa: S603 - fixed git argv; git from PATH, as the user runs it
+            ["git", "ls-files", "-z", "--", value],  # noqa: S607 - fixed git argv; git from PATH, as the user runs it
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return value
+    files = [f for f in tracked.stdout.split(b"\0") if f] if tracked.returncode == 0 else []
+    if files:
+        flag = param.opts[0]
+        raise click.UsageError(
+            f"{value} is tracked by git ({len(files)} file(s)): state committed to the "
+            "repository is not local history, and anyone who can commit could forge it. "
+            f"Untrack it (git rm -r --cached {value}) or pass {flag} a directory git "
+            "does not track"
+        )
+    return value
+
+
+def _store_root(ctx, param, value):
+    """Click callback for an observation store: never empty, never tracked by git.
+
+    An empty root is the current directory: history would be written among
+    the user's own files, beside whatever they hold.
+    """
+    if not str(value or "").strip():
+        raise click.BadParameter("needs a directory (the default is .openpulse/observations)")
+    return _untracked(ctx, param, value)
+
+
+def _report_violations(violations) -> bool:
+    """Print each violation; True when the run must fail."""
+    for v in violations:
+        detail = f" - {v['statement']}" if v.get("statement") else ""
+        _echo(f"policy: PROHIBITED {v['condition']}: {v['dependency']}{detail}", err=True)
+    if violations:
+        _echo(f"policy: {len(violations)} violation(s): gate failed", err=True)
+    return bool(violations)
+
+
+def _private_name_list(path):
+    """An explicit list must exist; the default one is used only when present.
+
+    A list already loaded (a set of names) is returned as it is, so callers
+    can load once and pass the names on.
+    """
+    from core import dependency_confusion
+
+    if isinstance(path, (set, frozenset)):
+        return path
+    if path is None:
+        default = dependency_confusion.DEFAULT_LIST
+        return dependency_confusion.load(default)[0] if default.is_file() else None
+    if not os.path.isfile(path):
+        raise click.ClickException(f"{path}: private-name list not found")
+    names, skipped = dependency_confusion.load(path)
+    for message in skipped:
+        _echo(f"warning: {path}: {message}", err=True)
+    return names
+
+
+@cli.command(name="confusion")
+@click.argument("names_file", required=False, type=click.Path(dir_okay=False))
+@click.option("--offline", is_flag=True, help="No network: list what would be checked")
+@click.option("--json", "as_json", is_flag=True, help="Print the records as JSON")
+def confusion_command(names_file, offline, as_json):
+    """Dependency confusion: which of your private names exist publicly (track T, T-A3).
+
+    Reads NAMES_FILE (default .openpulse/private-packages.txt), one
+    `ecosystem:name` per line (PyPI or npm), and asks the public registry
+    about each. Report-only: never part of a verdict, never a failing exit.
+    """
+    import json as _json
+
+    from core import agent_tools, dependency_confusion
+
+    path = names_file or str(dependency_confusion.DEFAULT_LIST)
+    if not os.path.isfile(path):
+        raise click.ClickException(f"{path}: private-name list not found")
+    try:
+        names, skipped = dependency_confusion.load(path)
+    except (ValueError, UnicodeDecodeError) as e:
+        raise click.ClickException(f"{path}: {e}") from e
+    lookups = None if offline else agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
+    results = [
+        {
+            "ecosystem": eco,
+            "name": name,
+            **agent_tools.dependency_confusion_record(eco, name, lookups, names),
+        }
+        for eco, name in sorted(names)
+    ]
+    if as_json:
+        click.echo(_json.dumps({"list": path, "skipped": skipped, "results": results}, indent=2))
+        return
+    for message in skipped:
+        _echo(f"warning: {path}: {message}", err=True)
+    click.echo(f"{path}: {len(results)} private names")
+    for r in results:
+        click.echo(f"  {r['status']:<24} {r['ecosystem']}:{r['name']}")
+    public = [r for r in results if r["status"] == "SUSPICIOUS_INCONCLUSIVE"]
+    if public:
+        click.echo(
+            "note: a public package carries each name marked SUSPICIOUS_INCONCLUSIVE; "
+            "if you did not publish it, pin your private index for that name"
+        )
+
+
+def _git_base_copy(path: str, ref: str, out_dir: str) -> str | None:
+    """The file at ``ref`` written under ``out_dir`` (same name), or None if new there.
+
+    Raises click.UsageError when git or the ref is unusable: a gate never
+    guesses its base.
+    """
+    import subprocess
+    from pathlib import Path as _Path
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], capture_output=True, check=False)  # noqa: S603, S607 - fixed git argv; git from PATH, as the user runs it
+
+    try:
+        top = git("-C", str(_Path(path).resolve().parent), "rev-parse", "--show-toplevel")
+    except OSError as e:
+        raise click.UsageError(f"--base-ref needs git: {e}") from e
+    if top.returncode != 0:
+        raise click.UsageError(f"{path}: not inside a git repository (--base-ref)")
+    root = _Path(top.stdout.decode("utf-8").strip())
+    if git("-C", str(root), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").returncode:
+        if ref == "HEAD" and not git("-C", str(root), "rev-list", "-n1", "--all").stdout.strip():
+            return None  # the first commit (pre-commit hook): every file in it is new
+        raise click.UsageError(f"--base-ref {ref}: not a commit in {root}")
+    relative = _Path(path).resolve().relative_to(root.resolve()).as_posix()
+    shown = git("-C", str(root), "show", f"{ref}:{relative}")
+    if shown.returncode != 0:
+        return None  # the file does not exist at ref: everything in it is added
+    target = _Path(out_dir) / _Path(relative).name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(shown.stdout)
+    return str(target)
+
+
+def _verify_receipts(receipt_paths, paths, required=()):
+    """G2: exit 0 when every path may be installed on the receipts' strength,
+    1 when one may not, 2 when a receipt cannot be read. G4: every existing
+    file matching a ``required`` pattern is verified too."""
+    from core import gate_receipt
+
+    receipts = []
+    try:
+        for given in receipt_paths:
+            for path in gate_receipt.receipt_files(given):
+                receipts.append((gate_receipt.receipt_path(path), gate_receipt.load(path)))
+        matched, unmatched = gate_receipt.required_files(list(required))
+    except ValueError as e:
+        _echo(f"gate: {strip_unsafe(str(e))[:300]}", err=True)
+        raise SystemExit(2) from e
+    for pattern in unmatched:
+        _echo(f"gate: --require-receipt-for {strip_unsafe(pattern)[:200]}: no such file", err=True)
+    keys = {gate_receipt._key(p) for p in paths}
+    paths = list(paths) + [m for m in matched if gate_receipt._key(m) not in keys]
+    if not paths:
+        _echo("gate: nothing to verify: name the files to install, or a pattern that matches")
+        raise SystemExit(2)
+    problems = gate_receipt.verify(receipts, list(paths))
+    for problem in problems:
+        _echo(f"gate: REFUSED {strip_unsafe(problem)[:300]}", err=True)
+    if problems:
+        _echo(
+            f"gate: verification failed ({len(problems)} problem(s)); do not install. "
+            "Changed means reinspect: run the gate again",
+            err=True,
+        )
+        raise SystemExit(1)
+    _echo(
+        f"gate: verified {len(paths)} file(s) against {len(receipts)} passing receipt(s); "
+        "they are the bytes the gate judged"
+    )
+
+
+@cli.command(name="gate")
+@click.argument("paths", nargs=-1, type=click.Path(dir_okay=False))
+@click.option(
+    "--base-ref",
+    default=None,
+    help="Git ref to compare with (e.g. HEAD in a pre-commit hook, origin/main in CI): "
+    "trust checks run only for dependencies added or changed since it",
+)
+@click.option(
+    "--base",
+    "base_paths",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Base copy of each PATH, in the same order (instead of --base-ref)",
+)
+@click.option(
+    "--private-names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Private-name list (default: .openpulse/private-packages.txt if present)",
+)
+@click.option(
+    "--receipt",
+    "receipt_out",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Write a receipt of what was gated (file, policy and private-list SHA-256s, the "
+    "decision, violations), whatever the outcome; verify it right before install",
+)
+@click.option(
+    "--verify-receipt",
+    "verify_receipts",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Instead of gating, check that every PATH is a file a passing gate recorded, with "
+    "the same SHA-256 now (exit 1 otherwise). A receipt file or a directory of them; "
+    "repeatable. Run it immediately before install",
+)
+@click.option(
+    "--require-receipt-for",
+    "required",
+    multiple=True,
+    metavar="PATTERN",
+    help="With --verify-receipt: every existing file matching this glob (poetry.lock, "
+    "'**/package-lock.json') must be verified too, so a dependency file a build step "
+    "generated after the gate cannot be installed unverified. Repeatable",
+)
+@_policy_option
+def gate_command(
+    paths,
+    base_ref,
+    base_paths,
+    private_names,
+    policy_path,
+    receipt_out,
+    verify_receipts,
+    required,
+):
+    """Pre-install trust gate (track T, T-E2): the trust policy on dependency files.
+
+    Run it before `pip install` or `npm ci`, or as a pre-commit hook. Exit 0
+    when nothing the policy prohibits is found, 1 on a violation, 2 on a
+    usage error or a named file it cannot read as a package dependency file
+    (fail closed: an unread file is never a pass). A prohibited check that
+    applied but did not run (a source down, a spent budget) is a violation
+    unless the policy says `unchecked: pass`. Entries that are not exactly
+    pinned packages are listed as not checked. With a policy, changed
+    lockfile digests are always checked (digest_mismatch is implied, G3).
+    Without a policy there is
+    nothing to enforce, so it passes. No events are needed: this checks
+    trust, not upstream changes. With --receipt, the SHA-256 of every file
+    it judged is recorded, so the install step can prove it installs the
+    same bytes: --verify-receipt checks that, and exits 1 on any file that
+    changed, was not gated, or comes from a gate that did not pass.
+    """
+    import tempfile
+    from pathlib import Path as _Path
+
+    from core import agent_tools, gate_receipt
+    from core import dependency_confusion as _confusion
+    from core import trust_policy as _trust_policy
+
+    if required and not verify_receipts:
+        raise click.UsageError("--require-receipt-for is part of --verify-receipt")
+    if verify_receipts:
+        if base_ref or base_paths or receipt_out or policy_path or private_names:
+            raise click.UsageError(
+                "--verify-receipt checks files against a receipt; it takes no "
+                "--base-ref, --base, --receipt, --policy or --private-names"
+            )
+        _verify_receipts(verify_receipts, paths, required)
+        return
+    if not paths:
+        raise click.UsageError("name at least one dependency file to gate")
+    if base_ref and base_paths:
+        raise click.UsageError("use --base-ref or --base, not both")
+    if base_paths and len(base_paths) != len(paths):
+        raise click.UsageError("give one --base per PATH, in the same order")
+    try:
+        loaded = _load_policy(policy_path)
+    except click.UsageError:
+        raise
+    except click.ClickException as e:  # a missing or invalid policy is not a violation
+        raise click.UsageError(e.message) from e
+    if loaded is not None:
+        # G3 (decision 14): changed lockfile digests are always checked by the gate.
+        loaded, implied = _trust_policy.with_gate_implied(loaded)
+        for condition in implied:
+            _echo(
+                f"policy: {condition} is implied by the gate (changed lockfile entries are "
+                "always checked against the registry)",
+                err=True,
+            )
+    names = _private_name_list(private_names) if loaded is not None else None
+    files: list[dict[str, Any]] = []
+    violations: list[dict[str, Any]] = []
+    unreadable: list[str] = []
+    checked = added = 0
+
+    def finish(decision: str) -> None:
+        if not receipt_out:
+            return
+        if policy_path is not None:
+            policy_file = policy_path
+        elif _trust_policy.DEFAULT_POLICY.is_file():
+            policy_file = str(_trust_policy.DEFAULT_POLICY)
+        else:
+            policy_file = None
+        if private_names is not None or loaded is None:
+            names_file = private_names
+        elif _confusion.DEFAULT_LIST.is_file():
+            names_file = str(_confusion.DEFAULT_LIST)
+        else:
+            names_file = None
+        receipt = gate_receipt.build(
+            files=files,
+            decision=decision,
+            version=openpulse_version(),
+            policy=policy_file,
+            private_names=names_file,
+            base_ref=base_ref,
+            base_files=list(base_paths) or None,
+            dependencies=checked,
+            added=added if (base_ref or base_paths) else None,
+            violations=violations,
+        )
+        try:
+            gate_receipt.write(receipt, receipt_out)
+        except OSError as e:
+            _echo(f"gate: cannot write the receipt {receipt_out}: {e}", err=True)
+            raise SystemExit(2) from e
+        _echo(f"gate: receipt {receipt_out} ({decision})", err=True)
+
+    if loaded is None:
+        for path in paths:
+            present = _Path(path).is_file()
+            files.append(
+                {
+                    "path": gate_receipt.receipt_path(path),
+                    "sha256": gate_receipt.sha256_file(path) if present else None,
+                    "status": "gated" if present else "missing",
+                }
+            )
+        finish("passed")
+        _echo("gate: no trust policy (.openpulse/policy.yml): nothing is prohibited, passed")
+        return
+    with tempfile.TemporaryDirectory(prefix="openpulse-gate-") as scratch:
+        for index, path in enumerate(paths):
+            entry = {"path": gate_receipt.receipt_path(path), "sha256": None, "status": "missing"}
+            files.append(entry)
+            if not _Path(path).is_file():
+                _echo(f"gate: {path}: not present (deleted?), skipped", err=True)
+                continue
+            entry["sha256"] = gate_receipt.sha256_file(path)
+            try:
+                deps, skipped, kind = agent_tools._read_dependency_file(path)
+            except ValueError as e:
+                _echo(f"gate: {path}: cannot be read as a dependency file: {e}", err=True)
+                entry["status"] = "unreadable"
+                unreadable.append(path)
+                continue
+            if gate_receipt.sha256_file(path) != entry["sha256"]:
+                # What was judged is not what the receipt would name: fail closed.
+                _echo(f"gate: {path}: changed while it was being gated", err=True)
+                entry["status"] = "unreadable"
+                unreadable.append(path)
+                continue
+            entry["status"] = "gated"
+            if kind == "images":
+                # The image-list fallback: no exact pins, so no package to check.
+                # A requirements file of unpinned names lands here too.
+                skipped = [f"`{d['ref']}`: not an exactly pinned package" for d in deps]
+                deps = []
+            if skipped:
+                _echo(
+                    f"gate: {path}: {len(skipped)} entr{'y' if len(skipped) == 1 else 'ies'} "
+                    "not checked (only exactly pinned PyPI and npm packages are; a lockfile "
+                    "pins the rest):",
+                    err=True,
+                )
+                for message in skipped[:20]:
+                    _echo(f"  {strip_unsafe(str(message))[:200]}", err=True)
+                if len(skipped) > 20:
+                    _echo(f"  ... and {len(skipped) - 20} more", err=True)
+            if base_paths:
+                base = base_paths[index]
+            elif base_ref:
+                base = _git_base_copy(path, base_ref, str(_Path(scratch) / str(index)))
+            else:
+                base = None
+            if base_ref or base_paths:
+                base_keys = _base_keys([base]) if base else set()
+            else:
+                base_keys = None
+            lockfile = path if kind in ("npm", "poetry") else None
+            base_lockfile = base if lockfile and base else None
+            checked += len(deps)
+            added += (
+                len(deps)
+                if base_keys is None
+                else sum(agent_tools._dependency_key(d) not in base_keys for d in deps)
+            )
+            violations += _policy_violations(
+                deps,
+                loaded,
+                lockfile,
+                None,
+                base_keys,
+                base_lockfile,
+                private_names=names,
+                fail_unchecked=True,
+            )
+    if _report_violations(violations):
+        finish("failed")
+        raise SystemExit(1)
+    if unreadable:
+        _echo(
+            f"gate: failed: {len(unreadable)} file(s) could not be read, so nothing in "
+            "them was checked; fix or remove them, or leave them out of the gate",
+            err=True,
+        )
+        finish("error")
+        raise SystemExit(2)
+    finish("passed")
+    scope = "added or changed" if (base_ref or base_paths) else "checked"
+    _echo(f"gate: passed ({checked} dependencies, {added} {scope}, no violation)")
+
+
+@cli.command(name="trust")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--base",
+    "base",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Earlier copy of the file (e.g. `git show main:poetry.lock > base.lock`): "
+    "only dependencies added or changed since then are checked",
+)
+@click.option(
+    "--private-names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Private-name list (default: .openpulse/private-packages.txt if present): listed "
+    "packages are checked for a public package with the same name",
+)
+@click.option("--offline", is_flag=True, help="No network: lookalike indicators only")
+@click.option("--json", "as_json", is_flag=True, help="Print the full trust block as JSON")
+def trust_command(path, base, private_names, offline, as_json):
+    """Trust checks for PyPI and npm dependencies (report-only, track T).
+
+    Known-malicious records, registry existence, provenance (PyPI), repository
+    linkage, lookalike names and the reputation indicators for the dependencies
+    added since --base, or for every dependency without it.
+    Never part of a verdict, and never a failing exit: review what is listed.
+    """
+    import json as _json
+
+    from core import agent_tools
+
+    lookups = None if offline else agent_tools.Lookups(cache_dir=agent_tools.default_cache_dir())
+    try:
+        names = _private_name_list(private_names)
+        out = agent_tools.check_dependency_file(
+            path,
+            lookups=lookups,
+            live=not offline,
+            base_path=base,
+            trust_all=base is None,
+            private_names=names,
+        )
+    except ValueError as e:
+        raise click.ClickException(str(e)) from e
+    trust = out["trust"]
+    if as_json:
+        click.echo(_json.dumps(trust, indent=2, sort_keys=True))
+        return
+    click.echo(
+        f"{path}: {trust['dependencies']} dependencies ({trust['scope']}), "
+        f"{trust['live_checked']} checked live, {trust['live_capped']} capped, "
+        f"{trust['not_supported']} not PyPI or npm"
+    )
+    for check, counts in trust["counts"].items():
+        shown = ", ".join(f"{status} {n}" for status, n in counts.items() if n)
+        click.echo(f"  {check}: {shown or 'none'}")
+    for item in trust["attention"]:
+        dep = item["dependency"]
+        click.echo(
+            f"  ! {dep['package']} {dep.get('version') or ''} ({dep['ecosystem']}) "
+            f"{item['check']} {item['status']}: {item['statement']}"
+        )
+    click.echo(f"note: {trust['note']}")
 
 
 @cli.command(name="dependency-track")
@@ -347,6 +1357,270 @@ def dependency_track(
         raise SystemExit(1)
 
 
+@cli.group(name="history-key")
+def history_key_group():
+    """Manage the key that MACs local history (B3, docs/KEYED_INTEGRITY.md)."""
+
+
+@history_key_group.command(name="generate")
+def history_key_generate():
+    """Print a fresh 32-byte history key and its key_id. Writes no file.
+
+    Store the key outside .openpulse/ (a file with mode 600, or a CI
+    secret) and pass it as OPENPULSE_HISTORY_KEY or --history-key-file.
+    """
+    from core.history_key import generate_key
+
+    key, key_id = generate_key()
+    _echo(key)
+    _echo(f"key_id: {key_id}", err=True)
+
+
+@cli.command(name="history-audit")
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--require-keyed",
+    is_flag=True,
+    help="Also refuse anything not keyed with a supplied history key (needs a key)",
+)
+@click.option("--json", "as_json", is_flag=True, help="Print the result as JSON")
+@_history_key_option
+def history_audit_command(
+    store,
+    ledger_root,
+    require_keyed=False,
+    as_json=False,
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
+    """Audit every stored history before using it; exit 1 on anything refused (W2).
+
+    For a history restored from somewhere others can write, such as the
+    Actions cache: a broken, rolled-back, downgraded or foreign history is
+    refused, with what and why. An older genuine copy of the whole store is
+    not detectable here; `openpulse verify --anchor` is.
+    """
+    import json as _json
+
+    from core.history_audit import REFUSED, audit_history
+
+    keys = _history_keyring(history_key_file, history_previous_keys_file, store, ledger_root)
+    if require_keyed and not keys:
+        raise click.ClickException(
+            "--require-keyed needs a history key (OPENPULSE_HISTORY_KEY or --history-key-file)"
+        )
+    result = audit_history(store, ledger_root, keys, require_keyed=require_keyed)
+    if as_json:
+        click.echo(_json.dumps(result, indent=2, sort_keys=True))
+    else:
+        _echo(
+            f"history audit: {result['status']} ({result['histories']} observation "
+            f"history(s), {result['ledger_entries']} ledger entry(s))"
+        )
+        for problem in result["problems"]:
+            _echo(
+                f"! {problem['kind']} {problem['subject']}: {problem['status']} - "
+                f"{problem['detail']}"
+            )
+        hidden = result["problems_total"] - len(result["problems"])
+        if hidden > 0:
+            _echo(f"! and {hidden} more")
+    if result["status"] == REFUSED:
+        raise SystemExit(1)
+
+
+@cli.command(name="deliver-new")
+@click.argument("new_findings", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--webhook",
+    default=None,
+    envvar="OPENPULSE_WEBHOOK_URL",
+    help="POST the new findings to a JSON-text webhook (e.g. Slack incoming); "
+    "https, public hosts only",
+)
+@click.option(
+    "--webhook-allow-http",
+    is_flag=True,
+    help="Opt in to plain-http webhooks (https is required by default)",
+)
+@click.option(
+    "--webhook-secret-file",
+    default=None,
+    type=click.Path(dir_okay=False),
+    help="Sign the webhook post with the secret on the first line of PATH "
+    "(or set OPENPULSE_WEBHOOK_SECRET); receivers verify X-OpenPulse-Signature",
+)
+@click.option(
+    "--issue",
+    "issue_repo",
+    default=None,
+    help="Open one issue in OWNER/NAME for the new findings, or comment on the open one "
+    "(token from GITHUB_TOKEN, with issues: write)",
+)
+@click.option("--issue-title", default=None, help="Title of that issue (it identifies it)")
+@click.option("--run-url", default=None, help="A link to the run, added to the message")
+def deliver_new_command(
+    new_findings,
+    webhook=None,
+    webhook_allow_http=False,
+    webhook_secret_file=None,
+    issue_repo=None,
+    issue_title=None,
+    run_url=None,
+):
+    """Send what a run recorded for the first time to a webhook or one issue (W5).
+
+    NEW_FINDINGS is the file `attest --ledger --new-findings` wrote. Nothing is
+    sent for a first run with a ledger or when nothing is new. Exit 1 when a
+    delivery failed: the detections are already recorded, so a later run will
+    not list them again.
+    """
+    from core import new_delivery
+
+    if not webhook and not issue_repo:
+        raise click.ClickException("nothing to deliver to: give --webhook or --issue")
+    try:
+        report = new_delivery.load_new_findings(new_findings)
+    except new_delivery.NewFindingsError as exc:
+        raise click.ClickException(str(exc)) from exc
+    signing_secret = _load_webhook_secret(webhook_secret_file) if webhook else None
+    if not new_delivery.deliverable(report):
+        reason = "a first run is the starting point" if report.get("baseline") else "nothing new"
+        _echo(f"deliver-new: nothing sent ({reason})")
+        return
+    failed = False
+    if webhook:
+        sent = new_delivery.deliver_webhook(
+            webhook,
+            report,
+            run_url=run_url,
+            allow_http=webhook_allow_http,
+            signing_secret=signing_secret,
+        )
+        if sent["ok"]:
+            _echo(f"deliver-new: webhook delivered ({len(report['new'])} new)")
+        else:
+            failed = True
+            _echo(f"deliver-new: webhook delivery failed: {sent['error']}", err=True)
+    if issue_repo:
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        sent = new_delivery.deliver_issue(
+            issue_repo,
+            report,
+            token=token,
+            title=issue_title or new_delivery.DEFAULT_ISSUE_TITLE,
+            run_url=run_url,
+        )
+        if sent["ok"]:
+            _echo(f"deliver-new: issue #{sent['number']} {sent['action']}")
+        else:
+            failed = True
+            _echo(f"deliver-new: issue delivery failed: {sent['error']}", err=True)
+    if failed:
+        raise SystemExit(1)
+
+
+@cli.command(name="anchor")
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--out",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="Write the anchor JSON here (default: stdout). Keep it outside .openpulse/",
+)
+@_history_key_option
+def anchor_command(store, ledger_root, out, history_key_file=None, history_previous_keys_file=None):
+    """Checkpoint the local history, to keep where the store's writer cannot reach (B5).
+
+    Records every observation history's tip, the detection ledger's
+    entries and Merkle root, and the rotation log. With a history key the
+    anchor is MACed. Commit it to git or upload it as a CI artifact, then
+    check the store against it with `openpulse verify --anchor`.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    from core.anchor import build_anchor
+
+    history_key, _previous = _load_history_key(
+        history_key_file, history_previous_keys_file, store, ledger_root
+    )
+    if out and ".openpulse" in _Path(out).resolve().parts:
+        raise click.ClickException(
+            "an anchor inside .openpulse/ anchors nothing: write it elsewhere"
+        )
+    built = build_anchor(store, ledger_root, history_key=history_key)
+    text = _json.dumps(built, indent=2, sort_keys=True) + "\n"
+    if out:
+        _Path(out).write_text(text, encoding="utf-8")
+        _echo(f"wrote {out}", err=True)
+    else:
+        click.echo(text, nl=False)
+    _echo(
+        f"anchored {len(built['observations'])} histories, "
+        f"{len(built['ledger']['entries'])} ledger entries "
+        f"(merkle root {built['ledger']['merkle_root']}); "
+        f"{'MACed with ' + history_key.key_id if history_key else 'unsigned (no history key)'}",
+        err=True,
+    )
+
+
+@cli.command(name="verify")
+@click.option(
+    "--anchor", "anchor_path", required=True, type=click.Path(exists=True, dir_okay=False)
+)
+@click.option("--store", default=".openpulse/observations", help="Observation history root")
+@click.option("--ledger", "ledger_root", default=".openpulse/detections", help="Ledger root")
+@click.option(
+    "--require-signed",
+    is_flag=True,
+    help="Fail unless the anchor's MAC verifies under a supplied history key",
+)
+@click.option("--json", "as_json", is_flag=True, help="Print the result as JSON")
+@_history_key_option
+def verify_command(
+    anchor_path,
+    store,
+    ledger_root,
+    require_signed=False,
+    as_json=False,
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
+    """Check the local history against an anchor; exit 1 when anything anchored is gone (B5)."""
+    import json as _json
+
+    from core.anchor import OK, verify_anchor
+    from core.bounded_io import loads_json, read_text
+    from core.history_key import keyring
+
+    try:
+        anchor = loads_json(read_text(anchor_path, MAX_BUNDLE_BYTES, anchor_path), anchor_path)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise click.ClickException(f"{anchor_path} is not anchor JSON: {exc}") from exc
+    if not isinstance(anchor, dict):
+        raise click.ClickException(f"{anchor_path} is not anchor JSON")
+    keys = keyring(
+        *_load_history_key(history_key_file, history_previous_keys_file, store, ledger_root)
+    )
+    result = verify_anchor(anchor, store, ledger_root, keys)
+    failed = result["status"] != OK or (require_signed and result["signature"] != "VALID")
+    if as_json:
+        click.echo(_json.dumps(result, indent=2, sort_keys=True))
+    else:
+        _echo(f"anchor {anchor_path}: {result['status']} (signature {result['signature']})")
+        for v in result["violations"]:
+            _echo(f"! {v['kind']} {v['subject']}: {v['detail']}")
+        for n in result["notices"]:
+            _echo(f"- {n['kind']} {n['subject']}: {n['detail']}")
+        if require_signed and result["signature"] != "VALID":
+            _echo("! the anchor is not signed by a supplied history key (--require-signed)")
+    if failed:
+        raise SystemExit(1)
+
+
 @cli.command(name="demo-bitnami")
 def demo_bitnami():
     """Offline north-star demo: Bitnami event -> gate -> who is affected -> report."""
@@ -381,17 +1655,60 @@ def demo_bitnami():
 @cli.command()
 @click.option("--namespace", required=True, help="Registry namespace (e.g. bitnami)")
 @click.option("--repo", "repository", required=True, help="Repository (e.g. redis)")
-@click.option("--store", default=".openpulse/observations", help="History root directory")
-def observe(namespace, repository, store):
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root directory",
+    callback=_store_root,
+)
+@click.option(
+    "--rebaseline",
+    is_flag=True,
+    help=(
+        "Accept a refused history (ROLLBACK, ROLLBACK_SUSPECTED, DOWNGRADE, BROKEN): "
+        "a rollback is accepted at its current tip, anything else is quarantined "
+        "and restarted. Needs --reason"
+    ),
+)
+@click.option("--reason", default="", help="Why the re-baseline is justified (logged)")
+@_history_key_option
+def observe(
+    namespace,
+    repository,
+    store,
+    rebaseline=False,
+    reason="",
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
     """Probe a Docker Hub repo, persist the observation, diff against history."""
     from collectors.registries.docker import RegistryCollector
-    from core.observations.sweep import observe_repository
+    from core.observations.sweep import observe_repository, validate_rebaseline_reason
 
+    if reason and not rebaseline:
+        raise click.ClickException("--reason is only used with --rebaseline")
+    if rebaseline:
+        try:
+            reason = validate_rebaseline_reason(reason)
+        except ValueError as exc:
+            raise click.ClickException(f"--rebaseline needs --reason: {exc}") from exc
+    history_key, previous_keys = _load_history_key(
+        history_key_file, history_previous_keys_file, store
+    )
     probe = RegistryCollector().check_image(namespace, repository)
     if probe.get("error"):
         _echo(f"error: {probe.get('safe_message')} (category={probe.get('category')})")
         raise SystemExit(1)
-    result = observe_repository("docker.io", namespace, repository, probe, store_root=store)
+    result = observe_repository(
+        "docker.io",
+        namespace,
+        repository,
+        probe,
+        store_root=store,
+        history_key=history_key,
+        previous_keys=previous_keys,
+        rebaseline_reason=reason if rebaseline else None,
+    )
     if result["error"] is not None:
         _echo(
             f"error: {result['error'].get('safe_message')} "
@@ -399,6 +1716,10 @@ def observe(namespace, repository, store):
         )
         raise SystemExit(1)
     _echo(f"saved: {result['saved_path']}")
+    _echo(f"history integrity: {result.get('history_integrity')}")
+    if result["history_status"] == "REBASELINED" and rebaseline:
+        _echo("re-baselined: reason logged in rebaselines.json; no change claims this run.")
+        return
     if result["history_status"] == "GENESIS":
         _echo("baseline recorded — no previous observation, no change claims.")
         return
@@ -411,6 +1732,302 @@ def observe(namespace, repository, store):
             f"{change.get('previous')} -> {change.get('current')}"
         )
     for finding in change_analyst.analyze_diffs(result["changes"]):
+        _echo("\n" + report_analyst.render_finding_md(finding))
+
+
+#: Release-license transitions older than this are history, not news: a
+#: report includes only the ones published within it (the command shows all).
+RECENT_RELEASE_LICENSE_DAYS = 365
+
+
+def _catalog_release_licenses(catalog, today=None, fetch_json=None):
+    """LICENSE_CHANGE findings for the catalog's npm and PyPI packages (C3).
+
+    The most recent transition per package, and only when its release was
+    published within RECENT_RELEASE_LICENSE_DAYS. A package that cannot be
+    compared contributes nothing and is reported.
+    """
+    from datetime import date as _date
+    from datetime import timedelta as _timedelta
+
+    from core.release_license import check as release_license_check
+
+    today = today or _date.today()
+    floor = str(today - _timedelta(days=RECENT_RELEASE_LICENSE_DAYS))
+    findings = []
+    for entry in catalog:
+        for package in entry.get("packages") or []:
+            if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+                continue
+            result = release_license_check(
+                package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+            )
+            if result["status"] != "COMPARED":
+                _echo(f"release licenses skipped for {result['purl']}: {result['reason']}")
+                continue
+            for finding in change_analyst.analyze_release_license_changes(result, today=today):
+                if str(finding.get("effective_at") or "")[:10] >= floor:
+                    findings.append(finding)
+    return findings
+
+
+@cli.command("release-license")
+@click.option(
+    "--ecosystem", required=True, type=click.Choice(["npm", "PyPI"], case_sensitive=False)
+)
+@click.option("--package", "name", required=True, help="Package name, as the registry spells it")
+@click.option(
+    "--version",
+    "version",
+    default=None,
+    help="Your version: list every license change in the releases after it",
+)
+def release_license(ecosystem, name, version):
+    """Compare the licenses a registry records per release (v0.20.0 C3).
+
+    npm lists every release's license; PyPI is read for two releases (yours,
+    or the one before the latest, and the latest). A changed license is a
+    finding to review, never a verdict.
+    """
+    from core.release_license import check as release_license_check
+
+    result = release_license_check(ecosystem, name, version)
+    if result["status"] != "COMPARED":
+        _echo(f"not compared: {result['reason']}")
+        raise SystemExit(1)
+    latest = result["latest"] or {}
+    _echo(
+        f"{result['purl']}: latest {latest.get('version')} is licensed "
+        f"{latest.get('license') or 'without a declared license'}; "
+        f"{result['releases_compared']} release(s) with a declared license compared"
+    )
+    for pair in result["not_comparable"]:
+        _echo(
+            f"- not comparable: {pair['from_version']} -> {pair['to_version']} "
+            "(different kinds of license record)"
+        )
+    if not result["transitions"]:
+        scope = f"after {version}" if version else "in the most recent change"
+        _echo(f"no license change {scope}.")
+        return
+    for finding in change_analyst.analyze_release_license_changes(result):
+        _echo("\n" + report_analyst.render_finding_md(finding))
+
+
+def _catalog_deprecations(catalog, today=None, fetch_json=None):
+    """DEPRECATION findings for the catalog's npm and PyPI packages (C4).
+
+    Package-level flags only: the catalog names packages, not the versions
+    you run (``openpulse deprecation --version`` checks one release). A
+    package that cannot be checked contributes nothing and is reported.
+    """
+    from core.registry_deprecation import CHECKED
+    from core.registry_deprecation import check as deprecation_check
+
+    findings = []
+    for entry in catalog:
+        for package in entry.get("packages") or []:
+            if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+                continue
+            result = deprecation_check(
+                package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+            )
+            if result["status"] != CHECKED:
+                _echo(f"deprecation not checked for {result['purl']}: {result['reason']}")
+                continue
+            findings += change_analyst.analyze_deprecations(result, today=today)
+    return findings
+
+
+@cli.command("deprecation")
+@click.option(
+    "--ecosystem", required=True, type=click.Choice(["npm", "PyPI"], case_sensitive=False)
+)
+@click.option("--package", "name", required=True, help="Package name, as the registry spells it")
+@click.option(
+    "--version",
+    "version",
+    default=None,
+    help="Your version: also check whether this release is deprecated (npm) or yanked (PyPI)",
+)
+def deprecation(ecosystem, name, version):
+    """Read the publisher's deprecation and withdrawal flags (v0.20.0 C4).
+
+    npm's ``deprecated``, PyPI's yanked releases (PEP 592) and the
+    "Development Status :: 7 - Inactive" classifier. A flag is a finding to
+    review, never a verdict.
+    """
+    from core.registry_deprecation import CHECKED
+    from core.registry_deprecation import check as deprecation_check
+
+    result = deprecation_check(ecosystem, name, version)
+    if result["status"] != CHECKED:
+        _echo(f"not checked: {result['reason']}")
+        raise SystemExit(1)
+    findings = change_analyst.analyze_deprecations(result)
+    if not findings:
+        scope = f"{result['purl']} or release {version}" if version else result["purl"]
+        _echo(f"no deprecation or withdrawal flag on {scope} (latest {result['latest']}).")
+        return
+    for finding in findings:
+        _echo("\n" + report_analyst.render_finding_md(finding))
+
+
+def _observe_catalog_repositories(catalog, store, history_key, previous_keys, fetch_json=None):
+    """Observe each catalog entry's GitHub repository; findings from its changes (C2).
+
+    Failures (a rate limit, a refused history) are reported and skipped: a
+    repository that cannot be observed this run contributes nothing.
+    """
+    import os as _os
+
+    from collectors.github.collector import GitHubCollector
+    from core.observations.repository import observe_github_repository
+
+    token = _os.environ.get("GITHUB_TOKEN") or _os.environ.get("GH_TOKEN")
+    findings = []
+    for entry in catalog:
+        repo = entry.get("github")
+        if not repo:
+            continue
+        meta = GitHubCollector({repo: repo}, token=token).fetch_repo_meta(repo)
+        result = observe_github_repository(
+            repo, meta, store_root=store, history_key=history_key, previous_keys=previous_keys
+        )
+        if result["error"] is not None:
+            _echo(f"repository history skipped for {repo}: {result['error'].get('safe_message')}")
+            continue
+        found = change_analyst.analyze_repository_changes(result["changes"])
+        if any(f["event_type"] == "LICENSE_CHANGE" for f in found):
+            # GitHub's license id is a heuristic: ask the registry (C5).
+            registry = _registry_licenses(entry, fetch_json=fetch_json)
+            found = [change_analyst.corroborate_repository_license(f, registry) for f in found]
+        findings += found
+    return findings
+
+
+def _registry_licenses(entry, fetch_json=None):
+    """{"purl", "license"} the registry declares for each npm/PyPI package's latest release."""
+    from core.release_license import check as release_license_check
+
+    declared = []
+    for package in entry.get("packages") or []:
+        if str(package.get("ecosystem")) not in ("npm", "PyPI"):
+            continue
+        result = release_license_check(
+            package["ecosystem"], str(package.get("name")), fetch_json=fetch_json
+        )
+        latest = result.get("latest") or {}
+        if result["status"] == "COMPARED" and latest.get("license"):
+            declared.append({"purl": result["purl"], "license": latest["license"]})
+    return declared
+
+
+@cli.command("observe-github")
+@click.option("--repo", "repo", required=True, help="GitHub repository, owner/name")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root directory (shared with `observe`)",
+    callback=_store_root,
+)
+@click.option(
+    "--rebaseline",
+    is_flag=True,
+    help=(
+        "Accept a refused history (ROLLBACK, ROLLBACK_SUSPECTED, DOWNGRADE, BROKEN): "
+        "a rollback is accepted at its current tip, anything else is quarantined "
+        "and restarted. Needs --reason"
+    ),
+)
+@click.option("--reason", default="", help="Why the re-baseline is justified (logged)")
+@click.option(
+    "--github-token-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Read a GitHub token from PATH (else GITHUB_TOKEN or GH_TOKEN)",
+)
+@_history_key_option
+def observe_github(
+    repo,
+    store,
+    rebaseline=False,
+    reason="",
+    github_token_file=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
+):
+    """Record a GitHub repository's facts in its verifiable history and report changes.
+
+    Stores the license, archived flag, the path GitHub answers with, the
+    default branch and the last push, hash-chained beside `observe`'s
+    registry histories (v0.20.0 C1). A 404 is recorded as missing; any other
+    failure records nothing. Compared with the previous record, a license
+    change, an archive and a move to a new owner are findings (C2).
+    """
+    from collectors.github.collector import GitHubCollector
+    from core.observations.repository import observe_github_repository, split_repo
+    from core.observations.sweep import validate_rebaseline_reason
+
+    try:
+        split_repo(repo)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="--repo") from exc
+    if reason and not rebaseline:
+        raise click.ClickException("--reason is only used with --rebaseline")
+    if rebaseline:
+        try:
+            reason = validate_rebaseline_reason(reason)
+        except ValueError as exc:
+            raise click.ClickException(f"--rebaseline needs --reason: {exc}") from exc
+    history_key, previous_keys = _load_history_key(
+        history_key_file, history_previous_keys_file, store
+    )
+    token = _resolve_github_token(repo, "", github_token_file)
+    meta = GitHubCollector({repo: repo}, token=token).fetch_repo_meta(repo)
+    result = observe_github_repository(
+        repo,
+        meta,
+        store_root=store,
+        history_key=history_key,
+        previous_keys=previous_keys,
+        rebaseline_reason=reason if rebaseline else None,
+    )
+    if result["error"] is not None:
+        _echo(
+            f"error: {result['error'].get('safe_message')} "
+            f"(category={result['error'].get('category')})"
+        )
+        raise SystemExit(1)
+    record = result["observation"]
+    _echo(f"saved: {result['saved_path']}")
+    _echo(f"history integrity: {result.get('history_integrity')}")
+    if record.get("missing"):
+        _echo(f"{repo}: not found (404: deleted, or not visible to this token)")
+    else:
+        _echo(
+            f"{repo}: answered as {record.get('full_name')}, "
+            f"license {record.get('license') or 'none detected'}, "
+            f"archived {str(record.get('archived')).lower()}"
+        )
+    if result["history_status"] == "REBASELINED":
+        _echo("re-baselined: no comparison with earlier records this run.")
+        return
+    if result["history_status"] == "GENESIS":
+        _echo("baseline recorded: no previous observation to compare with.")
+        return
+    if not result["changes"]:
+        _echo("no changes since the last observation.")
+        return
+    for change in result["changes"]:
+        detail = (
+            f": {change.get('previous')} -> {change.get('current')}"
+            if change.get("previous") or change.get("current")
+            else ""
+        )
+        first = change.get("first_detected_at") or "not proven (history is not keyed)"
+        _echo(f"- {change['type']}{detail} (first detected: {first})")
+    for finding in change_analyst.analyze_repository_changes(result["changes"]):
         _echo("\n" + report_analyst.render_finding_md(finding))
 
 
@@ -428,13 +2045,23 @@ def observe(namespace, repository, store):
 @click.option(
     "--with-sweep",
     is_flag=True,
-    help="Run live distribution sweep first and include its findings",
+    help=(
+        "Run the live distribution sweep, observe the projects' GitHub repositories and "
+        "compare their packages' release licenses and deprecation flags first, and include "
+        "their findings"
+    ),
 )
-@click.option("--store", default=".openpulse/observations", help="History root for --with-sweep")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root for --with-sweep",
+    callback=_store_root,
+)
 @click.option(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable detection ledger root ('' disables; feeds first_detected_at in findings)",
 )
@@ -443,6 +2070,7 @@ def observe(namespace, repository, store):
     default="",
     help="Metadata JSON path (default: <out> with .meta.json extension)",
 )
+@_history_key_option
 def report(
     month,
     projects,
@@ -454,6 +2082,8 @@ def report(
     store,
     ledger_root,
     metadata_out,
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """Monthly OSS Dependency Risk Report over seed projects."""
     import json as _json
@@ -485,6 +2115,12 @@ def report(
         items.append(collect_project(slug, raw))
     import os
 
+    from core.history_key import keyring
+
+    history_key, previous_keys = _load_history_key(
+        history_key_file, history_previous_keys_file, store, ledger_root
+    )
+    history_keys = keyring(history_key, previous_keys)
     sweep_findings: list = []
     if with_sweep:
         from collectors.registries.docker import RegistryCollector
@@ -495,10 +2131,27 @@ def report(
         wanted = set(slugs)
         selected = [e for e in catalog if e.get("slug") in wanted]
         _echo("running distribution sweep...")
-        sweep_findings = sweep_catalog(selected, RegistryCollector().check_image, store_root=store)[
-            "findings"
-        ]
+        sweep_findings = sweep_catalog(
+            selected,
+            RegistryCollector().check_image,
+            store_root=store,
+            history_key=history_key,
+            previous_keys=previous_keys,
+        )["findings"]
         _echo(f"sweep findings: {len(sweep_findings)}")
+        repository_findings = _observe_catalog_repositories(
+            selected, store, history_key, previous_keys
+        )
+        _echo(f"repository history findings: {len(repository_findings)}")
+        # The history restates the snapshot's "archived"/"moved" with more evidence.
+        items = change_analyst.replace_snapshot_duplicates(items, repository_findings)
+        sweep_findings += repository_findings
+        release_license_findings = _catalog_release_licenses(selected)
+        _echo(f"release license findings: {len(release_license_findings)}")
+        sweep_findings += release_license_findings
+        deprecation_findings = _catalog_deprecations(selected)
+        _echo(f"deprecation findings: {len(deprecation_findings)}")
+        sweep_findings += deprecation_findings
     notes = [
         "Collectors: endoflife.date, GitHub releases + repo metadata, NVD, CISA KEV, Docker Hub.",
         "GitHub calls authenticated (5000 req/hr budget)."
@@ -509,6 +2162,10 @@ def report(
         "Public intelligence describes project-level change; whether it affects "
         "YOUR dependencies needs a watchlist (`openpulse check`).",
     ]
+    if (ledger_root or with_sweep) and not history_keys:
+        from core.digest import UNKEYED_LEAD_TIME_NOTE
+
+        notes.append(UNKEYED_LEAD_TIME_NOTE)
     markdown = build_report(
         month,
         items,
@@ -517,6 +2174,7 @@ def report(
         notes=notes,
         sweep_findings=sweep_findings,
         ledger_root=ledger_root or None,
+        history_keys=history_keys,
     )
     destination = out or f"reports/{month}-openpulse.md"
     _Path(destination).write_text(markdown + "\n", encoding="utf-8")
@@ -527,6 +2185,7 @@ def report(
         since=since or None,
         include_related=include_related,
         ledger_root=ledger_root or None,
+        history_keys=history_keys,
     )
     metadata = build_report_metadata(
         month,
@@ -749,11 +2408,125 @@ def _coverage_summary(inspections) -> tuple[str, list[str]]:
     return status, reasons
 
 
+def _scope_line(inspection) -> str | None:
+    """One line saying what a repository inspection searched (S3), or None."""
+    scope = getattr(inspection, "scope", None)
+    if not scope:
+        return None
+    skipped = ", ".join(
+        f"{d['directory'] or 'other'} ({d['files']})" for d in scope["skipped_directories"][:5]
+    )
+    more = len(scope["skipped_directories"]) - 5
+    if more > 0:
+        skipped += f", +{more} more"
+    return (
+        f"searched {scope['repository']} {scope['ref']}@{scope['commit'][:12]}: "
+        f"{scope['files_read']}/{scope['files_found']} dependency file(s) read from "
+        f"{scope['tree_entries']} tree entries; skipped directories: {skipped or 'none'}; "
+        f"limits reached: {', '.join(scope['limits_reached']) or 'none'}"
+    )
+
+
+def _coverage_note(inspections) -> str | None:
+    """One line for the rendered body when a repository was not fully read (#102).
+
+    The terminal preamble alone is not enough: the body is what reaches a
+    webhook, and "nothing upcoming" over an unread repository is unknown
+    dressed as clear. None when every inspection is COMPLETE or no
+    repository was inspected, so those outputs are unchanged. The line
+    names the categories not inspected first (S4), then the details.
+    """
+    from core import coverage
+
+    if not inspections:
+        return None
+    status, reasons = _coverage_summary(inspections)
+    if status == "COMPLETE":
+        return None
+    why = "; ".join(reasons) or "no reason recorded"
+    return (
+        f"⚠️ Repository inspection coverage: {coverage.describe(status, reasons)}. "
+        f"Details: {why}. Results are not a clean bill of health."
+    )
+
+
+def _load_webhook_secret(secret_file: str | None) -> bytes | None:
+    """Webhook signing secret (W3), or None. Errors never contain the secret."""
+    from core.webhook_signing import WebhookSecretError, load_webhook_secret
+
+    try:
+        return load_webhook_secret(secret_file)
+    except OSError as exc:
+        raise click.ClickException(
+            f"cannot read webhook secret file: {exc.strerror or exc}"
+        ) from exc
+    except (WebhookSecretError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+def _deliver_alerts(
+    webhook, allow_http, root, results, events, inspections, signing_secret=None
+) -> None:
+    """Post only alerts not yet delivered, with retry and dead letter (W1, #78).
+
+    Never fails the check: delivery problems are reported, and the
+    verdict and exit code stay the check's own.
+    """
+    from functools import partial
+
+    from core.delivery import collect_alerts, deliver, render_alerts
+    from core.notify import WebhookPolicy, post_digest
+
+    coverage = None
+    if inspections:
+        status, reasons = _coverage_summary(inspections)
+        coverage = {"status": status, "reasons": reasons}
+    alerts = collect_alerts(results, events, coverage)
+    post = partial(
+        post_digest,
+        webhook,
+        policy=WebhookPolicy(allow_http=allow_http),
+        signing_secret=signing_secret,
+    )
+    try:
+        report = deliver(
+            root,
+            alerts,
+            post,
+            partial(render_alerts, coverage_note=_coverage_note(inspections)),
+        )
+    except TimeoutError:
+        _echo("delivery state busy - another run is delivering; nothing posted this run")
+        return
+    if report["sent"] and report["delivered"]:
+        _echo(f"posted {report['sent']} new alert(s) (http {report['status_code']})")
+    elif report["sent"]:
+        # Delivery failure must not mask the check result itself.
+        _echo(f"webhook delivery failed: {report['error']}")
+        pending = report["sent"] - report["dead_lettered"]
+        if pending:
+            _echo(f"{pending} alert(s) pending: retried on a later run")
+    else:
+        _echo("no new alerts: nothing posted")
+    if report["already_delivered"] or report["waiting"]:
+        _echo(
+            f"{report['already_delivered']} alert(s) already delivered, "
+            f"{report['waiting']} waiting for retry backoff"
+        )
+    if report["dead_lettered"]:
+        _echo(
+            f"dead-lettered {report['dead_lettered']} alert(s) after repeated failures: "
+            f"see {root}/alerts.json"
+        )
+
+
 def _echo_run_coverage(inspections) -> str:
     """Print the run-level repository coverage (if any) and return it."""
+    from core import coverage
+
     status, reasons = _coverage_summary(inspections)
     if inspections:
-        _echo(f"repository inspection coverage: {status}")
+        _echo(f"repository inspection coverage: {coverage.describe(status, reasons)}")
         for reason in reasons:
             _echo(f"   - {reason}")
     return status
@@ -765,7 +2538,7 @@ def _github_auth_options(func):
         "--github-token-file",
         type=click.Path(exists=True, dir_okay=False),
         default=None,
-        help="Read a GitHub token from the first line of PATH (maximum 4 KiB)",
+        help="Read a GitHub token from PATH: one non-empty line, visible ASCII (maximum 4 KiB)",
     )(func)
     func = click.option(
         "--github-token",
@@ -834,7 +2607,7 @@ def _load_check_inputs(
         elif skipped:
             _echo(f"sbom: 0 mapped, {len(skipped)} skipped — nothing checkable in this SBOM")
         for line in skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if spdx:
         from core.sbom_reader import read_spdx
 
@@ -853,7 +2626,7 @@ def _load_check_inputs(
         elif spdx_skipped:
             _echo(f"spdx: 0 mapped, {len(spdx_skipped)} skipped — nothing checkable in this SPDX")
         for line in spdx_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if images:
         from core.image_inventory import read_image_inventory
 
@@ -862,7 +2635,7 @@ def _load_check_inputs(
         except ValueError as e:
             raise click.ClickException(f"{images}: {e}")
         for line in img_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
         if img_deps:
             _echo(f"images: {len(img_deps)} image ref(s) from inventory")
             deps = [*deps, *img_deps]
@@ -878,7 +2651,13 @@ def _load_check_inputs(
             lock_deps, lock_skipped, lock_format = read_lockfile(lockfile)
         except ValueError as e:
             raise click.ClickException(f"{lockfile}: {e}")
-        label = {"npm": "package-lock", "poetry": "poetry.lock", "cargo": "Cargo.lock"}[lock_format]
+        label = {
+            "npm": "package-lock",
+            "poetry": "poetry.lock",
+            "cargo": "Cargo.lock",
+            "composer": "composer.lock",
+            "nuget": "packages.lock.json",
+        }.get(lock_format, lock_format)
         if lock_deps:
             _echo(
                 f"lockfile ({label}): {len(lock_deps)} pinned package(s), "
@@ -891,7 +2670,7 @@ def _load_check_inputs(
                 f"{len(lock_skipped)} skipped — nothing checkable in this lockfile"
             )
         for line in lock_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if manifest:
         from core.manifest_reader import read_manifest
 
@@ -917,7 +2696,7 @@ def _load_check_inputs(
                 f"{len(man_skipped)} skipped — nothing checkable in this manifest"
             )
         for line in man_skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
     if github_repo:
         from core.github_reader import inspect_github_repo
 
@@ -928,10 +2707,12 @@ def _load_check_inputs(
         for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}")
         for line in inspection.skipped:
-            _echo(f"! skipped: {line}")
+            _echo(f"! skipped: {strip_unsafe(line)}")
         for reason in inspection.coverage_reasons:
             _echo(f"! coverage: {reason}")
         _echo(f"github-repo ({github_repo}): inspection coverage {inspection.coverage}")
+        if line := _scope_line(inspection):
+            _echo(f"github-repo ({github_repo}): {line}")
         inspections.append(inspection)
         if inspection.dependencies:
             _echo(
@@ -1030,19 +2811,21 @@ def _load_check_inputs(
     "--fail-on-partial",
     is_flag=True,
     help="Exit 1 when repository inspection coverage is PARTIAL or FAILED "
-    "(report-only by default; FAILED always fails under --strict)",
+    "(report-only by default; FAILED always fails under --strict or --fail-on)",
 )
 @click.option(
     "--fail-on",
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
     show_default=False,
-    help="CI exit threshold: affected, review, action, or critical",
+    help="CI exit threshold: affected, review, action, or critical. "
+    "Also exits 1 when repository inspection coverage is FAILED",
 )
 @click.option(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (recording is the default; '' disables)",
 )
@@ -1066,6 +2849,34 @@ def _load_check_inputs(
     is_flag=True,
     help="Opt in to plain-http webhooks (https is required by default)",
 )
+@click.option(
+    "--delivery-state",
+    "delivery_root",
+    default=".openpulse/deliveries",
+    callback=_untracked,
+    envvar="OPENPULSE_DELIVERY_STATE",
+    show_default=True,
+    show_envvar=True,
+    help="Webhook delivery state: post each alert once, retry failures, dead-letter "
+    "after repeated failures ('' posts the whole digest every run)",
+)
+@click.option(
+    "--webhook-secret-file",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Sign webhook posts with the secret on the first line of PATH "
+    "(or set OPENPULSE_WEBHOOK_SECRET); receivers verify X-OpenPulse-Signature",
+)
+@_policy_option
+@_history_key_option
+@_registry_changes_option
+@_observe_repositories_option
+@click.option(
+    "--new-only",
+    is_flag=True,
+    help="List only dependencies with a detection first recorded in this run (needs the "
+    "ledger). Counts and gates still cover every dependency",
+)
 def check(
     watchlist,
     sbom,
@@ -1081,6 +2892,8 @@ def check(
     digest,
     webhook,
     webhook_allow_http,
+    delivery_root,
+    webhook_secret_file,
     fail_on_partial,
     github_repo="",
     github_token="",
@@ -1088,11 +2901,19 @@ def check(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
+    policy_path=None,
+    registry_changes=False,
+    observe_repositories=False,
+    observation_store=".openpulse/observations",
+    new_only=False,
 ):
     """Dependency Early Warning: evaluate a watchlist against events."""
     from core.risk.check import check_dependency
 
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
+    signing_secret = _load_webhook_secret(webhook_secret_file) if webhook else None
     deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
@@ -1106,41 +2927,62 @@ def check(
         raw_bundle_dir,
     )
     run_coverage = _echo_run_coverage(inspections)
-    coverage_failed = run_coverage == "FAILED"
-    coverage_blocked = fail_on_partial and run_coverage in ("PARTIAL", "FAILED")
+    # Any gate (--strict, --fail-on, --fail-on-partial) fails on a
+    # repository it could not read; PARTIAL fails only --fail-on-partial.
+    coverage_blocked = (fail_on_partial and run_coverage in ("PARTIAL", "FAILED")) or (
+        (strict or bool(fail_on)) and run_coverage == "FAILED"
+    )
     affected = 0
     # A flag, not a subcommand: digest is a presentation of the same run,
     # so --strict semantics stay identical in both shapes.
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    # Registry changes (W1) are built per dependency and judged with it alone.
+    own_events = _dependency_registry_events(deps) if registry_changes else {}
+    if observe_repositories:
+        own_events = _merge_own_events(
+            own_events,
+            _dependency_repository_events(
+                deps, observation_store, history_key_file, history_previous_keys_file
+            ),
+        )
     results = [
         check_dependency(
             dep,
-            loaded_events,
+            [*loaded_events, *own_events.get(index, [])],
             bundles,
             as_of=evaluation.as_of,
             max_evidence_age=evaluation.max_evidence_age,
         )
-        for dep in deps
+        for index, dep in enumerate(deps)
     ]
+    loaded_events = [*loaded_events, *(e for events in own_events.values() for e in events)]
+    violations = _policy_violations(deps, _load_policy(policy_path), lockfile)
     # Durable detection ledger: an empty --ledger value disables it
     # (per-run behavior, exactly like today); anything else is the root.
     # Acquisition is best-effort BY DESIGN: the ledger is an
     # enrichment, never a prerequisite - a busy lock must degrade the
     # run to today's no-ledger output, not crash the command a cron
     # schedule depends on.
+    new_report = None
+    if new_only and not ledger_root:
+        raise click.ClickException("--new-only needs the ledger (--ledger must not be empty)")
     if ledger_root:
-        from core.detections.ledger import first_seen, record_detection
+        from core.detections.ledger import keyed_first_seen
+        from core.history_key import keyring
+        from core.new_detections import record_new_detections
         from core.risk.check import detections_from_verdicts
 
+        history_key, previous_keys = _load_history_key(
+            history_key_file, history_previous_keys_file, ledger_root
+        )
         try:
-            for fact in detections_from_verdicts(results, loaded_events):
-                record_detection(
-                    fact["project"],
-                    fact["finding_class"],
-                    fact["subject"],
-                    scope=fact["scope"],
-                    root=ledger_root,
-                )
+            new_report = record_new_detections(
+                results,
+                loaded_events,
+                ledger_root=ledger_root,
+                history_key=history_key,
+                previous_keys=previous_keys,
+            )
         except TimeoutError:
             _echo("ledger busy - detections not recorded this run", err=True)
         else:
@@ -1157,12 +2999,13 @@ def check(
                         seen
                         for fact in detections_from_verdicts([result], loaded_events)
                         if (
-                            seen := first_seen(
+                            seen := keyed_first_seen(
                                 fact["project"],
                                 fact["finding_class"],
                                 fact["subject"],
                                 scope=fact["scope"],
                                 root=ledger_root,
+                                keys=keyring(history_key, previous_keys),
                             )
                         )
                     ),
@@ -1173,13 +3016,27 @@ def check(
     if digest or webhook:
         from analyzers.report_analyst import render_check_digest
 
-        text = render_check_digest(results)
+        text = render_check_digest(results, coverage_note=_coverage_note(inspections))
         _echo(text)
-        if webhook:
+        _echo_new(new_report)
+        if webhook and delivery_root:
+            _deliver_alerts(
+                webhook,
+                webhook_allow_http,
+                delivery_root,
+                results,
+                loaded_events,
+                inspections,
+                signing_secret,
+            )
+        elif webhook:
             from core.notify import WebhookPolicy, post_digest
 
             delivery = post_digest(
-                webhook, text, policy=WebhookPolicy(allow_http=webhook_allow_http)
+                webhook,
+                text,
+                policy=WebhookPolicy(allow_http=webhook_allow_http),
+                signing_secret=signing_secret,
             )
             if delivery["ok"]:
                 _echo(f"posted digest (http {delivery['status_code']})")
@@ -1191,14 +3048,24 @@ def check(
         from core.risk.check import fail_on_threshold
 
         threshold = fail_on or ("action" if strict else "")
+        if _report_violations(violations):
+            raise SystemExit(1)
         if threshold and fail_on_threshold(results, threshold):
             raise SystemExit(1)
-        if coverage_blocked or (strict and coverage_failed):
+        if coverage_blocked:
+            _echo(f"repository inspection coverage {run_coverage}: gate failed")
             raise SystemExit(1)
         return
+    registry_titles = {e.id: e.title for events in own_events.values() for e in events}
+    # --new-only (W4): only dependencies with a detection first recorded this
+    # run are listed. The counts and every gate still cover all of them.
+    newly = {item["dependency"] for item in new_report["new"]} if new_report else set()
     for dep, result in zip(deps, results):
         label = dep.get("ref") or f"{dep.get('package')}=={dep.get('version') or '?'}"
         relationship = result.relationship
+        if new_only and str(result.dependency) not in newly:
+            affected += 1 if result.affected else 0
+            continue
         if result.affected:
             affected += 1
             first_note = (
@@ -1207,7 +3074,10 @@ def check(
             _echo(f"🚨 {label}: AFFECTED ({relationship}){first_note}")
             for verdict in result.verdicts:
                 if verdict["affected"]:
-                    _echo(f"   - [{verdict['impact']}] {verdict['detail']}")
+                    # A registry change (W1) says what changed, not only how it matched.
+                    what = registry_titles.get(str(verdict.get("event_id")))
+                    detail = f"{what} ({verdict['detail']})" if what else verdict["detail"]
+                    _echo(f"   - [{verdict['impact']}] {detail}")
         elif relationship == "NOT_AFFECTED":
             _echo(f"✅ {label}: NOT_AFFECTED — {result.reason}")
         elif relationship == "RELATED":
@@ -1223,16 +3093,27 @@ def check(
         )
         for reason in reasons:
             _echo(f"   - {reason}")
-    _echo(f"\n{affected}/{len(deps)} dependencies affected")
+    if run_coverage in ("PARTIAL", "FAILED"):
+        # S4: the count alone reads as an all-clear over an unread repository.
+        _echo(
+            f"\n{affected}/{len(deps)} dependencies affected, over {run_coverage} repository "
+            "coverage: what was not inspected was not checked (see above)"
+        )
+    else:
+        _echo(f"\n{affected}/{len(deps)} dependencies affected")
+    _echo_new(new_report)
     from core.risk.check import fail_on_threshold, strict_affected
 
     # Same gate as the digest branch: --fail-on must not depend on
     # the presentation (it was silently ignored here before).
+    if _report_violations(violations):
+        raise SystemExit(1)
     if fail_on and fail_on_threshold(results, fail_on):
         raise SystemExit(1)
     if strict and strict_affected(results):
         raise SystemExit(1)
-    if coverage_blocked or (strict and coverage_failed):
+    if coverage_blocked:
+        _echo(f"repository inspection coverage {run_coverage}: gate failed")
         raise SystemExit(1)
 
 
@@ -1311,9 +3192,11 @@ def check(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
+@_history_key_option
 def digest(
     watchlist,
     sbom,
@@ -1332,6 +3215,8 @@ def digest(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """M6 Early Warning: alert digest - upcoming deadlines for YOUR dependencies."""
     from core.digest import build_digest, render_digest_md
@@ -1340,7 +3225,7 @@ def digest(
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read digests without a ledger: no lead-time claims
-    deps, loaded_events, bundles, _inspections = _load_check_inputs(
+    deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1368,7 +3253,15 @@ def digest(
         )
         for dep in deps
     ]
-    built = build_digest(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    built = build_digest(
+        results,
+        loaded_events,
+        ledger_root=ledger_root,
+        window_days=window_days,
+        history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
+    )
+    if note := _coverage_note(inspections):
+        built["coverage_note"] = note
     if output == "json":
         import json as _json
 
@@ -1455,9 +3348,19 @@ def digest(
     "--ledger",
     "ledger_root",
     default=".openpulse/detections",
+    callback=_untracked,
     show_default=True,
     help="Durable first-detection ledger root (read-only; `openpulse check` records)",
 )
+@click.option(
+    "--fail-on",
+    "fail_on",
+    type=click.Choice(["overdue", "critical", "high", "medium", "low"]),
+    default=None,
+    help="CI gate: exit 1 when a deadline at or above this severity is in the window "
+    "(critical includes overdue), or when repository inspection coverage is FAILED",
+)
+@_history_key_option
 def warnings(
     watchlist,
     sbom,
@@ -1470,12 +3373,15 @@ def warnings(
     window_days,
     output,
     ledger_root,
+    fail_on=None,
     github_repo="",
     github_token="",
     github_token_file=None,
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    history_key_file=None,
+    history_previous_keys_file=None,
 ):
     """M6 Early Warning: warning deadlines for YOUR upcoming changes."""
     from core.risk.check import check_dependency
@@ -1484,7 +3390,7 @@ def warnings(
     github_token = _resolve_github_token(github_repo, github_token, github_token_file)
     if ledger_root == "":
         ledger_root = None  # read warnings without a ledger: no lead-time claims
-    deps, loaded_events, bundles, _inspections = _load_check_inputs(
+    deps, loaded_events, bundles, inspections = _load_check_inputs(
         watchlist,
         sbom,
         spdx,
@@ -1512,13 +3418,45 @@ def warnings(
         )
         for dep in deps
     ]
-    built = build_warnings(results, loaded_events, ledger_root=ledger_root, window_days=window_days)
+    built = build_warnings(
+        results,
+        loaded_events,
+        ledger_root=ledger_root,
+        window_days=window_days,
+        history_keys=_history_keyring(history_key_file, history_previous_keys_file, ledger_root),
+    )
+    if note := _coverage_note(inspections):
+        built["coverage_note"] = note
     if output == "json":
         import json as _json
 
         _echo(_json.dumps(built, indent=2))
-        return
-    _echo(render_warnings_md(built))
+    else:
+        _echo(render_warnings_md(built))
+    if fail_on:
+        _warnings_gate(built, fail_on, inspections)
+
+
+def _warnings_gate(built, fail_on, inspections) -> None:
+    """`warnings --fail-on`: exit 1 on a deadline at or above the severity (W2).
+
+    Printed to stderr, so `--output json` stays parseable. As every other
+    gate, it never passes on a repository it could not read.
+    """
+    from core.warnings import gate_breaches
+
+    breaches = gate_breaches(built, fail_on)
+    if breaches:
+        severities = sorted({w["severity"] for w in breaches})
+        _echo(
+            f"fail-on {fail_on}: {len(breaches)} deadline(s) at or above "
+            f"{fail_on.upper()} ({', '.join(severities)})",
+            err=True,
+        )
+        raise SystemExit(1)
+    if inspections and _coverage_summary(inspections)[0] == "FAILED":
+        _echo("repository inspection coverage FAILED: gate failed", err=True)
+        raise SystemExit(1)
 
 
 @cli.command()
@@ -1613,7 +3551,53 @@ def warnings(
     type=click.Choice(["affected", "review", "action", "critical"]),
     default=None,
     help="Exit 1 after writing every output when the same threshold `check --fail-on` "
-    "uses is breached",
+    "uses is breached, or when repository inspection coverage is FAILED",
+)
+@click.option(
+    "--trust",
+    "trust",
+    is_flag=True,
+    help="Also check trust for PyPI and npm dependencies (live lookups) and record it in "
+    "each contract's trust_assurance (2.4.0); never part of a verdict",
+)
+@click.option(
+    "--private-names",
+    "private_names",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="With --trust: private-name list (default: .openpulse/private-packages.txt if present)",
+)
+@click.option(
+    "--base-manifest",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="The base copy of --manifest (e.g. the pull request's base branch): trust checks "
+    "run only for dependencies added or changed since it",
+)
+@click.option(
+    "--base-lockfile",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="The base copy of --lockfile, as --base-manifest",
+)
+@_policy_option
+@_registry_changes_option
+@_observe_repositories_option
+@_history_key_option
+@click.option(
+    "--ledger",
+    "ledger_root",
+    default="",
+    callback=_untracked,
+    help="Record this run's detections in the detection ledger at PATH and say which are "
+    "new since the last run (off by default; `check` uses .openpulse/detections)",
+)
+@click.option(
+    "--new-findings",
+    "new_findings_path",
+    default="",
+    type=click.Path(dir_okay=False),
+    help="With --ledger: write the detections first recorded in this run to PATH as JSON",
 )
 def attest(
     watchlist,
@@ -1635,8 +3619,20 @@ def attest(
     replay=False,
     max_evidence_age_days=None,
     as_of=None,
+    trust=False,
+    private_names=None,
+    policy_path=None,
+    base_manifest=None,
+    base_lockfile=None,
+    registry_changes=False,
+    observe_repositories=False,
+    observation_store=".openpulse/observations",
+    history_key_file=None,
+    history_previous_keys_file=None,
+    ledger_root="",
+    new_findings_path="",
 ):
-    """Emit one evidence-contract v1 document per dependency × event pair.
+    """Emit one evidence-contract document per dependency × event pair.
 
     JSONL: one schema-valid contract per line, so stdout stays
     pipeable; progress chatter goes to stderr. Each document is
@@ -1648,7 +3644,7 @@ def attest(
     import json as _json
     from pathlib import Path as _Path
 
-    from core.evidence_contract import build_v1_contract, validate_v1_contract
+    from core.evidence_contract import build_contract, validate_contract
     from core.risk.check import check_dependency, load_watchlist_doc
 
     has_input = watchlist or sbom or spdx or images or lockfile or manifest or github_repo
@@ -1744,13 +3740,15 @@ def attest(
         for err in inspection.errors:
             _echo(f"! error: {err.get('safe_message', 'unknown error')}", err=True)
         for line in inspection.skipped:
-            _echo(f"! skipped: {line}", err=True)
+            _echo(f"! skipped: {strip_unsafe(line)}", err=True)
         for reason in inspection.coverage_reasons:
             _echo(f"! coverage: {reason}", err=True)
         _echo(
             f"github-repo ({github_repo}): inspection coverage {inspection.coverage}",
             err=True,
         )
+        if line := _scope_line(inspection):
+            _echo(f"github-repo ({github_repo}): {line}", err=True)
         inspections.append(inspection)
         if inspection.dependencies:
             _echo(
@@ -1785,7 +3783,12 @@ def attest(
     # Repository-level coverage: a FAILED/PARTIAL scan must reach every
     # emitted contract, even when the dependency came from another input,
     # so a partially read repository is never attested as clean.
-    coverage_override = None
+    # No repository in the run (watchlist/SBOM/lockfile/manifest/images):
+    # contract 2.1 says NOT_APPLICABLE, not COMPLETE coverage of a scan
+    # that never happened (#109).
+    coverage_override = {"status": "NOT_APPLICABLE", "reasons": []}
+    # One repository input per run: its scope (S3, contract 2.4) is the run's.
+    inspection_scope = inspections[0].scope if len(inspections) == 1 else None
     if inspections:
         run_status, run_reasons = _coverage_summary(inspections)
         _echo(f"repository inspection coverage: {run_status}", err=True)
@@ -1793,12 +3796,35 @@ def attest(
             _echo(f"   - {reason}", err=True)
         coverage_override = {"status": run_status, "reasons": run_reasons}
     evaluation = _evaluation(replay, max_evidence_age_days, as_of)
+    loaded_policy = _load_policy(policy_path)
+    base_keys = _base_keys([base_manifest, base_lockfile])
+    names = _private_name_list(private_names) if loaded_policy or trust else None
+    trust_blocks = _attest_trust(deps, names, base_keys) if trust else {}
+    violations = _policy_violations(
+        deps,
+        loaded_policy,
+        lockfile,
+        trust_blocks if trust else None,
+        base_keys,
+        base_lockfile,
+        private_names=names,
+    )
     # One contract per dependency x event: the attested pair is the
     # unit of consumption, not the combined verdict over all events.
     lines: list[str] = []
     rendered: list[tuple[dict[str, Any], str]] = []
-    for dep, uri in zip(deps, uris, strict=True):
-        for event in loaded_events:
+    labels: dict[int, str] = {}
+    # Registry changes (W1): events built for one dependency, attested with it alone.
+    own_events = _dependency_registry_events(deps) if registry_changes else {}
+    if observe_repositories:
+        own_events = _merge_own_events(
+            own_events,
+            _dependency_repository_events(
+                deps, observation_store, history_key_file, history_previous_keys_file
+            ),
+        )
+    for index, (dep, uri) in enumerate(zip(deps, uris, strict=True)):
+        for event in [*loaded_events, *own_events.get(index, [])]:
             verdict = check_dependency(
                 dep,
                 [event],
@@ -1806,14 +3832,16 @@ def attest(
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
             )
-            doc = build_v1_contract(
+            doc = build_contract(
                 event,
                 verdict,
                 inspection_coverage=coverage_override,
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
+                trust_assurance=trust_blocks.get(index),
+                inspection_scope=inspection_scope,
             )
-            problems = validate_v1_contract(doc)
+            problems = validate_contract(doc)
             if problems:
                 # A document OpenPulse itself cannot validate must
                 # never reach a consumer: fail loudly, emit nothing.
@@ -1822,6 +3850,51 @@ def attest(
                 )
             lines.append(_json.dumps(doc, sort_keys=True))
             rendered.append((doc, uri))
+            labels[index] = str(doc["affected_dependency"]["label"])
+    # Violations, located like the contracts they concern (SARIF, DefectDojo).
+    located = [
+        dict(v, uri=uris[v["index"]], label=labels[v["index"]])
+        for v in violations
+        if v["index"] in labels
+    ]
+    # What this run detected for the first time (W4), from the combined
+    # per-dependency verdicts `check` records. Recorded before any gate
+    # exits: a failed gate does not make the detection less true.
+    new_report = None
+    if new_findings_path and not ledger_root:
+        raise click.ClickException("--new-findings needs --ledger")
+    if ledger_root:
+        from core.new_detections import record_new_detections
+
+        history_key, previous_keys = _load_history_key(
+            history_key_file, history_previous_keys_file, ledger_root
+        )
+        try:
+            new_report = record_new_detections(
+                [
+                    check_dependency(
+                        dep,
+                        [*loaded_events, *own_events.get(index, [])],
+                        bundles,
+                        as_of=evaluation.as_of,
+                        max_evidence_age=evaluation.max_evidence_age,
+                    )
+                    for index, dep in enumerate(deps)
+                ],
+                [*loaded_events, *(e for events in own_events.values() for e in events)],
+                ledger_root=ledger_root,
+                history_key=history_key,
+                previous_keys=previous_keys,
+            )
+        except TimeoutError:
+            _echo("ledger busy - detections not recorded this run", err=True)
+        _echo_new(new_report, err=True)
+        if new_findings_path:
+            payload = dict(new_report or {"baseline": False, "new": [], "facts": 0, "new_facts": 0})
+            payload["recorded"] = new_report is not None
+            _Path(new_findings_path).write_text(
+                _json.dumps(payload, indent=2, sort_keys=True) + NL, encoding="utf-8"
+            )
     if sarif_path or summary_path:
         from core.sarif import build_sarif, render_summary
 
@@ -1829,6 +3902,7 @@ def attest(
             rendered,
             tool_version=openpulse_version(),
             coverage=coverage_override,
+            trust_violations=located,
         )
         if sarif_path:
             _Path(sarif_path).write_text(
@@ -1841,10 +3915,14 @@ def attest(
             # every step of the job.
             with open(summary_path, "a", encoding="utf-8") as handle:
                 handle.write(render_summary(sarif_doc))
+                if new_report is not None:
+                    from core.new_detections import render_new_md
+
+                    handle.write(render_new_md(new_report))
     if defectdojo_path:
         from core.defectdojo import build_findings
 
-        dojo = build_findings(rendered)
+        dojo = build_findings(rendered, located)
         _Path(defectdojo_path).write_text(
             _json.dumps(dojo, indent=2, sort_keys=True) + NL, encoding="utf-8"
         )
@@ -1855,6 +3933,8 @@ def attest(
     else:
         for line in lines:
             click.echo(line)
+    if _report_violations(violations):
+        raise SystemExit(1)
     if fail_on:
         from core.risk.check import fail_on_threshold
 
@@ -1863,42 +3943,63 @@ def attest(
         combined = [
             check_dependency(
                 dep,
-                loaded_events,
+                [*loaded_events, *own_events.get(index, [])],
                 bundles,
                 as_of=evaluation.as_of,
                 max_evidence_age=evaluation.max_evidence_age,
             )
-            for dep in deps
+            for index, dep in enumerate(deps)
         ]
         if fail_on_threshold(combined, fail_on):
             _echo(f"fail-on {fail_on}: threshold breached", err=True)
             raise SystemExit(1)
+        # A gate never passes on a repository it could not read.
+        if coverage_override and coverage_override["status"] == "FAILED":
+            _echo("repository inspection coverage FAILED: gate failed", err=True)
+            raise SystemExit(1)
 
 
 @cli.command()
-@click.option("--store", default=".openpulse/observations", help="History root directory")
+@click.option(
+    "--store",
+    default=".openpulse/observations",
+    help="History root directory",
+    callback=_store_root,
+)
 @click.option(
     "--projects", default="", help="Comma-separated slugs (default: every image in the catalog)"
 )
 @click.option("--out", default="", help="Write findings JSON here (default: print only)")
-def sweep(store, projects, out):
+@_history_key_option
+def sweep(store, projects, out, history_key_file=None, history_previous_keys_file=None):
     """Distribution discovery: probe every catalog image, diff against history."""
     from collectors.registries.docker import RegistryCollector
     from core.entities.catalog import load_catalog
     from core.observations.sweep import sweep_catalog, sweep_targets
 
+    history_key, previous_keys = _load_history_key(
+        history_key_file, history_previous_keys_file, store
+    )
     catalog = load_catalog()
     slugs = [s.strip() for s in projects.split(",") if s.strip()] or None
     targets = sweep_targets(catalog)
     _echo(f"probing {len(targets)} catalog images...")
     collector = RegistryCollector()
-    result = sweep_catalog(catalog, collector.check_image, store_root=store, slugs=slugs)
+    result = sweep_catalog(
+        catalog,
+        collector.check_image,
+        store_root=store,
+        slugs=slugs,
+        history_key=history_key,
+        previous_keys=previous_keys,
+    )
     _echo(
         f"observations: {len(result['observations'])}, "
         f"changes: {len(result['changes'])}, "
         f"findings: {len(result['findings'])}, "
         f"errors: {len(result['errors'])}"
     )
+    _echo(f"history key: {history_key.key_id if history_key else 'none (history is unkeyed)'}")
     for finding in result["findings"]:
         _echo(f"- [{finding['impact']}] {finding['title']}")
     for error in result["errors"]:
@@ -1988,6 +4089,8 @@ def discover(
             "--github-token-file instead",
             err=True,
         )
+    if not github_token:
+        _warn_if_token_file_shared(github_token_file)
     try:
         token = get_github_token(github_token, github_token_file)
     except OSError as exc:

@@ -1,5 +1,7 @@
 # Methodology — how OpenPulse knows what it claims (schema v0.7.0)
 
+The monthly reports produced with this method are published at [openpulse.ikaruslabs.net](https://openpulse.ikaruslabs.net/) (generated reports: [`reports/`](../reports/)).
+
 ## Sources
 
 Upstream: GitHub releases + repo metadata, official blogs/changelogs.
@@ -12,7 +14,12 @@ npm, PyPI, Docker/OCI (initial).
 Sources are not equal. Tiers, strongest first:
 
 - **official** — the vendor/project itself (announcement, changelog,
-  advisory, repo). Alone sufficient for CONFIRMED.
+  advisory, repo). Alone sufficient for CONFIRMED. Derived, never taken
+  on trust: a source counts as official only when its URL is https and
+  names a location on the project's allowlist in
+  `data/official_domains.yaml` (a host and its subdomains, or a host
+  with a path, such as `github.com/django`). Any other source claiming
+  official is read as secondary, and the gate names the reason.
 - **primary** — lifecycle databases (endoflife.date), registries
   serving protocol truth (tag lists, digests). Strong but narrow:
   endoflife.date proves dates, never distribution intent.
@@ -108,8 +115,12 @@ every version whose leading segments equal it (`versions.in_release_line`):
 
 Every claim names supporting evidence (`Claim.evidence_refs`); an
 official-but-unrelated source never satisfies a claim. Corroboration
-counts independent families, folding `derived_from` chains — and the
-monthly report counts families, not labels: NVD + OSV share the
+counts independent families, folding `derived_from` chains. A family is
+also derived from each source's URL: its registrable domain, or the
+host plus owner on shared hosts such as `github.com/bitnami`. Two
+pages on one site are one source, whatever families their producer
+declares; a declared family can merge sources but never split them.
+The monthly report counts families, not labels: NVD + OSV share the
 vuln-data family, and OpenPulse's own correlation never counts as an
 independent source (`source_family_count`,
 `corroborating_family_count`). Contradicting evidence stays visible
@@ -202,9 +213,13 @@ chain: an entry is a standalone earliest-witness record, so its own
 content hash meets the integrity need, and absence — deleted or
 never written — is
 indistinguishable from never-detected, which is exactly the
-"unknown means unknown" rule. Earliest evidence wins, including
-under clock skew: a later stamp never overwrites, an earlier
-trustworthy stamp is taken (correcting it would be an estimate).
+"unknown means unknown" rule. An entry's first sighting is fixed
+when it is created: a later stamp never overwrites it, and an earlier
+stamp is not taken, because the ledger never witnessed it. Every
+stamp must also lie within five minutes of UTC wall-clock time when
+it is recorded, so a caller cannot backdate a detection to inflate a
+lead time; a stamp outside that bound is refused and nothing is
+written (clock trust, finding L7).
 Deleting the ledger degrades to per-run behavior — no claims, never
 invented dates.
 
@@ -285,7 +300,8 @@ never identities. First sighting is a baseline; changes derive only
 from observation diffs. History lives in git-ignored local JSON —
 portable, no server.
 
-Observations are corruption-detecting: every persisted record carries a
+Observations are corruption-detecting without a history key and
+tamper-evident (keyed) with one (below): every persisted record carries a
 chain hash `H[n] = SHA256(canonical_fields(n) + H[n-1])` over
 observation id, source, entity, timestamps, content hash, parser
 version, and predecessor link; the first record links to an explicit
@@ -296,13 +312,158 @@ are frozen; concurrent writers serialize on a per-repository OS advisory lock
 (`core/filelock.py`, released by the OS if the holder dies)
 with atomic writes, and history is ordered by chain links, never
 filenames. Threat model: the chain defeats silent corruption,
-partial edits, and fork anomalies, and detects rollback only while
-`tip.json` survives - a deleted tip is adopted, so truncation or a
-full wipe re-baselines silently. It does not resist an adversary who
-recomputes the whole suffix (the hashes are unkeyed; there are no
-secrets in a local-first store). Keyed integrity, missing-tip
-rollback detection and external anchoring are planned for v0.9.0
-(`docs/NEXT_PHASES.md`).
+partial edits, and fork anomalies. Rollback and downgrade are refused,
+never adopted silently: a tip pointer that disagrees with the data
+(ROLLBACK), a chained history whose tip is missing
+(ROLLBACK_SUSPECTED), and an unchained record after chained ones or an
+unkeyed record after keyed ones (DOWNGRADE) all stop diffing and
+appending. Only `openpulse observe --rebaseline --reason "..."` accepts
+such a history: a rollback is accepted at its current tip, anything
+else is moved to a `quarantine-*` folder and restarted, the reason is
+logged in `rebaselines.json` (MACed under the history key), and no
+change claims cross the re-baseline. A full wipe of the repository's
+folder, tip included, still looks like a first run to the store
+itself; an anchor kept outside it detects that (below). It does not resist an adversary who
+recomputes the whole suffix, unless a history key is set.
+
+Repository observations (v0.20.0) keep GitHub repository facts the same
+way: `openpulse observe-github --repo owner/name` records the queried
+path and the path GitHub answers with, `archived`, GitHub's license id,
+the last push and the default branch, under `github.com/<owner>/<name>/`
+in the same store, with the same chain, tip, refusals, re-baseline,
+history-key MACs and anchor coverage. A 404 is recorded as `missing`
+(deleted, or not visible to the token); any other failure, such as a
+rate limit, records nothing, because it is not a fact about the
+repository. Paths are stored lower-case, as GitHub's are
+case-insensitive. A first observation is a baseline.
+
+Changes come only from two comparable records of one history (never
+across a genesis or a re-baseline). A new license id is a
+`LICENSE_CHANGE`; archiving is `PROJECT_ARCHIVED`; a new owner is
+`OWNERSHIP_CHANGE` (a same-owner rename stays silent, as in the snapshot
+rule). Each finding names the window between the two observations,
+because the change happened somewhere inside it; `effective_at` is when
+OpenPulse first saw it. A license that GitHub stops recognising (none,
+`NOASSERTION`) is lost evidence, not a relicense. An unarchive, a 404 and
+a restored repository are reported as changes but are not findings: a
+404 can mean a token that cannot see the repository. As with registry
+changes, `first_detected_at` is published only from a keyed history.
+
+## License changes between releases
+
+npm and PyPI record a license for each release, so a relicense can be
+checked without any history of OpenPulse's own (`openpulse
+release-license`, `core/release_license.py`). Releases are ordered by
+version precedence (semver for npm, PEP 440 for PyPI), not by publish
+time, so a backport of an older line never reads as a change back;
+prereleases and versions that do not order are left out, and a release
+without a usable license is skipped. npm's packument carries every
+release's license. PyPI's project document describes only the latest
+release, so two releases are compared, and a finding says when the
+releases between them were not. PyPI records a license three ways (PEP
+639 expression, the free-text field, classifiers); values of different
+kinds count as the same license when their text matches and are
+otherwise not compared. A change is a `LICENSE_CHANGE` for review, dated
+by the publish time of the release that carries the new license: it is
+what the publisher declared to the registry, not a reading of the
+license file.
+
+## Deprecated and withdrawn packages
+
+Three flags are set by the package's publisher on the registry itself
+(`openpulse deprecation`, `core/registry_deprecation.py`): npm's
+`deprecated` message, a yanked PyPI release (PEP 592) and the PyPI
+classifier "Development Status :: 7 - Inactive". npm is read through
+the `latest` version document and, when you name one, your version's;
+a deprecation on `latest` covers the package, one only on your version
+covers that release, and an empty message is a lifted deprecation. A
+PyPI release is yanked when all its files are; every release yanked, or
+the inactive classifier on the latest, covers the package. Each flag
+is a `DEPRECATION` for review carrying the publisher's message, bounded
+and single-line. The registry keeps no date for a flag, so
+`effective_at` is empty: OpenPulse knows when it saw the flag, not when
+it was set. A classifier is moderate evidence, as it describes the
+release it was published with and is rarely kept up to date.
+
+## Evidence rules for change evidence
+
+Each finding from repository history, release licenses and registry
+flags states its `confidence` and what it rests on (`evidence_basis`):
+
+- **A difference OpenPulse observed** (`observed_difference`): two
+  repository observations, or two releases' declared licenses. One
+  credible source: `EMERGING`.
+- **The publisher's own statement** (`publisher_statement`): npm's
+  `deprecated` and a PyPI yank are set by the publisher on its own
+  package: `CONFIRMED`. The Inactive classifier is also the publisher's,
+  but describes the release it shipped with: `EMERGING`.
+- **GitHub's license id** is a heuristic over the license file. A
+  license change it reports becomes `CORROBORATED` only when the
+  registry's license for the latest release of one of the project's
+  npm or PyPI packages names the new license (case, an SPDX `-only`
+  suffix and a trailing "License" ignored; nothing else). A registry
+  that still declares the old license leaves the finding `EMERGING`:
+  it may simply not have released since.
+
+First detection is recorded where a keyed history proves it (repository
+changes); release licenses and registry flags have no history of
+OpenPulse's own, so they carry none. Lead time is claimed for
+lifecycle events only: a relicense, an archive or a deprecation flag
+has no date it takes effect that OpenPulse could have warned ahead of.
+
+A class is claimed only with a verified, replayable case in
+`docs/DISCOVERIES.md` (`VERIFIED_CASES`); each finding carries
+`support: verified` and its cases, or `support: experimental`. Repository
+history is experimental until a real change is observed twice.
+
+With a history key (`OPENPULSE_HISTORY_KEY` or `--history-key-file`,
+made by `openpulse history-key generate`), every new observation
+record and detection-ledger entry also carries an HMAC-SHA256 under
+that key. The observation MAC covers the chain hash and
+`first_detected_at`; the ledger MAC covers the entry's content hash.
+Histories then verify VALID_KEYED (every MAC verifies), VALID_UNKEYED
+(hashes verify, but some record has no MAC), BROKEN or UNKNOWN (a MAC
+whose key was not supplied). An edit whose hashes were recomputed
+without the key is BROKEN under the key. A keyed history is never
+appended to without its key, and records written before the key stay
+unkeyed rather than being MACed after the fact. The key never lives in
+`.openpulse/`. Rotation keeps retired keys verify-only
+(`OPENPULSE_HISTORY_KEYS_PREVIOUS`, `--history-previous-keys-file`): the
+first observation written under a new key is a handover record, MACed
+by the retired key too, and a ledger rotation log (`rotations.json`,
+MACed by both keys) records when each key was retired. After a
+handover, a record under the retired key, a key change without a
+handover, or a ledger sighting under the retired key dated after its
+rotation is BROKEN, so a leaked retired key cannot extend history.
+
+History written before the key is adopted, never re-MACed as if it had
+always been keyed. In an observation chain, unkeyed records followed
+only by keyed ones verify VALID_KEYED: the first keyed record's chain
+hash pins them, and its `observed_at` is the adoption time. A ledger
+entry first written without a key gets `adopted_at`, under the MAC, the
+next time a keyed run writes it. Nothing before adoption is proved, so
+a lead time counts from the later of the first detection and the
+adoption: a lower bound, never an overstatement. Lead times in
+`digest`, `warnings`, `report` and `check` come only from VALID_KEYED
+ledger entries, and a sweep publishes a change's `first_detected_at`
+only from VALID_KEYED observation history; without a history key
+neither is published, and the output says so.
+
+Deletions that take their own evidence with them (a repository's whole
+history folder, a ledger entry, the rotation log) cannot be seen from
+inside the store. `openpulse anchor` writes a checkpoint: each
+history's tip, record and re-baseline counts, one leaf per ledger entry
+(`first_seen`, `adopted_at`) with an RFC 6962 Merkle root, and the
+rotation log, MACed under the history key. Kept outside `.openpulse/`
+(a git commit, a CI artifact), it is checked with `openpulse verify
+--anchor`: an anchored tip no longer in its chain, a wiped history, a
+deleted or backdated ledger entry, or a dropped log entry is a
+violation; growth after the anchor is not. A re-baseline after the
+anchor is a notice only when its log entry verifies under the key.
+With a history key, regular anchors stored out of reach, and `verify`
+in the schedule, local history is tamper-evident: an edit fails its
+MAC, and a rollback or deletion fails the anchor. Without a key, it is
+corruption-detecting only.
 
 Every registry-derived finding retains first-class observation
 evidence (`observation_evidence`: observation ids, hashes, chain
@@ -359,6 +520,50 @@ holds inside a file: a manifest that declares dependencies but yields
 none must refuse or record skips, never return a silent empty set
 (the namespaced pom.xml regression, #112).
 
+Files OpenPulse recognises but cannot read (`yarn.lock`, `pnpm-lock.yaml`,
+`uv.lock`, `Pipfile.lock`, a `package.json` without its lockfile, ...)
+are listed as not inspected, so coverage is PARTIAL (v0.16.0 S1).
+Requirements variants (`requirements-*.txt`, `requirements_*.txt`,
+`constraints*.txt`, any `.txt` in a `requirements/` directory) are read
+with the requirements parser (v0.18.0 S2). A `-r` or `-c` include pulls
+in lines from another file: coverage stays COMPLETE only when that file
+is itself in the repository and was inspected. An include of a URL, an
+absolute path, a path outside the repository or a file that was not
+inspected makes coverage PARTIAL and names it. A constraints file is read
+as pins: it decides the version of whatever installs those packages.
+
+Every inspection also states what it searched (v0.18.0 S3): the ref and
+commit, the file patterns read, the recognised names not read, the
+directories skipped with how many files each held, the limits and which
+applied, and how many dependency files were found and read. `check` and
+`attest` print it as one line, and evidence contract 2.4.0 carries it as
+`inspection_coverage.scope`. COMPLETE means complete over that search.
+
+No summary reads as an all-clear over PARTIAL or FAILED coverage
+(v0.18.0 S4). Every one that could (`check`, `digest`, `warnings`, the
+webhook body, the SARIF notification and the job summary) names what was
+not inspected by category, with counts, before the details: unsupported
+dependency files, requirements includes not inspected, files over the
+size limit, the repository size cap, the file-count cap, a truncated
+tree, unsafe paths, and files that could not be fetched or parsed. The
+SARIF run carries them as `inspection_coverage_categories`. `check`'s
+closing count says when it is over PARTIAL or FAILED coverage. Whether
+`--fail-on` should also fail on PARTIAL by default is open (decision 15);
+today that needs `--fail-on-partial`.
+
+Monorepos (v0.18.0 S5): every member is found and read, or listed as not
+inspected. `packages/`, the conventional monorepo directory, is searched;
+only NuGet's restore folder under it (`packages/<Id>.<version>/`) is
+skipped. An npm workspace member's `package.json` is covered by the
+`package-lock.json` of the workspace that lists it; a `package.json` no
+read lockfile lists is not inspected. pnpm workspaces and uv projects
+are listed as not inspected (their lockfiles are not read yet). A Cargo
+workspace root is read (`[workspace.dependencies]`, or a note for a
+virtual manifest that declares none), as are its members and Cargo.lock.
+Poetry projects, Go modules and Maven modules in subdirectories are read
+where they are; a Maven version inherited from a parent POM is recorded
+as skipped, never guessed.
+
 ## Uncertainty handling
 
 Unknown version → no version claim. Unknown identity → RELATED, not
@@ -414,9 +619,18 @@ HTTP status and the scheme + host only, because for Slack/Teams/Discord
 incoming webhooks the URL path is the credential, and shared redaction
 strips webhook paths, `Bearer` credentials and GitHub/Slack token
 shapes. Prefer `OPENPULSE_WEBHOOK_URL` over `--webhook` so the URL
-stays out of the process list. Known limitation: DNS is
-resolved before connecting, so a hostile resolver could race the
-check; short timeouts and no-redirects bound the blast radius.
+stays out of the process list. DNS is resolved once and the
+connection is pinned to the checked addresses (v0.10.0, #242), so a
+rebinding resolver cannot steer delivery elsewhere.
+
+With a webhook secret (`OPENPULSE_WEBHOOK_SECRET` or
+`--webhook-secret-file`, v0.11.0), every post is signed
+(`core/webhook_signing.py`): `X-OpenPulse-Timestamp` (Unix seconds) and
+`X-OpenPulse-Signature: v1=<hex>`, an HMAC-SHA256 over
+`"<timestamp>." + body` on the exact bytes sent. A receiver verifies
+over the raw body in constant time and rejects a timestamp more than
+300 seconds from its clock, which bounds replay. The secret is never
+printed or stored.
 
 ## Alert digest — the first M6 early-warning surface (`core/digest.py`)
 

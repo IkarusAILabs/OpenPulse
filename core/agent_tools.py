@@ -17,18 +17,26 @@ Principles carried over unchanged:
   is reported as such, never as "no problems".
 - Read-only and bounded: lookups are cached per process, file inputs go
   through the bounded readers, and dependency counts are capped.
+- Limits are stated, never silent (v0.11.0 W4): every answer carries a
+  ``lookups`` block (session budget, used, remaining, per-source
+  timeout); a lookup the budget or a per-file cap refused is listed in
+  ``not_established`` with the reason.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
 from datetime import time as dt_time
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
+from collectors.errors import strip_unsafe
 from core.resources import data_path
 
 #: Curated events bundled with OpenPulse - the same default set as the
@@ -44,6 +52,15 @@ _BRIDGED_EVENT_TYPES = ("EOL", "EOS")
 MAX_FILE_DEPENDENCIES = 300
 MAX_LIVE_PROJECTS = 40
 _CACHE_TTL_SECONDS = 3600.0
+#: Live fetches one server session may make (cache hits are free). Past
+#: it, lookups are refused and every answer says so (W4).
+MAX_SESSION_LOOKUPS = 200
+#: Per-source HTTP timeout of the live collectors, in seconds.
+LOOKUP_TIMEOUT_SECONDS = 10.0
+#: Cross-session cache for project_lifecycle (W4): same TTL as in session.
+CACHE_DIR_ENV = "OPENPULSE_CACHE_DIR"
+_CACHE_MAX_BYTES = 2_000_000
+_BUDGET_REASON = "session lookup budget spent ({budget} live lookups); ask again in a new session"
 
 NOTE = (
     "OpenPulse evidence, not a decision: verdicts state what the cited sources "
@@ -151,7 +168,7 @@ def curated_events() -> list[Any]:
     return events
 
 
-def live_fetcher(timeout: float = 10.0) -> Fetcher:
+def live_fetcher(timeout: float = LOOKUP_TIMEOUT_SECONDS) -> Fetcher:
     """Real collectors for one project slug; every source degrades to an
     error/skipped record, never an exception (collector contract)."""
     from collectors.endoflife.collector import EndoflifeCollector
@@ -175,25 +192,322 @@ def live_fetcher(timeout: float = 10.0) -> Fetcher:
     return fetch
 
 
+class BudgetExhausted(Exception):
+    """The session's live-lookup budget is spent (W4)."""
+
+
+def default_cache_dir() -> Path | None:
+    """``OPENPULSE_CACHE_DIR``, else the user cache directory; '' disables."""
+    configured = os.environ.get(CACHE_DIR_ENV)
+    if configured is not None:
+        return Path(configured) if configured.strip() else None
+    base = os.environ.get("XDG_CACHE_HOME") or os.environ.get("LOCALAPPDATA")
+    root = Path(base) if base else Path.home() / ".cache"
+    return root / "openpulse" / "lookups"
+
+
 class Lookups:
     """Per-process cache of live bundles (an agent asks about the same
-    projects repeatedly; the public APIs should not be hammered)."""
+    projects repeatedly; the public APIs should not be hammered).
 
-    def __init__(self, fetch: Fetcher | None = None, ttl: float = _CACHE_TTL_SECONDS):
+    ``budget`` caps live fetches per session (cache hits are free);
+    ``cache_dir`` backs :func:`project_lifecycle` across sessions with the
+    same TTL. Only bundles without a source error are written there, so a
+    failure is never replayed from disk.
+    """
+
+    def __init__(
+        self,
+        fetch: Fetcher | None = None,
+        ttl: float = _CACHE_TTL_SECONDS,
+        budget: int = MAX_SESSION_LOOKUPS,
+        cache_dir: Path | str | None = None,
+        clock: Callable[[], float] = time.time,
+        head: Callable[[str], int] | None = None,
+        fetch_json: Callable[[str], tuple[int, Any]] | None = None,
+        fetch_provenance: Callable[[str], tuple[int, Any]] | None = None,
+        verify: Callable[[Any, str, str], list[dict[str, Any]]] | None = None,
+        osv_query: Callable[[dict[str, Any]], tuple[int, Any]] | None = None,
+        fetch_text: Callable[[str], tuple[int, str | None]] | None = None,
+        fetch_github: Callable[[str], tuple[int, Any]] | None = None,
+    ):
         self._fetch = fetch
         self._ttl = ttl
         self._cache: dict[str, tuple[float, Bundle]] = {}
+        self.budget = budget
+        self.used = 0
+        self._cache_dir = Path(cache_dir) if cache_dir else None
+        self._clock = clock
+        #: slug -> age in seconds when the last answer came from the disk cache.
+        self.disk_hits: dict[str, int] = {}
+        self._head = head
+        self._fetch_json = fetch_json
+        self._fetch_provenance = fetch_provenance
+        self._verify = verify
+        self._osv_query = osv_query
+        self._fetch_text = fetch_text
+        self._fetch_github = fetch_github
+        #: GitHub repository answers (200 or 404) shared by repository_moved and
+        #: young_popular_repository, so the two checks make one request.
+        self._github: dict[str, tuple[float, tuple[int, Any]]] = {}
+        self._reputation: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
+        self._linkage: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
+        self._malicious: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
+        self._provenance: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
+        self._digests: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
+        self._existence: dict[tuple[str, str, str], tuple[float, list[dict[str, Any]]]] = {}
+        self._registry: dict[tuple[str, ...], tuple[float, dict[str, Any]]] = {}
 
-    def bundle(self, slug: str) -> Bundle:
+    @property
+    def remaining(self) -> int:
+        return max(self.budget - self.used, 0)
+
+    def status(self) -> dict[str, Any]:
+        """The ``lookups`` block every answer carries."""
+        return {
+            "budget": self.budget,
+            "used": self.used,
+            "remaining": self.remaining,
+            "timeout_seconds_per_source": LOOKUP_TIMEOUT_SECONDS,
+            "cache_ttl_seconds": int(self._ttl),
+        }
+
+    def bundle(self, slug: str, persistent: bool = False) -> Bundle:
+        """Live bundle for ``slug``; raises BudgetExhausted instead of fetching past the budget."""
         hit = self._cache.get(slug)
         now = time.monotonic()
         if hit is not None and now - hit[0] < self._ttl:
             return hit[1]
+        if persistent and (cached := self._read_disk(slug)) is not None:
+            self._cache[slug] = (now, cached)
+            return cached
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
         if self._fetch is None:
             self._fetch = live_fetcher()
+        self.used += 1
         raw = self._fetch(slug)
         self._cache[slug] = (now, raw)
+        if persistent:
+            self._write_disk(slug, raw)
         return raw
+
+    def existence(
+        self, ecosystem: str, name: str, version: str | None
+    ) -> list[dict[str, Any]]:
+        """Registry existence records (T-M1), cached per session like bundles.
+
+        One check spends one lookup from the budget, even when it needs a
+        second request to tell a missing version from a missing package.
+        A NOT_PERFORMED answer is never cached.
+        """
+        from core import registry_existence
+
+        key = (ecosystem, name, version or "")
+        hit = self._existence.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        records = registry_existence.check(ecosystem, name, version, head=self._head)
+        if all(r["status"] != registry_existence.NOT_PERFORMED for r in records):
+            self._existence[key] = (now, records)
+        return records
+
+    def digest_integrity(
+        self, ecosystem: str, name: str, version: str, locked: dict[str, list[str]]
+    ) -> dict[str, Any]:
+        """Digest integrity record (T-B4), cached per session; NOT_PERFORMED never cached."""
+        from core import digest_integrity
+
+        key = (ecosystem, name, version)
+        hit = self._digests.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = digest_integrity.check(ecosystem, name, version, locked, fetch=self._fetch_json)
+        if record["status"] != "NOT_PERFORMED":
+            self._digests[key] = (now, record)
+        return record
+
+    def provenance(self, name: str, version: str, expected: str | None) -> dict[str, Any]:
+        """PyPI provenance record (T-B1), cached per session; NOT_PERFORMED never cached."""
+        from core import provenance
+
+        key = (name, version, expected or "")
+        hit = self._provenance.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = provenance.check(
+            "PyPI",
+            name,
+            version,
+            expected_repository=expected,
+            fetch_json=self._fetch_json,
+            fetch_provenance=self._fetch_provenance,
+            verify=self._verify,
+        )
+        if record["status"] != "NOT_PERFORMED":
+            self._provenance[key] = (now, record)
+        return record
+
+    def malicious(self, ecosystem: str, name: str, version: str | None) -> dict[str, Any]:
+        """Malicious-package record (X1), cached per session; NOT_PERFORMED never cached."""
+        from core import malicious
+
+        key = (ecosystem, name, version or "")
+        hit = self._malicious.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = malicious.check(ecosystem, name, version, query=self._osv_query)
+        if record["status"] != "NOT_PERFORMED":
+            self._malicious[key] = (now, record)
+        return record
+
+    def linkage(
+        self,
+        ecosystem: str,
+        name: str,
+        version: str | None,
+        publishers: list[dict[str, Any]] | None,
+    ) -> dict[str, Any]:
+        """Repository linkage record (T-A4), cached per session; NOT_PERFORMED never cached."""
+        from core import repository_linkage
+
+        named = sorted(str(p.get("repository")) for p in publishers or [] if p.get("repository"))
+        key = (ecosystem, name, version or "", *named)
+        hit = self._linkage.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = repository_linkage.check(
+            ecosystem,
+            name,
+            version,
+            publishers=publishers,
+            fetch_json=self._fetch_json,
+            fetch_text=self._fetch_text,
+        )
+        if record["status"] != "NOT_PERFORMED":
+            self._linkage[key] = (now, record)
+        return record
+
+    def _github_answer(self, url: str) -> tuple[int, Any]:
+        """One GitHub API answer per session; failures are never cached."""
+        from core import repository_moved
+
+        now = time.monotonic()
+        hit = self._github.get(url)
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        answer = (self._fetch_github or repository_moved.default_fetch_github)(url)
+        if answer[0] in (200, 404):
+            self._github[url] = (now, answer)
+        return answer
+
+    def reputation(
+        self, check: str, ecosystem: str, name: str, version: str | None
+    ) -> dict[str, Any]:
+        """A reputation indicator record (T-C, v0.16.0): ``publisher_change``,
+        ``repository_moved`` or ``young_popular_repository``. Cached per
+        session; NOT_PERFORMED never cached. Each check spends one lookup."""
+        module = _reputation_module(check)
+        key = (check, ecosystem, name, version or "")
+        hit = self._reputation.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        if check == "publisher_change":
+            seams = {"fetch_provenance": self._fetch_provenance}
+        else:
+            seams = {"fetch_github": self._github_answer}
+        record = module.check(ecosystem, name, version, fetch_json=self._fetch_json, **seams)
+        if record["status"] != "NOT_PERFORMED":
+            self._reputation[key] = (now, record)
+        return record
+
+    def registry_change(
+        self, kind: str, ecosystem: str, name: str, version: str | None
+    ) -> dict[str, Any]:
+        """A v0.20.0 registry record for one release (v0.21.0 W1): ``deprecation``
+        (``core.registry_deprecation``) or ``release_license``
+        (``core.release_license``). Cached per session; NOT_PERFORMED never
+        cached. Each check spends one lookup."""
+        from core import registry_deprecation, release_license
+
+        module = {"deprecation": registry_deprecation, "release_license": release_license}[kind]
+        key = (kind, ecosystem, name, version or "")
+        hit = self._registry.get(key)
+        now = time.monotonic()
+        if hit is not None and now - hit[0] < self._ttl:
+            return hit[1]
+        if self.used >= self.budget:
+            raise BudgetExhausted(_BUDGET_REASON.format(budget=self.budget))
+        self.used += 1
+        record = module.check(ecosystem, name, version, fetch_json=self._fetch_json)
+        if record["status"] != module.NOT_PERFORMED:
+            self._registry[key] = (now, record)
+        return record
+
+    def _disk_path(self, slug: str) -> Path | None:
+        if self._cache_dir is None:
+            return None
+        safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in slug)[:120]
+        return self._cache_dir / f"{safe}.json"
+
+    def _read_disk(self, slug: str) -> Bundle | None:
+        path = self._disk_path(slug)
+        if path is None:
+            return None
+        try:
+            from core.bounded_io import read_bytes
+
+            entry = json.loads(read_bytes(str(path), _CACHE_MAX_BYTES, "lookup cache"))
+            age = self._clock() - float(entry["fetched_at"])
+            raw = entry["bundle"]
+        except (OSError, ValueError, KeyError, TypeError):
+            return None  # missing or unreadable: fetch again, never trust it
+        if not 0 <= age < self._ttl or entry.get("slug") != slug or not isinstance(raw, dict):
+            return None
+        self.disk_hits[slug] = int(age)
+        return raw
+
+    def _write_disk(self, slug: str, raw: Bundle) -> None:
+        path = self._disk_path(slug)
+        if path is None or any(
+            isinstance(e, dict) and e.get("error") for entries in raw.values() for e in entries
+        ):
+            return
+        import tempfile
+
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {"slug": slug, "fetched_at": self._clock(), "bundle": raw}
+            fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=".json")
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, default=str)
+            os.replace(tmp, path)
+        except (OSError, TypeError, ValueError):
+            return  # a cache that cannot be written is only a slower answer
 
 
 def _source_status(name: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
@@ -208,26 +522,63 @@ def _source_status(name: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
 
 def lifecycle_events(slug: str, raw: Bundle, today: date | None = None) -> list[Any]:
     """Lifecycle findings from a live bundle, bridged into matchable events."""
+    return _checked_lifecycle_events(slug, raw, today)[0]
+
+
+def _checked_lifecycle_events(
+    slug: str, raw: Bundle, today: date | None = None
+) -> tuple[list[Any], int]:
+    """(events, withheld): bridged lifecycle events whose scope is version-shaped.
+
+    Release-cycle strings come from endoflife.date, so they are upstream
+    text that the engine interpolates into reasons (T-F3 fix B). An event
+    whose scope versions are not version-shaped is withheld and counted,
+    never silently dropped. Checked here, at the agent boundary, not in
+    analyzers.lifecycle_events: evaluation/replay.py imports that module,
+    and the frozen evaluation must not change.
+    """
     from analyzers.change_analyst import analyze_endoflife
     from analyzers.lifecycle_events import finding_to_event
 
     findings = analyze_endoflife(raw.get("endoflife", []), today=today or date.today())
-    return [
+    events = [
         finding_to_event(f, slug, today=today)
         for f in findings
         if f.get("event_type") in _BRIDGED_EVENT_TYPES
     ]
+    shape = _IDENTIFIER_SHAPES["version"]
+    kept = [e for e in events if all(shape.fullmatch(str(v)) for v in e.scope.versions or [])]
+    return kept, len(events) - len(kept)
+
+
+#: Repository metadata is upstream text (T-F3 fix E): each field must have
+#: its shape or it is null. The URL is derived from the validated name.
+_SPDX_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+-]{0,63}", re.ASCII)
+_TIMESTAMP = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", re.ASCII
+)
+
+
+def _repo_name(value: Any) -> str | None:
+    from core.github_reader import _valid_repo_parts
+
+    owner, _, name = str(value or "").partition("/")
+    return f"{owner}/{name}" if "/" not in name and _valid_repo_parts(owner, name) else None
 
 
 def _repository(raw: Bundle) -> dict[str, Any] | None:
     for meta in raw.get("github_meta", []):
         if isinstance(meta, dict) and meta.get("kind") == "repo_meta":
+            repo = _repo_name(meta.get("full_name")) or _repo_name(meta.get("repo"))
+            license_id = str(meta.get("license") or "")
+            pushed = str(meta.get("pushed_at") or "")
+            archived = meta.get("archived")
             return {
-                "repo": meta.get("full_name") or meta.get("repo"),
-                "archived": meta.get("archived"),
-                "last_push": meta.get("pushed_at"),
-                "license": meta.get("license"),
-                "url": meta.get("url"),
+                "repo": repo,
+                "archived": archived if isinstance(archived, bool) else None,
+                "last_push": pushed if _TIMESTAMP.fullmatch(pushed) else None,
+                "license": license_id if _SPDX_ID.fullmatch(license_id) else None,
+                "url": f"https://github.com/{repo}" if repo else None,
                 "note": "context only: repository health is not part of the verdict",
             }
     return None
@@ -245,6 +596,11 @@ def _short(reason: str, keep: int = 3) -> str:
     return "; ".join(parts[:keep]) + f"; ... (+{len(parts) - keep} more)"
 
 
+#: OSV advisory ids are "<DB>-<ENTRYID>" (OSV schema): GHSA-xxxx-xxxx-xxxx,
+#: PYSEC-2024-1, RUSTSEC-2024-0001, MAL-2025-123, CVE-2024-3094, RHSA-2024:1234.
+_OSV_ID = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9][A-Za-z0-9._:]*)+", re.ASCII)
+
+
 def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, Any]:
     """OSV advisory causes, version-specific ones first and listed by id.
 
@@ -255,28 +611,99 @@ def _advisories(security: list[dict[str, Any]], limit: int = 20) -> dict[str, An
     exact = sorted({str(c.get("event_id")) for c in security if c.get("relationship") ==
                     "AFFECTS_VERSION"})
     package_level = {str(c.get("event_id")) for c in security} - set(exact)
+    # Advisory ids are upstream strings (T-F3 fix D): only an id with the OSV
+    # "<DB>-<ENTRYID>" shape is listed or put in a URL; others are counted.
+    listed = [i for i in exact if _OSV_ID.fullmatch(i)]
     return {
         "affecting_this_version": [
-            {"id": i, "url": f"https://osv.dev/vulnerability/{i}"} for i in exact[:limit]
+            {"id": i, "url": "https://osv.dev/vulnerability/" + quote(i, safe=":")}
+            for i in listed[:limit]
         ],
         "affecting_this_version_count": len(exact),
+        "ids_withheld": len(exact) - len(listed),
         "package_level_unconfirmed_count": len(package_level),
         "source": "osv.dev",
     }
+
+
+#: Identifier shapes for anything an agent hands us (T-F3, Phase 0 audit A).
+#: Deliberately general - every ecosystem's names and versions, and legacy
+#: npm names with capitals, fit - and deliberately closed: no whitespace,
+#: control, bidi, zero-width or Markdown characters, so a name can never
+#: carry an instruction into an answer. Registry URLs use the stricter
+#: per-ecosystem grammars of core.registry_existence.
+_IDENTIFIER_SHAPES = {
+    "package": re.compile(r"[A-Za-z0-9@][A-Za-z0-9@/._:+~-]{0,213}"),
+    "version": re.compile(r"[A-Za-z0-9][A-Za-z0-9.+!_~:-]{0,63}"),
+    "ecosystem": re.compile(r"[A-Za-z][A-Za-z0-9.+_-]{0,31}"),
+    "image": re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,254}"),
+}
+_SHAPE_HELP = {
+    "package": "letters, digits and @ / . _ : + ~ -, at most 214 characters",
+    "version": "letters, digits and . + ! _ ~ : -, at most 64 characters",
+    "ecosystem": "letters, digits and . + _ -, at most 32 characters",
+    "image": "letters, digits and . _ : / @ + -, at most 255 characters",
+}
+
+
+def _identifier(field: str, value: str) -> str:
+    """``value`` when it has the identifier shape; else ValueError. Never echoes it."""
+    if not _IDENTIFIER_SHAPES[field].fullmatch(value):
+        raise ValueError(
+            f"{field} is not an identifier ({_SHAPE_HELP[field]}); the value is not repeated"
+        )
+    return value
+
+
+#: A quoted value from the file that may be shown back in a skip message:
+#: a requirement or coordinate shape (``requests>=2.31.0``, ``g:a``,
+#: ``^1.2``), no whitespace, no Markdown link, no control characters.
+_SHOWABLE_QUOTE = re.compile(r"[A-Za-z0-9@/._:+~<>=!,*^\[\]-]{1,100}", re.ASCII)
+_QUOTED = re.compile(r"`([^`]*)`")
+_MAX_SKIP_CHARS = 240
+
+
+def _safe_skip(message: str) -> str:
+    """A reader's skip message, safe to hand to an agent (T-F3).
+
+    Readers quote every value they take from the file. A quoted value that
+    is not requirement-shaped becomes `<not shown>`; the rest of the message
+    is OpenPulse's own wording. Control, bidi and zero-width characters are
+    stripped and the message is capped.
+    """
+
+    def keep(match: re.Match[str]) -> str:
+        value = match.group(1)
+        return f"`{value}`" if _SHOWABLE_QUOTE.fullmatch(value) else "`<not shown>`"
+
+    text = strip_unsafe(_QUOTED.sub(keep, str(message)))
+    return text if len(text) <= _MAX_SKIP_CHARS else text[: _MAX_SKIP_CHARS - 1] + "…"
+
+
+def _refused_entry(dep: dict[str, Any]) -> str | None:
+    """The field of a file entry that fails its identifier shape, if any."""
+    fields = {"ref": "image"} if dep.get("kind") == "image" else {
+        "package": "package", "version": "version", "ecosystem": "ecosystem"
+    }
+    for key, field in fields.items():
+        value = dep.get(key)
+        if value is not None and not _IDENTIFIER_SHAPES[field].fullmatch(str(value)):
+            return field
+    return None
 
 
 def _dependency(
     package: str | None, version: str | None, ecosystem: str | None, image: str | None
 ) -> dict[str, Any]:
     if image:
-        return {"kind": "image", "ref": image.strip()}
+        return {"kind": "image", "ref": _identifier("image", image.strip())}
     if not package or not package.strip():
         raise ValueError("give a package name (with ecosystem and version) or an image ref")
-    dep: dict[str, Any] = {"kind": "package", "package": package.strip()}
+    dep: dict[str, Any] = {"kind": "package", "package": _identifier("package", package.strip())}
     if ecosystem:
-        dep["ecosystem"] = ecosystem.strip()
+        dep["ecosystem"] = _identifier("ecosystem", ecosystem.strip())
     if version:
-        dep["version"] = version.strip()
+        dep["version"] = _identifier("version", version.strip())
     return dep
 
 
@@ -289,12 +716,267 @@ def _trust(dep: dict[str, Any]) -> dict[str, Any]:
     return resolution_trust(str(dep["ref"]))
 
 
+def _expected_repository(dep: dict[str, Any]) -> str | None:
+    """The catalog's GitHub repository for a curated (VERIFIED) package, else None.
+
+    A provenance publisher is cross-checked against it (T-B1); a guessed
+    project match is never used, so it can never produce a "differs" failure.
+    """
+    from core.entities.catalog import load_catalog
+
+    trust = _trust(dep)
+    if trust.get("identity_status") != "VERIFIED":
+        return None
+    for entry in load_catalog():
+        if entry.get("slug") == trust.get("slug") and entry.get("github"):
+            return str(entry["github"])
+    return None
+
+
+def _provenance(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
+    """T-B1: PyPI provenance for a package and version. Never a verdict input."""
+    from core import provenance, registry_existence
+
+    if (
+        dep["kind"] != "package"
+        or registry_existence.ecosystem_of(dep.get("ecosystem")) != "PyPI"
+        or not dep.get("version")
+    ):
+        return provenance.not_performed("unsupported")
+    if lookups is None:
+        return provenance.not_performed("offline")
+    try:
+        return lookups.provenance(
+            str(dep["package"]), str(dep["version"]), _expected_repository(dep)
+        )
+    except BudgetExhausted:
+        return provenance.not_performed("budget")
+
+
+def _malicious(dep: dict[str, Any], lookups: Lookups | None) -> dict[str, Any]:
+    """X1: does OSV publish a malicious-package record? Never a verdict input."""
+    from core import malicious, registry_existence
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return malicious.not_performed("unsupported")
+    if lookups is None:
+        return malicious.not_performed("offline")
+    try:
+        return lookups.malicious(ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return malicious.not_performed("budget")
+
+
+def _is_private(dep: dict[str, Any], names: frozenset[tuple[str, str]] | None) -> bool:
+    from core import dependency_confusion
+
+    return bool(
+        names
+        and dep["kind"] == "package"
+        and dependency_confusion.listed(names, dep.get("ecosystem"), str(dep["package"]))
+    )
+
+
+def _registry_existence_private(dep: dict[str, Any]) -> list[dict[str, Any]]:
+    from core import registry_existence
+
+    eco = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    return registry_existence.not_performed("private", ecosystem=eco)
+
+
+def _repository_linkage_private() -> dict[str, Any]:
+    from core import repository_linkage
+
+    return repository_linkage.not_performed("private")
+
+
+def _provenance_private() -> dict[str, Any]:
+    from core import provenance
+
+    return provenance.not_performed("private")
+
+
+def _dependency_confusion(
+    dep: dict[str, Any], lookups: Lookups | None, names: frozenset[tuple[str, str]] | None
+) -> dict[str, Any]:
+    """T-A3: does a public package carry this private name? Never a verdict input."""
+    from core import dependency_confusion, registry_existence
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return dependency_confusion.not_performed("unsupported")
+    if names is None:
+        return dependency_confusion.not_performed("no_list")
+    if not _is_private(dep, names):
+        return dependency_confusion.not_performed("not_listed")
+    if lookups is None:
+        return dependency_confusion.not_performed("offline")
+    try:
+        existence = lookups.existence(ecosystem, str(dep["package"]), None)
+    except BudgetExhausted:
+        return dependency_confusion.not_performed("budget")
+    return dependency_confusion.from_existence(ecosystem, existence)
+
+
+def dependency_confusion_record(
+    ecosystem: str,
+    name: str,
+    lookups: Lookups | None,
+    names: frozenset[tuple[str, str]],
+) -> dict[str, Any]:
+    """T-A3 for one listed name, outside any file or version."""
+    dep = {"kind": "package", "package": name, "ecosystem": ecosystem}
+    return _dependency_confusion(dep, lookups, names)
+
+
+def _repository_linkage(
+    dep: dict[str, Any], lookups: Lookups | None, provenance: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """T-A4: is the package from the repository it claims? Never a verdict input.
+
+    Verified publishers from the T-B1 record, when there are any, settle the
+    question without reading the repository.
+    """
+    from core import registry_existence, repository_linkage
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return repository_linkage.not_performed("unsupported")
+    if lookups is None:
+        return repository_linkage.not_performed("offline")
+    publishers = None
+    if provenance and provenance.get("status") in ("VERIFIED_RELATIONSHIP", "VERIFIED_FAILURE"):
+        publishers = provenance.get("evidence", {}).get("publishers") or None
+    try:
+        return lookups.linkage(ecosystem, str(dep["package"]), dep.get("version"), publishers)
+    except BudgetExhausted:
+        return repository_linkage.not_performed("budget")
+
+
+#: The reputation indicators (track T Phase 2, T-C, v0.16.0 Q2-Q4), in trust-block order.
+REPUTATION_CHECKS = ("publisher_change", "repository_moved", "young_popular_repository")
+
+
+def _reputation_module(check: str) -> Any:
+    from core import publisher_change, repository_moved, young_popular_repository
+
+    return {
+        "publisher_change": publisher_change,
+        "repository_moved": repository_moved,
+        "young_popular_repository": young_popular_repository,
+    }[check]
+
+
+def _reputation(
+    check: str, dep: dict[str, Any], lookups: Lookups | None, private: bool = False
+) -> dict[str, Any]:
+    """T-C: one reputation indicator. Never a verdict input, never summed."""
+    from core import registry_existence
+
+    module = _reputation_module(check)
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem not in ("npm", "PyPI"):
+        return module.not_performed("unsupported")
+    if private:
+        return module.not_performed("private")
+    if lookups is None:
+        return module.not_performed("offline")
+    try:
+        return lookups.reputation(check, ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return module.not_performed("budget")
+
+
+def _lookalike(dep: dict[str, Any]) -> dict[str, Any]:
+    """T-A2: does the name resemble a reference name? Local data only; never a verdict input."""
+    from core import lookalike
+
+    if dep["kind"] != "package":
+        return lookalike.check(None, "")
+    return lookalike.check(dep.get("ecosystem"), str(dep["package"]))
+
+
+def _registry_existence(dep: dict[str, Any], lookups: Lookups | None) -> list[dict[str, Any]]:
+    """T-M1: does the package (and version) exist in its registry? Never a verdict input."""
+    from core import registry_existence
+
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep["kind"] != "package" or ecosystem is None:
+        return registry_existence.not_performed("unsupported")
+    if lookups is None:
+        return registry_existence.not_performed("offline", ecosystem=ecosystem)
+    try:
+        return lookups.existence(ecosystem, str(dep["package"]), dep.get("version"))
+    except BudgetExhausted:
+        return registry_existence.not_performed("budget", ecosystem=ecosystem)
+
+
+#: The source line for the v0.20.0 registry checks of a dependency's own
+#: release (v0.21.0 W1).
+REGISTRY_CHANGES_SOURCE = "registry deprecations and release licenses"
+
+
+def registry_change_events(
+    dep: dict[str, Any], lookups: Lookups | None, today: date | None = None
+) -> tuple[list[Any], dict[str, Any]]:
+    """(events, source status) for one dependency's release (v0.21.0 W1).
+
+    The publisher's deprecation and withdrawal flags on the package and on
+    this release, and the license changes in the releases after it (what an
+    upgrade would bring), each bridged into an event built for this
+    dependency alone (``analyzers.registry_events``). npm and PyPI only.
+    The status says what was not read: a check not made is never a clean
+    result. Without a version only the package-level flags are read.
+    """
+    from analyzers.change_analyst import analyze_deprecations, analyze_release_license_changes
+    from analyzers.registry_events import registry_finding_to_event
+    from core import registry_existence
+
+    status: dict[str, Any] = {"source": REGISTRY_CHANGES_SOURCE}
+    ecosystem = registry_existence.ecosystem_of(dep.get("ecosystem"))
+    if dep.get("kind") != "package" or ecosystem is None:
+        return [], {**status, "status": "unsupported", "detail": "npm and PyPI packages only"}
+    if lookups is None:
+        return [], {**status, "status": "disabled"}
+    name = str(dep["package"])
+    version = str(dep["version"]) if dep.get("version") else None
+    findings: list[dict[str, Any]] = []
+    missing: list[str] = []
+    exhausted = None
+    for kind in ("deprecation", "release_license") if version else ("deprecation",):
+        try:
+            record = lookups.registry_change(kind, ecosystem, name, version)
+        except BudgetExhausted as exc:
+            exhausted = str(exc)
+            break
+        if record.get("status") == "NOT_PERFORMED":
+            missing.append(f"{kind.replace('_', ' ')}: {record.get('reason')}")
+        elif kind == "deprecation":
+            findings += analyze_deprecations(record, today=today)
+        else:
+            findings += analyze_release_license_changes(record, today=today)
+    slug = str(_trust(dep)["slug"])
+    events = [registry_finding_to_event(f, slug, today=today) for f in findings]
+    if exhausted is not None:
+        return events, {**status, "status": "budget-exhausted", "detail": exhausted}
+    if missing:
+        return events, {**status, "status": "error", "detail": "; ".join(missing)}
+    result = {**status, "status": "ok", "records": len(events)}
+    if version is None:
+        result["detail"] = "no version: package-level flags only, license changes not compared"
+    return events, result
+
+
 def _assess(
     dep: dict[str, Any],
     lookups: Lookups | None,
     events: list[Any],
     today: date | None,
     evaluation: Evaluation,
+    existence: bool = False,
+    private_names: frozenset[tuple[str, str]] | None = None,
+    selection_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from core.risk.check import check_dependency
     from core.verdict_meaning import DIRECT_SCOPE, scope_completeness, verdict_meaning
@@ -307,18 +989,41 @@ def _assess(
     bundles: dict[str, Bundle] = {}
     repository = None
     all_events = list(events)
+    raw = None
     if lookups is None:
         sources.append({"source": "live lookups", "status": "disabled"})
     else:
-        raw = lookups.bundle(slug)
+        try:
+            raw = lookups.bundle(slug)
+        except BudgetExhausted as exc:
+            sources.append(
+                {"source": "live lookups", "status": "budget-exhausted", "detail": str(exc)}
+            )
+    if raw is not None:
         sources += [
             _source_status("endoflife.date", raw.get("endoflife", [])),
             _source_status("osv.dev", raw.get("osv", [])),
             _source_status("github", raw.get("github_meta", [])),
         ]
-        all_events += lifecycle_events(slug, raw, today=today)
+        lifecycle, withheld = _checked_lifecycle_events(slug, raw, today=today)
+        all_events += lifecycle
+        if withheld:
+            sources.append(
+                {
+                    "source": "endoflife.date cycles",
+                    "status": "withheld",
+                    "detail": f"{withheld} release cycle(s) withheld: not version strings",
+                }
+            )
         bundles[slug] = raw
         repository = _repository(raw)
+    if lookups is not None and dep["kind"] == "package":
+        # v0.21.0 W1: the publisher's flags on this release, and the license
+        # changes an upgrade would bring, judged like any upstream change.
+        changes, change_status = registry_change_events(dep, lookups, today)
+        if change_status["status"] != "unsupported":
+            all_events += changes
+            sources.append(change_status)
     verdict = check_dependency(
         dep,
         all_events,
@@ -355,19 +1060,24 @@ def _assess(
             "scope_completeness": scope_completeness(scopes.get(str(c.get("event_id")))),
             "affected": c.get("affected"),
             "evidence_confidence": c.get("evidence_confidence"),
-            "reason": c.get("reason"),
+            "reason": strip_unsafe(str(c.get("reason") or "")),
             "evidence_urls": urls.get(str(c.get("event_id")), []),
         }
         for c in relevant
         if c.get("cause") != "security_vulnerability"
     ]
     advisories = _advisories([c for c in relevant if c.get("cause") == "security_vulnerability"])
-    unknowns = [s["source"] for s in sources if s["status"] in ("error", "no-data", "disabled")]
+    unknowns = [
+        s["source"] if s["status"] not in ("budget-exhausted", "withheld")
+        else f"{s['source']} ({s['detail']})"
+        for s in sources
+        if s["status"] in ("error", "no-data", "disabled", "budget-exhausted", "withheld")
+    ]
     if dep["kind"] == "package" and not dep.get("version"):
         unknowns.append("version (without it only project-level applicability is possible)")
     if not evaluation.bounded:
         unknowns.append("evidence currency (replay mode: no freshness bound applied)")
-    return {
+    answer: dict[str, Any] = {
         "dependency": verdict.dependency,
         "identity": {
             "project": slug,
@@ -379,7 +1089,7 @@ def _assess(
             "relationship": verdict.relationship,
             "confidence": verdict.confidence,
             "meaning": verdict_meaning(verdict.relationship),
-            "reason": _short(verdict.reason),
+            "reason": strip_unsafe(_short(verdict.reason)),
         },
         "causes": causes,
         "advisories": advisories,
@@ -387,7 +1097,108 @@ def _assess(
         "sources": sources,
         "not_established": unknowns,
         "evaluation_context": evaluation.context,
+        "lookups": lookups.status() if lookups is not None else None,
         "note": evaluation.note,
+    }
+    if existence:
+        # Track T: one trust block, additive, never read by the verdict (T-D).
+        checks = trust_checks(dep, lookups, private_names)
+        # The v0.12 top-level registry_existence, provenance and lookalike were
+        # removed in v0.14.0 (deprecated in v0.13.0): trust.checks holds them.
+        answer["trust"] = _trust_block(checks, evaluation, selection_context)
+        if lookups is not None:
+            answer["lookups"] = lookups.status()
+    return answer
+
+
+def trust_checks(
+    dep: dict[str, Any],
+    lookups: Lookups | None,
+    private_names: frozenset[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Every track T record for one dependency entry, keyed by check name.
+
+    ``dep`` is a reader entry (``kind`` package or image). ``lookups`` None
+    means offline: every live check is NOT_PERFORMED. Never a verdict input.
+    """
+    checks: dict[str, Any] = {"malicious": _malicious(dep, lookups)}
+    private = _is_private(dep, private_names)
+    if private:
+        # The public registry is not where a private package comes from (T-A3).
+        checks["registry_existence"] = _registry_existence_private(dep)
+        checks["provenance"] = _provenance_private()
+        checks["repository_linkage"] = _repository_linkage_private()
+    else:
+        checks["registry_existence"] = _registry_existence(dep, lookups)
+        checks["provenance"] = _provenance(dep, lookups)
+        checks["repository_linkage"] = _repository_linkage(dep, lookups, checks["provenance"])
+    checks["dependency_confusion"] = _dependency_confusion(dep, lookups, private_names)
+    checks["lookalike"] = _lookalike(dep)
+    for check in REPUTATION_CHECKS:
+        checks[check] = _reputation(check, dep, lookups, private)
+    return checks
+
+#: Where an agent says a package name came from (T-D); a closed vocabulary.
+NAME_SOURCES = (
+    "user_request",
+    "existing_code",
+    "documentation",
+    "search_result",
+    "model_suggestion",
+    "other",
+)
+MAX_INTENT_CHARS = 280
+
+
+def selection_context(intent: str | None, name_source: str | None) -> dict[str, Any] | None:
+    """An agent's stated reason for choosing a package, labelled and bounded (T-D).
+
+    Recorded for the agent and for M8 research, never used in any status or
+    verdict. ``name_source`` outside :data:`NAME_SOURCES` becomes
+    ``unrecognized`` and is not echoed; ``intent`` is stripped of control,
+    bidi and zero-width characters and capped (T-F3).
+    """
+    from collectors.errors import strip_unsafe
+
+    text = " ".join(strip_unsafe(intent or "").split())
+    source = (name_source or "").strip().lower()
+    if not text and not source:
+        return None
+    return {
+        "supplied_by": "agent",
+        "used_in_status": False,
+        "name_source": (source if source in NAME_SOURCES else "unrecognized") if source else None,
+        "intent": text[:MAX_INTENT_CHARS] or None,
+        "intent_truncated": len(text) > MAX_INTENT_CHARS,
+    }
+
+
+def _trust_block(
+    checks: dict[str, Any], evaluation: Evaluation, context: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Every track T record for one dependency, counted, with what needs attention."""
+    summary = dict.fromkeys(_TRUST_STATUSES, 0)
+    attention = []
+    for check, found in checks.items():
+        for record in found if isinstance(found, list) else [found]:
+            summary[record["status"]] += 1
+            if record["status"] in _ATTENTION:
+                attention.append(
+                    {"check": check, "status": record["status"], "statement": record["statement"]}
+                )
+    replay = evaluation.context.get("mode") != CURRENT
+    return {
+        "checks": checks,
+        "summary": summary,
+        "attention": attention,
+        "selection_context": context,
+        "time_frame": (
+            "live lookups at each record's checked_at, not as of the replay date"
+            if replay
+            else "live lookups at each record's checked_at"
+        ),
+        "note": "trust checks are indicators and checks, never part of any verdict; no status "
+        "means safe, and MISSING_EVIDENCE is not evidence of authenticity",
     }
 
 
@@ -403,13 +1214,25 @@ def dependency_status(
     mode: str = CURRENT,
     as_of: datetime | None = None,
     max_evidence_age_days: int | None = None,
+    private_names: frozenset[tuple[str, str]] | None = None,
+    intent: str | None = None,
+    name_source: str | None = None,
 ) -> dict[str, Any]:
     """Evidence for one dependency: EOL/EOS, curated upstream changes
-    (distribution, license, support) and OSV advisories for its version.
+    (distribution, license, support) and OSV advisories for its version,
+    plus whether the package and version exist in their registry (PyPI
+    and npm; ``registry_existence``, track T T-M1).
 
     ``mode="current"`` (default) bounds evidence age for negatives
     (``max_evidence_age_days``, default 90, as of ``as_of``);
     ``mode="replay"`` disables the bound and the response says so.
+
+    ``private_names`` is the user's private-name list
+    (:func:`core.dependency_confusion.load`): a listed package gets a
+    ``dependency_confusion`` record instead of public-registry checks.
+
+    ``intent`` and ``name_source`` are the agent's own account of why it
+    asks (:func:`selection_context`): recorded in ``trust``, never used.
     """
     evaluation = Evaluation(
         mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
@@ -417,7 +1240,16 @@ def dependency_status(
     dep = _dependency(package, version, ecosystem, image)
     if live and lookups is None:
         lookups = Lookups()
-    return _assess(dep, lookups if live else None, curated_events(), today, evaluation)
+    return _assess(
+        dep,
+        lookups if live else None,
+        curated_events(),
+        today,
+        evaluation,
+        existence=True,
+        private_names=private_names,
+        selection_context=selection_context(intent, name_source),
+    )
 
 
 def check_dependency_file(
@@ -429,6 +1261,9 @@ def check_dependency_file(
     mode: str = CURRENT,
     as_of: datetime | None = None,
     max_evidence_age_days: int | None = None,
+    base_path: str | None = None,
+    trust_all: bool = False,
+    private_names: frozenset[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Every pinned dependency of one manifest, lockfile, SBOM or image list.
 
@@ -436,38 +1271,238 @@ def check_dependency_file(
     are reported as skipped, never guessed. ``mode``, ``as_of`` and
     ``max_evidence_age_days`` as in :func:`dependency_status`; one time
     frame covers the whole file.
+
+    ``base_path`` is an earlier version of the file: the dependencies added
+    or changed since then get the track T trust checks (``trust``, U5).
+    ``trust_all`` runs them on every dependency instead. Neither: no trust
+    checks, ``trust`` is None. ``private_names`` as in
+    :func:`dependency_status`.
     """
     evaluation = Evaluation(
         mode, as_of=as_of, max_evidence_age_days=max_evidence_age_days, today=today
     )
     deps, skipped, kind = _read_dependency_file(path)
-    truncated = len(deps) > MAX_FILE_DEPENDENCIES
-    deps = deps[:MAX_FILE_DEPENDENCIES]
+    # The agent writes the files it asks about: an entry whose name is not an
+    # identifier is skipped like any unpinned entry, and never echoed (T-F3).
+    kept = []
+    for number, dep in enumerate(deps, 1):
+        field = _refused_entry(dep)
+        if field is None:
+            kept.append(dep)
+        else:
+            skipped = [
+                *skipped,
+                f"entry {number}: {field} is not an identifier - skipped, value not shown",
+            ]
+    deps = kept
+    skipped = [_safe_skip(message) for message in skipped]
     if live and lookups is None:
         lookups = Lookups()
+    # Trust checks first: the additions under review get the budget before the
+    # file-wide lookups do.
+    trust = None
+    if base_path is not None:
+        base_deps, _, _ = _read_dependency_file(base_path)
+        base_keys = {_dependency_key(d) for d in base_deps}
+        added = [d for d in deps if _dependency_key(d) not in base_keys]
+        trust = _trust_checks(
+            added, lookups if live else None, scope="added since base", private=private_names
+        )
+    elif trust_all:
+        trust = _trust_checks(
+            deps, lookups if live else None, scope="all dependencies", private=private_names
+        )
+    truncated = len(deps) > MAX_FILE_DEPENDENCIES
+    deps = deps[:MAX_FILE_DEPENDENCIES]
     events = curated_events()
     results = []
     looked_up: set[str] = set()
+    capped: list[str] = []
     for dep in deps:
         slug = str(_trust(dep)["slug"])
         use_live = live and (slug in looked_up or len(looked_up) < MAX_LIVE_PROJECTS)
         if use_live:
             looked_up.add(slug)
-        results.append(_assess(dep, lookups if use_live else None, events, today, evaluation))
+        elif live and slug not in capped:
+            capped.append(slug)
+        result = _assess(dep, lookups if use_live else None, events, today, evaluation)
+        if live and not use_live:
+            result["not_established"] = [
+                u for u in result["not_established"] if u != "live lookups"
+            ] + [f"live lookups (per-file cap of {MAX_LIVE_PROJECTS} projects reached)"]
+        results.append(result)
     flagged = [r for r in results if r["verdict"]["affected"] or r["causes"]]
+    integrity = (
+        _digest_integrity(path, deps, lookups if live else None)
+        if kind in ("npm", "poetry")
+        else None
+    )
     return {
         "file": path,
         "format": kind,
         "dependencies_checked": len(results),
         "truncated": truncated,
         "live_projects_looked_up": len(looked_up),
+        "live_lookups_capped": capped,
+        "lookups": lookups.status() if live and lookups is not None else None,
         "skipped": skipped,
         "affected": [r["dependency"] for r in results if r["verdict"]["affected"]],
         "results": flagged,
         "unflagged": [r["dependency"] for r in results if r not in flagged],
+        "digest_integrity": integrity,
+        "trust": trust,
         "evaluation_context": evaluation.context,
         "note": evaluation.note,
     }
+
+
+_TRUST_STATUSES = (
+    "CONFIRMED_MALICIOUS",
+    "VERIFIED_FAILURE",
+    "SUSPICIOUS_INCONCLUSIVE",
+    "MISSING_EVIDENCE",
+    "VERIFIED_RELATIONSHIP",
+    "NOT_PERFORMED",
+)
+_ATTENTION = frozenset(_TRUST_STATUSES[:3])
+
+
+def _dependency_key(dep: dict[str, Any]) -> tuple[str, ...]:
+    """What makes two entries the same dependency at the same version."""
+    from core import registry_existence
+
+    if dep.get("kind") != "package":
+        return ("image", str(dep.get("ref")))
+    ecosystem = str(dep.get("ecosystem") or "").lower()
+    name = str(dep.get("package"))
+    if registry_existence.ecosystem_of(ecosystem) == "PyPI":
+        name = re.sub(r"[-_.]+", "-", name)
+    return (ecosystem, name.lower(), str(dep.get("version") or ""))
+
+
+def _trust_checks(
+    deps: list[dict[str, Any]],
+    lookups: Lookups | None,
+    *,
+    scope: str,
+    private: frozenset[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Track T trust checks (U5) on the given dependencies; never a verdict input.
+
+    PyPI and npm packages get malicious-package records (X1), registry
+    existence (T-M1), provenance (T-B1, PyPI) and lookalike indicators (T-A2).
+    Repository linkage (T-A4) reuses the provenance record. A package on
+    the private-name list gets dependency confusion (T-A3) instead of
+    existence, provenance and linkage, which describe the public package.
+    The live checks run for at most MAX_LIVE_PROJECTS packages (the W4
+    per-file bound) within the session budget; the rest are counted as
+    capped. Lookalike is local data, so every package gets it. Counts per
+    check and status, with every record that needs attention
+    (CONFIRMED_MALICIOUS, VERIFIED_FAILURE, SUSPICIOUS_INCONCLUSIVE) listed
+    in full.
+    """
+    from core import registry_existence
+
+    counts = {
+        check: dict.fromkeys(_TRUST_STATUSES, 0)
+        for check in (
+            "malicious",
+            "dependency_confusion",
+            "registry_existence",
+            "provenance",
+            "repository_linkage",
+            "lookalike",
+            *REPUTATION_CHECKS,
+        )
+    }
+    attention: list[dict[str, Any]] = []
+    checked = capped = unsupported = 0
+    for dep in deps:
+        if (
+            dep["kind"] != "package"
+            or registry_existence.ecosystem_of(dep.get("ecosystem")) is None
+        ):
+            unsupported += 1
+            continue
+        records = {"lookalike": [_lookalike(dep)]}
+        if lookups is None or checked < MAX_LIVE_PROJECTS:
+            checked += lookups is not None
+            records["malicious"] = [_malicious(dep, lookups)]
+            if _is_private(dep, private):
+                records["dependency_confusion"] = [_dependency_confusion(dep, lookups, private)]
+            else:
+                records["registry_existence"] = _registry_existence(dep, lookups)
+                provenance = _provenance(dep, lookups)
+                records["provenance"] = [provenance]
+                records["repository_linkage"] = [_repository_linkage(dep, lookups, provenance)]
+                for check in REPUTATION_CHECKS:
+                    records[check] = [_reputation(check, dep, lookups)]
+        else:
+            capped += 1
+        subject = {
+            "ecosystem": dep.get("ecosystem"),
+            "package": dep["package"],
+            "version": dep.get("version"),
+        }
+        for check, found in records.items():
+            for record in found:
+                counts[check][record["status"]] += 1
+                if record["status"] in _ATTENTION:
+                    attention.append({"dependency": subject, **record, "check": check})
+    return {
+        "scope": scope,
+        "dependencies": len(deps),
+        "live_checked": checked,
+        "live_capped": capped,
+        "not_supported": unsupported,
+        "counts": counts,
+        "attention": attention,
+        "note": "trust checks are indicators and checks, never part of any verdict; "
+        "no status means safe, and MISSING_EVIDENCE is not evidence of authenticity",
+    }
+
+
+def _digest_integrity(
+    path: str, deps: list[dict[str, Any]], lookups: Lookups | None
+) -> dict[str, Any]:
+    """Lockfile digests against registry digests (track T, T-B4); never a verdict input.
+
+    Counts per T-F1 status, with every VERIFIED_FAILURE listed in full. At
+    most MAX_LIVE_PROJECTS packages are checked per file (the W4 per-file
+    bound); the rest are counted as capped, never silently skipped.
+    """
+    from core import digest_integrity
+    from core.lockfile_reader import lockfile_digests
+
+    locked = lockfile_digests(path)
+    summary: dict[str, Any] = {
+        "VERIFIED_RELATIONSHIP": 0,
+        "VERIFIED_FAILURE": 0,
+        "MISSING_EVIDENCE": 0,
+        "NOT_PERFORMED": 0,
+        "capped": 0,
+        "failures": [],
+        "note": "digests are compared, never trusted: a failure means the locked artifact "
+        "is not the one the registry serves; this is not part of any verdict",
+    }
+    checked = 0
+    for dep in deps:
+        key = (str(dep.get("ecosystem")), str(dep.get("package")), str(dep.get("version")))
+        if checked >= MAX_LIVE_PROJECTS:
+            summary["capped"] += 1
+            continue
+        if lookups is None:
+            record = digest_integrity.not_performed("offline", key[0])
+        else:
+            checked += 1
+            try:
+                record = lookups.digest_integrity(*key, locked.get(key, {}))
+            except BudgetExhausted:
+                record = digest_integrity.not_performed("budget", key[0])
+        summary[record["status"]] += 1
+        if record["status"] == "VERIFIED_FAILURE":
+            summary["failures"].append({"dependency": f"{key[1]}=={key[2]}", **record})
+    return summary
 
 
 def _read_dependency_file(path: str) -> tuple[list[dict[str, Any]], list[str], str]:
@@ -507,7 +1542,8 @@ def project_lifecycle(
 
     today = today or date.today()
     slug = resolve_project(project)
-    raw = (lookups or Lookups()).bundle(slug)
+    lookups = lookups or Lookups(cache_dir=default_cache_dir())
+    raw = lookups.bundle(slug, persistent=True)  # BudgetExhausted reaches the agent
     entries = raw.get("endoflife", [])
     cycles = []
     for e in entries:
@@ -529,6 +1565,8 @@ def project_lifecycle(
         "cycles": cycles,
         "supported_cycles": [c["cycle"] for c in cycles if c["status"] == "supported"],
         "repository": _repository(raw),
+        "cached_age_seconds": lookups.disk_hits.get(slug),
+        "lookups": lookups.status(),
         "note": NOTE,
     }
 

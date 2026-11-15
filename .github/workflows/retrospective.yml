@@ -22,11 +22,13 @@ jobs:
     defaults: {run: {shell: bash}}
     steps:
       # The implementation: the freeze tag unless a dispatch names another.
+      # Threat: the job token left in .git/config for every later step;
+      # neither checkout is pushed from (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
+        with: {ref: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}", persist-credentials: false}
       # The study data: this commit's evaluation/retrospective only.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {path: study}
+        with: {path: study, persist-credentials: false}
       - env: {IMPLEMENTATION: "${{ inputs.implementation || 'retro-freeze-2026-10-30' }}"}
         run: |
           if [ "$IMPLEMENTATION" = retro-freeze-2026-10-30 ]; then
@@ -42,7 +44,7 @@ jobs:
         with: {node-version: '24.22.0'}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: {go-version-file: evaluation/comparators/go/go.mod, cache: false}
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with: {distribution: temurin, java-version: '25'}
       - run: python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .
       - run: npm ci

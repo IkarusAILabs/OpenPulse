@@ -1,7 +1,18 @@
 name: ci
-on: [push, pull_request]
+# One run per change: pushes to main, and pull requests. A push to a PR
+# branch used to start a second, identical run for the push event.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+# A new commit on a pull request cancels that PR's run in progress; runs on
+# main are never cancelled, so every merge keeps its own complete result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test:
     strategy:
@@ -17,9 +28,19 @@ jobs:
         # the whole job to bash and keep the steps OS-agnostic.
         shell: bash
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       # `python -m pip`: on Windows pip refuses to replace itself through the
       # pip.exe launcher, which fails the job whenever the runner image's pip
       # differs from the pinned one.
@@ -56,12 +77,18 @@ jobs:
       # silently ran with an empty catalog (every identity resolving to itself)
       # and without the evidence-contract schemas. Install the built wheel into
       # a clean venv and exercise it from outside the checkout.
+      # Threat: the smoke test itself fetching unverified packages. The build
+      # uses the hash-locked setuptools (no build isolation), and the venv
+      # gets the hash-locked runtime deps before the wheel goes in with
+      # --no-deps; pip check proves those deps satisfy the wheel.
       - run: |
-          python -m pip wheel --no-deps -w "$RUNNER_TEMP/wheel" .
+          python -m pip wheel --no-deps --no-build-isolation -w "$RUNNER_TEMP/wheel" .
           python -m venv "$RUNNER_TEMP/wheelvenv"
           WPY="$RUNNER_TEMP/wheelvenv/bin/python"
           [ -x "$WPY" ] || WPY="$RUNNER_TEMP/wheelvenv/Scripts/python.exe"
-          "$WPY" -m pip install -q "$RUNNER_TEMP"/wheel/*.whl
+          "$WPY" -m pip install -q --require-hashes -r requirements-runtime.lock
+          "$WPY" -m pip install -q --no-deps "$RUNNER_TEMP"/wheel/*.whl
+          "$WPY" -m pip check
           cd "$RUNNER_TEMP"
           "$WPY" -I -c "from core.entities.resolve import resolve_project; from core.evidence_contract import SCHEMA_PATH; from core.resources import data_path; assert resolve_project('postgres:16') == 'postgresql'; assert SCHEMA_PATH.exists(); assert data_path('fixtures', 'django-eol', 'event.json').exists()"
   codeql:
@@ -71,10 +98,13 @@ jobs:
       actions: read
       contents: read
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with: {persist-credentials: false}
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with: {languages: python}
-      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
   action:
     # Threat: the shipped GitHub Action drifting from the CLI it wraps -
     # dogfood it on every push against the repo's own offline fixtures
@@ -108,16 +138,192 @@ jobs:
           manifest: data/fixtures/manifests/requirements.txt
           sarif-file: ${{ runner.temp }}/gate.sarif
           contracts-file: ${{ runner.temp }}/gate.jsonl
+      # Threat: a trust policy that never fires - a blocklisted package must
+      # fail the step even with fail-on none (a blocklist needs no lookups).
+      - name: Write a blocklist policy
+        run: |
+          printf 'version: 1\nblocklist: ["PyPI:django"]\n' > "$RUNNER_TEMP/policy.yml"
+      - id: policy
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          policy: ${{ runner.temp }}/policy.yml
+          sarif-file: ${{ runner.temp }}/policy.sarif
+          contracts-file: ${{ runner.temp }}/policy.jsonl
+      # Threat: a pre-install gate that never fires (v0.15.0 Z3) - the gate
+      # input runs only `openpulse gate`. A blocklist needs no lookups, so the
+      # pass and the block are both deterministic. The pass gates no lockfile:
+      # the gate checks lockfile digests whatever the policy says (v0.17.0
+      # G3), and the fixture lockfile's digests are made up.
+      - name: Write a gate policy that blocks nothing in the fixtures
+        run: |
+          printf 'version: 1\nblocklist: ["PyPI:evil-pkg"]\n' > "$RUNNER_TEMP/gate-pass.yml"
+      - id: gate-pass
+        uses: ./
+        with:
+          gate: data/fixtures/manifests/requirements.txt
+          policy: ${{ runner.temp }}/gate-pass.yml
+      # Threat: a lockfile hash edit passing a policy that forgot
+      # digest_mismatch (v0.17.0 G3). The fixture's digests are not PyPI's,
+      # so the gate fails: on the mismatch, or, offline, on the unchecked
+      # digest. Either way it must not pass.
+      - id: gate-digest
+        continue-on-error: true
+        uses: ./
+        with:
+          gate: data/fixtures/lockfiles/poetry.lock
+          policy: ${{ runner.temp }}/gate-pass.yml
+          base-sha: ''  # no base: every entry is checked, on pushes and pull requests
+      - id: gate-block
+        continue-on-error: true
+        uses: ./
+        with:
+          gate: data/fixtures/manifests/requirements.txt
+          policy: ${{ runner.temp }}/policy.yml
+      # Threat: a restored history used without its audit (v0.21.0 W2). A
+      # throwaway key (masked; it guards nothing) MACs a ledger entry written
+      # by `check`; the action must pass that history, refuse it once an
+      # entry is backdated, and refuse history without a key. The history id
+      # is per run, so no earlier run's cache is ever restored here.
+      - name: Write a keyed history
+        id: history-key
+        run: |
+          set -euo pipefail
+          key="$("$OPENPULSE_BIN/openpulse" history-key generate 2>/dev/null)"
+          echo "::add-mask::$key"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          OPENPULSE_HISTORY_KEY="$key" "$OPENPULSE_BIN/openpulse" check             --manifest data/fixtures/manifests/requirements.txt             --event data/fixtures/django-eol/event.json > /dev/null
+          ls .openpulse/detections/*/*.json > /dev/null
+      - id: history-ok
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          history-key: ${{ steps.history-key.outputs.key }}
+          history-id: ci-${{ github.run_id }}-${{ matrix.os }}
+          sarif-file: ${{ runner.temp }}/history.sarif
+          contracts-file: ${{ runner.temp }}/history.jsonl
+      - name: Backdate a ledger entry
+        run: |
+          set -euo pipefail
+          entry="$(ls .openpulse/detections/*/*.json | head -n 1)"
+          "$OPENPULSE_BIN/python" - "$entry" <<'PY'
+          import json, sys
+          entry = json.load(open(sys.argv[1], encoding="utf-8"))
+          entry["first_seen"] = "2020-01-01T00:00:00+00:00"
+          json.dump(entry, open(sys.argv[1], "w", encoding="utf-8"))
+          PY
+      - id: history-refused
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          history-key: ${{ steps.history-key.outputs.key }}
+          history-id: ci-${{ github.run_id }}-${{ matrix.os }}-refused
+          sarif-file: ${{ runner.temp }}/refused.sarif
+          contracts-file: ${{ runner.temp }}/refused.jsonl
+      - id: history-no-key
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          history: 'on'
+          sarif-file: ${{ runner.temp }}/no-key.sarif
+          contracts-file: ${{ runner.temp }}/no-key.jsonl
+      # Threat: observing repositories with no kept history (v0.21.0 W3): every
+      # run would be a first observation, so nothing could ever be reported.
+      # The input is refused before anything runs (offline: no lookup is made).
+      - id: observe-no-history
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          observe-repositories: 'on'
+          sarif-file: ${{ runner.temp }}/observe.sarif
+          contracts-file: ${{ runner.temp }}/observe.jsonl
+      # Threat: delivery with no kept history (v0.21.0 W5): every run would be a
+      # first run, so nothing could ever be sent. Refused before anything runs.
+      - id: notify-no-history
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: data/fixtures/manifests/requirements.txt
+          fail-on: none
+          notify-issue: 'on'
+          sarif-file: ${{ runner.temp }}/notify.sarif
+          contracts-file: ${{ runner.temp }}/notify.jsonl
       - name: Check action outputs
         env:
           PASS_SARIF: ${{ steps.pass.outputs.sarif-file }}
+          NOTIFY_NO_HISTORY_OUTCOME: ${{ steps.notify-no-history.outcome }}
+          PASS_DELIVERY: ${{ steps.pass.outputs.delivery }}
+          HISTORY_OK_DELIVERY: ${{ steps.history-ok.outputs.delivery }}
           PASS_BREACHED: ${{ steps.pass.outputs.threshold-breached }}
           PASS_COVERAGE: ${{ steps.pass.outputs.inspection-coverage }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
+          POLICY_OUTCOME: ${{ steps.policy.outcome }}
+          POLICY_BREACHED: ${{ steps.policy.outputs.threshold-breached }}
+          GATE_PASS_OUTCOME: ${{ steps.gate-pass.outcome }}
+          GATE_PASS_BREACHED: ${{ steps.gate-pass.outputs.threshold-breached }}
+          GATE_PASS_SARIF: ${{ steps.gate-pass.outputs.sarif-file }}
+          GATE_PASS_RECEIPTS: ${{ steps.gate-pass.outputs.receipts }}
+          GATE_DIGEST_OUTCOME: ${{ steps.gate-digest.outcome }}
+          GATE_BLOCK_OUTCOME: ${{ steps.gate-block.outcome }}
+          GATE_BLOCK_BREACHED: ${{ steps.gate-block.outputs.threshold-breached }}
+          HISTORY_OK_OUTCOME: ${{ steps.history-ok.outcome }}
+          HISTORY_OK_STATUS: ${{ steps.history-ok.outputs.history-status }}
+          HISTORY_OK_NEW: ${{ steps.history-ok.outputs.new-findings }}
+          HISTORY_OK_NEW_FILE: ${{ steps.history-ok.outputs.new-findings-file }}
+          PASS_NEW: ${{ steps.pass.outputs.new-findings }}
+          HISTORY_REFUSED_OUTCOME: ${{ steps.history-refused.outcome }}
+          HISTORY_REFUSED_SARIF: ${{ steps.history-refused.outputs.sarif-file }}
+          HISTORY_NO_KEY_OUTCOME: ${{ steps.history-no-key.outcome }}
+          OBSERVE_NO_HISTORY_OUTCOME: ${{ steps.observe-no-history.outcome }}
         run: |
           set -euo pipefail
+          test "$HISTORY_OK_OUTCOME" = success
+          test "$HISTORY_OK_STATUS" = OK
+          # v0.21.0 W4: with a kept history the run says what is new; without, nothing.
+          [[ "$HISTORY_OK_NEW" =~ ^[0-9]+$ ]]
+          test -f "$HISTORY_OK_NEW_FILE"
+          test -z "$PASS_NEW"
+          test "$HISTORY_REFUSED_OUTCOME" = failure
+          # A refused history stops the run before attest: nothing is written.
+          test -z "$HISTORY_REFUSED_SARIF"
+          test ! -e "$RUNNER_TEMP/refused.sarif"
+          test "$HISTORY_NO_KEY_OUTCOME" = failure
+          test "$OBSERVE_NO_HISTORY_OUTCOME" = failure
+          # v0.21.0 W5: delivery needs a kept history, and is off unless asked for.
+          test "$NOTIFY_NO_HISTORY_OUTCOME" = failure
+          test ! -e "$RUNNER_TEMP/notify.sarif"
+          test -z "$PASS_DELIVERY"
+          test -z "$HISTORY_OK_DELIVERY"
+          test ! -e "$RUNNER_TEMP/observe.sarif"
+          test "$GATE_PASS_OUTCOME" = success
+          test "$GATE_PASS_BREACHED" = false
+          test -z "$GATE_PASS_SARIF"
+          test "$GATE_DIGEST_OUTCOME" = failure
+          # v0.17.0 G2: the gated file verifies; a file the gate never saw does not.
+          verify=("$OPENPULSE_BIN/openpulse" gate --verify-receipt "$GATE_PASS_RECEIPTS")
+          "${verify[@]}" data/fixtures/manifests/requirements.txt
+          if "${verify[@]}" data/fixtures/lockfiles/poetry.lock; then
+            echo "verify-receipt passed a file the gate never saw" >&2
+            exit 1
+          fi
+          test "$GATE_BLOCK_OUTCOME" = failure
+          test "$GATE_BLOCK_BREACHED" = true
           test "$PASS_BREACHED" = false
-          test "$PASS_COVERAGE" = COMPLETE
+          test "$POLICY_OUTCOME" = failure
+          test "$POLICY_BREACHED" = true
+          # No --github-repo in this run: contract 2.1 says NOT_APPLICABLE (#109).
+          test "$PASS_COVERAGE" = NOT_APPLICABLE
           test "$GATE_OUTCOME" = failure
           # OPENPULSE_BIN: the venv the action installed (exported via GITHUB_ENV).
           "$OPENPULSE_BIN/python" - "$PASS_SARIF" <<'PY'
@@ -147,11 +353,135 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       - run: python -m pip install --require-hashes -r .github/ci-tools.lock
       - run: python -m pip install --require-hashes -r requirements.lock -r requirements-mcp.lock && python -m pip install --no-deps -e .
       - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-mcp.lock
-      - run: python -m pytest -q tests/test_mcp_server.py tests/test_agent_tools.py
+      - run: python -m pytest -q tests/test_mcp_server.py tests/test_agent_tools.py tests/test_trust_on_added.py tests/test_dependency_confusion.py tests/test_trust_block.py tests/test_agent_record.py
+      - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
+  consumer:
+    # Threat: an evidence contract that only OpenPulse can read is not
+    # portable evidence (v0.19.0 P1). The standalone consumer is installed
+    # alone, hash-locked, into its own environment with no OpenPulse in it,
+    # and run from outside the checkout on what this commit's `attest` writes,
+    # and on the released-contract corpus (P5): what every released contract
+    # version's own producer wrote, which must verify, and one-rule negatives,
+    # which must not. Full history, so the corpus is regenerated from its
+    # producers' commits and compared.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false, fetch-depth: 0}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        # Download cache only: every install below stays --require-hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
+            conformance/consumer/requirements.lock
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - name: Write contracts with this commit's OpenPulse
+        run: |
+          python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .
+          openpulse attest --watchlist data/fixtures/watchlist_sample.yaml \
+            --event data/fixtures/django-eol/event.json --event data/fixtures/bitnami/event.json \
+            --replay --output "$RUNNER_TEMP/attest.jsonl"
+      - name: Install the consumer alone, outside the checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/consumer-venv"
+          if [ -x "$RUNNER_TEMP/consumer-venv/bin/python" ]; then
+            CPY="$RUNNER_TEMP/consumer-venv/bin/python"
+          else
+            CPY="$RUNNER_TEMP/consumer-venv/Scripts/python.exe"
+          fi
+          echo "CPY=$CPY" >> "$GITHUB_ENV"
+          "$CPY" -m pip install --require-hashes -r .github/ci-tools.lock
+          "$CPY" -m pip install --require-hashes -r conformance/consumer/requirements.lock
+          # No build isolation: setuptools comes from the hash-locked CI tools.
+          "$CPY" -m pip install --no-deps --no-build-isolation ./conformance/consumer
+          "$CPY" -m pip check
+          cp -r conformance/consumer/tests "$RUNNER_TEMP/consumer-tests"
+      - name: Test and run the consumer without OpenPulse
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$CPY" - <<'PY'
+          import importlib.util
+          import openpulse_consumer
+          for name in ("core", "cli", "openpulse"):
+              assert importlib.util.find_spec(name) is None, f"{name} is importable"
+          assert "site-packages" in openpulse_consumer.__file__, openpulse_consumer.__file__
+          print("consumer", openpulse_consumer.__version__, "from", openpulse_consumer.__file__)
+          PY
+          "$CPY" -m unittest discover -s consumer-tests -v
+          "$CPY" -m openpulse_consumer check attest.jsonl
+          "$CPY" -m openpulse_consumer summary attest.jsonl
+      - name: Verify the same contracts' hashes with Node, no OpenPulse
+        run: node conformance/evidence-contract/verify.mjs "$RUNNER_TEMP/attest.jsonl"
+      - name: Run the consumer over the released-contract corpus
+        run: |
+          for f in conformance/contracts/*/documents.jsonl; do
+            "$CPY" -m openpulse_consumer check "$f"
+          done
+          for f in conformance/contracts/*/negatives.jsonl; do
+            if "$CPY" -m openpulse_consumer check "$f" > "$RUNNER_TEMP/neg.txt"; then
+              cat "$RUNNER_TEMP/neg.txt"; echo "$f: the consumer accepted a negative"; exit 1
+            fi
+            grep -q "^0 valid, " "$RUNNER_TEMP/neg.txt" || {
+              cat "$RUNNER_TEMP/neg.txt"; echo "$f: the consumer accepted a negative"; exit 1; }
+          done
+          for f in conformance/contracts/2.*/documents.jsonl; do
+            node conformance/evidence-contract/verify.mjs "$f"
+          done
+      - name: Regenerate the corpus from its producers and compare
+        if: runner.os == 'Linux'
+        run: python conformance/contracts/regenerate.py --check
+  provenance:
+    # Threat: the optional provenance extra (`[provenance]`, track T T-B1)
+    # pulls ~24 packages the core never installs (sigstore, cryptography,
+    # tuf, ...). They have their own reviewed lock (requirements-provenance.lock):
+    # install exactly that set, prove it is consistent with the core lock,
+    # audit it, and run the provenance tests the `test` job skips for lack of
+    # the library - against a recorded real attestation, offline.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
+      - run: python -m pip install --require-hashes -r .github/ci-tools.lock
+      - run: python -m pip install --require-hashes -r requirements.lock -r requirements-provenance.lock && python -m pip install --no-deps -e .
+      - run: python -m pip check && python scripts/check_lock.py --exact requirements.lock requirements-provenance.lock
+      - run: python -m pytest -q tests/test_provenance.py tests/test_agent_tools.py tests/test_lock_files.py
       - run: python -m pip install --require-hashes -r .github/audit-tools.lock && pip-audit --desc
   research:
     # Threat: published numbers that the code no longer produces, or that
@@ -186,14 +516,24 @@ jobs:
     # the Maven jar by SHA-256 (fetch.py), toolchains by version.
     runs-on: ubuntu-latest
     steps:
+      # Threat: the job token left in .git/config for every later step,
+      # third-party tooling included - this job never pushes (#141).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with: {python-version: '3.11'}
+        # Download cache only: every install below stays --require-hashes, so a
+        # cached file is still checked against the lock's hashes.
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements*.lock
+            .github/*.lock
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: {node-version: '24.22.0'}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: {go-version-file: evaluation/comparators/go/go.mod, cache: false}
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with: {distribution: temurin, java-version: '25'}
       - run: python -m pip install --require-hashes -r .github/ci-tools.lock
       - run: python -m pip install --require-hashes -r requirements.lock && python -m pip install --no-deps -e .

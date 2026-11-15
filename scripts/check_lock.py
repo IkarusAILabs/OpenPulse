@@ -38,9 +38,9 @@ _PLATFORM = re.compile(r"sys_platform\s*==\s*[\"']([^\"']+)[\"']")
 #: Installed by CI bootstrap, not by the project: never "unlocked" drift.
 _TOOLING = {"pip", "setuptools", "wheel", "ikarus-openpulse", "openpulse"}
 #: Every lock file the floors may be satisfied by (core first).
-LOCK_FILES = ("requirements.lock", "requirements-mcp.lock")
+LOCK_FILES = ("requirements.lock", "requirements-mcp.lock", "requirements-provenance.lock")
 #: pyproject ``"name>=1.2.3"`` requirement entries (runtime + dev extras).
-_FLOOR = re.compile(r'"([A-Za-z0-9_.\-]+)\s*>=\s*([0-9][^"]*)"')
+_FLOOR = re.compile(r'"([A-Za-z0-9_.\-]+)\s*>=\s*([0-9][^",;\s]*)')
 
 
 def _normalize(name: str) -> str:

@@ -363,13 +363,8 @@ def main() -> None:
         "versions": _differential_failures(),
         "invariants": _invariant_failures(),
     }
-    assert (
-        baseline["random"]
-        == baseline["tests"]
-        == baseline["versions"]
-        == baseline["invariants"]
-        == 0
-    ), baseline
+    if any(baseline.values()):
+        raise SystemExit(f"the unmutated baseline already fails: {baseline}")
     rows = []
     for mutant_id, description, module, qualname, old, new in MUTANTS:
         with mutated(module, qualname, old, new):

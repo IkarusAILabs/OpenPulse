@@ -277,7 +277,7 @@ def implementation(case: dict[str, Any]) -> dict[str, Any]:
 
 def export_cases(n: int, seed: int) -> list[dict[str, Any]]:
     """Seeded random cases in the kit format, with no expected outcomes."""
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     out = []
     for i in range(n):
         dep = randomized.random_dependency(rng)

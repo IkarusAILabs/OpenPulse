@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 
 import pytest
 
+from tests.history_keys import TEST_KEY
+
 T1 = datetime(2026, 9, 1, tzinfo=timezone.utc)
 T2 = datetime(2026, 9, 2, tzinfo=timezone.utc)
 T3 = datetime(2026, 9, 3, tzinfo=timezone.utc)
@@ -448,14 +450,25 @@ def test_p_concurrent_sweeps_keep_valid_chain(tmp_path):
 
 
 def test_q_first_detection_stable(tmp_path):
+    """Keyed: first detections are published only from keyed history (B3c)."""
     from core.observations.sweep import sweep_catalog
 
-    sweep_catalog(_catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T1)
+    sweep_catalog(
+        _catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T1, history_key=TEST_KEY
+    )
     run2 = sweep_catalog(
-        _catalog(), _probe(["latest", "1.0"]), store_root=tmp_path, observed_at=T2
+        _catalog(),
+        _probe(["latest", "1.0"]),
+        store_root=tmp_path,
+        observed_at=T2,
+        history_key=TEST_KEY,
     )
     run3 = sweep_catalog(
-        _catalog(), _probe(["latest", "1.0"]), store_root=tmp_path, observed_at=T3
+        _catalog(),
+        _probe(["latest", "1.0"]),
+        store_root=tmp_path,
+        observed_at=T3,
+        history_key=TEST_KEY,
     )
     # Steady state: no new change, no new finding — but the recorded
     # first detection of the T2 appearance must not drift.
@@ -464,18 +477,40 @@ def test_q_first_detection_stable(tmp_path):
     assert run3["changes"] == []
 
 
-def test_q_reappeared_tag_starts_new_episode(tmp_path):
+def test_q_unkeyed_sweep_publishes_no_first_detection(tmp_path):
     from core.observations.sweep import sweep_catalog
 
     sweep_catalog(_catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T1)
-    run2 = sweep_catalog(
-        _catalog(), _probe(["latest", "1.0"]), store_root=tmp_path, observed_at=T2
+    run2 = sweep_catalog(_catalog(), _probe(["latest", "1.0"]), store_root=tmp_path, observed_at=T2)
+    assert run2["changes"] and run2["findings"]
+    assert run2["changes"][0]["first_detected_at"] is None
+    assert run2["findings"][0].get("first_detected_at") is None
+
+
+def test_q_reappeared_tag_starts_new_episode(tmp_path):
+    from core.observations.sweep import sweep_catalog
+
+    sweep_catalog(
+        _catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T1, history_key=TEST_KEY
     )
-    run3 = sweep_catalog(_catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T3)
+    run2 = sweep_catalog(
+        _catalog(),
+        _probe(["latest", "1.0"]),
+        store_root=tmp_path,
+        observed_at=T2,
+        history_key=TEST_KEY,
+    )
+    run3 = sweep_catalog(
+        _catalog(), _probe(["latest"]), store_root=tmp_path, observed_at=T3, history_key=TEST_KEY
+    )
     assert str(run3["findings"][0]["first_detected_at"])[:10] == "2026-09-03"
     t4 = datetime(2026, 9, 4, tzinfo=timezone.utc)
     run4 = sweep_catalog(
-        _catalog(), _probe(["latest", "1.0"]), store_root=tmp_path, observed_at=t4
+        _catalog(),
+        _probe(["latest", "1.0"]),
+        store_root=tmp_path,
+        observed_at=t4,
+        history_key=TEST_KEY,
     )
     # Re-appearance is a NEW episode: first detection is T4, not T2.
     assert str(run4["findings"][0]["first_detected_at"])[:10] == "2026-09-04"

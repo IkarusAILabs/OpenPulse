@@ -35,6 +35,13 @@ VALID = "VALID"
 BROKEN = "BROKEN"
 UNKNOWN = "UNKNOWN"
 
+#: Keyed states (B3, ``verify_keyed_history``). VALID_KEYED: hashes verify
+#: and every record's MAC verifies under a supplied key. VALID_UNKEYED:
+#: hashes verify, but some record has no MAC (or no key was supplied to
+#: check it). Only VALID_KEYED history proves it was not rewritten.
+VALID_KEYED = "VALID_KEYED"
+VALID_UNKEYED = "VALID_UNKEYED"
+
 #: Fields covered by the chain hash, in canonical form.
 _CHAIN_FIELDS = (
     "observation_id",
@@ -174,3 +181,104 @@ def order_history(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], 
     if len(ordered) != len(records):
         return list(records), False
     return ordered, True
+
+
+def history_mac_parts(record: dict[str, Any]) -> tuple[str, str]:
+    """What a record's history MAC covers: its chain hash and first detection.
+
+    The chain hash already covers the chained fields and the link to the
+    predecessor, so MACing it protects the whole chain.
+    ``first_detected_at`` is outside the chain hash, so it is added here.
+    """
+    first = record.get("first_detected_at")
+    return str(record.get("chain_hash") or ""), "" if first is None else str(first)
+
+
+def handover_mac_parts(record: dict[str, Any]) -> tuple[str, str, str]:
+    """What a handover MAC covers: the record's MACed parts and its new key_id."""
+    return (*history_mac_parts(record), str(record.get("key_id") or ""))
+
+
+def verify_keyed_history(
+    records: list[dict[str, Any]], keys: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """VALID_KEYED / VALID_UNKEYED / BROKEN / UNKNOWN over chain-ordered records.
+
+    ``keys`` maps key_id -> ``core.history_key.HistoryKey``: the current
+    key and any retired ones. A MAC that fails, or a MAC with no key_id,
+    is BROKEN. A key_id with no supplied key is UNKNOWN: it cannot be
+    checked, so it is never VALID_KEYED.
+
+    Rotation (B3b): keyed records form runs under one key. A run ends only
+    at a handover record, which names the retired key in
+    ``previous_key_id`` and carries ``handover_mac``, a MAC under that
+    retired key. A record under any other key than the active one, and a
+    handover that does not follow its retired key's run, are BROKEN: so a
+    leaked retired key cannot extend history past its handover.
+    ``active_key_id`` is the key of the newest keyed run.
+
+    Adoption (B3c): unkeyed records followed only by keyed ones are an
+    adopted history. The first keyed record's chain hash pins every
+    earlier record, so the history is VALID_KEYED, and ``adopted_at`` is
+    that record's ``observed_at``: nothing earlier is proved, so a lead
+    time from it counts from ``adopted_at`` at the earliest. An unkeyed
+    record after a keyed one stays VALID_UNKEYED.
+    """
+    from core.history_key import HANDOVER_DOMAIN, OBSERVATION_DOMAIN
+
+    keys = keys or {}
+    chain = verify_observation_chain(records)
+    bad: list[int] = []
+    unkeyed: list[int] = []
+    unknown_keys: list[int] = []
+    active: str | None = None
+    for i, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        mac, key_id = record.get("history_mac"), record.get("key_id")
+        retired = record.get("previous_key_id")
+        if not mac:
+            if retired or record.get("handover_mac"):
+                bad.append(i)  # handover fields without a MAC of its own
+            else:
+                unkeyed.append(i)
+            continue
+        if not key_id:
+            bad.append(i)
+            continue
+        key_id = str(key_id)
+        if retired:
+            if active is None or str(retired) != active or key_id == active:
+                bad.append(i)  # handover that does not follow its key's run
+            elif active not in keys:
+                unknown_keys.append(i)
+            elif not keys[active].verify(
+                record.get("handover_mac"), HANDOVER_DOMAIN, *handover_mac_parts(record)
+            ):
+                bad.append(i)
+        elif active is not None and key_id != active:
+            bad.append(i)  # key switch without a handover, or a retired key reused
+        if key_id not in keys:
+            unknown_keys.append(i)
+        elif not keys[key_id].verify(mac, OBSERVATION_DOMAIN, *history_mac_parts(record)):
+            bad.append(i)
+        active = key_id
+    keyed_at = [i for i, r in enumerate(records) if isinstance(r, dict) and r.get("history_mac")]
+    adopted = bool(keyed_at) and bool(unkeyed) and max(unkeyed) < keyed_at[0]
+    if chain["status"] == BROKEN or bad:
+        status = BROKEN
+    elif chain["status"] == UNKNOWN or unknown_keys:
+        status = UNKNOWN
+    elif unkeyed and not adopted:
+        status = VALID_UNKEYED
+    else:
+        status = VALID_KEYED
+    return {
+        "status": status,
+        "bad_macs": sorted(set(bad)),
+        "unkeyed": unkeyed,
+        "unknown_keys": sorted(set(unknown_keys)),
+        "breaks": chain["breaks"],
+        "active_key_id": active,
+        "adopted_at": records[keyed_at[0]].get("observed_at") if adopted else None,
+    }

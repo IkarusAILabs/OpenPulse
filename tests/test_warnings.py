@@ -3,6 +3,7 @@
 import json
 from datetime import date
 
+import pytest
 from click.testing import CliRunner
 
 from core.detections import ledger
@@ -19,6 +20,10 @@ from core.warnings import (
     recommended_action,
     render_warnings_md,
 )
+from tests.history_keys import TEST_KEYS
+
+# Seeds ledger history at past dates (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("ledger_clock_at_stamp")
 
 
 def _future_django_eol(
@@ -136,7 +141,9 @@ def test_warning_object_shape_matches_issue(tmp_path):
         root=root,
     )
     verdict = check_dependency(_django_dep(), [event])
-    built = build_warnings([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 1
     w = built["warnings"][0]
     assert w["project"] == "django"
@@ -210,7 +217,9 @@ def test_overdue_change_keeps_its_overdue_severity(tmp_path):
         root=root,
     )
     verdict = check_dependency(_django_dep(), [event])
-    built = build_warnings([verdict], [event], ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        [verdict], [event], ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 1
     w = built["warnings"][0]
     assert w["days_until_effective"] == -5
@@ -262,7 +271,9 @@ def test_ranking_shortest_lead_time_breaks_ties(tmp_path):
     deps = [{"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}]
     events = [e_eol, e_depr, e_sup]
     verdicts = [check_dependency(d, events) for d in deps]
-    built = build_warnings(verdicts, events, ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        verdicts, events, ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     assert len(built["warnings"]) == 3
     assert [w["event_id"] for w in built["warnings"]] == [
         "evt-depr-late-warn",  # 4d lead - least warned, first
@@ -298,7 +309,11 @@ def test_no_ledger_record_means_no_lead_time_claim(tmp_path):
     event = _future_django_eol()
     verdict = check_dependency(_django_dep(), [event])
     built = build_warnings(
-        [verdict], [event], ledger_root=str(tmp_path / "nope"), today=date(2026, 10, 6)
+        [verdict],
+        [event],
+        ledger_root=str(tmp_path / "nope"),
+        history_keys=TEST_KEYS,
+        today=date(2026, 10, 6),
     )
     w = built["warnings"][0]
     assert w["first_detected"] is None
@@ -376,7 +391,9 @@ def test_render_bands_and_rows(tmp_path):
     deps = [{"kind": "package", "package": "django", "ecosystem": "PyPI", "version": "4.2"}]
     events = [e_overdue, e_critical]
     verdicts = [check_dependency(d, events) for d in deps]
-    built = build_warnings(verdicts, events, ledger_root=str(root), today=date(2026, 10, 6))
+    built = build_warnings(
+        verdicts, events, ledger_root=str(root), history_keys=TEST_KEYS, today=date(2026, 10, 6)
+    )
     md = render_warnings_md(built)
     assert "# OpenPulse warning deadlines" in md
     assert "## OVERDUE - passed deadlines (1)" in md
@@ -604,7 +621,9 @@ def _warnings_for_cycle(cycle_entry, dep, today, detected_at=None, ledger_root=N
     assert findings, "producer pipeline must fire the UPCOMING EOL finding"
     event = finding_to_event(findings[0], cycle_entry["product"], today=today)
     verdict = check_dependency(dep, [event])
-    return build_warnings([verdict], [event], ledger_root=ledger_root, today=today), event
+    return build_warnings(
+        [verdict], [event], ledger_root=ledger_root, today=today, history_keys=TEST_KEYS
+    ), event
 
 
 def test_case_postgresql_14_lead_time(tmp_path):
@@ -671,3 +690,82 @@ def test_case_pg14_outside_180d_horizon_fires_nothing():
         f for f in analyze_endoflife([far], today=today) if f["lifecycle_state"] == "UPCOMING"
     ]
     assert findings == []
+
+
+# ---------------------------------------------------------------------------
+# warnings --fail-on (v0.11.0 W2, #78)
+# ---------------------------------------------------------------------------
+
+
+def _warnings_gate_run(tmp_path, monkeypatch, effective, *extra):
+    from cli.main import cli
+
+    _freeze_warnings_clock(monkeypatch)
+    watchlist = _write_watchlist(tmp_path, _WL)
+    event_file = _future_event_file(tmp_path, effective=effective)
+    args = ["warnings", "--watchlist", watchlist, "--event", event_file, "--ledger", ""]
+    return CliRunner().invoke(cli, [*args, *extra])
+
+
+# Today is 2026-10-06 (_FrozenDate): -5 days OVERDUE, 4 CRITICAL, 30 HIGH, 86 MEDIUM.
+_BAND_DATES = {
+    SEVERITY_OVERDUE: "2026-10-01",
+    SEVERITY_CRITICAL: "2026-10-10",
+    SEVERITY_HIGH: "2026-11-05",
+    SEVERITY_MEDIUM: "2026-12-31",
+}
+
+
+@pytest.mark.parametrize("band", sorted(_BAND_DATES))
+@pytest.mark.parametrize("threshold", ["overdue", "critical", "high", "medium", "low"])
+def test_fail_on_fails_at_or_above_the_threshold(tmp_path, monkeypatch, band, threshold):
+    from core.warnings import SEVERITY_ORDER
+
+    result = _warnings_gate_run(tmp_path, monkeypatch, _BAND_DATES[band], "--fail-on", threshold)
+    breached = SEVERITY_ORDER.index(band) <= SEVERITY_ORDER.index(threshold.upper())
+    assert result.exit_code == (1 if breached else 0), result.output
+    assert (f"fail-on {threshold}:" in result.output) is breached
+
+
+def test_critical_includes_overdue(tmp_path, monkeypatch):
+    """A passed deadline is never milder than one a week away."""
+    result = _warnings_gate_run(tmp_path, monkeypatch, "2026-10-01", "--fail-on", "critical")
+    assert result.exit_code == 1
+    assert "(OVERDUE)" in result.output
+
+
+def test_without_fail_on_warnings_stays_report_only(tmp_path, monkeypatch):
+    result = _warnings_gate_run(tmp_path, monkeypatch, "2026-10-01")
+    assert result.exit_code == 0, result.output
+    assert SEVERITY_OVERDUE in result.output
+
+
+def test_fail_on_keeps_json_output_parseable(tmp_path, monkeypatch):
+    result = _warnings_gate_run(
+        tmp_path, monkeypatch, "2026-10-10", "--output", "json", "--fail-on", "critical"
+    )
+    assert result.exit_code == 1
+    body = json.loads(result.stdout)  # the gate message goes to stderr
+    assert [w["severity"] for w in body["warnings"]] == [SEVERITY_CRITICAL]
+
+
+def test_gate_breaches_is_pure_and_ordered():
+    from core.warnings import gate_breaches
+
+    built = {"warnings": [{"severity": s} for s in (SEVERITY_LOW, SEVERITY_HIGH, "BOGUS")]}
+    assert [w["severity"] for w in gate_breaches(built, "high")] == [SEVERITY_HIGH]
+    assert gate_breaches(built, "critical") == []
+    assert len(gate_breaches(built, "low")) == 2  # an unknown severity never counts
+
+
+@pytest.mark.parametrize(("coverage", "code"), [("FAILED", 1), ("PARTIAL", 0), ("COMPLETE", 0)])
+def test_fail_on_never_passes_an_unread_repository(tmp_path, monkeypatch, coverage, code):
+    """No deadline in the window, but the repository could not be read."""
+    from tests.test_check import _patch_inspection
+
+    _patch_inspection(monkeypatch, coverage)
+    result = _warnings_gate_run(
+        tmp_path, monkeypatch, "2027-12-31", "--github-repo", "owner/repo", "--fail-on", "low"
+    )
+    assert result.exit_code == code, result.output
+    assert ("coverage FAILED: gate failed" in result.output) is (code == 1)

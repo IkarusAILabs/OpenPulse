@@ -19,7 +19,11 @@ disagree:
 - a dependency no supplied event applies to is ONE Info finding ("no
   applicable OpenPulse evidence"), never silently dropped;
 - ``unique_id_from_tool`` is the SARIF fingerprint (dependency + event),
-  so re-imports deduplicate instead of piling up.
+  so re-imports deduplicate instead of piling up;
+- trust records and trust policy violations (v0.14.0 Y4) are the same items
+  as in SARIF (``sarif.trust_items``). Their severity follows the user's
+  policy, never an OpenPulse risk score: prohibited -> High; otherwise a
+  cited record or failed check -> Low, an indicator -> Info.
 
 Pure: no I/O, no clock (dates come from the contracts). Import with the
 "Generic Findings Import" scan type, by UI or API.
@@ -30,11 +34,19 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from core.sarif import _evidence_urls, _fingerprint, _no_applicable_event, contract_level
+from core.sarif import (
+    TRUST_RULE_PREFIX,
+    _evidence_urls,
+    _fingerprint,
+    _no_applicable_event,
+    contract_level,
+    trust_items,
+)
 
 SCAN_TYPE = "Generic Findings Import"
 
 _SEVERITY = {"CRITICAL": "Critical", "ACTION": "High", "REVIEW": "Medium"}
+_TRUST_SEVERITY = {"error": "High", "warning": "Low", "note": "Info"}
 
 
 def finding_severity(doc: dict[str, Any]) -> str | None:
@@ -142,8 +154,51 @@ def _unknown_finding(label: str, path: str, docs: list[dict[str, Any]]) -> dict[
     return finding
 
 
-def build_findings(entries: Iterable[tuple[dict[str, Any], str]]) -> dict[str, Any]:
+def _trust_finding(item: dict[str, Any]) -> dict[str, Any]:
+    name, version = _component(item["label"])
+    rule = TRUST_RULE_PREFIX + item["check"]
+    policy = (
+        f"Prohibited by the trust policy ({item['condition']}): the severity reflects that policy."
+        if item["prohibited"]
+        else "Not prohibited by a trust policy: the severity is not a risk score."
+    )
+    finding = {
+        "title": f"{item['label']}: trust check {item['check']} {item['status']}"[:500],
+        "severity": _TRUST_SEVERITY[item["level"]],
+        "description": "\n".join(
+            [
+                f"**{item['label']}** - trust check `{item['check']}`: {item['status']}",
+                "",
+                f"{item['statement']}",
+                "",
+                f"- {policy}",
+                "- Trust checks are never part of an OpenPulse verdict.",
+            ]
+        ),
+        "mitigation": "",
+        "references": "\n".join(item["references"]),
+        "date": "",
+        "component_name": name,
+        "file_path": item["uri"],
+        "unique_id_from_tool": _fingerprint(item["label"], rule, item["status"]),
+        "vuln_id_from_tool": rule,
+        "active": True,
+        "verified": False,
+        "static_finding": True,
+        "dynamic_finding": False,
+        "tags": ["openpulse", "trust", item["check"], item["status"].lower()],
+    }
+    if version:
+        finding["component_version"] = version
+    return finding
+
+
+def build_findings(
+    entries: Iterable[tuple[dict[str, Any], str]],
+    trust_violations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """(contract, file path) pairs -> a Generic Findings Import document."""
+    entries = list(entries)
     # Same grouping as core.sarif._results: per (file, dependency), "no
     # applicable evidence" only when EVERY contract is UNKNOWN; otherwise
     # the UNKNOWN pairs are superseded by the verdicts that were reached.
@@ -161,5 +216,10 @@ def build_findings(entries: Iterable[tuple[dict[str, Any], str]]) -> dict[str, A
             severity = finding_severity(doc)
             if severity is not None:
                 findings.append(_pair_finding(doc, path, severity))
+    dates = {str(doc["affected_dependency"]["label"]): _date(doc) for doc, _ in entries}
+    for item in trust_items(entries, trust_violations):
+        finding = _trust_finding(item)
+        finding["date"] = dates.get(item["label"], "")
+        findings.append(finding)
     findings.sort(key=lambda f: (f["file_path"], f["component_name"], f["vuln_id_from_tool"]))
     return {"findings": findings}

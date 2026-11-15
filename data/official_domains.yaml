@@ -1,0 +1,39 @@
+# Official-source allowlist per project slug (v0.9.0 item B1, finding M1).
+#
+# A source claiming authority=official counts as official only when its
+# URL is https and names a location listed here for the event's project
+# (core/evidence/authority.py). A bare host also covers its dot-boundary
+# subdomains. A host with a path covers exactly that host, at or under
+# that path segment; shared hosts (github.com) are only listed with a
+# path. A project with no entry has no official sources.
+#
+# Kept apart from canonical_projects.yaml on purpose: adding catalog
+# entries changes identity resolution, and bitnami-spark has none.
+# Additions need owner sign-off (docs/NEXT_PHASES.md, decision 6).
+
+bitnami:
+  - bitnami.com
+  - github.com/bitnami
+  - community.broadcom.com/tanzu
+
+bitnami-spark:
+  - bitnami.com
+  - github.com/bitnami
+
+django:
+  - djangoproject.com
+  - github.com/django
+
+itext:
+  - itextpdf.com
+  - github.com/itext
+
+react:
+  - react.dev
+  - github.com/facebook/react
+  - github.com/react/react
+
+terraform:
+  - hashicorp.com
+  - terraform.io
+  - github.com/hashicorp/terraform
