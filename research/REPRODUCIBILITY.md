@@ -34,9 +34,11 @@ The research scripts use only the standard library and the packages already pinn
 | Baselines and OpenPulse on the same cases | `python research/scripts/evaluate.py retro` (and `dev`) | per-policy category counts |
 | Metrics and intervals | `python research/scripts/inference.py retro` | k/n with intervals |
 | Cross-version comparison | `python research/scripts/compare.py retro` | `after fixes (abcb685) -> current: 0/167 pairs changed` |
+| Wrong curated identity, injected | `python research/scripts/identity_faults.py retro` (and `dev`) | `misattributed injected= 29 changed= 28 ...` |
+| Label sensitivity (AI panel vs L1) | `python research/scripts/label_sensitivity.py` | `AI-AP vs L1  142/167 kappa=0.724` and each label set's false clears |
 | Tables and figures | `python research/scripts/tables.py` | `research/tables/*.md`, `*.tex`; `research/figures/*.svg` |
-| **Everything, plus the manifest** | `python research/scripts/reproduce.py` | `wrote 34 outputs and results/MANIFEST.json` |
-| **Validate the package** | `python research/scripts/reproduce.py --check` | `reproduced: 34 outputs identical; source <hash>` |
+| **Everything, plus the manifest** | `python research/scripts/reproduce.py` | `wrote 57 outputs and results/MANIFEST.json` |
+| **Validate the package** | `python research/scripts/reproduce.py --check` | `reproduced: 57 outputs identical; source <hash>` |
 | Tests | `python -m pytest -q` | the whole suite, including `test_decision_invariants`, `test_research_pipeline` and `test_research_surfaces` |
 
 `reproduce.py --full` also re-runs the 100,000-case randomised differential and requires exact agreement with `conformance/results/randomized.json`.
@@ -46,7 +48,7 @@ The research scripts use only the standard library and the packages already pinn
 1. Validates both case sets against `research/dataset/schema.json`, their recorded SHA-256 and the label vocabulary. **It fails** on a missing field, an invalid label, an unknown event, a duplicate id or a hash mismatch.
 2. Re-runs the oracle matrix, the randomised differential (5,000 cases, seed 2026; with `--full`, 100,000, seed 7) and the decision invariants. **It fails** if a count differs from `conformance/results/` or if any invariant is violated.
 3. Runs every registered and post-hoc policy (`evaluate.py`). **It fails** if a baseline raises an error.
-4. Computes intervals and paired comparisons (`inference.py`), and compares versions (`compare.py`). **It fails** if versions evaluated different case files.
+4. Computes intervals and paired comparisons (`inference.py`), and compares versions (`compare.py`). **It fails** if versions evaluated different case files. Injects one wrong curated identity alias per reference and records the outcomes (`identity_faults.py`). Re-scores every policy under each label set (`label_sensitivity.py`); **it fails** if an AI-panel label file differs from the hash in `labelling/ai-panel-2026-11/LOCK.json`.
 5. Builds tables and figures from the result files only (`tables.py`). **It fails** if an expected result file is missing.
 6. Writes `results/MANIFEST.json`, containing:
    - a SHA-256 over every source file that can change a number (line endings normalised);
@@ -81,3 +83,7 @@ The research scripts use only the standard library and the packages already pinn
 
 - Reproducing these numbers reproduces the developer's labels, not an independent judgement (THREATS_TO_VALIDITY.md).
 - The manuscript PDF is built in CI, not locally. No TeX toolchain was available when the draft was written.
+
+## 7. The AI-panel labels are inputs, not outputs
+
+`reproduce.py` re-scores the committed AI-panel answers; it does not call a model. Re-running the panel itself (`label_packets.py`, the three model runs, `label_panel.py`) would give different labels, because model output is not deterministic. That is a new round, with its own lock, never an overwrite of `ai-panel-2026-11/`. `label_packets.py` refuses to overwrite a lock that already records labels.

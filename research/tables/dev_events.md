@@ -1,0 +1,19 @@
+**Per-event outcomes (openpulse-dev-2026-10)**
+
+| event | class | pairs | in scope | A false clears | C binary false clears | C false clears | C affected | C unresolved | C negatives | C false positives |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bitnami-2025 | distribution | 10 | 6 | 0 | 0 | 0 | 6 | 2 | 2 | 0 |
+| bitnami-2025+redis-6.2-eol | distribution | 3 | 2 | 0 | 0 | 0 | 2 | 0 | 1 | 0 |
+| capa-move | relocation | 3 | 1 | 0 | 0 | 0 | 1 | 2 | 0 | 0 |
+| django-4.2-eol | lifecycle | 5 | 2 | 0 | 0 | 0 | 2 | 2 | 1 | 0 |
+| etcd-move | relocation | 5 | 1 | 0 | 0 | 0 | 1 | 4 | 0 | 0 |
+| fbsdk-archive | archival | 3 | 2 | 0 | 1 | 0 | 1 | 2 | 0 | 0 |
+| fbsdk-move | relocation | 2 | 1 | 0 | 0 | 0 | 1 | 1 | 0 | 0 |
+| itext-license | licence | 5 | 3 | 2 | 0 | 0 | 3 | 2 | 0 | 0 |
+| postgresql-13-eol | lifecycle | 5 | 2 | 2 | 0 | 0 | 2 | 2 | 1 | 0 |
+| react-18-breaking | breaking-change | 4 | 2 | 1 | 1 | 0 | 1 | 3 | 0 | 0 |
+| redis-6.2-eol | lifecycle | 8 | 2 | 0 | 0 | 0 | 2 | 3 | 3 | 0 |
+| spark-mainline | distribution | 4 | 2 | 0 | 0 | 0 | 2 | 1 | 1 | 0 |
+| traefik-move | relocation | 3 | 1 | 0 | 0 | 0 | 1 | 2 | 0 | 0 |
+
+C negatives are pairs C cleared or found no association for; only these can become false clears if a label changes.

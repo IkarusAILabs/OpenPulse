@@ -68,6 +68,7 @@ This plan follows from the audit (`RESEARCH_READINESS_AUDIT.md`). Each step name
   - the labels are added as a **new dataset version**, never by overwriting L1;
   - `evaluate.py` reports the registered (independent-only) population with `valid: true`.
 - **Estimate:** about 167 pairs × 2 annotators × 5–10 minutes, roughly 30–55 person-hours, plus adjudication.
+- **Stand-in done (2026-11-01):** a blinded AI-panel round (`labelling/AI_PANEL_PROTOCOL.md`) and a label-sensitivity analysis (`scripts/label_sensitivity.py`). C's zero false clears and the direction of the comparison with A hold under every label set. R4 itself stays blocked: AI labels do not meet it.
 
 ### R5 — Existing-format comparison (open)
 

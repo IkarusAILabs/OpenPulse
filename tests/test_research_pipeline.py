@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "research" / "scripts"))
 
 import _common  # noqa: E402,F401
 import evaluate  # noqa: E402
+import identity_faults  # noqa: E402
 import inference  # noqa: E402
 import validate_dataset  # noqa: E402
 
@@ -98,6 +99,34 @@ def test_curated_identity_is_restored_after_the_ablation():
         assert not EXPLICIT_ALIASES
     assert resolve_project("postgres:16") == "postgresql"
     assert EXPLICIT_ALIASES == before
+
+
+@pytest.mark.parametrize("ref", ["postgres:16", "hashicorp/terraform:1.6.4"])
+def test_injected_curated_alias_is_verified_and_then_removed(ref):
+    from core.entities.identity import resolution_trust
+
+    before = dict(EXPLICIT_ALIASES)
+    with identity_faults.curated_alias(ref, identity_faults.WRONG_PROJECT):
+        trust = resolution_trust(ref)
+        assert (trust["slug"], trust["via"], trust["identity_status"]) == (
+            identity_faults.WRONG_PROJECT,
+            "explicit",
+            "VERIFIED",
+        )
+    assert EXPLICIT_ALIASES == before
+
+
+def test_identity_faults_cover_every_curated_reference():
+    result = identity_faults.run(RETRO)
+    cases = json.loads(RETRO.read_text(encoding="utf-8"))["cases"]
+    curated = [c for c in cases if evaluate.harness._identity_status(c["dependency"]) == "curated"]
+    rows = result["faults"]["misattributed"]
+    assert sorted(r["case"] for r in rows) == sorted(c["id"] for c in curated)
+    assert all(r["aliased_to"] == identity_faults.WRONG_PROJECT for r in rows)
+    assert all(r["label"] == "out_of_scope" for r in result["faults"]["collided"])
+    # Every case is either injected or counted as not injected, never dropped.
+    injected = sum(b["injected"] for b in result["summary"].values())
+    assert injected + sum(result["not_injected"].values()) == len(cases)
 
 
 def test_disabled_comparators_are_never_complete():

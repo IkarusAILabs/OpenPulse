@@ -1,0 +1,1127 @@
+{
+ "dataset": "openpulse-retro-2026-11",
+ "dataset_sha256": "70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83",
+ "protocol": "research/labelling/AI_PANEL_PROTOCOL.md",
+ "lock": "research/labelling/ai-panel-2026-11/LOCK.json",
+ "bootstrap": {
+  "unit": "event",
+  "resamples": 10000,
+  "seed": 20261101
+ },
+ "label_counts": {
+  "L1": {
+   "in_scope": 103,
+   "out_of_scope": 62,
+   "undeterminable": 2
+  },
+  "AI-A": {
+   "in_scope": 92,
+   "out_of_scope": 49,
+   "undeterminable": 26
+  },
+  "AI-B": {
+   "in_scope": 98,
+   "out_of_scope": 60,
+   "undeterminable": 9
+  },
+  "AI-AP": {
+   "in_scope": 91,
+   "out_of_scope": 54,
+   "undeterminable": 22
+  },
+  "bound against C": {
+   "in_scope": 104,
+   "out_of_scope": 63
+  },
+  "bound against A": {
+   "in_scope": 90,
+   "out_of_scope": 49,
+   "undeterminable": 28
+  }
+ },
+ "agreement": {
+  "AI-A vs AI-B": {
+   "pairs": 167,
+   "agree": 148,
+   "kappa": 0.798,
+   "kappa_event_bootstrap_95": [
+    0.623,
+    0.951
+   ],
+   "confusion": {
+    "in_scope / in_scope": 91,
+    "in_scope / undeterminable": 1,
+    "out_of_scope / out_of_scope": 49,
+    "undeterminable / in_scope": 7,
+    "undeterminable / out_of_scope": 11,
+    "undeterminable / undeterminable": 8
+   }
+  },
+  "AI-A vs L1": {
+   "pairs": 167,
+   "agree": 142,
+   "kappa": 0.728,
+   "kappa_event_bootstrap_95": [
+    0.545,
+    0.914
+   ],
+   "confusion": {
+    "in_scope / in_scope": 91,
+    "in_scope / out_of_scope": 1,
+    "out_of_scope / out_of_scope": 49,
+    "undeterminable / in_scope": 12,
+    "undeterminable / out_of_scope": 12,
+    "undeterminable / undeterminable": 2
+   }
+  },
+  "AI-B vs L1": {
+   "pairs": 167,
+   "agree": 155,
+   "kappa": 0.857,
+   "kappa_event_bootstrap_95": [
+    0.736,
+    0.954
+   ],
+   "confusion": {
+    "in_scope / in_scope": 97,
+    "in_scope / out_of_scope": 1,
+    "out_of_scope / out_of_scope": 58,
+    "out_of_scope / undeterminable": 2,
+    "undeterminable / in_scope": 6,
+    "undeterminable / out_of_scope": 3
+   }
+  },
+  "AI-AP vs L1": {
+   "pairs": 167,
+   "agree": 142,
+   "kappa": 0.724,
+   "kappa_event_bootstrap_95": [
+    0.55,
+    0.9
+   ],
+   "confusion": {
+    "in_scope / in_scope": 90,
+    "in_scope / out_of_scope": 1,
+    "out_of_scope / out_of_scope": 52,
+    "out_of_scope / undeterminable": 2,
+    "undeterminable / in_scope": 13,
+    "undeterminable / out_of_scope": 9
+   }
+  },
+  "pilot round 1 vs L1": {
+   "pairs": 42,
+   "agree": 36,
+   "kappa": 0.722,
+   "kappa_event_bootstrap_95": [
+    0.48,
+    0.909
+   ],
+   "confusion": {
+    "in_scope / in_scope": 20,
+    "in_scope / out_of_scope": 5,
+    "in_scope / undeterminable": 1,
+    "out_of_scope / out_of_scope": 16
+   }
+  },
+  "pilot round 1 vs AI-AP": {
+   "pairs": 42,
+   "agree": 28,
+   "kappa": 0.44,
+   "kappa_event_bootstrap_95": [
+    0.212,
+    0.705
+   ],
+   "confusion": {
+    "in_scope / in_scope": 17,
+    "in_scope / out_of_scope": 6,
+    "in_scope / undeterminable": 3,
+    "out_of_scope / out_of_scope": 11,
+    "out_of_scope / undeterminable": 5
+   }
+  },
+  "pilot round 2 vs L1": {
+   "pairs": 42,
+   "agree": 38,
+   "kappa": 0.825,
+   "kappa_event_bootstrap_95": [
+    0.632,
+    1.0
+   ],
+   "confusion": {
+    "in_scope / in_scope": 19,
+    "in_scope / undeterminable": 1,
+    "out_of_scope / out_of_scope": 19,
+    "undeterminable / in_scope": 1,
+    "undeterminable / out_of_scope": 2
+   }
+  },
+  "pilot round 2 vs AI-AP": {
+   "pairs": 42,
+   "agree": 32,
+   "kappa": 0.61,
+   "kappa_event_bootstrap_95": [
+    0.346,
+    0.905
+   ],
+   "confusion": {
+    "in_scope / in_scope": 16,
+    "in_scope / out_of_scope": 1,
+    "in_scope / undeterminable": 3,
+    "out_of_scope / out_of_scope": 15,
+    "out_of_scope / undeterminable": 4,
+    "undeterminable / in_scope": 1,
+    "undeterminable / out_of_scope": 1,
+    "undeterminable / undeterminable": 1
+   }
+  }
+ },
+ "disagreements_L1_vs_AP": {
+  "count": 25,
+  "by_kind": {
+   "in_scope / out_of_scope": 1,
+   "in_scope / undeterminable": 13,
+   "out_of_scope / undeterminable": 11
+  },
+  "by_class": {
+   "compromised": {
+    "in_scope / undeterminable": 3,
+    "out_of_scope / undeterminable": 5
+   },
+   "deprecation": {
+    "in_scope / undeterminable": 5,
+    "out_of_scope / undeterminable": 1
+   },
+   "distribution": {
+    "in_scope / out_of_scope": 1
+   },
+   "eol": {
+    "out_of_scope / undeterminable": 2
+   },
+   "licence": {
+    "in_scope / undeterminable": 5,
+    "out_of_scope / undeterminable": 3
+   }
+  },
+  "pairs": [
+   {
+    "case": "CMP-4-n1",
+    "event": "CMP-4",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 4: ua-parser-js#536 lists 'some compromised packages (0.7.29, 0.8.0, 1.0.0)' without saying the list is complete; 0.7.30 is not listed.",
+    "rationale B": "Source lists 'some' compromised versions without stating completeness (rule 4); 0.7.30 not listed.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "CMP-4-n2",
+    "event": "CMP-4",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 4: the issue lists 0.7.29, 0.8.0, 1.0.0 as 'some' compromised packages without stating completeness; 0.7.28 is not listed.",
+    "rationale B": "Source lists 'some' compromised versions (0.7.29, 0.8.0, 1.0.0) without stating the list is complete (rule 4); 0.7.28 not listed.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "CMP-5-n1",
+    "event": "CMP-5",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1 and states no event-stream version boundary, so 3.3.4 is not settled.",
+    "rationale B": "Event is bounded to event-stream 3.3.6 per its stated scope; 3.3.4 is a different version.",
+    "rationale adjudicator": "Rule 5 and Rule 4: the quotation names only flatmap-stream 0.1.1 and gives no event-stream boundary, so Reader 2's out_of_scope relies on the event title's version, which is not a source; 3.3.4 is not settled."
+   },
+   {
+    "case": "CMP-5-n2",
+    "event": "CMP-5",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1 and states no event-stream version boundary, so 3.3.5 is not settled.",
+    "rationale B": "Version 3.3.5 is outside the stated 3.3.6 boundary of the event.",
+    "rationale adjudicator": "Rule 5 and Rule 4: the archived quotation states no event-stream version boundary and no affected-version list, so 3.3.5 membership is not settled; Reader 1's out_of_scope relies on the event title's 3.3.6 alone."
+   },
+   {
+    "case": "CMP-5-n3",
+    "event": "CMP-5",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1 and states no event-stream version boundary, so 3.3.4 is not settled.",
+    "rationale B": "Version 3.3.4 is outside the stated 3.3.6 boundary of the event.",
+    "rationale adjudicator": "Rule 5 and Rule 4: no source states an event-stream version boundary or a complete affected-version list, so Reader 1's out_of_scope depends on a 3.3.6 boundary that the sources do not state; 3.3.4 is not settled."
+   },
+   {
+    "case": "CMP-5-s1",
+    "event": "CMP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "affected",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1; it does not state which event-stream versions carried it, so 3.3.6 membership is not settled by the source.",
+    "rationale B": "Exact version 3.3.6 named in the event scope.",
+    "rationale adjudicator": "Rule 4 and Rule 8: the quotation names only flatmap-stream 0.1.1 and lists no affected event-stream versions; Reader 2's in_scope rests on the event title, which is not a source passage establishing affected versions, so 3.3.6 is not settled."
+   },
+   {
+    "case": "CMP-5-s2",
+    "event": "CMP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "affected",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1; it does not state which event-stream versions carried it, so 3.3.6 membership is not settled by the source.",
+    "rationale B": "Exact version 3.3.6 named in the event scope.",
+    "rationale adjudicator": "Rule 4 and Rule 8: the archived quotation names only flatmap-stream 0.1.1 and lists no affected event-stream versions; the event title naming 3.3.6 is not a source passage that states the affected set, so membership of 3.3.6 is not settled."
+   },
+   {
+    "case": "CMP-5-s3",
+    "event": "CMP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "affected",
+    "rationale A": "The archived quotation names only flatmap-stream 0.1.1; it does not state which event-stream versions carried it, so 3.3.6 membership is not settled by the source.",
+    "rationale B": "Event title names event-stream 3.3.6 as the version carrying the malicious flatmap-stream dependency; reference is that exact version.",
+    "rationale adjudicator": "Rule 4 and Rule 8: the quotation names only flatmap-stream 0.1.1 and does not state which event-stream versions carried it; the event title is not a source listing affected versions, so 3.3.6 membership is not settled. Reader 2's in_scope relies on the title."
+   },
+   {
+    "case": "DEP-5-n2",
+    "event": "DEP-5",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 1: go.yaml.in/yaml/v3 is a different module path; the packet does not state its relation to github.com/go-yaml/yaml.",
+    "rationale B": "go.yaml.in/yaml/v3 is a different module path; the packet does not say whether it is the same project or a successor.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DEP-5-s1",
+    "event": "DEP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "cleared",
+    "rationale A": "Rules 1-2: the sources name github.com/go-yaml/yaml; whether the gopkg.in/yaml.v3 path denotes it is not stated in the packet.",
+    "rationale B": "Whether gopkg.in/yaml.v3 denotes github.com/go-yaml/yaml is not established by the packet sources (rule 1); needs outside knowledge.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DEP-5-s2",
+    "event": "DEP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "cleared",
+    "rationale A": "Rules 1-2: the sources name github.com/go-yaml/yaml; whether the gopkg.in/yaml.v2 path denotes it is not stated in the packet.",
+    "rationale B": "Mapping of gopkg.in/yaml.v2 to go-yaml/yaml is not stated in the packet.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DEP-5-s3",
+    "event": "DEP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "cleared",
+    "rationale A": "Rules 1-2: the sources name github.com/go-yaml/yaml; whether the gopkg.in/yaml.v3 path denotes it is not stated in the packet.",
+    "rationale B": "Mapping of gopkg.in/yaml.v3 to go-yaml/yaml is not stated in the packet.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DEP-5-s4",
+    "event": "DEP-5",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "cleared",
+    "rationale A": "Rules 1-2: the sources name github.com/go-yaml/yaml; whether the gopkg.in/yaml.v2 path denotes it is not stated in the packet.",
+    "rationale B": "Mapping of gopkg.in/yaml.v2 to go-yaml/yaml is not stated in the packet.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DEP-6-n1",
+    "event": "DEP-6",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "cleared",
+    "rationale A": "Rules 1-2: github.com/golang/lint is a different import path from x/lint and the source does not equate them; settling identity needs information outside the packet.",
+    "rationale B": "github.com/golang/lint is an old path; the packet does not say it denotes x/lint (rule 1) and no version is given.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "DIS-2-n3",
+    "event": "DIS-2",
+    "L1": "out_of_scope",
+    "AI-A": "in_scope",
+    "AI-B": "in_scope",
+    "AI-AP": "in_scope",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "docker-library/docs@326814f deprecates the openjdk image as a whole; the EA tag 19-ea-16-slim belongs to that image.",
+    "rationale B": "openjdk image is officially deprecated; openjdk:19-ea-16-slim is a tag of that image.",
+    "rationale adjudicator": null
+   },
+   {
+    "case": "EOL-1-n1",
+    "event": "EOL-1",
+    "L1": "undeterminable",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "out_of_scope",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 1: circleci/python is a third-party image; the source covers Python 2 and does not establish what this image contains.",
+    "rationale B": "circleci/python:2.7 is a different image in a different namespace (rule 1); the source concerns the Python 2 language sunset.",
+    "rationale adjudicator": "Rule 1: circleci/python is a different namespace from the Python language sunset described by python.org, and no primary source in the packet ties the circleci image to that event; the names are not identity, so the reference is a different object."
+   },
+   {
+    "case": "EOL-3-n3",
+    "event": "EOL-3",
+    "L1": "undeterminable",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "out_of_scope",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 1: circleci/node is a third-party image; the source covers the Node.js 12.x line and does not establish what this image contains.",
+    "rationale B": "circleci/node:12 is a different image in a different namespace (rule 1); the source covers the Node.js 12.x release line, not third-party images.",
+    "rationale adjudicator": "Rule 1: circleci/node is a different namespace from the Node.js project named by the nodejs/Release source, and no primary source in the packet ties the circleci image to that release line; the names are not identity, so the reference is a different object."
+   },
+   {
+    "case": "LIC-2-s4",
+    "event": "LIC-2",
+    "L1": "in_scope",
+    "AI-A": "in_scope",
+    "AI-B": "undeterminable",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "Rule 6/5: the tag 1.6 can only name a 1.6.x release, and every 1.6.x is at or above the v1.6.0 BUSL boundary derived from tag licence files.",
+    "rationale B": "Digest-pinned image with tag 1.6; the packet does not say which release the digest corresponds to (rule 6).",
+    "rationale adjudicator": "Rule 6: the reference is a tag 1.6 pinned to a digest, and the packet does not establish which 1.6.x release that digest named at the reference's date; the v1.6.0 LICENSE quote does not cover later 1.6.x patches, so Reader 1's version-range inference is not a source passage and membership is not settled."
+   },
+   {
+    "case": "LIC-3-n1",
+    "event": "LIC-3",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 5: the archived quotation states no version boundary, so whether 7.5.5 is relicensed is not settled by the source.",
+    "rationale B": "7.5.5 is before the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; the 8.0 boundary is only in the event title, so 7.5.5 membership is not settled by a source."
+   },
+   {
+    "case": "LIC-3-n2",
+    "event": "LIC-3",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 5: the archived quotation states no version boundary, so whether 7.5.2 is relicensed is not settled by the source.",
+    "rationale B": "7.5.2 is before the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; Reader 2's out_of_scope relies on the 8.0 boundary from the event title, so 7.5.2 membership is not settled by the sources."
+   },
+   {
+    "case": "LIC-3-n3",
+    "event": "LIC-3",
+    "L1": "out_of_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "out_of_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "unresolved",
+    "A outcome": "cleared",
+    "rationale A": "Rule 5: the archived quotation says core projects are relicensed but states no version boundary; the 8.0 boundary appears only in the event title, not in a source.",
+    "rationale B": "7.5.5 is before the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; the 8.0 boundary is only in the event title, so 7.5.5 being out of scope is not established by a source and membership is not settled."
+   },
+   {
+    "case": "LIC-3-s1",
+    "event": "LIC-3",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "Rule 5: the archived quotation states no version boundary and does not name the grafana/grafana image, so membership of 8.0.2 is not settled.",
+    "rationale B": "grafana/grafana 8.0.2 is at or after the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; the 8.0 boundary appears only in the event title, so 8.0.2 membership is not settled by the sources."
+   },
+   {
+    "case": "LIC-3-s2",
+    "event": "LIC-3",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "Rule 5: the archived quotation states no version boundary and does not name the grafana/grafana image, so membership of 8.0.3 is not settled.",
+    "rationale B": "grafana/grafana 8.0.3 is at or after the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; the 8.0 boundary comes only from the event title, so 8.0.3 membership is not settled by the sources. Reader 1's in_scope relies on the title alone."
+   },
+   {
+    "case": "LIC-3-s3",
+    "event": "LIC-3",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "Rule 5: the archived quotation states no version boundary and does not name the grafana/grafana image, so membership of 8.0.6 is not settled.",
+    "rationale B": "grafana/grafana 8.0.6 is at or after the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation says 'our core open source projects' with no version boundary and does not name the grafana/grafana image; the 8.0 boundary appears only in the event title, which is not a source, so 8.0.6 membership is not settled. Reader 1's in_scope relies on that title boundary."
+   },
+   {
+    "case": "LIC-3-s4",
+    "event": "LIC-3",
+    "L1": "in_scope",
+    "AI-A": "undeterminable",
+    "AI-B": "in_scope",
+    "AI-AP": "undeterminable",
+    "C outcome": "affected",
+    "A outcome": "affected",
+    "rationale A": "Rule 5: the archived quotation states no version boundary and does not name the grafana/grafana image, so membership of 8.0.5 is not settled.",
+    "rationale B": "grafana/grafana 8.0.5 is at or after the 8.0 boundary in the event scope.",
+    "rationale adjudicator": "Rule 5: the archived quotation states no version boundary and does not name grafana/grafana; the 8.0 boundary is in the event title only, so 8.0.5 membership is not settled by the sources."
+   }
+  ]
+ },
+ "rescored": {
+  "L1": {
+   "A-naive": {
+    "in_scope": 103,
+    "out_of_scope": 62,
+    "undeterminable": 2,
+    "false_clears": 35,
+    "events_with_false_clear": 10,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 2,
+    "unresolved": 0,
+    "correct": 128,
+    "categories": {
+     "correct_affected": 68,
+     "correct_unaffected": 60,
+     "false_clear": 35,
+     "false_positive": 2,
+     "unsupported_decision": 2
+    }
+   },
+   "B-conservative": {
+    "in_scope": 103,
+    "out_of_scope": 62,
+    "undeterminable": 2,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 2,
+    "unresolved": 97,
+    "correct": 68,
+    "categories": {
+     "abstained_undeterminable": 2,
+     "correct_affected": 68,
+     "false_positive": 2,
+     "unresolved": 95
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 103,
+    "out_of_scope": 62,
+    "undeterminable": 2,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 87,
+    "correct": 78,
+    "categories": {
+     "abstained_undeterminable": 2,
+     "correct_affected": 61,
+     "correct_unaffected": 17,
+     "false_positive": 1,
+     "no_association": 1,
+     "unresolved": 85
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 103,
+    "out_of_scope": 62,
+    "undeterminable": 2,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 64,
+    "correct": 96,
+    "categories": {
+     "abstained_undeterminable": 2,
+     "correct_affected": 77,
+     "correct_unaffected": 19,
+     "false_positive": 1,
+     "no_association": 6,
+     "unresolved": 62
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 103,
+    "out_of_scope": 62,
+    "undeterminable": 2,
+    "false_clears": 26,
+    "events_with_false_clear": 8,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 138,
+    "categories": {
+     "correct_affected": 77,
+     "correct_unaffected": 61,
+     "false_clear": 26,
+     "false_positive": 1,
+     "unsupported_decision": 2
+    }
+   }
+  },
+  "AI-A": {
+   "A-naive": {
+    "in_scope": 92,
+    "out_of_scope": 49,
+    "undeterminable": 26,
+    "false_clears": 30,
+    "events_with_false_clear": 9,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 110,
+    "categories": {
+     "correct_affected": 62,
+     "correct_unaffected": 48,
+     "false_clear": 30,
+     "false_positive": 1,
+     "unsupported_decision": 26
+    }
+   },
+   "B-conservative": {
+    "in_scope": 92,
+    "out_of_scope": 49,
+    "undeterminable": 26,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 97,
+    "correct": 62,
+    "categories": {
+     "abstained_undeterminable": 19,
+     "correct_affected": 62,
+     "false_positive": 1,
+     "unresolved": 78,
+     "unsupported_decision": 7
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 92,
+    "out_of_scope": 49,
+    "undeterminable": 26,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 87,
+    "correct": 69,
+    "categories": {
+     "abstained_undeterminable": 16,
+     "correct_affected": 54,
+     "correct_unaffected": 15,
+     "no_association": 1,
+     "unresolved": 71,
+     "unsupported_decision": 10
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 92,
+    "out_of_scope": 49,
+    "undeterminable": 26,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 64,
+    "correct": 86,
+    "categories": {
+     "abstained_undeterminable": 15,
+     "correct_affected": 69,
+     "correct_unaffected": 17,
+     "no_association": 6,
+     "unresolved": 49,
+     "unsupported_decision": 11
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 92,
+    "out_of_scope": 49,
+    "undeterminable": 26,
+    "false_clears": 23,
+    "events_with_false_clear": 7,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 0,
+    "correct": 118,
+    "categories": {
+     "correct_affected": 69,
+     "correct_unaffected": 49,
+     "false_clear": 23,
+     "unsupported_decision": 26
+    }
+   }
+  },
+  "AI-B": {
+   "A-naive": {
+    "in_scope": 98,
+    "out_of_scope": 60,
+    "undeterminable": 9,
+    "false_clears": 30,
+    "events_with_false_clear": 9,
+    "events_at_risk": 26,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 127,
+    "categories": {
+     "correct_affected": 68,
+     "correct_unaffected": 59,
+     "false_clear": 30,
+     "false_positive": 1,
+     "unsupported_decision": 9
+    }
+   },
+   "B-conservative": {
+    "in_scope": 98,
+    "out_of_scope": 60,
+    "undeterminable": 9,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 26,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 97,
+    "correct": 68,
+    "categories": {
+     "abstained_undeterminable": 8,
+     "correct_affected": 68,
+     "false_positive": 1,
+     "unresolved": 89,
+     "unsupported_decision": 1
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 98,
+    "out_of_scope": 60,
+    "undeterminable": 9,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 26,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 87,
+    "correct": 74,
+    "categories": {
+     "abstained_undeterminable": 4,
+     "correct_affected": 57,
+     "correct_unaffected": 17,
+     "no_association": 1,
+     "unresolved": 83,
+     "unsupported_decision": 5
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 98,
+    "out_of_scope": 60,
+    "undeterminable": 9,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 26,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 64,
+    "correct": 91,
+    "categories": {
+     "abstained_undeterminable": 3,
+     "correct_affected": 72,
+     "correct_unaffected": 19,
+     "no_association": 6,
+     "unresolved": 61,
+     "unsupported_decision": 6
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 98,
+    "out_of_scope": 60,
+    "undeterminable": 9,
+    "false_clears": 26,
+    "events_with_false_clear": 8,
+    "events_at_risk": 26,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 0,
+    "correct": 132,
+    "categories": {
+     "correct_affected": 72,
+     "correct_unaffected": 60,
+     "false_clear": 26,
+     "unsupported_decision": 9
+    }
+   }
+  },
+  "AI-AP": {
+   "A-naive": {
+    "in_scope": 91,
+    "out_of_scope": 54,
+    "undeterminable": 22,
+    "false_clears": 30,
+    "events_with_false_clear": 9,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 114,
+    "categories": {
+     "correct_affected": 61,
+     "correct_unaffected": 53,
+     "false_clear": 30,
+     "false_positive": 1,
+     "unsupported_decision": 22
+    }
+   },
+   "B-conservative": {
+    "in_scope": 91,
+    "out_of_scope": 54,
+    "undeterminable": 22,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 97,
+    "correct": 61,
+    "categories": {
+     "abstained_undeterminable": 14,
+     "correct_affected": 61,
+     "false_positive": 1,
+     "unresolved": 83,
+     "unsupported_decision": 8
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 91,
+    "out_of_scope": 54,
+    "undeterminable": 22,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 87,
+    "correct": 70,
+    "categories": {
+     "abstained_undeterminable": 13,
+     "correct_affected": 53,
+     "correct_unaffected": 17,
+     "no_association": 1,
+     "unresolved": 74,
+     "unsupported_decision": 9
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 91,
+    "out_of_scope": 54,
+    "undeterminable": 22,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 64,
+    "correct": 87,
+    "categories": {
+     "abstained_undeterminable": 12,
+     "correct_affected": 68,
+     "correct_unaffected": 19,
+     "no_association": 6,
+     "unresolved": 52,
+     "unsupported_decision": 10
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 91,
+    "out_of_scope": 54,
+    "undeterminable": 22,
+    "false_clears": 23,
+    "events_with_false_clear": 7,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 0,
+    "correct": 122,
+    "categories": {
+     "correct_affected": 68,
+     "correct_unaffected": 54,
+     "false_clear": 23,
+     "unsupported_decision": 22
+    }
+   }
+  },
+  "bound against C": {
+   "A-naive": {
+    "in_scope": 104,
+    "out_of_scope": 63,
+    "undeterminable": 0,
+    "false_clears": 35,
+    "events_with_false_clear": 10,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 131,
+    "categories": {
+     "correct_affected": 69,
+     "correct_unaffected": 62,
+     "false_clear": 35,
+     "false_positive": 1
+    }
+   },
+   "B-conservative": {
+    "in_scope": 104,
+    "out_of_scope": 63,
+    "undeterminable": 0,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 97,
+    "correct": 69,
+    "categories": {
+     "correct_affected": 69,
+     "false_positive": 1,
+     "unresolved": 97
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 104,
+    "out_of_scope": 63,
+    "undeterminable": 0,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 87,
+    "correct": 79,
+    "categories": {
+     "correct_affected": 62,
+     "correct_unaffected": 17,
+     "no_association": 1,
+     "unresolved": 87
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 104,
+    "out_of_scope": 63,
+    "undeterminable": 0,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 64,
+    "correct": 97,
+    "categories": {
+     "correct_affected": 78,
+     "correct_unaffected": 19,
+     "no_association": 6,
+     "unresolved": 64
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 104,
+    "out_of_scope": 63,
+    "undeterminable": 0,
+    "false_clears": 26,
+    "events_with_false_clear": 8,
+    "events_at_risk": 27,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 0,
+    "correct": 141,
+    "categories": {
+     "correct_affected": 78,
+     "correct_unaffected": 63,
+     "false_clear": 26
+    }
+   }
+  },
+  "bound against A": {
+   "A-naive": {
+    "in_scope": 90,
+    "out_of_scope": 49,
+    "undeterminable": 28,
+    "false_clears": 30,
+    "events_with_false_clear": 9,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 0,
+    "correct": 108,
+    "categories": {
+     "correct_affected": 60,
+     "correct_unaffected": 48,
+     "false_clear": 30,
+     "false_positive": 1,
+     "unsupported_decision": 28
+    }
+   },
+   "B-conservative": {
+    "in_scope": 90,
+    "out_of_scope": 49,
+    "undeterminable": 28,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 1,
+    "unresolved": 97,
+    "correct": 60,
+    "categories": {
+     "abstained_undeterminable": 19,
+     "correct_affected": 60,
+     "false_positive": 1,
+     "unresolved": 78,
+     "unsupported_decision": 9
+    }
+   },
+   "V-strong-conservative": {
+    "in_scope": 90,
+    "out_of_scope": 49,
+    "undeterminable": 28,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 87,
+    "correct": 67,
+    "categories": {
+     "abstained_undeterminable": 16,
+     "correct_affected": 52,
+     "correct_unaffected": 15,
+     "no_association": 1,
+     "unresolved": 71,
+     "unsupported_decision": 12
+    }
+   },
+   "C-openpulse": {
+    "in_scope": 90,
+    "out_of_scope": 49,
+    "undeterminable": 28,
+    "false_clears": 0,
+    "events_with_false_clear": 0,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 64,
+    "correct": 84,
+    "categories": {
+     "abstained_undeterminable": 15,
+     "correct_affected": 67,
+     "correct_unaffected": 17,
+     "no_association": 6,
+     "unresolved": 49,
+     "unsupported_decision": 13
+    }
+   },
+   "C-posthoc-binary": {
+    "in_scope": 90,
+    "out_of_scope": 49,
+    "undeterminable": 28,
+    "false_clears": 23,
+    "events_with_false_clear": 7,
+    "events_at_risk": 24,
+    "silent_misses": 0,
+    "false_positives": 0,
+    "unresolved": 0,
+    "correct": 116,
+    "categories": {
+     "correct_affected": 67,
+     "correct_unaffected": 49,
+     "false_clear": 23,
+     "unsupported_decision": 28
+    }
+   }
+  }
+ },
+ "reading": {
+  "C_zero_false_clears_robust": true,
+  "A_exceeds_C_under_every_set": true,
+  "C_false_clears_by_set": {
+   "L1": 0,
+   "AI-A": 0,
+   "AI-B": 0,
+   "AI-AP": 0,
+   "bound against C": 0,
+   "bound against A": 0
+  }
+ }
+}

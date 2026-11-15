@@ -126,7 +126,47 @@ Not run here:
 - Any effect on AI coding agents, or protection against malicious packages, hallucinated packages or prompt injection.
 - Formal verification.
 
-## 9. Most important next steps before journal submission
+## 9. Round 2 (2026-11-01): response to an AI-assisted pre-submission review
+
+An AI-assisted review of the draft raised five major findings (M1–M5). It is not a peer review and must not be described as one. Each finding was checked against the manuscript and the result files; every quote and number in it was accurate. What was done:
+
+| Finding | Change |
+|---|---|
+| M1 Labels not independent | A label-sensitivity bound: C decided 25 pairs negatively (13 events), all labelled out of scope; only a relabelling of these can create a false clear for C. Independent labels remain blocked (R4). |
+| M2 No real heuristic identity | C's outcomes by identity type (Table `retro_identity`), stated plainly: 0 heuristic pairs. New `research/scripts/identity_faults.py` injects a wrong curated alias per reference: 18 of 18 in-scope curated pairs become silent misses (retro), and 1 false clear appears on dev. |
+| M3 Baselines do not show superiority | The abstract's uncited "a common reading treats…" is replaced. The naive baseline is described as a specified reading, not as what tools do. The paper now disclaims superiority over tools and formats explicitly. |
+| M4 Statistics | The event is the unit of cross-event statements; the event-level bound leads; bootstrap details (resampling unit, 10,000 resamples, seed, percentile, collapse at zero) are in the paper; a per-event table is in the appendix. |
+| M5 Testing vs security | "23 of 23" becomes "26 known, 23 re-injectable, 23 caught", with the 3 exclusions explained; a mutant catalogue in the appendix; a caveat that known-defect regression is not unknown-defect detection; an "assurance boundary" listing what is assumed and not checked. |
+
+Still open from this review: independent labels (M1), real doubtful-identity cases with independent ground truth (M2), the OSV/OpenVEX comparison (M3), the prospective study (M4), and adversarial evidence cases (M5).
+
+## 10. Round 3 (2026-11-01): AI-panel labelling and label sensitivity
+
+No independent human annotators were available, so the draft's placeholder ("independent labels by two annotators with adjudication would replace this paragraph") was replaced with a blinded, AI-assisted protocol. The independent-annotation requirement itself remains unmet.
+
+- **Protocol:** `labelling/AI_PANEL_PROTOCOL.md`. Fixed and hash-locked before any labeller ran.
+- **Run:** `labelling/ai-panel-2026-11/` holds packets, prompts, raw answers, `LOCK.json` and `RUN_LOG.md`.
+  - Readers: Opus 5.5 and Sonnet 5.5.
+  - Adjudicator: Haiku 5.5, a recorded deviation from the planned Fable 5.1, which had no usage credits.
+  - Each reader read only its own instruction file and wrote one file (transcripts audited).
+- **Analysis:** `scripts/label_sensitivity.py`, which refuses labels whose hash differs from the lock; tables `retro_label_agreement`, `retro_label_sensitivity` and `retro_label_disagreements`.
+
+**Results:**
+- The two readers agreed on 148 of 167 pairs (κ 0.80, event bootstrap 95% CI 0.62–0.95).
+- The adjudicated panel agreed with L1 on 142 (κ 0.72, CI 0.55–0.90).
+- Of the 25 disagreements, 22 are pairs L1 decided and the panel found undeterminable from the archived quotations alone. One is C's single false positive under L1, which the panel labels in scope.
+- C has 0 false clears under L1, each reader, the panel, and the bound "in scope if any of L1, A, B". A has 30–35, and at least 30 under every set.
+
+**Limitations, disclosed in the paper:**
+- the readers are one vendor's models;
+- the orchestrator is of the same family and wrote the prompts;
+- the evidence is the developer's archive;
+- each reader ran once;
+- the adjudicator is smaller than the readers.
+
+**Not done:** human annotation (R4), and prompt or re-run variation of the panel.
+
+## 11. Most important next steps before journal submission
 
 1. **Disclose AI assistance.** Decide and disclose how the TR reviews and the pilot labels were produced, and check the venue's AI policy (audit F-03).
 2. **Independent labels.** Obtain them for the 167 pairs: two annotators and an adjudicator, following `LABELING_GUIDE.md`.

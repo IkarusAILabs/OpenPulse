@@ -1,0 +1,674 @@
+{
+ "round": "AP-1",
+ "dataset_sha256": "70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83",
+ "pairs": {
+  "9c0bca09": {
+   "case": "REL-1-s1",
+   "event": "REL-1"
+  },
+  "7b63da6f": {
+   "case": "REL-1-s2",
+   "event": "REL-1"
+  },
+  "1d9aae6d": {
+   "case": "REL-1-s3",
+   "event": "REL-1"
+  },
+  "deba6fde": {
+   "case": "REL-1-s4",
+   "event": "REL-1"
+  },
+  "b10f36e3": {
+   "case": "REL-1-n1",
+   "event": "REL-1"
+  },
+  "2f0d4f33": {
+   "case": "REL-1-n2",
+   "event": "REL-1"
+  },
+  "879f9c60": {
+   "case": "REL-3-s1",
+   "event": "REL-3"
+  },
+  "4129aead": {
+   "case": "REL-3-s2",
+   "event": "REL-3"
+  },
+  "5d5105d9": {
+   "case": "REL-3-s3",
+   "event": "REL-3"
+  },
+  "baef36b3": {
+   "case": "REL-3-s4",
+   "event": "REL-3"
+  },
+  "fcf9b3dc": {
+   "case": "REL-3-n1",
+   "event": "REL-3"
+  },
+  "aa4e11a2": {
+   "case": "REL-3-n2",
+   "event": "REL-3"
+  },
+  "2ce3e98a": {
+   "case": "REL-4-s1",
+   "event": "REL-4"
+  },
+  "c17a1655": {
+   "case": "REL-4-s2",
+   "event": "REL-4"
+  },
+  "80560426": {
+   "case": "REL-4-s3",
+   "event": "REL-4"
+  },
+  "9fce18ee": {
+   "case": "REL-4-s4",
+   "event": "REL-4"
+  },
+  "86bafcbf": {
+   "case": "REL-4-n1",
+   "event": "REL-4"
+  },
+  "707df66a": {
+   "case": "REL-4-n2",
+   "event": "REL-4"
+  },
+  "075b1e05": {
+   "case": "DEP-2-s1",
+   "event": "DEP-2"
+  },
+  "41f9a581": {
+   "case": "DEP-2-s2",
+   "event": "DEP-2"
+  },
+  "611ec3d3": {
+   "case": "DEP-2-s3",
+   "event": "DEP-2"
+  },
+  "0ef37ab8": {
+   "case": "DEP-2-s4",
+   "event": "DEP-2"
+  },
+  "12f20c83": {
+   "case": "DEP-2-n1",
+   "event": "DEP-2"
+  },
+  "1061be5a": {
+   "case": "DEP-5-s1",
+   "event": "DEP-5"
+  },
+  "c5707a52": {
+   "case": "DEP-5-s2",
+   "event": "DEP-5"
+  },
+  "a7e7ab76": {
+   "case": "DEP-5-s3",
+   "event": "DEP-5"
+  },
+  "43805957": {
+   "case": "DEP-5-s4",
+   "event": "DEP-5"
+  },
+  "9581a58f": {
+   "case": "DEP-5-n1",
+   "event": "DEP-5"
+  },
+  "872fb31f": {
+   "case": "DEP-5-n2",
+   "event": "DEP-5"
+  },
+  "d1a2d7f9": {
+   "case": "DEP-5-n3",
+   "event": "DEP-5"
+  },
+  "a4e73f35": {
+   "case": "DEP-6-s1",
+   "event": "DEP-6"
+  },
+  "c04a67b5": {
+   "case": "DEP-6-s2",
+   "event": "DEP-6"
+  },
+  "1bcccfe5": {
+   "case": "DEP-6-s3",
+   "event": "DEP-6"
+  },
+  "46baf50a": {
+   "case": "DEP-6-s4",
+   "event": "DEP-6"
+  },
+  "641c886d": {
+   "case": "DEP-6-n1",
+   "event": "DEP-6"
+  },
+  "54438d65": {
+   "case": "DEP-6-n2",
+   "event": "DEP-6"
+  },
+  "8e128618": {
+   "case": "DEP-6-n3",
+   "event": "DEP-6"
+  },
+  "6c31e152": {
+   "case": "LIC-2-s1",
+   "event": "LIC-2"
+  },
+  "6140f3b6": {
+   "case": "LIC-2-s2",
+   "event": "LIC-2"
+  },
+  "7e2cba82": {
+   "case": "LIC-2-s3",
+   "event": "LIC-2"
+  },
+  "7a386608": {
+   "case": "LIC-2-s4",
+   "event": "LIC-2"
+  },
+  "043706f8": {
+   "case": "LIC-2-n1",
+   "event": "LIC-2"
+  },
+  "06e17978": {
+   "case": "LIC-2-n2",
+   "event": "LIC-2"
+  },
+  "35a01765": {
+   "case": "LIC-2-n3",
+   "event": "LIC-2"
+  },
+  "ab4aef32": {
+   "case": "EOL-1-s1",
+   "event": "EOL-1"
+  },
+  "f1d4f314": {
+   "case": "EOL-1-s2",
+   "event": "EOL-1"
+  },
+  "d83a7add": {
+   "case": "EOL-1-s3",
+   "event": "EOL-1"
+  },
+  "60fdd13d": {
+   "case": "EOL-1-s4",
+   "event": "EOL-1"
+  },
+  "f7412141": {
+   "case": "EOL-1-n1",
+   "event": "EOL-1"
+  },
+  "5772b21b": {
+   "case": "EOL-1-n2",
+   "event": "EOL-1"
+  },
+  "a997381a": {
+   "case": "EOL-2-s1",
+   "event": "EOL-2"
+  },
+  "9ddd6e73": {
+   "case": "EOL-2-s2",
+   "event": "EOL-2"
+  },
+  "8232508e": {
+   "case": "EOL-2-s3",
+   "event": "EOL-2"
+  },
+  "0fd7f57c": {
+   "case": "EOL-2-s4",
+   "event": "EOL-2"
+  },
+  "0b05f344": {
+   "case": "EOL-2-n1",
+   "event": "EOL-2"
+  },
+  "89bcae50": {
+   "case": "EOL-2-n2",
+   "event": "EOL-2"
+  },
+  "5e105297": {
+   "case": "DIS-1-s1",
+   "event": "DIS-1"
+  },
+  "41f69e82": {
+   "case": "DIS-1-s2",
+   "event": "DIS-1"
+  },
+  "6a288c15": {
+   "case": "DIS-1-s3",
+   "event": "DIS-1"
+  },
+  "1d141517": {
+   "case": "DIS-1-s4",
+   "event": "DIS-1"
+  },
+  "9275c434": {
+   "case": "DIS-1-n1",
+   "event": "DIS-1"
+  },
+  "67172da3": {
+   "case": "DIS-1-n2",
+   "event": "DIS-1"
+  },
+  "2b774735": {
+   "case": "DIS-1-n3",
+   "event": "DIS-1"
+  },
+  "d041bd8d": {
+   "case": "DIS-2-s1",
+   "event": "DIS-2"
+  },
+  "617b7e97": {
+   "case": "DIS-2-s2",
+   "event": "DIS-2"
+  },
+  "a46b5ec7": {
+   "case": "DIS-2-s3",
+   "event": "DIS-2"
+  },
+  "2cfa1ca5": {
+   "case": "DIS-2-s4",
+   "event": "DIS-2"
+  },
+  "0a896452": {
+   "case": "DIS-2-n1",
+   "event": "DIS-2"
+  },
+  "cbed9502": {
+   "case": "DIS-2-n2",
+   "event": "DIS-2"
+  },
+  "7afaf0ed": {
+   "case": "DIS-2-n3",
+   "event": "DIS-2"
+  },
+  "a27216a0": {
+   "case": "DIS-3-s1",
+   "event": "DIS-3"
+  },
+  "aab49605": {
+   "case": "DIS-3-s2",
+   "event": "DIS-3"
+  },
+  "a4947bca": {
+   "case": "DIS-3-s3",
+   "event": "DIS-3"
+  },
+  "56525d5b": {
+   "case": "DIS-3-s4",
+   "event": "DIS-3"
+  },
+  "a25fa6b2": {
+   "case": "DIS-3-n1",
+   "event": "DIS-3"
+  },
+  "ebe72d72": {
+   "case": "DIS-3-n2",
+   "event": "DIS-3"
+  },
+  "f2999c16": {
+   "case": "DIS-3-n3",
+   "event": "DIS-3"
+  },
+  "42ebab65": {
+   "case": "DIS-4-s1",
+   "event": "DIS-4"
+  },
+  "950c5fe3": {
+   "case": "DIS-4-s2",
+   "event": "DIS-4"
+  },
+  "e653742c": {
+   "case": "DIS-4-s3",
+   "event": "DIS-4"
+  },
+  "15e76a55": {
+   "case": "DIS-4-s4",
+   "event": "DIS-4"
+  },
+  "a0488b06": {
+   "case": "DIS-4-n1",
+   "event": "DIS-4"
+  },
+  "7edb79a4": {
+   "case": "DIS-4-n2",
+   "event": "DIS-4"
+  },
+  "4cca3cb9": {
+   "case": "DIS-4-n3",
+   "event": "DIS-4"
+  },
+  "2c46edb5": {
+   "case": "DIS-5-s1",
+   "event": "DIS-5"
+  },
+  "a5c6b04a": {
+   "case": "DIS-5-s2",
+   "event": "DIS-5"
+  },
+  "018563e8": {
+   "case": "DIS-5-s3",
+   "event": "DIS-5"
+  },
+  "a67bfe74": {
+   "case": "DIS-5-s4",
+   "event": "DIS-5"
+  },
+  "705d8826": {
+   "case": "DIS-5-n1",
+   "event": "DIS-5"
+  },
+  "a1df2acd": {
+   "case": "DIS-5-n2",
+   "event": "DIS-5"
+  },
+  "ad03e156": {
+   "case": "DIS-6-s1",
+   "event": "DIS-6"
+  },
+  "ca5176e8": {
+   "case": "DIS-6-s2",
+   "event": "DIS-6"
+  },
+  "cbb13cd5": {
+   "case": "DIS-6-s3",
+   "event": "DIS-6"
+  },
+  "04aeb634": {
+   "case": "DIS-6-s4",
+   "event": "DIS-6"
+  },
+  "1c66c45c": {
+   "case": "DIS-6-n1",
+   "event": "DIS-6"
+  },
+  "8dd7e794": {
+   "case": "LIC-1-s1",
+   "event": "LIC-1"
+  },
+  "e0324104": {
+   "case": "LIC-1-s2",
+   "event": "LIC-1"
+  },
+  "bf4cf069": {
+   "case": "LIC-1-s3",
+   "event": "LIC-1"
+  },
+  "3a7bc541": {
+   "case": "LIC-1-s4",
+   "event": "LIC-1"
+  },
+  "a3822fcc": {
+   "case": "LIC-1-n1",
+   "event": "LIC-1"
+  },
+  "90a2b443": {
+   "case": "LIC-3-s1",
+   "event": "LIC-3"
+  },
+  "20c2c449": {
+   "case": "LIC-3-s2",
+   "event": "LIC-3"
+  },
+  "077337c6": {
+   "case": "LIC-3-s3",
+   "event": "LIC-3"
+  },
+  "88be0110": {
+   "case": "LIC-3-s4",
+   "event": "LIC-3"
+  },
+  "c32b29d7": {
+   "case": "LIC-3-n1",
+   "event": "LIC-3"
+  },
+  "aa979c36": {
+   "case": "LIC-3-n2",
+   "event": "LIC-3"
+  },
+  "a63f07a0": {
+   "case": "LIC-3-n3",
+   "event": "LIC-3"
+  },
+  "8d94cd3e": {
+   "case": "LIC-4-s1",
+   "event": "LIC-4"
+  },
+  "68514ef5": {
+   "case": "LIC-4-s2",
+   "event": "LIC-4"
+  },
+  "7c043791": {
+   "case": "LIC-4-n1",
+   "event": "LIC-4"
+  },
+  "ec27bddf": {
+   "case": "LIC-4-n2",
+   "event": "LIC-4"
+  },
+  "adb4ac0d": {
+   "case": "EOL-3-s1",
+   "event": "EOL-3"
+  },
+  "9b372f76": {
+   "case": "EOL-3-s2",
+   "event": "EOL-3"
+  },
+  "b4d71fe4": {
+   "case": "EOL-3-s3",
+   "event": "EOL-3"
+  },
+  "664fbb27": {
+   "case": "EOL-3-s4",
+   "event": "EOL-3"
+  },
+  "ca53d779": {
+   "case": "EOL-3-n1",
+   "event": "EOL-3"
+  },
+  "f9332e9b": {
+   "case": "EOL-3-n2",
+   "event": "EOL-3"
+  },
+  "f632b9cc": {
+   "case": "EOL-3-n3",
+   "event": "EOL-3"
+  },
+  "416346e2": {
+   "case": "DEP-1-s1",
+   "event": "DEP-1"
+  },
+  "11442ccc": {
+   "case": "DEP-1-s2",
+   "event": "DEP-1"
+  },
+  "c17fe886": {
+   "case": "DEP-1-s3",
+   "event": "DEP-1"
+  },
+  "a5e74f11": {
+   "case": "DEP-1-s4",
+   "event": "DEP-1"
+  },
+  "3f623f49": {
+   "case": "DEP-1-n1",
+   "event": "DEP-1"
+  },
+  "43eaefa5": {
+   "case": "DEP-1-n2",
+   "event": "DEP-1"
+  },
+  "4f8c8b55": {
+   "case": "DEP-3-s1",
+   "event": "DEP-3"
+  },
+  "3f25d87d": {
+   "case": "DEP-3-s2",
+   "event": "DEP-3"
+  },
+  "e65c8b48": {
+   "case": "DEP-3-s3",
+   "event": "DEP-3"
+  },
+  "2866e41c": {
+   "case": "DEP-3-s4",
+   "event": "DEP-3"
+  },
+  "f622d1bf": {
+   "case": "DEP-3-n1",
+   "event": "DEP-3"
+  },
+  "60cb7fbf": {
+   "case": "DEP-3-n2",
+   "event": "DEP-3"
+  },
+  "97e90d74": {
+   "case": "DEP-4-s1",
+   "event": "DEP-4"
+  },
+  "9df3b3e2": {
+   "case": "DEP-4-s2",
+   "event": "DEP-4"
+  },
+  "c49e4a28": {
+   "case": "DEP-4-s3",
+   "event": "DEP-4"
+  },
+  "7bda0f4f": {
+   "case": "DEP-4-s4",
+   "event": "DEP-4"
+  },
+  "f2dbcfa1": {
+   "case": "DEP-4-n1",
+   "event": "DEP-4"
+  },
+  "a5a3c682": {
+   "case": "DEP-4-n2",
+   "event": "DEP-4"
+  },
+  "7fefde73": {
+   "case": "CMP-1-s1",
+   "event": "CMP-1"
+  },
+  "6c06dd73": {
+   "case": "CMP-1-s2",
+   "event": "CMP-1"
+  },
+  "af82b0f2": {
+   "case": "CMP-1-s3",
+   "event": "CMP-1"
+  },
+  "bab10f52": {
+   "case": "CMP-1-s4",
+   "event": "CMP-1"
+  },
+  "432be208": {
+   "case": "CMP-1-n1",
+   "event": "CMP-1"
+  },
+  "08f47657": {
+   "case": "CMP-1-n2",
+   "event": "CMP-1"
+  },
+  "6e01dfc9": {
+   "case": "CMP-1-n3",
+   "event": "CMP-1"
+  },
+  "9e252af0": {
+   "case": "CMP-2-s1",
+   "event": "CMP-2"
+  },
+  "1933a4fa": {
+   "case": "CMP-2-s2",
+   "event": "CMP-2"
+  },
+  "5c97f1aa": {
+   "case": "CMP-2-s3",
+   "event": "CMP-2"
+  },
+  "12d45b9c": {
+   "case": "CMP-2-s4",
+   "event": "CMP-2"
+  },
+  "10e6e13a": {
+   "case": "CMP-2-n1",
+   "event": "CMP-2"
+  },
+  "930fc502": {
+   "case": "CMP-2-n2",
+   "event": "CMP-2"
+  },
+  "de1cfbc4": {
+   "case": "CMP-3-s1",
+   "event": "CMP-3"
+  },
+  "d13ccabb": {
+   "case": "CMP-3-s2",
+   "event": "CMP-3"
+  },
+  "b0993611": {
+   "case": "CMP-3-n1",
+   "event": "CMP-3"
+  },
+  "d69dcf94": {
+   "case": "CMP-3-n2",
+   "event": "CMP-3"
+  },
+  "32552f7e": {
+   "case": "CMP-3-n3",
+   "event": "CMP-3"
+  },
+  "077e33de": {
+   "case": "CMP-3-n4",
+   "event": "CMP-3"
+  },
+  "5c5272c1": {
+   "case": "CMP-3-n5",
+   "event": "CMP-3"
+  },
+  "371f542c": {
+   "case": "CMP-4-s1",
+   "event": "CMP-4"
+  },
+  "e5b6814b": {
+   "case": "CMP-4-s2",
+   "event": "CMP-4"
+  },
+  "fc9df59a": {
+   "case": "CMP-4-s3",
+   "event": "CMP-4"
+  },
+  "9fd11ca8": {
+   "case": "CMP-4-n1",
+   "event": "CMP-4"
+  },
+  "55927023": {
+   "case": "CMP-4-n2",
+   "event": "CMP-4"
+  },
+  "d61560e7": {
+   "case": "CMP-5-s1",
+   "event": "CMP-5"
+  },
+  "2edeef72": {
+   "case": "CMP-5-s2",
+   "event": "CMP-5"
+  },
+  "8aea7783": {
+   "case": "CMP-5-s3",
+   "event": "CMP-5"
+  },
+  "61c02080": {
+   "case": "CMP-5-n1",
+   "event": "CMP-5"
+  },
+  "7ee38dd1": {
+   "case": "CMP-5-n2",
+   "event": "CMP-5"
+  },
+  "473d7956": {
+   "case": "CMP-5-n3",
+   "event": "CMP-5"
+  }
+ }
+}

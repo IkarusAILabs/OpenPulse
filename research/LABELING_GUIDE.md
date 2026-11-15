@@ -67,3 +67,5 @@ Then the paper must:
 - list this in Threats to Validity.
 
 The draft manuscript in `paper/` does this.
+
+As a stand-in, and not a substitute, every pair was re-labelled with this codebook by a blinded panel of language models (`labelling/AI_PANEL_PROTOCOL.md`, run in `labelling/ai-panel-2026-11/`). Those labels are kept as separate label sets. They are never written into the case file and never marked `independent_label: true`.

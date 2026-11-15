@@ -45,6 +45,9 @@ SOURCE_GLOBS = (
     "conformance/*.py",
     "research/scripts/*.py",
     "research/dataset/schema.json",
+    "research/labelling/**/*.json",
+    "research/labelling/**/*.jsonl",
+    "evaluation/retrospective/labelling/**/*.jsonl",
     "data/canonical_projects.yaml",
     "data/fixtures/**/*.json",
     "evaluation/cases/*.json",
@@ -149,6 +152,16 @@ def generate(out_dir: Path, full: bool) -> None:
             [str(SCRIPTS / "compare.py"), dataset, "--results", str(out_dir / "results")],
             env,
         )
+        _step(
+            f"identity faults {dataset}",
+            [str(SCRIPTS / "identity_faults.py"), dataset, "--results", str(out_dir / "results")],
+            env,
+        )
+    _step(
+        "label sensitivity retro",
+        [str(SCRIPTS / "label_sensitivity.py"), "--results", str(out_dir / "results")],
+        env,
+    )
     _step("tables and figures", [str(SCRIPTS / "tables.py")], env)
     _common.write_json(out_dir / "results" / "conformance.json", summary)
 
