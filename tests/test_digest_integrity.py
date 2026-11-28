@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+from datetime import date
 
 import pytest
 
@@ -179,11 +180,18 @@ def _lock(tmp_path, integrity):
 
 def test_file_check_lists_failures_and_never_changes_the_verdict(tmp_path):
     registry = Registry({NPM_URL: (200, {"dist": {"integrity": sri(b"tgz")}})})
+    # A pinned date: unresolved results carry evaluation_context.as_of, which
+    # otherwise is the wall clock and differs between the two calls.
+    today = date(2026, 11, 1)
     good = check_dependency_file(
-        _lock(tmp_path, sri(b"tgz")), lookups=Lookups(fetch=_no_data, fetch_json=registry)
+        _lock(tmp_path, sri(b"tgz")),
+        lookups=Lookups(fetch=_no_data, fetch_json=registry),
+        today=today,
     )
     bad = check_dependency_file(
-        _lock(tmp_path, sri(b"evil")), lookups=Lookups(fetch=_no_data, fetch_json=registry)
+        _lock(tmp_path, sri(b"evil")),
+        lookups=Lookups(fetch=_no_data, fetch_json=registry),
+        today=today,
     )
     assert good["digest_integrity"]["VERIFIED_RELATIONSHIP"] == 1
     assert bad["digest_integrity"]["VERIFIED_FAILURE"] == 1

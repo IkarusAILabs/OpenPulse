@@ -1,0 +1,32 @@
+{
+ "round": "AP-1",
+ "dataset": "evaluation/retrospective/cases/retro-2026-11.json",
+ "dataset_sha256": "70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83",
+ "pairs": 167,
+ "before_labelling": {
+  "research/labelling/AI_PANEL_PROTOCOL.md": "0f74ad32f1341aea768f3055e766e1145defa37c5b1caccdacb36936016a1e5c",
+  "research/labelling/ai-panel-2026-11/packet-A.md": "44fc407914efde91b354a1e5ed7d493a85c7860a1f0a6099e0a269800c13d407",
+  "research/labelling/ai-panel-2026-11/prompt-labeller-A.md": "40fe46c95d3918467811bd72ccfc95a773543c83675dce8d9ce7b19fd47e81be",
+  "research/labelling/ai-panel-2026-11/packet-B.md": "a607a1e46b018e0e862fbfdff1cc8e22438607833032ed7b422bf6860df4d7bc",
+  "research/labelling/ai-panel-2026-11/prompt-labeller-B.md": "8a7d5d250691f6f420375e03dcc693979ab5e2ff914d16625e6e6127a3bfa20a"
+ },
+ "labels": {
+  "research/labelling/ai-panel-2026-11/raw/labeller-A.jsonl": "cfa90b9277d43d4bbda448cd4f733b681f93bc961c3ea340ddf00b6ee54cb124",
+  "research/labelling/ai-panel-2026-11/raw/labeller-B.jsonl": "3478c0338d75804e610b117b192caa5b36fd9e69667dfd26dc9d2a4dbca00d13"
+ },
+ "adjudication": {
+  "research/labelling/ai-panel-2026-11/adjudication-key.json": "2d79012a86d03743a5e5f1bf6ed08b709464f40c33ddb92453616c0530e21865",
+  "research/labelling/ai-panel-2026-11/prompt-adjudicator.md": "b5a71fdd3120d1c7ac9d564159ebda2301639e4659c5a15823cc8bfb11d78578",
+  "research/labelling/ai-panel-2026-11/raw/adjudicator.jsonl": "b7ee75e838a6d8ae75482f04a7c8b59afebeeff601793baafb2cdb0c9bb525d4"
+ },
+ "deviations": [
+  {
+   "date": "2026-11-01",
+   "protocol_section": "2 (Roles: adjudicator)",
+   "planned": "Claude Fable 5.1 (claude-fable-5-1)",
+   "actual": "Claude Haiku 5.5 (claude-haiku-5-5)",
+   "reason": "The Fable 5.1 run failed before any model call (HTTP 429: the account has no usage credits for that model). It read and wrote nothing. Haiku 5.5 is the only available model that differs from both readers (Opus 5.5, Sonnet 5.5). It is a smaller model than the readers it adjudicates.",
+   "recorded_before_adjudication": true
+  }
+ ]
+}

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 890 412" font-family="Helvetica, Arial, sans-serif" font-size="12" role="img" aria-labelledby="t d">
+<title id="t">Decision outcomes by policy, openpulse-retro-2026-11</title>
+<desc id="d">Stacked pair counts per policy; the same counts are in research/tables/retro_outcomes.md.</desc>
+<rect width="100%" height="100%" fill="#fcfcfb"/>
+<rect x="300" y="14" width="10" height="10" rx="2" fill="#2a78d6"/>
+<text x="314" y="23" fill="#52514e">Correct</text>
+<rect x="381" y="14" width="10" height="10" rx="2" fill="#eb6834"/>
+<text x="395" y="23" fill="#52514e">Unresolved / abstained</text>
+<rect x="567" y="14" width="10" height="10" rx="2" fill="#1baf7a"/>
+<text x="581" y="23" fill="#52514e">No association</text>
+<rect x="697" y="14" width="10" height="10" rx="2" fill="#eda100"/>
+<text x="711" y="23" fill="#52514e">False clear</text>
+<rect x="806" y="14" width="10" height="10" rx="2" fill="#e87ba4"/>
+<text x="820" y="23" fill="#52514e">Other error</text>
+<line x1="300.0" y1="58" x2="300.0" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="300.0" y="392" fill="#52514e" text-anchor="middle">0</text>
+<line x1="383.8" y1="58" x2="383.8" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="383.8" y="392" fill="#52514e" text-anchor="middle">25</text>
+<line x1="467.7" y1="58" x2="467.7" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="467.7" y="392" fill="#52514e" text-anchor="middle">50</text>
+<line x1="551.5" y1="58" x2="551.5" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="551.5" y="392" fill="#52514e" text-anchor="middle">75</text>
+<line x1="635.3" y1="58" x2="635.3" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="635.3" y="392" fill="#52514e" text-anchor="middle">100</text>
+<line x1="719.2" y1="58" x2="719.2" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="719.2" y="392" fill="#52514e" text-anchor="middle">125</text>
+<line x1="803.0" y1="58" x2="803.0" y2="378" stroke="#e4e3df" stroke-width="1"/>
+<text x="803.0" y="392" fill="#52514e" text-anchor="middle">150</text>
+<text x="580.0" y="408" fill="#52514e" text-anchor="middle">pairs</text>
+<text x="292" y="77" fill="#0b0b0b" text-anchor="end">A naive (listed or cleared)</text>
+<rect x="300.0" y="64" width="427.2" height="18" rx="2" fill="#2a78d6"><title>A naive (listed or cleared): Correct (affected or unaffected) 128</title></rect>
+<text x="513.6" y="77" fill="#0b0b0b" text-anchor="middle" font-size="11">128</text>
+<rect x="729.2" y="64" width="115.4" height="18" rx="2" fill="#eda100"><title>A naive (listed or cleared): False clear 35</title></rect>
+<text x="786.9" y="77" fill="#0b0b0b" text-anchor="middle" font-size="11">35</text>
+<rect x="846.6" y="64" width="11.4" height="18" rx="2" fill="#e87ba4"><title>A naive (listed or cleared): Other error (false positive, silent miss) 4</title></rect>
+<text x="292" y="105" fill="#0b0b0b" text-anchor="end">B conservative (listed or abstain)</text>
+<rect x="300.0" y="92" width="226.0" height="18" rx="2" fill="#2a78d6"><title>B conservative (listed or abstain): Correct (affected or unaffected) 68</title></rect>
+<text x="413.0" y="105" fill="#0b0b0b" text-anchor="middle" font-size="11">68</text>
+<rect x="528.0" y="92" width="323.3" height="18" rx="2" fill="#eb6834"><title>B conservative (listed or abstain): Unresolved / abstained 97</title></rect>
+<text x="689.7" y="105" fill="#0b0b0b" text-anchor="middle" font-size="11">97</text>
+<rect x="853.3" y="92" width="4.7" height="18" rx="2" fill="#e87ba4"><title>B conservative (listed or abstain): Other error (false positive, silent miss) 2</title></rect>
+<text x="292" y="133" fill="#0b0b0b" text-anchor="end">V strong conservative</text>
+<rect x="300.0" y="120" width="259.6" height="18" rx="2" fill="#2a78d6"><title>V strong conservative: Correct (affected or unaffected) 78</title></rect>
+<text x="429.8" y="133" fill="#0b0b0b" text-anchor="middle" font-size="11">78</text>
+<rect x="561.6" y="120" width="289.7" height="18" rx="2" fill="#eb6834"><title>V strong conservative: Unresolved / abstained 87</title></rect>
+<text x="706.4" y="133" fill="#0b0b0b" text-anchor="middle" font-size="11">87</text>
+<rect x="853.3" y="120" width="1.4" height="18" rx="2" fill="#1baf7a"><title>V strong conservative: No association (out of scope) 1</title></rect>
+<rect x="856.6" y="120" width="1.4" height="18" rx="2" fill="#e87ba4"><title>V strong conservative: Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="161" fill="#0b0b0b" text-anchor="end">C OpenPulse</text>
+<rect x="300.0" y="148" width="319.9" height="18" rx="2" fill="#2a78d6"><title>C OpenPulse: Correct (affected or unaffected) 96</title></rect>
+<text x="460.0" y="161" fill="#0b0b0b" text-anchor="middle" font-size="11">96</text>
+<rect x="621.9" y="148" width="212.6" height="18" rx="2" fill="#eb6834"><title>C OpenPulse: Unresolved / abstained 64</title></rect>
+<text x="728.2" y="161" fill="#0b0b0b" text-anchor="middle" font-size="11">64</text>
+<rect x="836.5" y="148" width="18.1" height="18" rx="2" fill="#1baf7a"><title>C OpenPulse: No association (out of scope) 6</title></rect>
+<rect x="856.6" y="148" width="1.4" height="18" rx="2" fill="#e87ba4"><title>C OpenPulse: Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="189" fill="#0b0b0b" text-anchor="end">C, completeness assumed</text>
+<rect x="300.0" y="176" width="343.4" height="18" rx="2" fill="#2a78d6"><title>C, completeness assumed: Correct (affected or unaffected) 103</title></rect>
+<text x="471.7" y="189" fill="#0b0b0b" text-anchor="middle" font-size="11">103</text>
+<rect x="645.4" y="176" width="189.1" height="18" rx="2" fill="#eb6834"><title>C, completeness assumed: Unresolved / abstained 57</title></rect>
+<text x="740.0" y="189" fill="#0b0b0b" text-anchor="middle" font-size="11">57</text>
+<rect x="836.5" y="176" width="18.1" height="18" rx="2" fill="#1baf7a"><title>C, completeness assumed: No association (out of scope) 6</title></rect>
+<rect x="856.6" y="176" width="1.4" height="18" rx="2" fill="#e87ba4"><title>C, completeness assumed: Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="217" fill="#0b0b0b" text-anchor="end">C, no freshness bound</text>
+<rect x="300.0" y="204" width="319.9" height="18" rx="2" fill="#2a78d6"><title>C, no freshness bound: Correct (affected or unaffected) 96</title></rect>
+<text x="460.0" y="217" fill="#0b0b0b" text-anchor="middle" font-size="11">96</text>
+<rect x="621.9" y="204" width="212.6" height="18" rx="2" fill="#eb6834"><title>C, no freshness bound: Unresolved / abstained 64</title></rect>
+<text x="728.2" y="217" fill="#0b0b0b" text-anchor="middle" font-size="11">64</text>
+<rect x="836.5" y="204" width="18.1" height="18" rx="2" fill="#1baf7a"><title>C, no freshness bound: No association (out of scope) 6</title></rect>
+<rect x="856.6" y="204" width="1.4" height="18" rx="2" fill="#e87ba4"><title>C, no freshness bound: Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="245" fill="#0b0b0b" text-anchor="end">C, both assumed</text>
+<rect x="300.0" y="232" width="343.4" height="18" rx="2" fill="#2a78d6"><title>C, both assumed: Correct (affected or unaffected) 103</title></rect>
+<text x="471.7" y="245" fill="#0b0b0b" text-anchor="middle" font-size="11">103</text>
+<rect x="645.4" y="232" width="189.1" height="18" rx="2" fill="#eb6834"><title>C, both assumed: Unresolved / abstained 57</title></rect>
+<text x="740.0" y="245" fill="#0b0b0b" text-anchor="middle" font-size="11">57</text>
+<rect x="836.5" y="232" width="18.1" height="18" rx="2" fill="#1baf7a"><title>C, both assumed: No association (out of scope) 6</title></rect>
+<rect x="856.6" y="232" width="1.4" height="18" rx="2" fill="#e87ba4"><title>C, both assumed: Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="273" fill="#0b0b0b" text-anchor="end">C, unresolved identity = unrelated</text>
+<rect x="300.0" y="260" width="319.9" height="18" rx="2" fill="#2a78d6"><title>C, unresolved identity = unrelated: Correct (affected or unaffected) 96</title></rect>
+<text x="460.0" y="273" fill="#0b0b0b" text-anchor="middle" font-size="11">96</text>
+<rect x="621.9" y="260" width="68.4" height="18" rx="2" fill="#eb6834"><title>C, unresolved identity = unrelated: Unresolved / abstained 21</title></rect>
+<text x="656.1" y="273" fill="#0b0b0b" text-anchor="middle" font-size="11">21</text>
+<rect x="692.3" y="260" width="105.3" height="18" rx="2" fill="#1baf7a"><title>C, unresolved identity = unrelated: No association (out of scope) 32</title></rect>
+<text x="745.0" y="273" fill="#0b0b0b" text-anchor="middle" font-size="11">32</text>
+<rect x="799.6" y="260" width="58.4" height="18" rx="2" fill="#e87ba4"><title>C, unresolved identity = unrelated: Other error (false positive, silent miss) 18</title></rect>
+<text x="828.8" y="273" fill="#0b0b0b" text-anchor="middle" font-size="11">18</text>
+<text x="292" y="301" fill="#0b0b0b" text-anchor="end">C read as binary (post hoc)</text>
+<rect x="300.0" y="288" width="460.8" height="18" rx="2" fill="#2a78d6"><title>C read as binary (post hoc): Correct (affected or unaffected) 138</title></rect>
+<text x="530.4" y="301" fill="#0b0b0b" text-anchor="middle" font-size="11">138</text>
+<rect x="762.8" y="288" width="85.2" height="18" rx="2" fill="#eda100"><title>C read as binary (post hoc): False clear 26</title></rect>
+<text x="805.3" y="301" fill="#0b0b0b" text-anchor="middle" font-size="11">26</text>
+<rect x="849.9" y="288" width="8.1" height="18" rx="2" fill="#e87ba4"><title>C read as binary (post hoc): Other error (false positive, silent miss) 3</title></rect>
+<text x="292" y="329" fill="#0b0b0b" text-anchor="end">C without curated identity (post hoc)</text>
+<rect x="300.0" y="316" width="256.2" height="18" rx="2" fill="#2a78d6"><title>C without curated identity (post hoc): Correct (affected or unaffected) 77</title></rect>
+<text x="428.1" y="329" fill="#0b0b0b" text-anchor="middle" font-size="11">77</text>
+<rect x="558.2" y="316" width="279.7" height="18" rx="2" fill="#eb6834"><title>C without curated identity (post hoc): Unresolved / abstained 84</title></rect>
+<text x="698.0" y="329" fill="#0b0b0b" text-anchor="middle" font-size="11">84</text>
+<rect x="839.9" y="316" width="14.8" height="18" rx="2" fill="#1baf7a"><title>C without curated identity (post hoc): No association (out of scope) 5</title></rect>
+<rect x="856.6" y="316" width="1.4" height="18" rx="2" fill="#e87ba4"><title>C without curated identity (post hoc): Other error (false positive, silent miss) 1</title></rect>
+<text x="292" y="357" fill="#0b0b0b" text-anchor="end">C with name identity only (post hoc)</text>
+<rect x="300.0" y="344" width="256.2" height="18" rx="2" fill="#2a78d6"><title>C with name identity only (post hoc): Correct (affected or unaffected) 77</title></rect>
+<text x="428.1" y="357" fill="#0b0b0b" text-anchor="middle" font-size="11">77</text>
+<rect x="558.2" y="344" width="38.2" height="18" rx="2" fill="#eb6834"><title>C with name identity only (post hoc): Unresolved / abstained 12</title></rect>
+<text x="577.3" y="357" fill="#0b0b0b" text-anchor="middle" font-size="11">12</text>
+<rect x="598.4" y="344" width="138.8" height="18" rx="2" fill="#1baf7a"><title>C with name identity only (post hoc): No association (out of scope) 42</title></rect>
+<text x="667.9" y="357" fill="#0b0b0b" text-anchor="middle" font-size="11">42</text>
+<rect x="739.3" y="344" width="118.7" height="18" rx="2" fill="#e87ba4"><title>C with name identity only (post hoc): Other error (false positive, silent miss) 36</title></rect>
+<text x="798.6" y="357" fill="#0b0b0b" text-anchor="middle" font-size="11">36</text>
+</svg>

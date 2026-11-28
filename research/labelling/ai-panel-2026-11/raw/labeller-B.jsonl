@@ -1,0 +1,167 @@
+{"id": "8aea7783", "label": "in_scope", "rationale": "Event title names event-stream 3.3.6 as the version carrying the malicious flatmap-stream dependency; reference is that exact version.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "61c02080", "label": "out_of_scope", "rationale": "Event is bounded to event-stream 3.3.6 per its stated scope; 3.3.4 is a different version.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "d61560e7", "label": "in_scope", "rationale": "Exact version 3.3.6 named in the event scope.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "473d7956", "label": "out_of_scope", "rationale": "Version 3.3.4 is outside the stated 3.3.6 boundary of the event.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "2edeef72", "label": "in_scope", "rationale": "Exact version 3.3.6 named in the event scope.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "7ee38dd1", "label": "out_of_scope", "rationale": "Version 3.3.5 is outside the stated 3.3.6 boundary of the event.", "sources_used": ["npm-blog/event-stream-incident"]}
+{"id": "0fd7f57c", "label": "in_scope", "rationale": "centos:8 is the CentOS Linux 8 image, covered by the EOL announcement for CentOS Linux 8.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "9ddd6e73", "label": "in_scope", "rationale": "centos:8 is the CentOS Linux 8 image, covered by the EOL announcement.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "0b05f344", "label": "out_of_scope", "rationale": "CentOS Stream 8 on quay.io is a different distribution/namespace from CentOS Linux 8 (rule 1); the announcement is about Linux 8 ending.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "8232508e", "label": "in_scope", "rationale": "centos:8 is the CentOS Linux 8 image, covered by the EOL announcement.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "a997381a", "label": "in_scope", "rationale": "centos:8 is the CentOS Linux 8 image, covered by the EOL announcement.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "89bcae50", "label": "out_of_scope", "rationale": "centos:7 is CentOS Linux 7, a different version from the Linux 8 named in the source.", "sources_used": ["centos/future-is-centos-stream"]}
+{"id": "8d94cd3e", "label": "in_scope", "rationale": "Release 4.0.4 tagged 2018-11-06, on or after the 2018-10-16 boundary (boundary stated in FAQ; tag date from evidence file). Docker tag mongo:4.0.4 mapped to release 4.0.4.", "sources_used": ["mongodb/sspl-faq", "mongodb-release-tags.txt"]}
+{"id": "7c043791", "label": "out_of_scope", "rationale": "Release 4.0.2 tagged 2018-08-27, before the 2018-10-16 SSPL boundary stated in the FAQ.", "sources_used": ["mongodb/sspl-faq", "mongodb-release-tags.txt"]}
+{"id": "ec27bddf", "label": "out_of_scope", "rationale": "Release 4.0.2 tagged 2018-08-27, before the 2018-10-16 SSPL boundary.", "sources_used": ["mongodb/sspl-faq", "mongodb-release-tags.txt"]}
+{"id": "68514ef5", "label": "in_scope", "rationale": "Release 4.0.4 tagged 2018-11-06, after the 2018-10-16 boundary stated in the FAQ.", "sources_used": ["mongodb/sspl-faq", "mongodb-release-tags.txt"]}
+{"id": "b4d71fe4", "label": "in_scope", "rationale": "node:12-alpine is the Node.js 12.x line, whose end-of-life is stated in nodejs/Release.", "sources_used": ["nodejs/Release"]}
+{"id": "f9332e9b", "label": "out_of_scope", "rationale": "Node 16 is a different release line from 12.x.", "sources_used": ["nodejs/Release"]}
+{"id": "f632b9cc", "label": "out_of_scope", "rationale": "circleci/node:12 is a different image in a different namespace (rule 1); the source covers the Node.js 12.x release line, not third-party images.", "sources_used": ["nodejs/Release"]}
+{"id": "ca53d779", "label": "out_of_scope", "rationale": "Node 14 is a different release line from 12.x.", "sources_used": ["nodejs/Release"]}
+{"id": "9b372f76", "label": "in_scope", "rationale": "node:12-alpine is the Node.js 12.x line, EOL 2022-04-30.", "sources_used": ["nodejs/Release"]}
+{"id": "664fbb27", "label": "in_scope", "rationale": "node:12-alpine is the Node.js 12.x line, EOL 2022-04-30.", "sources_used": ["nodejs/Release"]}
+{"id": "adb4ac0d", "label": "in_scope", "rationale": "node:12 is the Node.js 12.x line, EOL 2022-04-30.", "sources_used": ["nodejs/Release"]}
+{"id": "de1cfbc4", "label": "in_scope", "rationale": "node-ipc 9.2.2 is listed in the advisory as having hidden functionality.", "sources_used": ["GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "077e33de", "label": "out_of_scope", "rationale": "@achrinza/node-ipc is a different package from node-ipc (rule 1); advisories do not cover it.", "sources_used": ["GHSA-97m3-w2cp-4xx6", "GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "b0993611", "label": "out_of_scope", "rationale": "9.2.1 is not the stated 9.2.2, 10.1.1/10.1.2 or 11.x affected versions in the advisories.", "sources_used": ["GHSA-97m3-w2cp-4xx6", "GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "d13ccabb", "label": "in_scope", "rationale": "node-ipc 9.2.2 is the affected version with hidden functionality.", "sources_used": ["GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "d69dcf94", "label": "out_of_scope", "rationale": "10.1.0 is outside the stated affected versions 10.1.1 and 10.1.2.", "sources_used": ["GHSA-97m3-w2cp-4xx6"]}
+{"id": "32552f7e", "label": "out_of_scope", "rationale": "9.2.1 is not the stated 9.2.2 and outside the 10.1.1/10.1.2 and 11.x ranges.", "sources_used": ["GHSA-97m3-w2cp-4xx6", "GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "5c5272c1", "label": "out_of_scope", "rationale": "9.1.1 is outside every stated affected version or range.", "sources_used": ["GHSA-97m3-w2cp-4xx6", "GHSA-8gr3-2gjw-jj7g+GHSA-3mpp-xfvh-qh37"]}
+{"id": "1061be5a", "label": "undeterminable", "rationale": "Whether gopkg.in/yaml.v3 denotes github.com/go-yaml/yaml is not established by the packet sources (rule 1); needs outside knowledge.", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "a7e7ab76", "label": "undeterminable", "rationale": "Mapping of gopkg.in/yaml.v3 to go-yaml/yaml is not stated in the packet.", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "9581a58f", "label": "out_of_scope", "rationale": "sigs.k8s.io/yaml is a different module path and project from go-yaml/yaml (rule 1).", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "43805957", "label": "undeterminable", "rationale": "Mapping of gopkg.in/yaml.v2 to go-yaml/yaml is not stated in the packet.", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "d1a2d7f9", "label": "out_of_scope", "rationale": "goccy/go-yaml is a different project from go-yaml/yaml (rule 1).", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "c5707a52", "label": "undeterminable", "rationale": "Mapping of gopkg.in/yaml.v2 to go-yaml/yaml is not stated in the packet.", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "872fb31f", "label": "undeterminable", "rationale": "go.yaml.in/yaml/v3 is a different module path; the packet does not say whether it is the same project or a successor.", "sources_used": ["go-yaml/yaml@944c86a"]}
+{"id": "c17a1655", "label": "in_scope", "rationale": "Reference is the old coreos/prometheus-operator repository path that the PR moved.", "sources_used": ["prometheus-operator#3384", "wayback/github.com-coreos-prometheus-operator"]}
+{"id": "2ce3e98a", "label": "in_scope", "rationale": "Go module path github.com/coreos/prometheus-operator is the relocated repository.", "sources_used": ["prometheus-operator#3384", "wayback/github.com-coreos-prometheus-operator"]}
+{"id": "9fce18ee", "label": "in_scope", "rationale": "Go module path github.com/coreos/prometheus-operator is the relocated repository.", "sources_used": ["prometheus-operator#3384", "wayback/github.com-coreos-prometheus-operator"]}
+{"id": "707df66a", "label": "out_of_scope", "rationale": "Reference already uses the new path prometheus-operator/prometheus-operator, the destination, not the old location that moved.", "sources_used": ["prometheus-operator#3384"]}
+{"id": "86bafcbf", "label": "out_of_scope", "rationale": "A quay.io image is a different object from the GitHub repository (rule 1); sources cover the repo move only.", "sources_used": ["prometheus-operator#3384"]}
+{"id": "80560426", "label": "in_scope", "rationale": "Go module path github.com/coreos/prometheus-operator is the relocated repository.", "sources_used": ["prometheus-operator#3384", "wayback/github.com-coreos-prometheus-operator"]}
+{"id": "1bcccfe5", "label": "in_scope", "rationale": "golang.org/x/lint is the x/lint project proposed and accepted to be frozen and deprecated.", "sources_used": ["golang/go#38968"]}
+{"id": "a4e73f35", "label": "in_scope", "rationale": "golang.org/x/lint is the frozen and deprecated project.", "sources_used": ["golang/go#38968"]}
+{"id": "54438d65", "label": "out_of_scope", "rationale": "mgechev/revive is a different project from x/lint.", "sources_used": ["golang/go#38968"]}
+{"id": "c04a67b5", "label": "in_scope", "rationale": "golang.org/x/lint is the frozen and deprecated project.", "sources_used": ["golang/go#38968"]}
+{"id": "641c886d", "label": "undeterminable", "rationale": "github.com/golang/lint is an old path; the packet does not say it denotes x/lint (rule 1) and no version is given.", "sources_used": ["golang/go#38968"]}
+{"id": "46baf50a", "label": "in_scope", "rationale": "golang.org/x/lint is the frozen and deprecated project.", "sources_used": ["golang/go#38968"]}
+{"id": "8e128618", "label": "out_of_scope", "rationale": "honnef.co/go/tools (staticcheck) is a different project from x/lint.", "sources_used": ["golang/go#38968"]}
+{"id": "f7412141", "label": "out_of_scope", "rationale": "circleci/python:2.7 is a different image in a different namespace (rule 1); the source concerns the Python 2 language sunset.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "f1d4f314", "label": "in_scope", "rationale": "python:2.7.10 is a Python 2.7 release, covered by the Python 2 sunset.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "5772b21b", "label": "out_of_scope", "rationale": "Python 3.7 is not Python 2.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "60fdd13d", "label": "in_scope", "rationale": "python:2.7 is Python 2, covered by the sunset.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "d83a7add", "label": "in_scope", "rationale": "python:2.7 is Python 2, covered by the sunset.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "ab4aef32", "label": "in_scope", "rationale": "python:2.7 is Python 2, covered by the sunset.", "sources_used": ["python.org/sunset-python-2"]}
+{"id": "e65c8b48", "label": "in_scope", "rationale": "tslint is the package being deprecated.", "sources_used": ["palantir/tslint-in-2019"]}
+{"id": "60cb7fbf", "label": "out_of_scope", "rationale": "@typescript-eslint/eslint-plugin is the replacement, not the deprecated TSLint.", "sources_used": ["palantir/tslint-in-2019"]}
+{"id": "f622d1bf", "label": "out_of_scope", "rationale": "tslint-config-prettier is a different package from tslint (rule 1); sources do not cover it.", "sources_used": ["palantir/tslint-in-2019"]}
+{"id": "3f25d87d", "label": "in_scope", "rationale": "tslint is the package being deprecated.", "sources_used": ["palantir/tslint-in-2019", "palantir/tslint#4534"]}
+{"id": "2866e41c", "label": "in_scope", "rationale": "tslint is the package being deprecated.", "sources_used": ["palantir/tslint-in-2019"]}
+{"id": "4f8c8b55", "label": "in_scope", "rationale": "tslint is the package being deprecated.", "sources_used": ["palantir/tslint-in-2019", "palantir/tslint#4534"]}
+{"id": "6a288c15", "label": "in_scope", "rationale": "k8s.gcr.io image; 'ALL images on k8s.gcr.io will be impacted'.", "sources_used": ["kubernetes.io/image-registry-redirect", "kubernetes.io/k8s-gcr-io-freeze"]}
+{"id": "2b774735", "label": "out_of_scope", "rationale": "gcr.io/cadvisor is a different registry host and namespace from k8s.gcr.io (rule 1).", "sources_used": ["kubernetes.io/image-registry-redirect"]}
+{"id": "41f69e82", "label": "in_scope", "rationale": "k8s.gcr.io image; all images on k8s.gcr.io are impacted.", "sources_used": ["kubernetes.io/image-registry-redirect"]}
+{"id": "5e105297", "label": "in_scope", "rationale": "k8s.gcr.io image; all images on k8s.gcr.io are impacted.", "sources_used": ["kubernetes.io/image-registry-redirect"]}
+{"id": "67172da3", "label": "out_of_scope", "rationale": "registry.k8s.io is the new registry, not the redirected and frozen k8s.gcr.io.", "sources_used": ["kubernetes.io/registry-k8s-io-ga"]}
+{"id": "9275c434", "label": "out_of_scope", "rationale": "registry.k8s.io is the new registry, not the frozen k8s.gcr.io.", "sources_used": ["kubernetes.io/registry-k8s-io-ga"]}
+{"id": "1d141517", "label": "in_scope", "rationale": "k8s.gcr.io image; all images on k8s.gcr.io are impacted.", "sources_used": ["kubernetes.io/image-registry-redirect"]}
+{"id": "55927023", "label": "undeterminable", "rationale": "Source lists 'some' compromised versions (0.7.29, 0.8.0, 1.0.0) without stating the list is complete (rule 4); 0.7.28 not listed.", "sources_used": ["faisalman/ua-parser-js#536"]}
+{"id": "fc9df59a", "label": "in_scope", "rationale": "0.7.29 is explicitly listed as compromised.", "sources_used": ["faisalman/ua-parser-js#536"]}
+{"id": "e5b6814b", "label": "in_scope", "rationale": "0.7.29 is explicitly listed as compromised.", "sources_used": ["faisalman/ua-parser-js#536"]}
+{"id": "9fd11ca8", "label": "undeterminable", "rationale": "Source lists 'some' compromised versions without stating completeness (rule 4); 0.7.30 not listed.", "sources_used": ["faisalman/ua-parser-js#536"]}
+{"id": "371f542c", "label": "in_scope", "rationale": "0.7.29 is explicitly listed as compromised.", "sources_used": ["faisalman/ua-parser-js#536"]}
+{"id": "11442ccc", "label": "in_scope", "rationale": "request package is fully deprecated; the range ^2.88.0 denotes versions of that package.", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "3f623f49", "label": "out_of_scope", "rationale": "request-promise is a different package from request (rule 1).", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "c17fe886", "label": "in_scope", "rationale": "request is fully deprecated.", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "43eaefa5", "label": "out_of_scope", "rationale": "@cypress/request is a different package from request (rule 1).", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "a5e74f11", "label": "in_scope", "rationale": "request is fully deprecated.", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "416346e2", "label": "in_scope", "rationale": "request is fully deprecated.", "sources_used": ["request/request@aded7e4f8e"]}
+{"id": "7bda0f4f", "label": "in_scope", "rationale": "node-sass npm package is marked deprecated and its repository archived.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "a5a3c682", "label": "out_of_scope", "rationale": "sass-embedded is a different package from node-sass.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "9df3b3e2", "label": "in_scope", "rationale": "node-sass npm package is deprecated.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "c49e4a28", "label": "in_scope", "rationale": "node-sass npm package is deprecated.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "97e90d74", "label": "in_scope", "rationale": "node-sass npm package is deprecated.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "f2dbcfa1", "label": "out_of_scope", "rationale": "sass (Dart Sass) is a different package from node-sass.", "sources_used": ["sass-lang/node-sass-is-end-of-life"]}
+{"id": "6c06dd73", "label": "in_scope", "rationale": "colors 1.4.2 is listed as published with malicious code.", "sources_used": ["GHSA-5rqg-jm4f-cqx7", "GHSA-gh88-3pxp-6fm8"]}
+{"id": "bab10f52", "label": "in_scope", "rationale": "colors 1.4.2 is listed as published with malicious code.", "sources_used": ["GHSA-5rqg-jm4f-cqx7", "GHSA-gh88-3pxp-6fm8"]}
+{"id": "af82b0f2", "label": "in_scope", "rationale": "colors 1.4.2 is listed as published with malicious code.", "sources_used": ["GHSA-5rqg-jm4f-cqx7", "GHSA-gh88-3pxp-6fm8"]}
+{"id": "7fefde73", "label": "in_scope", "rationale": "colors 1.4.1 is listed as published with malicious code.", "sources_used": ["GHSA-5rqg-jm4f-cqx7", "GHSA-gh88-3pxp-6fm8"]}
+{"id": "08f47657", "label": "out_of_scope", "rationale": "1.4.0 is below the stated affected boundary >= 1.4.1.", "sources_used": ["GHSA-gh88-3pxp-6fm8"]}
+{"id": "6e01dfc9", "label": "out_of_scope", "rationale": "@colors/colors is a different package from colors (rule 1).", "sources_used": ["GHSA-5rqg-jm4f-cqx7"]}
+{"id": "432be208", "label": "out_of_scope", "rationale": "1.4.0 is below the stated affected boundary >= 1.4.1.", "sources_used": ["GHSA-gh88-3pxp-6fm8"]}
+{"id": "1c66c45c", "label": "out_of_scope", "rationale": "dockerfile/java is a different image and namespace from the official java image (rule 1).", "sources_used": ["docker-library/docs@a3439b6"]}
+{"id": "04aeb634", "label": "in_scope", "rationale": "java:8 is a tag of the official java image, which is deprecated.", "sources_used": ["docker-library/docs@a3439b6"]}
+{"id": "ad03e156", "label": "in_scope", "rationale": "java:8-jre is a tag of the official java image, which is deprecated.", "sources_used": ["docker-library/docs@a3439b6"]}
+{"id": "cbb13cd5", "label": "in_scope", "rationale": "java:8 is a tag of the official java image, which is deprecated.", "sources_used": ["docker-library/docs@a3439b6"]}
+{"id": "ca5176e8", "label": "in_scope", "rationale": "java:8 is a tag of the official java image, which is deprecated.", "sources_used": ["docker-library/docs@a3439b6"]}
+{"id": "a0488b06", "label": "out_of_scope", "rationale": "quay.io/centos/centos is a different registry and namespace from the official Docker Hub centos image (rule 1).", "sources_used": ["docker-library/official-images#17094", "docker-library/docs#2205"]}
+{"id": "950c5fe3", "label": "in_scope", "rationale": "centos:7 is the official centos image; all tags are EOL.", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "4cca3cb9", "label": "out_of_scope", "rationale": "rockylinux is a different image from centos.", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "42ebab65", "label": "in_scope", "rationale": "centos:8 is the official centos image; all tags are EOL.", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "e653742c", "label": "in_scope", "rationale": "centos:7 is the official centos image; all tags are EOL.", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "7edb79a4", "label": "out_of_scope", "rationale": "quay.io/centos/centos:stream8 is a different registry and namespace from the official centos image (rule 1).", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "15e76a55", "label": "in_scope", "rationale": "centos:7 is the official centos image; all tags are EOL.", "sources_used": ["docker-library/official-images#17094"]}
+{"id": "90a2b443", "label": "in_scope", "rationale": "grafana/grafana 8.0.2 is at or after the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "88be0110", "label": "in_scope", "rationale": "grafana/grafana 8.0.5 is at or after the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "20c2c449", "label": "in_scope", "rationale": "grafana/grafana 8.0.3 is at or after the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "a63f07a0", "label": "out_of_scope", "rationale": "7.5.5 is before the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "c32b29d7", "label": "out_of_scope", "rationale": "7.5.5 is before the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "077337c6", "label": "in_scope", "rationale": "grafana/grafana 8.0.6 is at or after the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "aa979c36", "label": "out_of_scope", "rationale": "7.5.2 is before the 8.0 boundary in the event scope.", "sources_used": ["grafana/relicensing-to-agplv3"]}
+{"id": "5c97f1aa", "label": "in_scope", "rationale": "faker 6.6.6 is the sabotaged version.", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "9e252af0", "label": "in_scope", "rationale": "faker 6.6.6 is the sabotaged version.", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "930fc502", "label": "out_of_scope", "rationale": "@faker-js/faker is a different package from faker (rule 1).", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "12d45b9c", "label": "in_scope", "rationale": "faker 6.6.6 is the sabotaged version.", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "1933a4fa", "label": "in_scope", "rationale": "faker 6.6.6 is the sabotaged version.", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "10e6e13a", "label": "out_of_scope", "rationale": "faker 5.5.3 is not the affected version 6.6.6.", "sources_used": ["GHSA-5w9c-rv96-fr7g"]}
+{"id": "879f9c60", "label": "in_scope", "rationale": "github.com/docker/distribution is the repository that relocated to distribution/distribution.", "sources_used": ["docker/blog-donating-distribution", "wayback/github.com-docker-distribution-301"]}
+{"id": "fcf9b3dc", "label": "out_of_scope", "rationale": "Reference already uses the new path github.com/distribution/distribution, the destination.", "sources_used": ["docker/blog-donating-distribution"]}
+{"id": "4129aead", "label": "in_scope", "rationale": "github.com/docker/distribution is the repository that relocated.", "sources_used": ["docker/blog-donating-distribution", "wayback/github.com-docker-distribution-301"]}
+{"id": "baef36b3", "label": "in_scope", "rationale": "github.com/docker/distribution is the repository that relocated.", "sources_used": ["docker/blog-donating-distribution", "wayback/github.com-docker-distribution-301"]}
+{"id": "aa4e11a2", "label": "out_of_scope", "rationale": "cosmossdk.io/x/distribution is an unrelated project sharing only a name (rule 1).", "sources_used": ["docker/blog-donating-distribution"]}
+{"id": "5d5105d9", "label": "in_scope", "rationale": "github.com/docker/distribution is the repository that relocated.", "sources_used": ["docker/blog-donating-distribution", "wayback/github.com-docker-distribution-301"]}
+{"id": "6c31e152", "label": "in_scope", "rationale": "Terraform 1.6.4 is at or after 1.6.0, the BSL boundary (v1.6.0 LICENSE is BUSL 1.1).", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE", "hashicorp/adopts-bsl"]}
+{"id": "043706f8", "label": "out_of_scope", "rationale": "Terraform 1.5.4 is before 1.6; v1.5.7 LICENSE is MPL 2.0.", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE"]}
+{"id": "35a01765", "label": "out_of_scope", "rationale": "OpenTofu is a different project from Terraform (rule 1).", "sources_used": ["hashicorp/adopts-bsl"]}
+{"id": "06e17978", "label": "out_of_scope", "rationale": "Terraform 1.5.7 is before 1.6; its LICENSE is MPL 2.0.", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE"]}
+{"id": "7a386608", "label": "undeterminable", "rationale": "Digest-pinned image with tag 1.6; the packet does not say which release the digest corresponds to (rule 6).", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE"]}
+{"id": "6140f3b6", "label": "in_scope", "rationale": "Terraform 1.6.5 is at or after 1.6.0, the BSL boundary.", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE", "hashicorp/adopts-bsl"]}
+{"id": "7e2cba82", "label": "in_scope", "rationale": "Terraform 1.6.2 is at or after 1.6.0, the BSL boundary.", "sources_used": ["hashicorp/terraform@v1.6.0/LICENSE", "hashicorp/adopts-bsl"]}
+{"id": "611ec3d3", "label": "in_scope", "rationale": "github.com/golang/dep is the deprecated and archived project.", "sources_used": ["golang/go#38158", "wayback/github.com-golang-dep"]}
+{"id": "12f20c83", "label": "out_of_scope", "rationale": "tools/godep is a different project from golang/dep.", "sources_used": ["golang/go#38158"]}
+{"id": "075b1e05", "label": "in_scope", "rationale": "github.com/golang/dep is the deprecated and archived project; deprecation is not version-bounded.", "sources_used": ["golang/go#38158", "wayback/github.com-golang-dep"]}
+{"id": "0ef37ab8", "label": "in_scope", "rationale": "github.com/golang/dep is the deprecated and archived project.", "sources_used": ["golang/go#38158", "wayback/github.com-golang-dep"]}
+{"id": "41f9a581", "label": "in_scope", "rationale": "github.com/golang/dep is the deprecated and archived project.", "sources_used": ["golang/go#38158", "wayback/github.com-golang-dep"]}
+{"id": "ebe72d72", "label": "out_of_scope", "rationale": "openjdk:11.0.16-jdk-slim is not in the complete 1,051-tag deleted list (file has 1,051 lines).", "sources_used": ["docker-library/official-images#20210", "openjdk-2025-deleted-tags.txt"]}
+{"id": "a27216a0", "label": "in_scope", "rationale": "library/openjdk:21 is the official openjdk:21, which is in the deleted list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "56525d5b", "label": "in_scope", "rationale": "openjdk:jre appears in the deleted tag list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "a25fa6b2", "label": "out_of_scope", "rationale": "openjdk:8u342-jre is not in the complete deleted tag list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "aab49605", "label": "in_scope", "rationale": "openjdk:21-slim appears in the deleted tag list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "f2999c16", "label": "out_of_scope", "rationale": "eclipse-temurin is a different image from openjdk and not in the list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "a4947bca", "label": "in_scope", "rationale": "openjdk:17-jdk-slim appears in the deleted tag list.", "sources_used": ["openjdk-2025-deleted-tags.txt"]}
+{"id": "705d8826", "label": "out_of_scope", "rationale": "adoptopenjdk/openjdk11 is a different image in a different namespace from the official adoptopenjdk image (rule 1).", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "2c46edb5", "label": "in_scope", "rationale": "adoptopenjdk:11 is a tag of the official adoptopenjdk image, which is deprecated.", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "a5c6b04a", "label": "in_scope", "rationale": "adoptopenjdk:11-jre-openj9 is a tag of the deprecated official adoptopenjdk image.", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "a1df2acd", "label": "out_of_scope", "rationale": "eclipse-temurin is the replacement, not the deprecated image.", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "a67bfe74", "label": "in_scope", "rationale": "adoptopenjdk:11-jre is a tag of the deprecated official adoptopenjdk image.", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "018563e8", "label": "in_scope", "rationale": "adoptopenjdk:11-jre-hotspot is a tag of the deprecated official adoptopenjdk image.", "sources_used": ["docker-library/docs@4baab4b"]}
+{"id": "3a7bc541", "label": "in_scope", "rationale": "Elasticsearch 7.13.4 is at or after the 7.11 boundary.", "sources_used": ["elastic/licensing-change"]}
+{"id": "a3822fcc", "label": "out_of_scope", "rationale": "Elasticsearch 7.10.2 is before the 7.11 boundary.", "sources_used": ["elastic/licensing-change"]}
+{"id": "8dd7e794", "label": "in_scope", "rationale": "Elasticsearch 7.12.0 is at or after the 7.11 boundary.", "sources_used": ["elastic/licensing-change"]}
+{"id": "bf4cf069", "label": "in_scope", "rationale": "Elasticsearch 7.13.0 is at or after the 7.11 boundary.", "sources_used": ["elastic/licensing-change"]}
+{"id": "e0324104", "label": "in_scope", "rationale": "Kibana 7.12.0 is at or after the 7.11 boundary; Kibana is named in the event.", "sources_used": ["elastic/licensing-change"]}
+{"id": "7afaf0ed", "label": "in_scope", "rationale": "openjdk image is officially deprecated; openjdk:19-ea-16-slim is a tag of that image.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "cbed9502", "label": "out_of_scope", "rationale": "eclipse-temurin is a different image from openjdk.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "0a896452", "label": "out_of_scope", "rationale": "adoptopenjdk/openjdk11 is a different image and namespace from the official openjdk image (rule 1).", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "a46b5ec7", "label": "in_scope", "rationale": "openjdk:8-jdk-alpine is a tag of the deprecated official openjdk image.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "2cfa1ca5", "label": "in_scope", "rationale": "openjdk:8-jdk-alpine is a tag of the deprecated official openjdk image.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "d041bd8d", "label": "in_scope", "rationale": "openjdk:8-jre-slim-bullseye is a tag of the deprecated official openjdk image.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "617b7e97", "label": "in_scope", "rationale": "openjdk:8-jdk-alpine is a tag of the deprecated official openjdk image.", "sources_used": ["docker-library/docs@326814f"]}
+{"id": "1d9aae6d", "label": "in_scope", "rationale": "github.com/docker/docker is the repository that relocated to moby/moby.", "sources_used": ["moby/moby#32691"]}
+{"id": "7b63da6f", "label": "in_scope", "rationale": "github.com/docker/docker is the repository that relocated to moby/moby.", "sources_used": ["moby/moby#32691"]}
+{"id": "2f0d4f33", "label": "out_of_scope", "rationale": "docker/engine-api is a different repository from docker/docker.", "sources_used": ["moby/moby#32691"]}
+{"id": "9c0bca09", "label": "in_scope", "rationale": "github.com/docker/docker is the repository that relocated to moby/moby.", "sources_used": ["moby/moby#32691"]}
+{"id": "deba6fde", "label": "in_scope", "rationale": "github.com/docker/docker is the repository that relocated to moby/moby.", "sources_used": ["moby/moby#32691"]}
+{"id": "b10f36e3", "label": "out_of_scope", "rationale": "Reference already uses the new path github.com/moby/moby, the destination.", "sources_used": ["moby/moby#32691"]}

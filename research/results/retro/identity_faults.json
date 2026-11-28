@@ -1,0 +1,491 @@
+{
+ "dataset": "openpulse-retro-2026-11",
+ "dataset_file": "evaluation/retrospective/cases/retro-2026-11.json",
+ "dataset_sha256": "70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83",
+ "wrong_project": "injected-unrelated-project",
+ "summary": {
+  "misattributed": {
+   "injected": 29,
+   "changed": 28,
+   "transitions": {
+    "correct_affected -> silent_miss": 16,
+    "correct_unaffected -> no_association": 3,
+    "unresolved -> no_association": 7,
+    "unresolved -> silent_miss": 2
+   },
+   "after": {
+    "no_association": 11,
+    "silent_miss": 18
+   }
+  },
+  "collided": {
+   "injected": 16,
+   "changed": 0,
+   "transitions": {},
+   "after": {
+    "correct_unaffected": 14,
+    "unresolved": 2
+   }
+  }
+ },
+ "not_injected": {
+  "image reference with no applicable fault": 42,
+  "package reference (catalogue package map, not injected)": 80
+ },
+ "faults": {
+  "misattributed": [
+   {
+    "case": "LIC-2-s1",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.6.4",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-s2",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.6.5",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-s3",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.6.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-s4",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.6@sha256:e46b41c74b6f036c255e2082bcd6284054b108508bae16813bc1257a0e70e2dd",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-n1",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.5.4",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-n2",
+    "event": "LIC-2",
+    "ref": "hashicorp/terraform:1.5.7",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-2-n3",
+    "event": "LIC-2",
+    "ref": "ghcr.io/opentofu/opentofu:1.12.1-minimal",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "no_association",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-1-s1",
+    "event": "EOL-1",
+    "ref": "python:2.7",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-1-s2",
+    "event": "EOL-1",
+    "ref": "python:2.7.10",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-1-s3",
+    "event": "EOL-1",
+    "ref": "python:2.7",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-1-s4",
+    "event": "EOL-1",
+    "ref": "python:2.7",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-1-n2",
+    "event": "EOL-1",
+    "ref": "python:3.7-slim",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-s1",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:8.0.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-s2",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:8.0.3",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-s3",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:8.0.6",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-s4",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:8.0.5",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-n1",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:7.5.5",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-n2",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:7.5.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-3-n3",
+    "event": "LIC-3",
+    "ref": "grafana/grafana:7.5.5",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-4-s1",
+    "event": "LIC-4",
+    "ref": "mongo:4.0.4",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-4-s2",
+    "event": "LIC-4",
+    "ref": "mongo:4.0.4",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-4-n1",
+    "event": "LIC-4",
+    "ref": "mongo:4.0.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "LIC-4-n2",
+    "event": "LIC-4",
+    "ref": "mongo:4.0.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-s1",
+    "event": "EOL-3",
+    "ref": "node:12",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-s2",
+    "event": "EOL-3",
+    "ref": "node:12-alpine",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-s3",
+    "event": "EOL-3",
+    "ref": "node:12-alpine",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-s4",
+    "event": "EOL-3",
+    "ref": "node:12-alpine",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-n1",
+    "event": "EOL-3",
+    "ref": "node:14",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "EOL-3-n2",
+    "event": "EOL-3",
+    "ref": "node:16-alpine",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   }
+  ],
+  "collided": [
+   {
+    "case": "REL-4-n1",
+    "event": "REL-4",
+    "ref": "quay.io/coreos/prometheus-operator:v0.40.0",
+    "label": "out_of_scope",
+    "aliased_to": "prometheus-operator",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DEP-2-n1",
+    "event": "DEP-2",
+    "ref": "github.com/tools/godep",
+    "label": "out_of_scope",
+    "aliased_to": "dep",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "EOL-2-n1",
+    "event": "EOL-2",
+    "ref": "quay.io/centos/centos:stream8",
+    "label": "out_of_scope",
+    "aliased_to": "centos",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "RELATED"
+   },
+   {
+    "case": "DIS-1-n1",
+    "event": "DIS-1",
+    "ref": "registry.k8s.io/pause:3.8",
+    "label": "out_of_scope",
+    "aliased_to": "kubernetes",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-1-n2",
+    "event": "DIS-1",
+    "ref": "registry.k8s.io/metrics-server/metrics-server",
+    "label": "out_of_scope",
+    "aliased_to": "kubernetes",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-1-n3",
+    "event": "DIS-1",
+    "ref": "gcr.io/cadvisor/cadvisor:v0.37.0",
+    "label": "out_of_scope",
+    "aliased_to": "kubernetes",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-2-n1",
+    "event": "DIS-2",
+    "ref": "adoptopenjdk/openjdk11:alpine-slim",
+    "label": "out_of_scope",
+    "aliased_to": "openjdk",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-2-n2",
+    "event": "DIS-2",
+    "ref": "eclipse-temurin:17",
+    "label": "out_of_scope",
+    "aliased_to": "openjdk",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-3-n3",
+    "event": "DIS-3",
+    "ref": "eclipse-temurin:21",
+    "label": "out_of_scope",
+    "aliased_to": "openjdk",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-4-n1",
+    "event": "DIS-4",
+    "ref": "quay.io/centos/centos:stream9",
+    "label": "out_of_scope",
+    "aliased_to": "centos",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-4-n2",
+    "event": "DIS-4",
+    "ref": "quay.io/centos/centos:stream8",
+    "label": "out_of_scope",
+    "aliased_to": "centos",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-4-n3",
+    "event": "DIS-4",
+    "ref": "rockylinux:8",
+    "label": "out_of_scope",
+    "aliased_to": "centos",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-5-n1",
+    "event": "DIS-5",
+    "ref": "adoptopenjdk/openjdk11:alpine",
+    "label": "out_of_scope",
+    "aliased_to": "adoptopenjdk",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-5-n2",
+    "event": "DIS-5",
+    "ref": "eclipse-temurin:17",
+    "label": "out_of_scope",
+    "aliased_to": "adoptopenjdk",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "DIS-6-n1",
+    "event": "DIS-6",
+    "ref": "dockerfile/java:oracle-java8",
+    "label": "out_of_scope",
+    "aliased_to": "java",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "LIC-1-n1",
+    "event": "LIC-1",
+    "ref": "docker.elastic.co/elasticsearch/elasticsearch:7.10.2",
+    "label": "out_of_scope",
+    "aliased_to": "elasticsearch",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "RELATED"
+   }
+  ]
+ }
+}

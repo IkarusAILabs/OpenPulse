@@ -411,10 +411,6 @@ def _scope_result(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
     if kind == "version" and scope["versions"]:
         slug = resolve_project(ref)
         if slug != event.project_slug:
-            unresolved = _unresolved_identity(event, ref)
-            if unresolved:
-                return unresolved
-            trust = resolution_trust(ref)
             # A version scope belongs to the event's project. A tag that
             # merely collides with a scope version of a different project
             # has nothing to do with it: docker.io/bitnami/redis:6.2 must
@@ -422,17 +418,9 @@ def _scope_result(event: OSSEvent, ref: str) -> dict[str, str | bool | None]:
             # must not match anything by tag alone. Identity decides before
             # the tag is read, and only a curated mapping proves another
             # project: a heuristic or distrusted one is undetermined.
-            if trust["identity_status"] != "VERIFIED":
-                return {
-                    "affected": False,
-                    "via": None,
-                    "relationship": "RELATED",
-                    "detail": (
-                        f"{ref} resolves to {slug} only via {trust['via']} "
-                        f"({trust['identity_status']}); not a proven exclusion from "
-                        f"{event.project_slug} version scope {scope['versions']}"
-                    ),
-                }
+            unresolved = _unresolved_identity(event, ref)
+            if unresolved:
+                return unresolved
             # A curated mapping to another project is positive evidence of
             # no association; it needs no complete scope (TR-2026-01 S2).
             return {
@@ -539,14 +527,29 @@ def _unresolved_identity(event: OSSEvent, ref: str) -> dict[str, str | bool | No
     An unmapped ref resolves only to itself ("self" identity). That is
     not evidence of *another* project: github.com/etcd-io/etcd is
     self-resolved while naming etcd, and a mirror, fork or rename of a
-    project can carry any name at all. Only a curated mapping to a
-    different project supports "no association" or an identity-based
-    exclusion; an unmapped ref is undetermined -- never dropped as
-    unrelated, never excluded (TR-2026-01 D10).
+    project can carry any name at all. Only a curated, VERIFIED mapping
+    to a different project supports "no association" or an
+    identity-based exclusion; an unmapped ref is undetermined -- never
+    dropped as unrelated, never excluded (TR-2026-01 D10). So is a
+    heuristic or unreviewed mapping (D16): it may name another project,
+    but it does not prove one.
     """
     trust = resolution_trust(ref)
-    if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
+    if UNRESOLVED_IDENTITY.get() == "unrelated":
         return None
+    if trust["via"] != "self":
+        if trust["identity_status"] == "VERIFIED":
+            return None
+        return {
+            "affected": False,
+            "via": None,
+            "relationship": "RELATED",
+            "detail": (
+                f"{ref} resolves to {trust['slug']} only via {trust['via']} "
+                f"({trust['identity_status']}); not a proven exclusion from, or "
+                f"disassociation with, project {event.project_slug}"
+            ),
+        }
     return {
         "affected": False,
         "via": None,

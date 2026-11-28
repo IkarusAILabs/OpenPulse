@@ -394,3 +394,29 @@ def test_burden_counts_actionable_summaries_and_unique_review_items():
     assert summary[reg.SYSTEM]["W1_actionable_share"]["median"] == 0.5
     assert summary[reg.PRIMARY_BASELINE]["W1_actionable_share"]["max"] == 0.0
     assert summary[reg.SYSTEM]["W1_unique_review_items"] == 3
+
+
+# --- reporting defects found by the research-readiness audit ------------------
+
+
+def test_holm_adjusts_the_unrounded_p_value():
+    # The smallest bootstrap p is 1 / (resamples + 1) = 0.00025. Rounded to
+    # 0.0002 before adjustment it gave Holm 0.0004; the adjusted value of
+    # the unrounded p is 0.0005 (research/RESEARCH_READINESS_AUDIT.md, F-02).
+    out = reg.analyse(_results(), independent_only=True)["secondary"]["S2_A_vs_C_false_clears"]
+    assert out["p_greater_than_zero"] == 0.0002
+    assert out["p_holm"] == round(3 / (reg.BOOTSTRAP_RESAMPLES + 1), 4)
+    assert "p_exact" not in out and "draws" not in out
+
+
+def test_an_empty_population_is_never_reported_valid():
+    rows = {k: [{**r, "independent": False} for r in v] for k, v in _results().items()}
+    out = reg.analyse(rows, independent_only=True)
+    assert out["pairs"] == 0
+    assert out["valid"] is False
+    assert "no pairs in the population" in out["validity"]
+
+
+def test_h1_rule_is_absolute():
+    rule = reg.analyse(_results(), True)["primary"]["H1_safety_noninferiority"]["rule"]
+    assert "share(B)" not in rule and "(absolute)" in rule

@@ -292,8 +292,12 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             f"{repository}",
         }
     # A self-resolved package is unresolved even when its name is the event's
-    # project (F4): a name is not identity, as D10 holds for images.
-    unresolved = trust["via"] == "self"
+    # project (F4): a name is not identity, as D10 holds for images. A
+    # heuristic or unreviewed mapping to another project proves no other
+    # project either (D16): only a curated, VERIFIED one does.
+    unresolved = trust["via"] == "self" or (
+        slug != event.project_slug and trust["identity_status"] != "VERIFIED"
+    )
     if (slug != event.project_slug or unresolved) and (
         not unresolved or UNRESOLVED_IDENTITY.get() == "unrelated"
     ):
@@ -338,6 +342,10 @@ def _scope_cause(dep: dict[str, Any], event: OSSEvent) -> dict[str, Any] | None:
             "reason": (
                 f"{dep['package']} resolves only to itself; identity unresolved, so it is "
                 f"neither excluded from nor unrelated to project {event.project_slug}"
+                if trust["via"] == "self"
+                else f"{dep['package']} resolves to {slug} only via {trust['via']} "
+                f"({trust['identity_status']}); not a proven disassociation from project "
+                f"{event.project_slug}"
             ),
         }
     scope = event.scope

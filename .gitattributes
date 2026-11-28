@@ -6,3 +6,6 @@ evaluation/retrospective/results/after-fixes/openpulse-retro-2026-11.json -text
 papers/tr-2026-01/*.pdf -text
 # Policy R's frozen encodings are hashed (evaluation/representations/ENCODING.md section 9).
 evaluation/representations/**/*.json -text
+# The AI-panel labelling run is hash-locked (research/labelling/AI_PANEL_PROTOCOL.md): keep its bytes.
+research/labelling/ai-panel-2026-11/** -text
+research/labelling/AI_PANEL_PROTOCOL.md -text

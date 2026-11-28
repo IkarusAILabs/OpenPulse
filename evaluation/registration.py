@@ -224,8 +224,15 @@ def paired_difference(
         "ci90": [round(quantile(0.05), 4), round(quantile(0.95), 4)],
         "lower_one_sided_95": round(quantile(0.05), 4),
         "p_greater_than_zero": round(tail(lambda d: d <= 0), 4),
+        # Unrounded, for Holm: adjusting a rounded p shifts the result.
+        "p_exact": tail(lambda d: d <= 0),
         "draws": draws,
     }
+
+
+def _public(result: dict[str, Any]) -> dict[str, Any]:
+    """A bootstrap result as reported: no draws, no unrounded p."""
+    return {k: v for k, v in result.items() if k not in ("draws", "p_exact")}
 
 
 def paired_event_false_clears(
@@ -249,12 +256,14 @@ def paired_event_false_clears(
     point = sum(d.values()) / len(at_risk)
     rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     draws = [sum(d[rng.choice(at_risk)] for _ in at_risk) / len(at_risk) for _ in range(resamples)]
+    p = (1 + sum(1 for x in draws if x <= 0)) / (1 + resamples)
     return {
         "worse": worse,
         "better": better,
         "events_at_risk": len(at_risk),
         "difference": round(point, 4),
-        "p_greater_than_zero": round((1 + sum(1 for x in draws if x <= 0)) / (1 + resamples), 4),
+        "p_greater_than_zero": round(p, 4),
+        "p_exact": p,
     }
 
 
@@ -509,7 +518,7 @@ def attribution(
         gain = paired_difference(rows, later, earlier)
         step = {
             "step": f"{earlier} -> {later}",
-            **{k: v for k, v in gain.items() if k not in ("draws", "x", "y")},
+            **{k: v for k, v in _public(gain).items() if k not in ("x", "y")},
         }
         if burden is not None and later in burden and earlier in burden:
             a, b = burden[later]["W1_unresolved"], burden[earlier]["W1_unresolved"]
@@ -688,9 +697,7 @@ def analyse(
     safety_c, safety_b = event_false_clears(c), event_false_clears(b)
     decidable_h1 = safety_c["events_at_risk"] >= MIN_EVENTS
     bound = safety_c["upper_one_sided_95"]
-    h1_pass = (
-        decidable_h1 and bound is not None and bound - (safety_b["share"] or 0.0) <= DELTA_SAFETY
-    )
+    h1_pass = decidable_h1 and bound is not None and bound <= DELTA_SAFETY
     gain = paired_difference(rows, SYSTEM, PRIMARY_BASELINE)
     h2_pass = (
         gain["difference"] is not None
@@ -699,7 +706,7 @@ def analyse(
     )
     primary = {
         "H1_safety_noninferiority": {
-            "rule": f"upper_95(event false-clear share of C) - share(B) <= {DELTA_SAFETY}, "
+            "rule": f"upper_95(event false-clear share of C) <= {DELTA_SAFETY} (absolute), "
             f"with >= {MIN_EVENTS} events at risk",
             "C": safety_c,
             "B": safety_b,
@@ -709,7 +716,7 @@ def analyse(
         },
         "H2_resolution_superiority": {
             "rule": f"difference(C - B) >= {MIN_GAIN} and its one-sided 95% lower bound > 0",
-            **{k: v for k, v in gain.items() if k != "draws"},
+            **_public(gain),
             "pass": h2_pass if gain["difference"] is not None else None,
         },
     }
@@ -736,36 +743,32 @@ def analyse(
     has_existing = existing is not None and existing["difference"] is not None
     secondary_p = {
         "S1_C_vs_V_equivalence": tost_p,
-        "S2_A_vs_C_false_clears": naive["p_greater_than_zero"]
-        if naive["difference"] is not None
-        else None,
-        "S3_C_vs_R_resolution": existing["p_greater_than_zero"] if has_existing else None,
+        "S2_A_vs_C_false_clears": naive["p_exact"] if naive["difference"] is not None else None,
+        "S3_C_vs_R_resolution": existing["p_exact"] if has_existing else None,
     }
     adjusted = holm(secondary_p)
     secondary = {
         "S1_C_vs_V_equivalence": {
             "rule": f"90% CI of difference(C - V) within +/-{EQUIVALENCE_MARGIN} (TOST)",
-            **{k: v for k, v in equivalence.items() if k != "draws"},
+            **_public(equivalence),
             **adjusted["S1_C_vs_V_equivalence"],
         },
         "S2_A_vs_C_false_clears": {
             "rule": "event-level false-clear share of A minus C > 0, one-sided (safety)",
-            **naive,
+            **_public(naive),
             **adjusted["S2_A_vs_C_false_clears"],
         },
         "S3_C_vs_R_resolution": {
             "rule": "difference(C - R) > 0: one-sided 95% lower bound of the event-clustered "
             "paired bootstrap",
-            **({k: v for k, v in existing.items() if k != "draws"} if existing else {}),
+            **(_public(existing) if existing else {}),
             "lower_bound_above_zero": existing["lower_one_sided_95"] > 0 if has_existing else None,
             **adjusted["S3_C_vs_R_resolution"],
         },
         # Descriptive only, never tested: A answers everything, so its
         # resolution rate can exceed C's while it clears in-scope pairs.
         "A_false_clears": event_false_clears(rows[NAIVE]),
-        "C_vs_A_resolution": {
-            k: v for k, v in paired_difference(rows, SYSTEM, NAIVE).items() if k != "draws"
-        },
+        "C_vs_A_resolution": _public(paired_difference(rows, SYSTEM, NAIVE)),
     }
     if EXISTING in rows:
         # Reported next to S3: R's own false clears, and S3 on lossless events.
@@ -780,9 +783,7 @@ def analyse(
         )
         secondary["C_vs_R_resolution_lossless_events"] = {
             "cases": len(lossless),
-            **{
-                k: v for k, v in paired_difference(subset, SYSTEM, EXISTING).items() if k != "draws"
-            },
+            **_public(paired_difference(subset, SYSTEM, EXISTING)),
         }
 
     # Guardrails.
@@ -870,6 +871,9 @@ def analyse(
         problems.append("pinned ecosystem comparators unavailable")
     if not encodings_complete:
         problems.append("an event has no frozen R encoding")
+    if not c:
+        # An empty population tests nothing; "valid" must not suggest it did.
+        problems.append("no pairs in the population")
     return {
         "valid": not problems,
         "validity": "valid"

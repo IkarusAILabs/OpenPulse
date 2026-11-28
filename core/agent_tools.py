@@ -1033,13 +1033,24 @@ def _assess(
     )
     urls = _event_urls(all_events)
     scopes = {e.id: e.scope for e in all_events}
-    relevant = [
-        c
-        for c in verdict.verdicts
-        # Only causes about THIS project: a curated Bitnami event clearing
-        # a Postgres image is true but noise to an agent choosing a version.
-        if c.get("relationship") not in (None, "UNKNOWN") and c.get("project") == slug
-    ]
+    candidates = [c for c in verdict.verdicts if c.get("relationship") not in (None, "UNKNOWN")]
+    own = [c for c in candidates if c.get("project") == slug]
+
+    def drives(c: dict[str, Any]) -> bool:
+        # Another project's cause is shown when it carries the verdict: an
+        # affected or unresolved cause, or the only support for the
+        # headline. Otherwise a verdict could reach the agent with no
+        # cause or evidence behind it (docker.io/bitnami/redis is affected
+        # by the "bitnami" event, not by a "bitnami-redis-stack" one).
+        if c.get("affected") or c.get("relationship") in ("RELATED", "AFFECTS_PROJECT"):
+            return True
+        headline = c.get("relationship") == verdict.relationship
+        return headline and not any(o.get("relationship") == verdict.relationship for o in own)
+
+    # Causes about THIS project, plus those that carry the verdict: a
+    # curated Bitnami event clearing a Postgres image is true but noise to
+    # an agent choosing a version, unless nothing else explains the answer.
+    relevant = [c for c in candidates if c.get("project") == slug or drives(c)]
     causes = [
         {
             "event": c.get("event_id"),

@@ -1,0 +1,33 @@
+**Per-event outcomes (openpulse-retro-2026-11)**
+
+| event | class | pairs | in scope | A false clears | C binary false clears | C false clears | C affected | C unresolved | C negatives | C false positives |
+|---|---|---|---|---|---|---|---|---|---|---|
+| CMP-1 | compromised | 7 | 4 | 0 | 4 | 0 | 0 | 7 | 0 | 0 |
+| CMP-2 | compromised | 6 | 4 | 0 | 4 | 0 | 0 | 6 | 0 | 0 |
+| CMP-3 | compromised | 7 | 2 | 0 | 2 | 0 | 0 | 7 | 0 | 0 |
+| CMP-4 | compromised | 5 | 3 | 0 | 3 | 0 | 0 | 5 | 0 | 0 |
+| CMP-5 | compromised | 6 | 3 | 0 | 3 | 0 | 0 | 6 | 0 | 0 |
+| DEP-1 | deprecation | 6 | 4 | 0 | 0 | 0 | 4 | 2 | 0 | 0 |
+| DEP-2 | deprecation | 5 | 4 | 1 | 0 | 0 | 4 | 0 | 1 | 0 |
+| DEP-3 | deprecation | 6 | 4 | 0 | 0 | 0 | 4 | 2 | 0 | 0 |
+| DEP-4 | deprecation | 6 | 4 | 0 | 0 | 0 | 4 | 2 | 0 | 0 |
+| DEP-5 | deprecation | 7 | 4 | 4 | 0 | 0 | 4 | 3 | 0 | 0 |
+| DEP-6 | deprecation | 7 | 5 | 5 | 0 | 0 | 5 | 2 | 0 | 0 |
+| DIS-1 | distribution | 7 | 4 | 0 | 4 | 0 | 0 | 4 | 3 | 0 |
+| DIS-2 | distribution | 7 | 4 | 0 | 0 | 0 | 4 | 0 | 2 | 1 |
+| DIS-3 | distribution | 7 | 4 | 0 | 0 | 0 | 4 | 0 | 3 | 0 |
+| DIS-4 | distribution | 7 | 4 | 0 | 0 | 0 | 4 | 0 | 3 | 0 |
+| DIS-5 | distribution | 6 | 4 | 0 | 0 | 0 | 4 | 0 | 2 | 0 |
+| DIS-6 | distribution | 5 | 4 | 0 | 0 | 0 | 4 | 0 | 1 | 0 |
+| EOL-1 | eol | 6 | 4 | 4 | 0 | 0 | 4 | 1 | 1 | 0 |
+| EOL-2 | eol | 6 | 4 | 0 | 0 | 0 | 4 | 2 | 0 | 0 |
+| EOL-3 | eol | 7 | 4 | 4 | 0 | 0 | 4 | 1 | 2 | 0 |
+| LIC-1 | licence | 5 | 4 | 4 | 4 | 0 | 0 | 5 | 0 | 0 |
+| LIC-2 | licence | 7 | 4 | 0 | 0 | 0 | 4 | 2 | 1 | 0 |
+| LIC-3 | licence | 7 | 4 | 0 | 0 | 0 | 4 | 3 | 0 | 0 |
+| LIC-4 | licence | 4 | 2 | 2 | 2 | 0 | 0 | 4 | 0 | 0 |
+| REL-1 | relocation | 6 | 4 | 4 | 0 | 0 | 4 | 0 | 2 | 0 |
+| REL-3 | relocation | 6 | 4 | 4 | 0 | 0 | 4 | 0 | 2 | 0 |
+| REL-4 | relocation | 6 | 4 | 3 | 0 | 0 | 4 | 0 | 2 | 0 |
+
+C negatives are pairs C cleared or found no association for; only these can become false clears if a label changes.

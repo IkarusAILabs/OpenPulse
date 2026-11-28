@@ -11,7 +11,8 @@ running implementation. Three detectors are then run against it:
   A  the oracle conformance matrix (any change from the clean baseline);
   B  randomised differential testing, 5,000 cases (any disagreement);
   C  the false-clear regression tests (tests/test_false_clear.py);
-  D  the version differential tests against ``packaging`` (PEP 440).
+  D  the version differential tests against ``packaging`` (PEP 440);
+  E  the decision invariants I1-I8 (invariants.py), 1,000 cases, seed 11.
 
 A mutant is *caught* if any detector reports it. Mutants that cannot be
 expressed as one function-level change of the current code (D2, D6) are
@@ -34,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import invariants  # noqa: E402
 import matrix  # noqa: E402
 import randomized  # noqa: E402
 import versions_differential  # noqa: E402
@@ -51,6 +53,7 @@ _MODULES = [
     "core.agent_tools",
     "matrix",
     "randomized",
+    "invariants",
 ]
 
 #: (id, what it re-introduces, module, function, old text, new text)
@@ -96,7 +99,7 @@ MUTANTS = [
         "unmapped references are unrelated",
         "core.risk.match",
         "_unresolved_identity",
-        """    if trust["via"] != "self" or UNRESOLVED_IDENTITY.get() == "unrelated":
+        """    if UNRESOLVED_IDENTITY.get() == "unrelated":
         return None""",
         """    if True:
         return None""",
@@ -249,6 +252,16 @@ MUTANTS = [
                 "detail": (
                     f"{ref} resolves to project {slug}, not {event.project_slug}: "''',
     ),
+    (
+        "D16",
+        "a heuristic or unreviewed mapping disassociates (image path)",
+        "core.risk.match",
+        "_unresolved_identity",
+        """        if trust["identity_status"] == "VERIFIED":
+            return None""",
+        """        if True:
+            return None""",
+    ),
 ]
 NOT_REINJECTED = {
     "D2": "union of OSV intervals: a multi-line walk, not a one-function change",
@@ -318,6 +331,10 @@ def _differential_failures() -> int:
     )
 
 
+def _invariant_failures() -> int:
+    return sum(invariants.run(1000, (11,))["violations"].values())
+
+
 def _regression_failures() -> int:
     import pytest
 
@@ -344,8 +361,9 @@ def main() -> None:
         "random": _randomized_failures(),
         "tests": _regression_failures(),
         "versions": _differential_failures(),
+        "invariants": _invariant_failures(),
     }
-    if baseline["random"] or baseline["tests"] or baseline["versions"]:
+    if any(baseline.values()):
         raise SystemExit(f"the unmutated baseline already fails: {baseline}")
     rows = []
     for mutant_id, description, module, qualname, old, new in MUTANTS:
@@ -354,6 +372,7 @@ def main() -> None:
             b = _randomized_failures() > 0
             c = _regression_failures() > 0
             d = _differential_failures() > 0
+            e = _invariant_failures() > 0
         rows.append(
             {
                 "mutant": mutant_id,
@@ -362,13 +381,14 @@ def main() -> None:
                 "randomized": b,
                 "regression_tests": c,
                 "version_differential": d,
-                "caught": a or b or c or d,
-                "caught_without_regression_tests": a or b or d,
+                "invariants": e,
+                "caught": a or b or c or d or e,
+                "caught_without_regression_tests": a or b or d or e,
             }
         )
         print(
             f"{mutant_id:13} matrix={a!s:5} random={b!s:5} tests={c!s:5} "
-            f"versions={d!s:5}  {description}"
+            f"versions={d!s:5} invariants={e!s:5}  {description}"
         )
     caught = sum(r["caught"] for r in rows)
     independent = sum(r["caught_without_regression_tests"] for r in rows)

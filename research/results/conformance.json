@@ -1,0 +1,44 @@
+{
+ "matrix": {
+  "cases": 6195,
+  "by_severity": {
+   "conform": 6123,
+   "label: both unresolved": 72
+  }
+ },
+ "randomized": {
+  "cases": 5000,
+  "seed": 2026,
+  "summary": {
+   "conform": 5000
+  }
+ },
+ "invariants": {
+  "seeds": [
+   11,
+   12,
+   13
+  ],
+  "cases": 12000,
+  "exercised": {
+   "I1": 2481,
+   "I2": 1393,
+   "I3": 1112,
+   "I4": 7235,
+   "I5": 12928,
+   "I6": 1351,
+   "I7": 1025,
+   "I8": 8480
+  },
+  "violations": {
+   "I1": 0,
+   "I2": 0,
+   "I3": 0,
+   "I4": 0,
+   "I5": 0,
+   "I6": 0,
+   "I7": 0,
+   "I8": 0
+  }
+ }
+}

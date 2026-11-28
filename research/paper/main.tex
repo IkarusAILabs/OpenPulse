@@ -1,0 +1,749 @@
+% DRAFT -- not for submission. Claims, references, results and authorship
+% have not been reviewed (research/paper/README.md). Every number in the
+% prose is a macro from ../tables/numbers.tex, generated from the result
+% files by research/scripts/tables.py; tables and figures are \input from
+% generated files. Do not type numbers by hand.
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+
+\input{../tables/numbers.tex}
+
+\newcommand{\code}[1]{\texttt{#1}}
+% A citation whose metadata has not been verified against a primary source
+% (LITERATURE_PROTOCOL.md). Renders a dagger so it cannot pass unnoticed.
+\newcommand{\citeUNV}[1]{\cite{#1}$^{\dagger}$}
+\newcommand{\draftnote}[1]{\textcolor{red!70!black}{[\textbf{Draft:} #1]}}
+
+\title{Evidence-Aware Dependency Risk Analysis:\\
+A Conservative Approach to Upstream Change Applicability\\[0.5em]
+\large\textcolor{red!70!black}{DRAFT --- claims, references and authorship under review}}
+\author{\draftnote{authors and affiliations to be confirmed}\\ Ikarus AI Labs}
+\date{Draft of 31 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Software teams, and increasingly AI coding agents, decide whether an upstream
+change --- a relicensing, an end of life, a registry move, a deprecation, a
+compromised release --- applies to the dependencies they use. They answer
+this from upstream records, and the records rarely say whether a dependency
+they do not list is unaffected or merely unmentioned. We study how applicability can be decided
+without reading incomplete, ambiguous or insufficient evidence as proof that a
+dependency is unaffected. We describe an evidence-aware applicability model,
+implemented in the open-source tool OpenPulse, that represents dependency
+identity and how it was established, typed event scope, whether that scope was
+declared complete and on what basis, evidence freshness, and an explicit
+unresolved outcome that is never converted into a clearance. We state eight
+decision invariants and check them as properties on \InvCases{} generated
+cases with \InvViolations{} violations; of \MutKnown{} known defects and
+disabled safety rules, \MutTotal{} could be re-injected into the engine and
+the checks catch \MutCaught{}. On a frozen retrospective set of
+\RetroEvents{} real upstream events and \RetroPairs{} dependency references,
+labelled by the developer, a specified naive reading of the same records,
+which clears whatever a record does not list, cleared
+\FCa{} of \RetroInScope{} in-scope references, OpenPulse cleared
+\FCc{}, and the same engine read as a binary tool cleared \FCbinary{}: most of
+the difference comes from keeping the unresolved outcome. The cost is
+\UnresC{} unresolved outcomes. The model trusts curated identity mappings:
+injecting a wrong one turned each of the \FaultMisInScope{} in-scope
+references with curated identity into a silent miss. The labels are not
+independent; re-labelling every pair under a blinded protocol with three
+language models left OpenPulse with no false clear and the naive reading with
+\LabFCaAP{}. The events were purposively selected, so these are
+observations on this sample, not estimates of real-world error rates. All code, data, results and the scripts
+that regenerate every table are open.
+\end{abstract}
+
+\noindent\textbf{Keywords:} software supply chain; dependency management;
+software composition analysis; applicability; three-valued decisions;
+reproducibility; AI coding agents.
+
+% ---------------------------------------------------------------------------
+\section{Introduction}
+
+A team that runs \code{docker.io/bitnami/redis:7.2}, \code{node-ipc@10.1.1} or
+\code{github.com/docker/docker} learns of upstream changes from announcements,
+advisories and lifecycle catalogues. Each such record names what changed. The
+question a team, a CI gate or an AI coding agent must answer is narrower: does
+\emph{this} reference fall inside what changed?
+
+The question is easy to answer wrongly in one direction. If the record lists
+affected objects and the reference is not on the list, it is tempting to
+conclude the reference is unaffected. That conclusion is only as good as three
+premises that the record rarely states: that the list is complete, that the
+reference was matched to the right object, and that the record is current. A
+container image may be the same software under another name; a package of the
+same name may be a different project in another ecosystem; a list of
+``affected images'' may be a set of examples. When any premise fails, the
+reader issues a \emph{false clear}: an in-scope dependency reported as
+unaffected.
+
+This paper asks:
+\begin{quote}
+\emph{How can dependency-risk analysis determine whether an upstream change
+applies to a dependency without incorrectly interpreting incomplete,
+ambiguous or insufficient evidence as proof that the dependency is
+unaffected?}
+\end{quote}
+
+\paragraph{Contributions.} We distinguish the kind of evidence behind each.
+\begin{enumerate}[nosep]
+  \item \emph{Design.} An applicability model that makes identity, scope,
+  completeness, freshness and an unresolved outcome explicit, with a negative
+  admitted only under stated conditions (Section~\ref{sec:model}).
+  \item \emph{Implementation and tests.} The model in OpenPulse, with eight
+  decision invariants checked as properties on generated cases and a defect
+  re-injection campaign that shows the checks detect regressions of the
+  known failures they target (Section~\ref{sec:impl}).
+  \item \emph{Retrospective observation.} A comparison with a naive reading,
+  conservative baselines and ablations on a frozen, developer-labelled set of
+  real events (Sections~\ref{sec:method}--\ref{sec:results}), which shows
+  where the reduction in false clears comes from and what it costs,
+  including the cost of a wrong curated identity mapping.
+  \item \emph{Open artefact.} Code, data, labelling guide, and one command
+  that regenerates and checks every table in this paper
+  (Section~\ref{sec:availability}).
+\end{enumerate}
+We do not claim effectiveness beyond the studied sample, independent
+validation, superiority over existing tools or exchange formats, security
+assurance, or any effect on AI coding agents; Section~\ref{sec:limits} lists
+what is not shown.
+
+% ---------------------------------------------------------------------------
+\section{Background and related work}
+\label{sec:related}
+
+\draftnote{Positioning must be completed under LITERATURE\_PROTOCOL.md; in
+particular SPDX~3.0 relationship completeness and CycloneDX compositions must
+be read from their specifications before any novelty statement is made.}
+
+\paragraph{Vulnerability applicability.} Software composition analysis (SCA)
+maps dependencies to known vulnerabilities. Metadata matching over-reports;
+code-centric approaches decide whether vulnerable code is reachable
+\cite{ponta2018beyond,ponta2020detection}, and counting only deployed,
+fixable dependencies changes the picture substantially
+\cite{pashchenko2018vulnerable}. SCA tools disagree with one another on the
+same project \cite{imtiaz2021comparative}, and the databases they read contain
+errors in affected products and versions \cite{anwar2022cleaning}. Our setting
+differs in the events considered --- lifecycle, licence, distribution and
+ownership changes rather than vulnerabilities --- but shares the question of
+when a negative may be issued.
+
+\paragraph{Exchange formats.} OSV \cite{osvschema} and the GitHub Advisory
+Database \cite{ghsa} describe affected packages and version ranges. VEX
+statements, including OpenVEX \cite{openvex} and the CISA minimum requirements
+\cite{cisa2023vex}, give a product status of affected, not affected, fixed or
+under investigation; CSAF carries similar statements \citeUNV{oasis2022csaf}.
+SBOM standards \cite{spdx,ecma424} describe what a product contains. These
+formats carry \emph{statements}; the question this paper studies is how a
+consumer should \emph{decide} from them when an object is not mentioned.
+\draftnote{Compare with SPDX~3.0 \code{completeness} on relationships and
+CycloneDX \code{compositions.aggregate}; both may express completeness of a
+listing and must be discussed.}
+
+\paragraph{Upstream lifecycle and ownership change.} Deprecation signals are
+often missing or unclear \cite{cogo2022deprecation}, developers have no
+systematic way to learn that a dependency was abandoned
+\cite{miller2023winging}, and repository transfers and renames leave
+redirects that can be hijacked \cite{github2026transfer,goldman2023repojacking}.
+Supply-chain attack taxonomies include account and project takeover
+\cite{ohm2020backstabber,ladisa2023sok,zimmermann2019small}. Container images
+add their own identity questions: namespaces, mirrors and moving tags
+\cite{shu2017dockerhub,zerouali2019outdated}.
+
+\paragraph{Incomplete information.} Treating absence from a list as falsity
+is the closed-world assumption \citeUNV{reiter1978closed}; database research
+has long distinguished it from reasoning under incomplete information and
+asked when a query answer can be known to be complete
+\citeUNV{razniewski2011completeness}. Three-valued logics give the unknown
+value its own place \citeUNV{kleene1952introduction}. Our unresolved outcome
+plays that role for applicability decisions.
+
+\paragraph{AI coding agents.} Code-generating models suggest packages that do
+not exist \cite{spracklen2025package,krishna2025phantoms} and insecure code
+\cite{pearce2022asleep}, and tool outputs are a channel for indirect prompt
+injection \cite{greshake2023indirect,debenedetti2024agentdojo}. These motivate
+giving agents structured, evidence-carrying answers in which ``unknown'' is
+distinguishable from ``safe''; they do not show that doing so changes agent
+behaviour, which we do not test.
+
+% ---------------------------------------------------------------------------
+\section{Research questions and hypotheses}
+
+We evaluate three hypotheses, as hypotheses.
+\begin{description}[nosep,leftmargin=1.2em]
+  \item[H1] An evidence-aware applicability model makes fewer false-clear
+  decisions than a specified naive reading of the same upstream records.
+  \item[H2] Representing completeness, identity, scope and unresolved outcomes
+  explicitly makes the causes of decision errors observable and reproducible.
+  \item[H3] The approach has costs --- unresolved outcomes, identity gaps,
+  review effort --- that must be measured rather than hidden.
+\end{description}
+H1 is an effectiveness claim; we can observe it on our sample but not
+establish it in general (Section~\ref{sec:threats}). H2 is a property of the
+artefact and is tested directly. H3 is measured in part: unresolved outcomes
+and identity gaps are measured, review effort is not.
+
+% ---------------------------------------------------------------------------
+\section{The evidence-aware applicability model}
+\label{sec:model}
+
+\paragraph{Pairs, events and references.} A \emph{reference} $d$ is a
+container reference or an (ecosystem, name, version) package. An
+\emph{event} $e$ is a recorded upstream change to a project $p_e$, with
+evidence items that carry a source, an authority tier, an acquisition time and
+a relation (supports or contradicts). The model decides each pair $(d,e)$.
+
+\paragraph{Identity.} $d$ resolves to a project together with \emph{how} it was
+resolved: a curated explicit alias or catalogue mapping (\textsc{Verified}), a
+heuristic rule (\textsc{Review-Required}), or itself (unresolved). Only a
+curated, \textsc{Verified} mapping to another project is evidence that $d$ is
+\emph{not} $p_e$. An unresolved or heuristic identity is never evidence of
+another project, whatever the name looks like: a mirror, fork or rename can be
+called anything.
+
+\paragraph{Scope.} An event's scope is a set of typed elements --- artefact
+(registry, namespace, name, with a tag, a tag predicate or a digest), release
+line, package, registry --- or, if none is given, the project. An element is
+\emph{exact} (everything it denotes is affected) or an \emph{envelope}
+(it bounds the affected set without asserting membership). Objects an
+announcement names ``for example'' are examples: they can establish membership
+but never bound the scope. Each element test returns member, excluded,
+undetermined, project tie or no association; every element is evaluated, and
+one undetermined element withholds a clearance.
+
+\paragraph{Completeness and admission of negatives.} A scope may be
+\emph{declared complete}, and a declaration must record its basis. A
+\textsc{NotAffected} verdict for $(d,e)$ is admitted only if (i) every element
+of $e$'s scope decisively excludes $d$ or has no association with it, (ii) the
+scope is declared complete with a recorded basis, (iii) the event is current
+--- not withdrawn, superseded or contested --- and (iv) its newest evidence is
+within a freshness bound (90 days by default). Otherwise the pair is
+\emph{unresolved} (\textsc{Related}).
+
+\paragraph{Outcomes and aggregation.} Per pair, the model returns one of seven
+relationships, which summarise to four outcomes: \emph{affected}
+(artefact, version or package membership), \emph{unresolved} (\textsc{Related},
+or a project tie without established membership), \emph{cleared}
+(\textsc{NotAffected}) and \emph{no association}. Across events, affected
+dominates unresolved, which dominates cleared: a clearance from one event
+never headlines over an unresolved association from another. Every verdict
+carries a closed-vocabulary statement of what it does \emph{not} assert:
+scope membership is not a finding that a dependency is broken or unsafe, and a
+clearance covers only the cited event's direct scope.
+
+\paragraph{What a clearance rests on.} A negative is sound only under premises
+the model states rather than verifies (Table~\ref{tab:premises}).
+
+\begin{table}[t]
+\centering\small
+\caption{Which conditions a \textsc{NotAffected} verdict verifies and which it
+assumes.}
+\label{tab:premises}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+Question & Status \\
+\midrule
+Was a relevant event discovered? & Assumed. A verdict covers only the events supplied. \\
+Was the event represented accurately, including its completeness declaration? & Assumed (trusted curation). \\
+Was the reference's identity resolved correctly? & Partly checked: unresolved and heuristic identities can never exclude; a wrong curated mapping is not detected. \\
+Was the scope evaluated correctly? & Checked against the specification (Section~\ref{sec:impl}). \\
+Was the result communicated correctly? & Checked for the evidence contract and the agent interface. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\section{OpenPulse: design and implementation}
+\label{sec:impl}
+
+OpenPulse is a Python command-line tool and library (Apache-2.0). It reads
+watchlists, SBOMs, manifests, lockfiles and image lists, evaluates them against
+curated and collected events, and reports verdicts as text, JSON evidence
+contracts (with a published JSON Schema), SARIF, and through a read-only Model
+Context Protocol (MCP) server for coding agents. The decision engine is
+\code{core/risk/match.py} and \code{core/risk/check.py}.
+
+\paragraph{Decision invariants.} We state eight properties that no verdict may
+violate (Table~\ref{tab:invariants}) and check them on the production engine's
+outputs over seeded generated cases --- dependencies and one to three events
+with random typed scopes, examples, completeness, basis and admissibility,
+including heuristic identity mappings. The checks are stated on outputs, not on
+the specification, so they also cover inputs the specification oracle does not
+model.
+
+\begin{table}[t]
+\centering\small
+\caption{Decision invariants, checked as properties (\code{conformance/invariants.py}).}
+\label{tab:invariants}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+I1 & An unresolved identity never yields \textsc{NotAffected} or no association under an identity-dependent scope. \\
+I2 & \textsc{NotAffected} requires a complete scope with a recorded basis from a current, fresh, uncontested event. \\
+I3 & As I1, for heuristic or unreviewed identity mappings. \\
+I4 & An unresolved per-event verdict keeps the summary unresolved, and every machine-readable reading says it is not a clearance. \\
+I5 & The evidence contract validates and states the engine's relationship; agent answers agree with the engine. \\
+I6 & Look-alike elements placed first in an event never remove an affected verdict. \\
+I7 & Every \textsc{NotAffected} agrees with the independent specification oracle. \\
+I8 & Every verdict names its events, rules and evidence; agent answers carry the cause behind every verdict. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Specification oracle.} A separate implementation of the decision
+procedure, written from the specification and importing nothing from the
+engine, is compared with it on an exhaustive grid of \MatrixCases{} cases and
+\RandCases{} randomised cases (Table~\ref{tab:conformance}).
+
+\paragraph{Defect re-injection.} The campaign covers \MutKnown{} failures:
+defects recorded against the engine during its development, and safety rules
+switched off. \MutTotal{} can be re-introduced into the running
+engine by a one-function patch; \MutNotReinjected{} cannot (one is a
+multi-function change, one is subsumed by two others, and one is rejected by
+the input grammar before any comparison), and are not counted. The oracle
+grid, the randomised differential, the invariants, a version differential and
+the regression tests are run against each mutant. \MutCaught{} of
+\MutTotal{} are caught; \MutByInv{} by the invariants.
+Table~\ref{tab:mutants} (appendix) lists every mutant and the checks that
+detect it. Because each is a failure the team already knew of when it wrote
+the checks, the campaign shows that the checks catch regressions of known
+failures; it does not estimate how many unknown defects they would find, and
+several mutants exercise the same rule (for example, the two freshness and
+admissibility rules N4). One defect, in which a
+heuristic mapping to another project dropped an association, is invisible to
+the oracle (which has no untrusted identity) and caught only by the invariants
+and its regression test. It was known and open in the released version and
+is fixed in the version evaluated here; no pair of the case set changes.
+
+\input{../tables/conformance.tex}
+
+These are internal checks by the team that built the engine, on inputs drawn
+from a finite generator vocabulary. They are evidence of conformance to the
+specification, not formal verification, and not evidence that the
+specification matches the world: the engine and the oracle are written
+separately but from one specification, so an error in that specification is
+invisible to both.
+
+\paragraph{Assurance boundary.} The model's guarantees are conditional on its
+inputs. The following are assumed, not checked, and none of the tests above
+bears on them:
+\begin{itemize}[nosep]
+  \item \emph{Curated identity is correct.} A curated mapping is read as
+  verified; a wrong one is not detected. Section~\ref{sec:results} measures
+  the cost.
+  \item \emph{Curated completeness declarations are correct.} A negative is
+  admitted when an event's curator declares its scope complete on a stated
+  basis; a false declaration is trusted.
+  \item \emph{Evidence is authentic and correctly read.} Invariant I8 checks
+  that every verdict cites evidence, not that the evidence is genuine,
+  authoritative or correctly interpreted; misleading or forged upstream
+  records are outside the model.
+  \item \emph{Events are discovered.} The model decides applicability for the
+  events it is given; an event nobody recorded yields no verdict.
+\end{itemize}
+OpenPulse is therefore a decision procedure over curated evidence, not a
+security control, and these results are not a security-assurance claim.
+
+% ---------------------------------------------------------------------------
+\section{Experimental methodology}
+\label{sec:method}
+
+\paragraph{Case set.} The retrospective set contains \RetroEvents{} upstream
+events (compromised releases, deprecations, distribution changes, ends of
+life, licence changes, repository relocations), each with a fixture whose
+every field cites an archived primary source, and \RetroPairs{} references
+found in public repositories at a commit: \RetroInScope{} in scope,
+\RetroOutScope{} out of scope (look-alike names in other namespaces,
+same-named packages of other projects, versions just outside a boundary, new
+canonical locations) and two undeterminable. The set was frozen and
+hash-pinned before any policy ran. Table~\ref{tab:retro_composition} gives its
+composition.
+
+\input{../tables/retro_composition.tex}
+
+\paragraph{Labels.} The reference labels (L1) were assigned by the OpenPulse
+developer by written per-event rules before any policy ran. They are not
+independent. Two outside labelling rounds of a 25\% sample exist; the first
+followed an undocumented process, and the second was prepared with a large
+language model. We report both only as a pilot.
+
+No independent human annotators were available, so we did not obtain the
+independent labels that the registered analysis requires. Instead every pair
+was labelled again under a blinded, AI-assisted protocol fixed before it ran
+(\code{research/labelling/AI\_PANEL\_PROTOCOL.md}), and we measure how far the
+results depend on the labelling method.
+
+\emph{Readers.} Two readers, Claude Opus~5.5 (A) and Claude Sonnet~5.5 (B),
+each labelled all \RetroPairs{} pairs in a fresh context. A third model
+adjudicated the pairs on which they disagreed. The protocol named Claude
+Fable~5.1 as adjudicator; that run failed before any model call for lack of
+usage credits, so Claude Haiku~5.5, the only available model distinct from
+both readers, took its place, and the deviation was recorded before it ran.
+
+\emph{Blinding.} A script built each reader's packet mechanically from the
+event's title, knowledge date and archived source quotations, and from each
+reference as declared. It withheld the developer's labels and rationales, the
+case identifiers (whose suffix encodes the label), the curated scope encoding
+that OpenPulse reads, the event summary, and every result. It shuffled events
+and references separately for each reader and refused to build if a withheld
+value leaked into a packet. The adjudicator saw the two readings in random
+order without knowing which model gave which.
+
+\emph{Procedure.} Readers used the codebook written for human annotators
+(\code{LABELING\_GUIDE.md}), with no web access. Packets, prompts and each set
+of answers were hash-locked before the next step, and labels were compared
+with L1 and with policy outputs only after adjudication was locked. Session
+transcripts show that each reader read only its own instruction file and wrote
+one file.
+
+These labels are machine-generated and are never described as independent or
+as ground truth.
+
+\paragraph{Policies.} All policies receive the same events, replayed as known
+at each event's knowledge cut, and the same reference.
+\textbf{A (naive)} reads the affected list literally: listed is affected,
+unlisted is cleared; identity by name, versions by release-line prefix,
+references canonicalised by the oracle's parser. \textbf{B (conservative)} is
+A with unlisted read as unresolved. \textbf{V (strong conservative)} is
+OpenPulse's model read with each ecosystem's own version comparator.
+\textbf{C} is OpenPulse. \textbf{Registered ablations} of C assume every scope
+complete, drop the freshness bound, or read an unresolved identity as
+unrelated. \textbf{Post-hoc ablations}, defined after the registered results
+were known and therefore exploratory, read C's verdicts as binary (anything
+not affected is cleared), remove curated identity, or do both with name-based
+identity. An OSV/OpenVEX re-encoding baseline exists but no event of this set
+has been encoded, so it is not reported.
+
+\paragraph{Metrics.} Every rate is reported as $k/n$ with its denominator
+named. The false-clear rate is false clears over in-scope pairs; the
+false-positive rate is affected outcomes over out-of-scope pairs; resolution is
+correct decisive outcomes over determinable pairs; the unresolved rate is over
+all pairs. Pairs of one event share its evidence (\PairsPerEvent{} pairs per
+event on average), so the event, not the pair, is the unit for any statement
+across events. We count false clears per event and give the exact one-sided
+95\% upper bound on the share of events at risk with a false clear; for a
+zero count over $n$ events this is $1-0.05^{1/n}$. Rates over pairs come with
+a percentile bootstrap interval that resamples events with replacement, their
+pairs moving together (\BootResamples{} resamples, seed \BootSeed{}; the same
+resampled events for every policy, so differences are paired). When a count is
+zero in every event the bootstrap interval collapses to $[0,0]$ and carries no
+information, so we report the exact bound instead. Exact Clopper--Pearson
+intervals that treat pairs as independent are reported as descriptive only.
+Table~\ref{tab:retro_events} (appendix) gives every event's outcomes.
+
+% ---------------------------------------------------------------------------
+\section{Results}
+\label{sec:results}
+
+All numbers in this section are retrospective observations on the
+developer-labelled set.
+
+\input{../tables/retro_outcomes.tex}
+
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{\input{../figures/retro_outcomes.tex}}
+\caption{Outcomes per policy on the retrospective set (pair counts; the same
+counts are in Table~\ref{tab:retro_outcomes}).}
+\label{fig:outcomes}
+\end{figure}
+
+\paragraph{False clears (H1).} The naive reading false-cleared in
+\FCaEvents{} of \EventsAtRisk{} events at risk, \FCa{} of \RetroInScope{}
+in-scope pairs (event bootstrap 95\% interval of the pair rate \FCaBoot{}).
+OpenPulse false-cleared in no event (exact one-sided 95\% upper bound on the
+share of events, \FCcEventUpper{}; descriptively, 0 of \RetroInScope{} pairs,
+upper bound \FCcUpper{} if pairs were independent). In this sample, every
+event on which A false-cleared is one on which C did not (exact one-sided sign
+test over discordant events, $p=\SignAp{}$; this describes the sample, not a
+population). An upper bound of \FCcEventUpper{} over \EventsAtRisk{}
+purposively chosen events is compatible with a false clear in one event in
+ten; the data cannot rule that out.
+
+\paragraph{Sensitivity to the labels.} A label change can create a false clear
+for OpenPulse only on a pair it decided negatively. It did so on \NegC{} pairs
+in \NegCEvents{} events (cleared, or no association), all labelled out of
+scope; its other \NegCOther{} pairs are affected or unresolved, and no
+relabelling turns either into a false clear. OpenPulse's zero therefore
+survives any relabelling that leaves those \NegC{} labels unchanged, and an
+independent annotation should treat them first. The naive reading's count is
+sensitive to every in-scope label and cannot be bounded this way.
+
+\paragraph{Sensitivity to the labelling method.} The two AI readers agreed on
+\LabAgreeAB{} of \RetroPairs{} pairs before adjudication (Cohen's
+$\kappa=\LabKappaAB{}$, event bootstrap 95\% interval \LabKappaABci{}); the
+adjudicated panel agreed with L1 on \LabAgreeAPLone{} ($\kappa=\LabKappaAPLone{}$,
+\LabKappaAPLoneci{}) (Table~\ref{tab:retro_label_agreement}). Of the
+\LabDisagreeAPLone{} disagreements with L1, \LabDecidedToUnd{} are pairs L1
+decided and the panel found undeterminable, because the archived quotations
+in the packet do not themselves settle membership. The quotations give a list
+of compromised versions not said to be complete; a version boundary that
+appears only in the event title, which the readers did not treat as a source;
+a module path whose relation to the deprecated one is not stated; and an
+image digest whose release is not given. L1 had settled these from release
+tags, the title and the projects' own records. One disagreement is a pair the
+readers found in scope and L1 out of scope; it is OpenPulse's only false
+positive under L1. Two third-party images that L1 left undeterminable the
+readers placed out of scope by the rule that names are not identity
+(Table~\ref{tab:retro_label_disagreements}).
+
+Re-scoring the same policy outcomes under each label set
+(Table~\ref{tab:retro_label_sensitivity}), OpenPulse made no false clear under
+L1, either reader, the adjudicated panel, or the bounding set that counts a
+pair as in scope if any of L1, A or B says so. The naive reading made
+\LabFCaAP{} false clears in \LabFCaEvAP{} of \LabAtRiskAP{} events at risk
+under the panel's labels, against \FCa{} in \FCaEvents{} of \EventsAtRisk{}
+under L1, and at least \LabFCaBoundA{} under every set; the binary reading of
+OpenPulse made between \LabFCbinAP{} and \FCbinary{}. The comparison's direction and
+OpenPulse's zero do not depend on which of these methods labelled the pairs.
+They do still depend on evidence the developer selected: every reader saw only
+the archived quotations, so an error in what was archived would be shared by
+all of them.
+
+\input{../tables/retro_label_agreement.tex}
+
+\input{../tables/retro_label_sensitivity.tex}
+
+\input{../tables/retro_label_disagreements.tex}
+
+\paragraph{Where the reduction comes from.} Reading the same OpenPulse verdicts
+as a binary tool --- anything not affected is cleared --- produces \FCbinary{}
+false clears in \FCbinaryEvents{} events. Matching, identity and scope
+semantics therefore account for the difference between \FCa{} and
+\FCbinary{}; keeping the unresolved outcome accounts for the rest. The two
+fail on different event classes (Table~\ref{tab:retro_by_class}): the naive
+reading's false clears fall on deprecations, ends of life, licence changes and
+relocations; the binary reading's on compromised releases, licence changes and
+distribution changes. The per-pair reasons (in the result files) show why. For
+the compromised npm packages, OpenPulse cannot establish identity: the
+packages are not in its curated catalogue, so each reference resolves only to
+itself and is \emph{unresolved}, and a binary reader clears it. The naive
+reading gets these pairs right because, for them, the package name happens to
+be the identity. The remaining binary false clears are project ties without a
+stated version scope and references inside a registry-wide envelope. On this
+set neither component alone avoids false clears: name matching fails where
+names mislead, and conservative identity fails where it is read as a
+negative.
+
+\input{../tables/retro_by_class.tex}
+
+\paragraph{Ablations.} Assuming every scope complete changed \ComplChanged{}
+correct negatives and introduced no false clear: on this set, the
+completeness rule was not needed to prevent a false clear, and its value is
+not demonstrated here. Reading an unresolved identity as unrelated produced
+\IdAblMiss{} silent misses (in-scope pairs reported as having no association);
+with name-based identity only, \NameIdMiss{}. Removing curated identity cost
+\NoCurAffectedDrop{} correctly identified affected pairs and added
+\NoCurUnresRise{} unresolved outcomes, without changing any safety outcome
+(Table~\ref{tab:retro_ablations}).
+
+\input{../tables/retro_ablations.tex}
+
+\paragraph{Identity.} Of the \RetroPairs{} references, \IdCurated{} have a
+curated identity, \IdSelf{} resolve only to themselves, and
+\IdHeuristic{} resolve through a heuristic rule
+(Table~\ref{tab:retro_identity}). The real set therefore does not test
+heuristic identity at all; that branch is exercised only by generated cases
+(invariant I3) and its regression tests. Nor were cases chosen to test
+doubtful identity: look-alike names in other namespaces appear only as
+out-of-scope controls, and the relocated repositories are named explicitly by
+their events. The faults below were injected only into image references;
+package references are curated through a separate catalogue map and were not
+injected.
+
+\input{../tables/retro_identity.tex}
+
+Curated identity is trusted, so we measured what a wrong mapping costs by
+injecting one explicit alias per reference, with the engine unchanged
+(Table~\ref{tab:retro_identity_faults}). Aliasing each of the \FaultMis{}
+curated references to an unrelated project turned all \FaultMisMiss{}
+in-scope ones into silent misses (``no association'') and the other
+\FaultMisNoAssoc{} into no association: a misattribution is not detected and
+removes the association without an unresolved outcome to flag it. Aliasing
+\FaultCol{} out-of-scope image references that do not belong to the event's
+project to that project changed \FaultColChanged{} outcomes and produced
+\FaultColFP{} false positives, because each still fell outside the event's
+typed element or version scope. On the development set, one misattribution
+also produced a false clear. Curated mappings are thus a single point of
+failure that the model cannot check; their review is part of using it.
+
+\input{../tables/retro_identity_faults.tex}
+
+\paragraph{Costs (H3).} OpenPulse left \UnresC{} of \RetroPairs{} pairs
+unresolved, against \UnresB{} for the conservative listing and \UnresV{} for
+V; it resolved \ResC{} of \RetroDeterminable{} determinable pairs, against
+\ResB{}, \ResV{} and the naive reading's \ResA{} --- which it reaches by
+clearing in-scope pairs. The review effort that unresolved outcomes impose was
+not measured.
+
+\paragraph{Traceability and reproducibility (H2).} Every verdict names its
+events, rules and evidence (I8), and every pair's category is recorded and
+replayable. The current implementation reproduces the frozen run's outcomes
+for baselines A, B and V, and the post-fix run's outcomes for OpenPulse, pair
+for pair (Table~\ref{tab:retro_versions} for OpenPulse; the comparison script
+reports the others).
+
+\input{../tables/retro_versions.tex}
+
+% ---------------------------------------------------------------------------
+\section{Discussion}
+
+The results suggest a division of labour. Careful identity and scope matching
+removes false clears that come from name-based matching of moved, deprecated
+and end-of-life objects. An explicit unresolved outcome removes those that
+remain when the evidence does not settle membership: on this set, mostly
+references whose identity was not curated, and project ties without a stated
+version scope. A tool with only one of the two still false-clears. The
+compromised-package cases also show the price of conservative identity: where
+a name really is the identity, OpenPulse is less useful than name matching,
+and safe only because it says so.
+
+The unresolved outcome is not free: it moves work from the tool to a person.
+Whether that work is acceptable depends on its volume and on how quickly an
+unresolved case can be settled, which this study does not measure. The
+ablation that removes curated identity shows that much of OpenPulse's
+usefulness comes from curated mappings, which are themselves trusted rather
+than verified.
+
+\draftnote{The completeness rule, which the design emphasises, prevented no
+false clear here. Either a set with more complete-scope events is needed, or
+the paper should present completeness as a necessary condition for issuing
+negatives rather than as an observed source of benefit.}
+
+% ---------------------------------------------------------------------------
+\section{Threats to validity}
+\label{sec:threats}
+
+\paragraph{Construct.} A false clear is disagreement with the developer's
+label; an independent human reading may differ. The AI panel does not close
+this gap. Its three readers are models from one vendor, which may share
+errors; the orchestrating assistant, of the same family, wrote their prompts;
+they saw only the quotations the developer archived; each ran once, and model
+output is not deterministic; and one of them, the adjudicator, is a smaller
+model than the readers it adjudicated. Agreement between two models measures
+their consistency, not the labels' validity. The panel shows that the
+results do not hinge on the developer's judgement where the archived
+evidence is shared; it cannot show that the archived evidence is right.
+``Affected'' means scope membership, not harm.
+
+\paragraph{Internal.} The engine, oracle, generator, invariants and labels
+come from one team. The engine was changed after the frozen run; post-fix
+results are reported separately with every changed pair. Post-hoc ablations
+are exploratory.
+
+\paragraph{External.} Twenty-seven famous, well-documented events chosen
+under class quotas; npm, Go and container images only; most references have
+unresolved identity, and none has heuristic identity, so the model's handling
+of heuristic, mirrored or forked identity is untested on real data. No rate here estimates performance on other events,
+ecosystems or inventories. Event discovery is assumed.
+
+\paragraph{Conclusion.} Twenty-seven clusters are few; the registered
+prospective analysis needs at least 60 events at risk. Tests and intervals
+describe this sample.
+
+\paragraph{Research integrity.} The AI-panel labels were produced by
+language models, named above, under a protocol and run log published with the
+artefact; the second pilot round was prepared with a language model.
+\draftnote{Disclose likewise in the cover letter how pre-submission reviews of
+the technical report and of this manuscript were produced (AI-assisted), and
+confirm the target venue's policy on AI-generated data.}
+
+% ---------------------------------------------------------------------------
+\section{Practical implications for software security and AI-assisted development}
+
+\paragraph{For security and platform teams.} Treat ``not listed'' as unknown
+unless the source states that its list is complete; record how each
+dependency's identity was established; and report unresolved cases as a
+separate state in dashboards and gates rather than folding them into ``pass''.
+
+\paragraph{For builders of AI coding agents.} Expose dependency decisions to
+agents as structured answers that distinguish affected, unresolved, cleared
+and no association, with the evidence and its age. OpenPulse's MCP server
+returns, for each answer, the verdict, a fixed statement of what it does not
+assert, the causes with source URLs, the sources consulted or unavailable, and
+what was not established. Whether agents act on that distinction is an open,
+testable question (Section~\ref{sec:limits}); read-only tools are not immune to
+prompt injection through the content they return.
+
+\paragraph{Trying it.} \draftnote{Pin to the release cited in the
+availability statement.}
+\begin{verbatim}
+pip install \
+  "ikarus-openpulse[mcp] @ git+https://github.com/IkarusAILabs/OpenPulse@v0.8.0"
+openpulse check --manifest requirements.txt --images images.txt
+claude mcp add openpulse -- openpulse mcp      # or any MCP client
+\end{verbatim}
+
+% ---------------------------------------------------------------------------
+\section{Limitations and future work}
+\label{sec:limits}
+
+Not shown here: agreement with independent human annotators, for which the
+AI panel is a stand-in and not a substitute; performance on a
+prospective, held-out set (a registered protocol exists and has not been
+run); comparison with existing exchange formats on this set (the encodings and
+two factorial comparators are not yet built); real cases of heuristic,
+mirrored or forked identity with independently established ground truth;
+behaviour under misleading, forged or conflicting upstream evidence; event
+discovery; review effort; and any effect on AI coding agents.
+
+The baselines here are specified readings of the same records, not existing
+tools. Baseline A shows that one reading --- unlisted means cleared --- is
+unsafe on this set; it does not show that any particular tool reads records
+that way. B and V are the conservative consumers: they abstain where A clears.
+A comparison with OSV and OpenVEX needs each event encoded, by someone blind
+to the labels and results, under written translation rules, and a report of
+which distinctions each format cannot express; until then we make no claim
+about existing formats. A controlled agent experiment --- the same
+agent and model with and without OpenPulse evidence, and with incomplete or
+misleading evidence, over predefined tasks and repeated trials --- is future
+work.
+
+% ---------------------------------------------------------------------------
+\section{Conclusion}
+
+An applicability decision that refuses to read missing evidence as a negative
+avoided every false clear that a naive reading of the same records made on our
+retrospective sample, at the cost of leaving a substantial share of
+references unresolved. The reduction comes from careful identity and scope
+matching together with an explicit unresolved outcome; neither suffices
+alone. The observation survived re-labelling by a blinded panel of language
+models, but independent human labels and a prospective study are needed
+before it can be stated as a general finding.
+
+% ---------------------------------------------------------------------------
+\section*{Data and artifact availability}
+\label{sec:availability}
+
+Code, case sets with source provenance, labelling guide, result files and the
+scripts that produced every table and figure are in the OpenPulse repository
+(\url{https://github.com/IkarusAILabs/OpenPulse}), directory
+\code{research/}. \code{python research/scripts/reproduce.py --check}
+regenerates all of them offline and verifies them against the committed
+files and the source they came from. \draftnote{Archive a tagged release with
+a DOI and cite it here.}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\section{Per-event outcomes and the defect catalogue}
+
+\input{../tables/retro_events.tex}
+
+\input{../tables/mutants.tex}
+
+\end{document}

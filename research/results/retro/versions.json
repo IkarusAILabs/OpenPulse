@@ -1,0 +1,269 @@
+{
+ "dataset": "retro",
+ "policy": "C-openpulse",
+ "dataset_sha256": "70832760ff414c51e3b679107dcb60f19e0c48c6c4c98d6194ab894206a1bf83",
+ "versions": {
+  "freeze (3639a0f)": "evaluation/retrospective/results/openpulse-retro-2026-11.json",
+  "after fixes (abcb685)": "evaluation/retrospective/results/after-fixes/openpulse-retro-2026-11.json",
+  "current (this tree)": "research/results"
+ },
+ "commits": {
+  "freeze (3639a0f)": "3639a0fb59e393b4f49dfee2dfffdc1c85e993c6",
+  "after fixes (abcb685)": "abcb685b15ba3995e403ac23c35e3adda090e2d4",
+  "current (this tree)": null
+ },
+ "categories": {
+  "freeze (3639a0f)": {
+   "silent_miss": 12,
+   "no_association": 6,
+   "correct_affected": 64,
+   "correct_unaffected": 19,
+   "unresolved": 63,
+   "abstained_undeterminable": 2,
+   "false_positive": 1
+  },
+  "after fixes (abcb685)": {
+   "correct_affected": 77,
+   "no_association": 6,
+   "correct_unaffected": 19,
+   "unresolved": 62,
+   "abstained_undeterminable": 2,
+   "false_positive": 1
+  },
+  "current (this tree)": {
+   "correct_affected": 77,
+   "no_association": 6,
+   "correct_unaffected": 19,
+   "unresolved": 62,
+   "abstained_undeterminable": 2,
+   "false_positive": 1
+  }
+ },
+ "steps": [
+  {
+   "from": "freeze (3639a0f)",
+   "to": "after fixes (abcb685)",
+   "pairs": 167,
+   "changed": 13,
+   "transitions": {
+    "no_association -> affected": 12,
+    "unresolved -> affected": 1
+   },
+   "new_safety_errors": [],
+   "fixed_safety_errors": [
+    {
+     "case": "DEP-2-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s2",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s2",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    }
+   ],
+   "pairs_changed": [
+    {
+     "case": "DEP-2-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "DEP-6-n1",
+     "label": "in_scope",
+     "before": "unresolved",
+     "after": "affected",
+     "category_before": "unresolved",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s2",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-1-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s2",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-3-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s1",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s3",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    },
+    {
+     "case": "REL-4-s4",
+     "label": "in_scope",
+     "before": "no_association",
+     "after": "affected",
+     "category_before": "silent_miss",
+     "category_after": "correct_affected"
+    }
+   ]
+  },
+  {
+   "from": "after fixes (abcb685)",
+   "to": "current (this tree)",
+   "pairs": 167,
+   "changed": 0,
+   "transitions": {},
+   "new_safety_errors": [],
+   "fixed_safety_errors": [],
+   "pairs_changed": []
+  }
+ ]
+}

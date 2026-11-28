@@ -1,0 +1,10 @@
+**False clears and unresolved outcomes by event class (openpulse-retro-2026-11)**
+
+| event class | A naive (listed or cleared): false clears / unresolved | C read as binary (post hoc): false clears / unresolved | C OpenPulse: false clears / unresolved |
+|---|---|---|---|
+| compromised | 0 / 0 | 16 / 0 | 0 / 31 |
+| deprecation | 10 / 0 | 0 / 0 | 0 / 11 |
+| distribution | 0 / 0 | 4 / 0 | 0 / 4 |
+| eol | 8 / 0 | 0 / 0 | 0 / 4 |
+| licence | 6 / 0 | 6 / 0 | 0 / 14 |
+| relocation | 11 / 0 | 0 / 0 | 0 / 0 |

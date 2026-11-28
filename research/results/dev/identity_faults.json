@@ -1,0 +1,285 @@
+{
+ "dataset": "openpulse-dev-2026-10",
+ "dataset_file": "evaluation/cases/dev-2026-10.json",
+ "dataset_sha256": "6676778c95f44319f5b68810b89d7191dae603474ecd20718b49f8033509855b",
+ "wrong_project": "injected-unrelated-project",
+ "summary": {
+  "misattributed": {
+   "injected": 18,
+   "changed": 9,
+   "transitions": {
+    "correct_affected -> false_clear": 1,
+    "correct_affected -> silent_miss": 4,
+    "correct_unaffected -> no_association": 3,
+    "unresolved -> no_association": 1
+   },
+   "after": {
+    "abstained_undeterminable": 3,
+    "correct_affected": 3,
+    "correct_unaffected": 3,
+    "false_clear": 1,
+    "no_association": 4,
+    "silent_miss": 4
+   }
+  },
+  "collided": {
+   "injected": 6,
+   "changed": 0,
+   "transitions": {},
+   "after": {
+    "correct_unaffected": 1,
+    "unresolved": 5
+   }
+  }
+ },
+ "not_injected": {
+  "image reference with no applicable fault": 15,
+  "package reference (catalogue package map, not injected)": 21
+ },
+ "faults": {
+  "misattributed": [
+   {
+    "case": "bn-03",
+    "event": "bitnami-2025",
+    "ref": "docker.io/bitnami/redis:7.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "correct_affected",
+    "relationship_after": "AFFECTS_ARTIFACT"
+   },
+   {
+    "case": "bn-06",
+    "event": "bitnami-2025",
+    "ref": "docker.io/bitnamilegacy/redis:7.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "correct_affected",
+    "relationship_after": "AFFECTS_ARTIFACT"
+   },
+   {
+    "case": "bn-07",
+    "event": "bitnami-2025",
+    "ref": "docker.io/bitnami/redis:latest",
+    "label": "undeterminable",
+    "aliased_to": "injected-unrelated-project",
+    "before": "abstained_undeterminable",
+    "after": "abstained_undeterminable",
+    "relationship_after": "RELATED"
+   },
+   {
+    "case": "bn-09",
+    "event": "bitnami-2025",
+    "ref": "docker.io/redis:7.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "bn-10",
+    "event": "bitnami-2025",
+    "ref": "docker.io/library/nginx:1.25",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "re-01",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/redis:6.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-02",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/library/redis:6.2.14",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-03",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/redis:7.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-04",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/redis:8.0",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-05",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/bitnami/redis:6.2",
+    "label": "undeterminable",
+    "aliased_to": "injected-unrelated-project",
+    "before": "abstained_undeterminable",
+    "after": "abstained_undeterminable",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-07",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/redis:latest",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "unresolved",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "re-08",
+    "event": "redis-6.2-eol",
+    "ref": "docker.io/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "label": "undeterminable",
+    "aliased_to": "injected-unrelated-project",
+    "before": "abstained_undeterminable",
+    "after": "abstained_undeterminable",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "pg-01",
+    "event": "postgresql-13-eol",
+    "ref": "docker.io/postgres:13",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "pg-02",
+    "event": "postgresql-13-eol",
+    "ref": "docker.io/postgres:13.16-alpine",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "silent_miss",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "pg-03",
+    "event": "postgresql-13-eol",
+    "ref": "docker.io/postgres:17",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "no_association",
+    "relationship_after": "UNKNOWN"
+   },
+   {
+    "case": "mx-01",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "ref": "docker.io/bitnami/redis:6.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "correct_affected",
+    "relationship_after": "AFFECTS_ARTIFACT"
+   },
+   {
+    "case": "mx-02",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "ref": "docker.io/redis:6.2",
+    "label": "in_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_affected",
+    "after": "false_clear",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "mx-03",
+    "event": "bitnami-2025+redis-6.2-eol",
+    "ref": "docker.io/redis:7.2",
+    "label": "out_of_scope",
+    "aliased_to": "injected-unrelated-project",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   }
+  ],
+  "collided": [
+   {
+    "case": "sp-03",
+    "event": "spark-mainline",
+    "ref": "docker.io/apache/spark:3.5.4",
+    "label": "out_of_scope",
+    "aliased_to": "bitnami-spark",
+    "before": "correct_unaffected",
+    "after": "correct_unaffected",
+    "relationship_after": "NOT_AFFECTED"
+   },
+   {
+    "case": "et-02",
+    "event": "etcd-move",
+    "ref": "github.com/etcd-io/etcd",
+    "label": "out_of_scope",
+    "aliased_to": "etcd",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "AFFECTS_PROJECT"
+   },
+   {
+    "case": "ca-02",
+    "event": "capa-move",
+    "ref": "github.com/mandiant/capa",
+    "label": "out_of_scope",
+    "aliased_to": "capa",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "AFFECTS_PROJECT"
+   },
+   {
+    "case": "tr-02",
+    "event": "traefik-move",
+    "ref": "github.com/traefik/traefik",
+    "label": "out_of_scope",
+    "aliased_to": "traefik",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "AFFECTS_PROJECT"
+   },
+   {
+    "case": "tr-03",
+    "event": "traefik-move",
+    "ref": "docker.io/library/traefik:2.10",
+    "label": "out_of_scope",
+    "aliased_to": "traefik",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "AFFECTS_PROJECT"
+   },
+   {
+    "case": "fm-02",
+    "event": "fbsdk-move",
+    "ref": "github.com/facebookarchive/react-native-fbsdk",
+    "label": "out_of_scope",
+    "aliased_to": "react-native-fbsdk",
+    "before": "unresolved",
+    "after": "unresolved",
+    "relationship_after": "AFFECTS_PROJECT"
+   }
+  ]
+ }
+}
