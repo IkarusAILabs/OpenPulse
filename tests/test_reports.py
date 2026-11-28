@@ -1,6 +1,7 @@
 """Monthly report tests: ranking, evidence, offline CLI."""
 
 import json
+from datetime import date
 
 
 def _item(project, findings):
@@ -233,11 +234,15 @@ def test_report_recency_holds_back_stale_dated_findings():
             ],
         }
 
+    # The September report is built as of the end of September: with the real
+    # clock, 2026-08-15 drifts out of the freshness window and the test fails.
+    today = date(2026, 9, 30)
+
     assert "- Material changes (action + review): 0" in build_report(
-        "2026-09", [item("2017-01-01")], since="2026-07-01"
+        "2026-09", [item("2017-01-01")], since="2026-07-01", today=today
     )
     assert "- Material changes (action + review): 1" in build_report(
-        "2026-09", [item("2026-08-15")], since="2026-07-01"
+        "2026-09", [item("2026-08-15")], since="2026-07-01", today=today
     )
 
 
@@ -478,10 +483,17 @@ def test_executive_summary_pluralises_unknown_dates():
 
     def uncertain(unknown_dates):
         lines = _executive_summary(
-            month="2026-11", projects=1, material=1, attention=0, upcoming=0,
-            discoveries=0, background=0, silent=0,
+            month="2026-11",
+            projects=1,
+            material=1,
+            attention=0,
+            upcoming=0,
+            discoveries=0,
+            background=0,
+            silent=0,
             confidence_counts={"CONFIRMED": 0, "CORROBORATED": 0, "EMERGING": 1, "UNVERIFIED": 0},
-            held_back=2, unknown_dates=unknown_dates,
+            held_back=2,
+            unknown_dates=unknown_dates,
         )
         return next(line for line in lines if "What remains uncertain" in line)
 
