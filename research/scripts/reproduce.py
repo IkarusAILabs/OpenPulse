@@ -71,7 +71,10 @@ def source_files() -> list[Path]:
         for path in ROOT.glob(pattern):
             if path.is_file() and "__pycache__" not in path.parts:
                 seen.add(path)
-    return sorted(seen)
+    # Sort by the relative POSIX path string: Path ordering differs between
+    # Windows and POSIX (e.g. "terraform/" vs "terraform-support-change/"),
+    # which made the source hash depend on the platform.
+    return sorted(seen, key=lambda p: p.relative_to(ROOT).as_posix())
 
 
 def source_sha256() -> str:
