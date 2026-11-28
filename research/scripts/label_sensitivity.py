@@ -120,7 +120,7 @@ def agreement(
     for c in cases:
         by_event[events[c]].append((first[c], second[c]))
     names = sorted(by_event)
-    rng = random.Random(SEED)
+    rng = random.Random(SEED)  # noqa: S311 - seeded, reproducible sampling; not a secret
     draws = []
     for _ in range(RESAMPLES):
         sample = [p for _ in names for p in by_event[rng.choice(names)]]

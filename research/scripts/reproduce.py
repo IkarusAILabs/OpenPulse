@@ -84,8 +84,12 @@ def source_sha256() -> str:
 
 def _git(*args: str) -> str | None:
     try:
-        return subprocess.run(
-            ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True
+        return subprocess.run(  # noqa: S603 - fixed git argv; git from PATH, as the user runs it
+            ["git", *args],  # noqa: S607 - fixed git argv; git from PATH, as the user runs it
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return None
@@ -93,7 +97,7 @@ def _git(*args: str) -> str | None:
 
 def _step(title: str, argv: list[str], env: dict[str, str]) -> None:
     print(f"== {title}", flush=True)
-    done = subprocess.run([sys.executable, *argv], cwd=ROOT, env=env)
+    done = subprocess.run([sys.executable, *argv], cwd=ROOT, env=env)  # noqa: S603 - this interpreter, fixed script paths
     if done.returncode:
         raise SystemExit(f"step failed ({done.returncode}): {title}")
 

@@ -107,7 +107,7 @@ def adjudication() -> int:
     b, _ = reader_labels("B", expected)
     dataset = load_json(DATASETS["retro"])
     cases = {c["id"]: c for c in dataset["cases"]}
-    rng = random.Random(ADJ_SEED)
+    rng = random.Random(ADJ_SEED)  # noqa: S311 - seeded, reproducible sampling; not a secret
     order: dict[str, list[str]] = {}
     blocks = []
     for nid in disagreements(a, b):

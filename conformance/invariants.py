@@ -85,7 +85,7 @@ def identity(dep: dict[str, Any], slug: str) -> str:
 
 def generate(seed: int, cases: int):
     """(index, dependency, event specs), reproducible from the seed."""
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
     for index in range(cases):
         dep = random_dependency(rng)
         events = [randomized.random_event(rng, i) for i in range(rng.randint(1, 3))]

@@ -90,7 +90,7 @@ def build_packets(dataset: dict[str, Any]) -> tuple[dict[str, Any], dict[str, st
         )
     packets = {}
     for reader, seed in SEEDS.items():
-        rng = random.Random(seed)
+        rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
         events = sorted(refs)
         rng.shuffle(events)
         blocks = []

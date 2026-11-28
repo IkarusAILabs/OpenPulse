@@ -77,7 +77,7 @@ class ClusterBootstrap:
     """One set of resampled events, shared by every policy and metric."""
 
     def __init__(self, events: list[str], resamples: int, seed: int):
-        rng = random.Random(seed)
+        rng = random.Random(seed)  # noqa: S311 - seeded, reproducible sampling; not a secret
         self.events = events
         self.weights = []
         for _ in range(resamples):
